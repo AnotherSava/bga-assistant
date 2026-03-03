@@ -1,0 +1,57 @@
+{#- Card rendering macros for Innovation summary -#}
+
+{%- macro icon_img(icon_name, color, cardnum, icons_rel) -%}
+{%- if icon_name == "hex" -%}
+<img src="{{ icons_rel }}/hex_{{ cardnum }}.png" width="20" height="20" alt="{{ icon_name }}">
+{%- elif icon_name in ("left", "right", "up") -%}
+<img src="{{ icons_rel }}/arrow_{{ color }}.png" width="20" height="20" alt="{{ icon_name }}">
+{%- elif icon_name.startswith("bonus-") -%}
+<img src="{{ icons_rel }}/bonus_{{ icon_name.split("-")[1] }}.png" width="20" height="20" alt="{{ icon_name }}">
+{%- else -%}
+<img src="{{ icons_rel }}/{{ icon_name }}_{{ color }}.png" width="20" height="20" alt="{{ icon_name }}">
+{%- endif -%}
+{%- endmacro -%}
+
+{%- macro card(c, cards_rel, icons_rel) -%}
+{%- set age_cls = "card-age starred" if c.star else "card-age" -%}
+{%- if c.layout == "base" -%}
+<div class="card card-base b-{{ c.color }}"{% if c.is_known %} data-known{% endif %}><div class="cb-tl">{{ icon_img(c.icons[0], c.color, c.cardnum, icons_rel) }}</div><div class="cb-name">{{ c.name | e }}</div><div class="cb-bl">{{ icon_img(c.icons[1], c.color, c.cardnum, icons_rel) }}</div><div class="cb-mid">{{ icon_img(c.icons[2], c.color, c.cardnum, icons_rel) }}{{ icon_img(c.icons[3], c.color, c.cardnum, icons_rel) }}</div><div class="{{ age_cls }}">{{ c.age }}</div><div class="card-tip"><img src="{{ cards_rel }}/card_{{ c.cardnum }}.png"></div></div>
+{%- elif c.layout == "cities" -%}
+{%- set tip_text = (c.name | e) ~ "\n" ~ (c.dogma_text | e) if c.dogma_text else c.name | e -%}
+<div class="card card-cities b-{{ c.color }}"{% if c.is_known %} data-known{% endif %}><div class="cc-top">{% for p in [0, 5, 4] %}{% if p < c.icons | length %}{{ icon_img(c.icons[p], c.color, c.cardnum, icons_rel) }}{% endif %}{% endfor %}</div><div class="cc-bot">{% for p in [1, 2, 3] %}{% if p < c.icons | length %}{{ icon_img(c.icons[p], c.color, c.cardnum, icons_rel) }}{% endif %}{% endfor %}</div><div class="{{ age_cls }}">{{ c.age }}</div><div class="card-tip-text">{{ tip_text }}</div></div>
+{%- else -%}
+{%- set tooltip_attr = ' data-tooltip="' ~ (c.dogma_text | e) ~ '"' if c.dogma_text else "" -%}
+<div class="card b-{{ c.color }}"{{ tooltip_attr }}{% if c.is_known %} data-known{% endif %}><div class="card-name">{{ c.name | e }}</div><div class="card-body"><div class="{{ age_cls }}">{{ c.age }}</div></div></div>
+{%- endif -%}
+{%- endmacro -%}
+
+{%- macro unknown_card(u) -%}
+{%- if u.set_letter == "b" -%}
+{%- set cls = "b-gray-base" -%}
+{%- elif u.set_letter == "c" -%}
+{%- set cls = "b-gray-cities" -%}
+{%- else -%}
+{%- set cls = "b-gray" -%}
+{%- endif -%}
+<div class="card card-base {{ cls }}"><div class="cb-tl"></div><div class="cb-name"></div><div class="cb-bl"></div><div class="cb-mid"></div><div class="card-age">{{ u.age if u.age is not none else "" }}</div></div>
+{%- endmacro -%}
+
+{%- macro render_item(item, cards_rel, icons_rel) -%}
+{%- if item.type == "known" -%}
+{{ card(item, cards_rel, icons_rel) }}
+{%- else -%}
+{{ unknown_card(item) }}
+{%- endif -%}
+{%- endmacro -%}
+
+{%- macro tri_toggle(toggle) -%}
+<span class="tri-toggle" data-target="{{ toggle.target_id }}">[{% for opt in toggle.options %}<span class="tri-opt{{ ' active' if opt.active else '' }}" data-mode="{{ opt.mode }}">{{ opt.label }}</span>{% if not loop.last %}<span class="tri-sep">|</span>{% endif %}{% endfor %}]</span>
+{%- endmacro -%}
+
+{%- macro hand_row(icon_svg, items, cards_rel, icons_rel) -%}
+<div class="hand-row"><span class="row-label">{{ icon_svg }}</span><div class="card-row">{% for item in items %}{{ render_item(item, cards_rel, icons_rel) }}{% endfor %}</div></div>
+{%- endmacro -%}
+
+{%- macro deck_age_row(age, items, all_known, cards_rel, icons_rel) -%}
+<div class="deck-age{{ ' all-known' if all_known else '' }}"><span class="deck-age-label">{{ age }}</span><div class="card-row">{% for item in items %}{{ render_item(item, cards_rel, icons_rel) }}{% endfor %}</div></div>
+{%- endmacro -%}

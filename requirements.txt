@@ -1,3 +1,5 @@
 playwright
+jinja2
+python-dotenv
 Pillow
 pytest

@@ -2,7 +2,7 @@
 name = "bga-tracker"
 version = "0.1.0"
 requires-python = ">=3.12"
-dependencies = ["playwright"]
+dependencies = ["playwright", "jinja2", "python-dotenv"]
 
 [project.optional-dependencies]
 assets = ["Pillow"]  # only needed for download_assets.py (one-time sprite extraction)

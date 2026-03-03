@@ -1,0 +1,167 @@
+body {
+  background: #1e1e1e;
+  color: #d4d4d4;
+  font-family: Consolas, 'Courier New', monospace;
+  font-size: 14px;
+  padding: 20px;
+}
+
+/* Multi-column page layout */
+.page-grid { display: grid; gap: 20px; align-items: start; }
+.page-col { min-width: 0; }
+
+.section { margin-bottom: 12px; }
+.section-title { font-size: 13px; margin-bottom: 4px; font-weight: bold; color: #eee; }
+.dim { color: #666; }
+.empty-card { width: 92px; height: 49px; display: inline-flex; align-items: center; justify-content: center; color: #666; font-size: 12px; }
+
+/* Card — shared */
+.card {
+  display: inline-block;
+  padding: 2px;
+  border-radius: 4px;
+  border: 1px solid;
+  margin: 1px;
+  position: relative;
+  vertical-align: top;
+  cursor: default;
+}
+.card.b-blue   { background: #1a3a5c; border-color: #4a9eff; color: #8ec8ff; }
+.card.b-red    { background: #5c1a1a; border-color: #ff4444; color: #ff8888; }
+.card.b-green  { background: #1a4c1a; border-color: #44bb44; color: #88dd88; }
+.card.b-yellow { background: #4c4a1a; border-color: #ccaa00; color: #eedd66; }
+.card.b-purple { background: #3a1a5c; border-color: #bb66ff; color: #dd99ff; }
+.card.b-gray   { background: #333; border-color: #555; color: #888; }
+.card.b-gray-base   { background: #363328; border-color: #6b6545; color: #999078; }
+.card.b-gray-cities { background: #362833; border-color: #6b4565; color: #997088; }
+.card img { width: 20px; height: 20px; display: block; }
+
+/* Set 0 (base) — 2×3 CSS grid */
+.card-base {
+  display: inline-grid;
+  grid-template-columns: 20px 41px 25px;
+  grid-template-rows: 20px 20px;
+  gap: 1px;
+  align-items: center;
+}
+.cb-tl   { grid-row: 1; grid-column: 1; }
+.cb-name { grid-row: 1; grid-column: 2 / 4; font-size: 12px; white-space: nowrap; font-family: 'Barlow Condensed', sans-serif; padding-left: 1px; color: #fff; }
+.cb-bl   { grid-row: 2; grid-column: 1; }
+.cb-mid  { grid-row: 2; grid-column: 2; display: flex; gap: 1px; justify-self: start; }
+.card-base > .card-age { grid-row: 2; grid-column: 3; align-self: center; justify-self: end; }
+
+/* Set 3 (cities) — 2×2 CSS grid, icons only */
+.card-cities {
+  display: inline-grid;
+  grid-template-columns: 62px 25px;
+  grid-template-rows: 20px 20px;
+  gap: 1px;
+  align-items: center;
+}
+.cc-top { grid-row: 1; grid-column: 1; display: flex; gap: 1px; }
+.cc-bot { grid-row: 2; grid-column: 1; display: flex; gap: 1px; }
+.card-cities > .card-age { grid-row: 2; grid-column: 2; align-self: center; justify-self: end; }
+.card-age {
+  font-family: 'Russo One', sans-serif;
+  font-size: 18px;
+  font-weight: bold;
+  text-align: center;
+  min-width: 20px;
+  color: #fff;
+}
+.card-age.starred { color: #ff4444; }
+.b-red .card-age.starred { color: #ff9999; }
+
+/* Image tooltip (base cards) */
+.card-tip {
+  display: none;
+  position: fixed;
+  z-index: 10;
+  pointer-events: none;
+}
+.card-tip img { width: 375px; height: auto; border-radius: 6px; }
+.card:hover > .card-tip { display: block; }
+
+/* Text tooltip (cities cards) */
+.card-tip-text {
+  display: none;
+  position: fixed;
+  z-index: 10;
+  background: #222;
+  color: #ccc;
+  padding: 8px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  white-space: pre-wrap;
+  max-width: 320px;
+  border: 1px solid #555;
+  pointer-events: none;
+  line-height: 1.4;
+}
+.card:hover > .card-tip-text { display: block; }
+
+/* Layout */
+.deck-age {
+  display: flex;
+  align-items: flex-start;
+  min-height: 49px;
+  gap: 6px;
+}
+.deck-age-label {
+  font-family: 'Russo One', sans-serif;
+  font-size: 18px;
+  font-weight: bold;
+  color: #888;
+  width: 24px;
+  flex-shrink: 0;
+  text-align: center;
+  align-self: center;
+}
+.age-label {
+  min-width: 24px;
+  text-align: right;
+  color: #888;
+  font-size: 13px;
+  padding-top: 6px;
+}
+.card-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+/* Tall grid layout */
+.tall-grid { border-collapse: collapse; }
+.tall-grid td { padding: 0; vertical-align: top; }
+.tall-grid .deck-age-label { vertical-align: middle; padding-right: 6px; }
+.hand-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+.row-label {
+  width: 24px;
+  flex-shrink: 0;
+  align-self: center;
+  text-align: center;
+}
+.row-label svg { width: 20px; height: 20px; fill: #888; }
+/* Tri-toggle (Hide | Show | None | All | Unknown) */
+.tri-toggle { font-size: 12px; font-weight: normal; vertical-align: baseline; color: #aaa; }
+.tri-sep { color: #555; margin: 0 2px; }
+.tri-opt { cursor: pointer; color: #555; padding: 1px 3px; border-radius: 2px; }
+.tri-opt:hover { color: #bbb; }
+.tri-opt.active { color: #aaa; }
+
+/* Unknown mode: mask known cards to look like b-gray unknowns */
+.mode-unknown [data-known] { background: #333 !important; border-color: #555 !important; color: #888 !important; }
+.mode-unknown [data-known] .cb-tl,
+.mode-unknown [data-known] .cb-name,
+.mode-unknown [data-known] .cb-bl,
+.mode-unknown [data-known] .cb-mid,
+.mode-unknown [data-known] .cc-top,
+.mode-unknown [data-known] .cc-bot,
+.mode-unknown [data-known] .card-age,
+.mode-unknown [data-known] .card-tip,
+.mode-unknown [data-known] .card-tip-text { visibility: hidden; }
+.mode-unknown .all-known { display: none; }

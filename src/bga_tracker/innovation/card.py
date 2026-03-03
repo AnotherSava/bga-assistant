@@ -84,6 +84,9 @@ class CardInfo:
     age: int
     color: str
     card_set: int
+    cardnum: int
+    icons: tuple[str, ...]
+    dogmas: tuple[str, ...]
 
     @property
     def group_key(self) -> tuple[int, int]:
@@ -98,7 +101,7 @@ class CardDB:
 
         self._cards = {}
 
-        for item in raw:
+        for idx, item in enumerate(raw):
             if item is None or "age" not in item or "color" not in item:
                 continue
             s = item.get("set")
@@ -111,6 +114,9 @@ class CardDB:
                 age=item["age"],
                 color=item["color"],
                 card_set=s,
+                cardnum=idx,
+                icons=tuple(item.get("icons", ())),
+                dogmas=tuple(item.get("dogmas", ())),
             )
 
     def __getitem__(self, name_lower):

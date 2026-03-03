@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Innovation &mdash; {{ table_id }}</title>
+<link href="https://fonts.googleapis.com/css2?family=Russo+One&family=Barlow+Condensed&display=swap" rel="stylesheet">
+<style>
+{% include "summary.css" %}
+</style>
+</head>
+<body>
+{%- from "macros.html.j2" import card, unknown_card, render_item, tri_toggle, hand_row, deck_age_row -%}
+{%- set icon_eye_open %}{% include "eye_open.svg" %}{% endset -%}
+{%- set icon_eye_closed %}{% include "eye_closed.svg" %}{% endset -%}
+{%- set icon_question %}{% include "question.svg" %}{% endset -%}
+
+{#- Macro: render a section by type -#}
+{%- macro render_section(s) -%}
+{%- if s.type == "opponent_zone" -%}
+{{ _opponent_zone(s) }}
+{%- elif s.type == "my_cards" -%}
+{{ _my_cards(s) }}
+{%- elif s.type == "deck" -%}
+{{ _deck(s) }}
+{%- elif s.type == "achievements" -%}
+{{ _achievements(s) }}
+{%- elif s.type == "all_cards" -%}
+{{ _all_cards(s) }}
+{%- endif -%}
+{%- endmacro -%}
+
+{#- Section: opponent hand/score -#}
+{%- macro _opponent_zone(s) -%}
+<div class="section"><div class="section-title">{{ s.title }}</div>
+{%- if s.empty -%}
+<div class="hand-row"><span class="row-label"> </span><div class="card-row"><div class="empty-card">empty</div></div></div>
+{%- else -%}
+<div class="hand-row"><span class="row-label"> </span><div class="card-row">{% for item in s.cards %}{{ render_item(item, cards_rel, icons_rel) }}{% endfor %}</div></div>
+{%- endif -%}
+</div>
+{%- endmacro -%}
+
+{#- Section: my hand/score -#}
+{%- macro _my_cards(s) -%}
+<div class="section"><div class="section-title">{{ s.title }}</div>
+{%- if s.empty -%}
+<div class="card-row"><div class="empty-card">empty</div></div>
+{%- else -%}
+{%- if s.hidden %}
+{{ hand_row(icon_eye_closed, s.hidden, cards_rel, icons_rel) }}
+{%- endif -%}
+{%- if s.suspected %}
+{{ hand_row(icon_question, s.suspected, cards_rel, icons_rel) }}
+{%- endif -%}
+{%- if s.revealed %}
+{{ hand_row(icon_eye_open, s.revealed, cards_rel, icons_rel) }}
+{%- endif -%}
+{%- endif -%}
+</div>
+{%- endmacro -%}
+
+{#- Section: deck (base or cities) -#}
+{%- macro _deck(s) -%}
+<div class="section"><div class="section-title">{{ s.title }} {{ tri_toggle(s.toggle) }}</div><div id="{{ s.target_id }}"{{ s.div_attrs }}>
+{%- for row in s.age_rows -%}
+{{ deck_age_row(row.age, row.cards, false, cards_rel, icons_rel) }}
+{%- endfor -%}
+</div></div>
+{%- endmacro -%}
+
+{#- Section: achievements -#}
+{%- macro _achievements(s) -%}
+<div class="section"><div class="section-title">{{ s.title }} {{ tri_toggle(s.toggle) }} {{ tri_toggle(s.layout_toggle) }}</div><div id="achievements"{{ s.div_attrs }}><div class="layout-wide" data-list="achievements"{{ s.wide_hide_attr }}>{{ hand_row(" ", s.wide_items, cards_rel, icons_rel) }}</div><div class="layout-tall" data-list="achievements"{{ s.tall_hide_attr }}>{{ hand_row(" ", s.tall_row1, cards_rel, icons_rel) }}{{ hand_row(" ", s.tall_row2, cards_rel, icons_rel) }}</div></div></div>
+{%- endmacro -%}
+
+{#- Section: all cards (base list / cities list) -#}
+{%- macro _all_cards(s) -%}
+<div class="section"><div class="section-title">{{ s.title }} {{ tri_toggle(s.toggle) }} {{ tri_toggle(s.layout_toggle) }}</div><div id="{{ s.target_id }}"{{ s.div_attrs }}><div class="layout-wide" data-list="{{ s.target_id }}"{{ s.wide_hide_attr }}>
+{%- for row in s.wide_rows -%}
+{{ deck_age_row(row.age, row.cards, row.all_known, cards_rel, icons_rel) }}
+{%- endfor -%}
+</div><div class="layout-tall" data-list="{{ s.target_id }}"{{ s.tall_hide_attr }}><table class="tall-grid">
+{%- for row in s.tall_rows -%}
+<tr{% if row.all_known %} class="all-known"{% endif %}>
+{%- if row.age_rowspan -%}
+<td class="deck-age-label" rowspan="{{ row.age_rowspan }}">{{ row.age }}</td>
+{%- endif -%}
+{%- for cell in row.cells -%}
+<td>{% if cell %}{{ render_item(cell, cards_rel, icons_rel) }}{% endif %}</td>
+{%- endfor -%}
+</tr>
+{%- endfor -%}
+</table></div></div></div>
+{%- endmacro -%}
+
+{#- Page content: columns -#}
+{%- if num_cols == 1 -%}
+{%- for s in columns[0].sections %}
+{{ render_section(s) }}
+{%- endfor -%}
+{%- else -%}
+<div class="page-grid" style="grid-template-columns: {{ grid_cols }};">
+{%- for col in columns -%}
+<div class="page-col">
+{%- for s in col.sections %}
+{{ render_section(s) }}
+{%- endfor -%}
+</div>
+{%- endfor -%}
+</div>
+{%- endif -%}
+
+<script>
+{% include "summary.js" %}
+</script>
+</body>
+</html>

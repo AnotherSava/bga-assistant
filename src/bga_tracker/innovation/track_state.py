@@ -11,31 +11,15 @@ Output: data/<TABLE_ID>/game_state.json
 """
 
 import json
-import os
 import sys
 
 from bga_tracker import PROJECT_ROOT
+from bga_tracker.innovation.card import CardDB
+from bga_tracker.innovation.config import Config
+from bga_tracker.innovation.state_tracker import StateTracker
 
 DATA_DIR = PROJECT_ROOT / "data"
 CARDINFO_PATH = PROJECT_ROOT / "assets" / "cardinfo.json"
-
-# Load .env manually (no external deps)
-_env_path = PROJECT_ROOT / ".env"
-if _env_path.exists():
-    with open(_env_path) as _f:
-        for _line in _f:
-            _line = _line.strip()
-            if _line and not _line.startswith("#") and "=" in _line:
-                _k, _v = _line.split("=", 1)
-                os.environ.setdefault(_k.strip(), _v.strip())
-
-PERSPECTIVE = os.environ.get("PLAYER_NAME")
-if not PERSPECTIVE:
-    print("ERROR: PLAYER_NAME not set in .env or environment")
-    sys.exit(1)
-
-from bga_tracker.innovation.card import CardDB
-from bga_tracker.innovation.state_tracker import StateTracker
 
 
 def find_table(table_id: str):
@@ -53,9 +37,11 @@ def main():
         print("Usage: python -m bga_tracker.innovation.track_state TABLE_ID")
         sys.exit(1)
 
+    config = Config.from_env()
+
     table_id = sys.argv[1]
     table_dir, opponent = find_table(table_id)
-    players = [PERSPECTIVE, opponent]
+    players = [config.player_name, opponent]
     print(f"Players: {', '.join(players)}")
 
     game_log_path = table_dir / "game_log.json"
@@ -64,7 +50,7 @@ def main():
     card_db = CardDB(CARDINFO_PATH)
     print(f"Loaded {len(card_db)} cards from database (sets 0+3)")
 
-    tracker = StateTracker(card_db, players, PERSPECTIVE)
+    tracker = StateTracker(card_db, players, config.player_name)
     game_state = tracker.process_log(game_log_path).to_json()
 
     with open(out_path, "w") as f:
