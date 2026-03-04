@@ -4,7 +4,6 @@
     "84538461": "TrinaCat"
   },
   "my_hand": [
-    "The pirate code",
     "Steam engine"
   ],
   "log": [
@@ -27,7 +26,9 @@
       "card_name": "The wheel",
       "card_age": 1,
       "source_owner": "AnotherSava",
-      "dest_owner": "AnotherSava"
+      "dest_owner": "AnotherSava",
+      "meld_keyword": true,
+      "bottom_to": false
     },
     {
       "type": "transfer",
@@ -38,7 +39,9 @@
       "card_name": "Tools",
       "card_age": 1,
       "source_owner": "TrinaCat",
-      "dest_owner": "TrinaCat"
+      "dest_owner": "TrinaCat",
+      "meld_keyword": true,
+      "bottom_to": false
     },
     {
       "move": 3,
@@ -54,7 +57,9 @@
       "card_name": "Metalworking",
       "card_age": 1,
       "source_owner": "AnotherSava",
-      "dest_owner": "AnotherSava"
+      "dest_owner": "AnotherSava",
+      "meld_keyword": true,
+      "bottom_to": false
     },
     {
       "type": "transfer",
@@ -65,7 +70,9 @@
       "card_name": "Thebes",
       "card_age": 1,
       "source_owner": null,
-      "dest_owner": "AnotherSava"
+      "dest_owner": "AnotherSava",
+      "meld_keyword": false,
+      "bottom_to": false
     },
     {
       "type": "transfer",
@@ -76,7 +83,9 @@
       "card_name": "Domestication",
       "card_age": 1,
       "source_owner": "TrinaCat",
-      "dest_owner": "TrinaCat"
+      "dest_owner": "TrinaCat",
+      "meld_keyword": true,
+      "bottom_to": false
     },
     {
       "type": "transfer",
@@ -87,7 +96,9 @@
       "card_name": null,
       "card_age": 1,
       "source_owner": null,
-      "dest_owner": "TrinaCat"
+      "dest_owner": "TrinaCat",
+      "meld_keyword": false,
+      "bottom_to": false
     },
     {
       "type": "transfer",
@@ -98,7 +109,9 @@
       "card_name": "Ephesus",
       "card_age": 1,
       "source_owner": "TrinaCat",
-      "dest_owner": "TrinaCat"
+      "dest_owner": "TrinaCat",
+      "meld_keyword": true,
+      "bottom_to": false
     },
     {
       "type": "transfer",
@@ -109,7 +122,9 @@
       "card_name": null,
       "card_age": 2,
       "source_owner": null,
-      "dest_owner": "TrinaCat"
+      "dest_owner": "TrinaCat",
+      "meld_keyword": false,
+      "bottom_to": false
     },
     {
       "type": "transfer",
@@ -120,7 +135,9 @@
       "card_name": null,
       "card_age": 1,
       "source_owner": null,
-      "dest_owner": "TrinaCat"
+      "dest_owner": "TrinaCat",
+      "meld_keyword": false,
+      "bottom_to": false
     },
     {
       "move": 7,
@@ -151,7 +168,9 @@
       "card_name": "Writing",
       "card_age": 1,
       "source_owner": null,
-      "dest_owner": "AnotherSava"
+      "dest_owner": "AnotherSava",
+      "meld_keyword": false,
+      "bottom_to": false
     },
     {
       "type": "transfer",
@@ -162,7 +181,9 @@
       "card_name": "Oars",
       "card_age": 1,
       "source_owner": null,
-      "dest_owner": "AnotherSava"
+      "dest_owner": "AnotherSava",
+      "meld_keyword": false,
+      "bottom_to": false
     },
     {
       "type": "transfer",
@@ -173,7 +194,9 @@
       "card_name": "Thebes",
       "card_age": 1,
       "source_owner": "AnotherSava",
-      "dest_owner": "AnotherSava"
+      "dest_owner": "AnotherSava",
+      "meld_keyword": true,
+      "bottom_to": false
     },
     {
       "type": "transfer",
@@ -184,7 +207,9 @@
       "card_name": "City states",
       "card_age": 1,
       "source_owner": null,
-      "dest_owner": "AnotherSava"
+      "dest_owner": "AnotherSava",
+      "meld_keyword": false,
+      "bottom_to": false
     },
     {
       "type": "transfer",
@@ -195,7 +220,9 @@
       "card_name": "City states",
       "card_age": 1,
       "source_owner": "AnotherSava",
-      "dest_owner": "AnotherSava"
+      "dest_owner": "AnotherSava",
+      "meld_keyword": false,
+      "bottom_to": false
     },
     {
       "move": 8,
@@ -211,7 +238,9 @@
       "card_name": "City states",
       "card_age": 1,
       "source_owner": "AnotherSava",
-      "dest_owner": null
+      "dest_owner": null,
+      "meld_keyword": false,
+      "bottom_to": true
     },
     {
       "move": 9,
@@ -227,7 +256,9 @@
       "card_name": "Hattusa",
       "card_age": 1,
       "source_owner": "TrinaCat",
-      "dest_owner": "TrinaCat"
+      "dest_owner": "TrinaCat",
+      "meld_keyword": false,
+      "bottom_to": true
     },
     {
       "move": 9,
@@ -253,7 +284,9 @@
       "card_name": "Mathematics",
       "card_age": 2,
       "source_owner": "TrinaCat",
-      "dest_owner": "TrinaCat"
+      "dest_owner": "TrinaCat",
+      "meld_keyword": true,
+      "bottom_to": false
     },
     {
       "type": "transfer",
@@ -264,7 +297,9 @@
       "card_name": null,
       "card_age": 1,
       "source_owner": null,
-      "dest_owner": "TrinaCat"
+      "dest_owner": "TrinaCat",
+      "meld_keyword": false,
+      "bottom_to": false
     },
     {
       "move": 9,
@@ -280,7 +315,9 @@
       "card_name": "Masonry",
       "card_age": 1,
       "source_owner": "TrinaCat",
-      "dest_owner": "TrinaCat"
+      "dest_owner": "TrinaCat",
+      "meld_keyword": true,
+      "bottom_to": false
     },
     {
       "type": "transfer",
@@ -291,7 +328,9 @@
       "card_name": null,
       "card_age": 1,
       "source_owner": null,
-      "dest_owner": "TrinaCat"
+      "dest_owner": "TrinaCat",
+      "meld_keyword": false,
+      "bottom_to": false
     },
     {
       "type": "transfer",
@@ -302,7 +341,9 @@
       "card_name": null,
       "card_age": 2,
       "source_owner": null,
-      "dest_owner": "TrinaCat"
+      "dest_owner": "TrinaCat",
+      "meld_keyword": false,
+      "bottom_to": false
     },
     {
       "type": "transfer",
@@ -313,7 +354,9 @@
       "card_name": "Writing",
       "card_age": 1,
       "source_owner": "AnotherSava",
-      "dest_owner": "AnotherSava"
+      "dest_owner": "AnotherSava",
+      "meld_keyword": true,
+      "bottom_to": false
     },
     {
       "type": "transfer",
@@ -324,7 +367,9 @@
       "card_name": "Troy",
       "card_age": 1,
       "source_owner": null,
-      "dest_owner": "AnotherSava"
+      "dest_owner": "AnotherSava",
+      "meld_keyword": false,
+      "bottom_to": false
     },
     {
       "move": 12,
@@ -340,7 +385,9 @@
       "card_name": "Troy",
       "card_age": 1,
       "source_owner": "AnotherSava",
-      "dest_owner": "AnotherSava"
+      "dest_owner": "AnotherSava",
+      "meld_keyword": false,
+      "bottom_to": true
     },
     {
       "move": 12,
@@ -366,7 +413,9 @@
       "card_name": "Road building",
       "card_age": 2,
       "source_owner": null,
-      "dest_owner": "AnotherSava"
+      "dest_owner": "AnotherSava",
+      "meld_keyword": false,
+      "bottom_to": false
     },
     {
       "move": 12,
@@ -382,7 +431,9 @@
       "card_name": "Construction",
       "card_age": 2,
       "source_owner": null,
-      "dest_owner": "AnotherSava"
+      "dest_owner": "AnotherSava",
+      "meld_keyword": false,
+      "bottom_to": false
     },
     {
       "type": "transfer",
@@ -393,7 +444,9 @@
       "card_name": null,
       "card_age": 2,
       "source_owner": null,
-      "dest_owner": "TrinaCat"
+      "dest_owner": "TrinaCat",
+      "meld_keyword": false,
+      "bottom_to": false
     },
     {
       "type": "transfer",
@@ -404,7 +457,9 @@
       "card_name": null,
       "card_age": 2,
       "source_owner": null,
-      "dest_owner": "TrinaCat"
+      "dest_owner": "TrinaCat",
+      "meld_keyword": false,
+      "bottom_to": false
     },
     {
       "move": 15,
@@ -420,7 +475,9 @@
       "card_name": "Oars",
       "card_age": 1,
       "source_owner": "AnotherSava",
-      "dest_owner": "AnotherSava"
+      "dest_owner": "AnotherSava",
+      "meld_keyword": false,
+      "bottom_to": true
     },
     {
       "move": 15,
@@ -446,7 +503,9 @@
       "card_name": "Currency",
       "card_age": 2,
       "source_owner": null,
-      "dest_owner": "AnotherSava"
+      "dest_owner": "AnotherSava",
+      "meld_keyword": false,
+      "bottom_to": false
     },
     {
       "move": 15,
@@ -462,7 +521,9 @@
       "card_name": "Philosophy",
       "card_age": 2,
       "source_owner": null,
-      "dest_owner": "AnotherSava"
+      "dest_owner": "AnotherSava",
+      "meld_keyword": false,
+      "bottom_to": false
     },
     {
       "type": "transfer",
@@ -473,7 +534,9 @@
       "card_name": "Philosophy",
       "card_age": 2,
       "source_owner": "AnotherSava",
-      "dest_owner": "AnotherSava"
+      "dest_owner": "AnotherSava",
+      "meld_keyword": true,
+      "bottom_to": false
     },
     {
       "type": "transfer",
@@ -484,7 +547,9 @@
       "card_name": "Nineveh",
       "card_age": 2,
       "source_owner": null,
-      "dest_owner": "AnotherSava"
+      "dest_owner": "AnotherSava",
+      "meld_keyword": false,
+      "bottom_to": false
     },
     {
       "type": "transfer",
@@ -495,7 +560,9 @@
       "card_name": null,
       "card_age": 2,
       "source_owner": null,
-      "dest_owner": "TrinaCat"
+      "dest_owner": "TrinaCat",
+      "meld_keyword": false,
+      "bottom_to": false
     },
     {
       "type": "transfer",
@@ -506,7 +573,9 @@
       "card_name": null,
       "card_age": 3,
       "source_owner": null,
-      "dest_owner": "TrinaCat"
+      "dest_owner": "TrinaCat",
+      "meld_keyword": false,
+      "bottom_to": false
     },
     {
       "type": "transfer",
@@ -517,7 +586,9 @@
       "card_name": "Nineveh",
       "card_age": 2,
       "source_owner": "AnotherSava",
-      "dest_owner": "AnotherSava"
+      "dest_owner": "AnotherSava",
+      "meld_keyword": true,
+      "bottom_to": false
     },
     {
       "move": 19,
@@ -533,7 +604,9 @@
       "card_name": "Constantinople",
       "card_age": 3,
       "source_owner": null,
-      "dest_owner": "AnotherSava"
+      "dest_owner": "AnotherSava",
+      "meld_keyword": false,
+      "bottom_to": false
     },
     {
       "type": "transfer",
@@ -544,7 +617,9 @@
       "card_name": "Constantinople",
       "card_age": 3,
       "source_owner": "AnotherSava",
-      "dest_owner": "AnotherSava"
+      "dest_owner": "AnotherSava",
+      "meld_keyword": true,
+      "bottom_to": false
     },
     {
       "type": "transfer",
@@ -555,7 +630,9 @@
       "card_name": "Cordoba",
       "card_age": 3,
       "source_owner": null,
-      "dest_owner": "AnotherSava"
+      "dest_owner": "AnotherSava",
+      "meld_keyword": false,
+      "bottom_to": false
     },
     {
       "type": "transfer",
@@ -566,7 +643,9 @@
       "card_name": "Compass",
       "card_age": 3,
       "source_owner": "TrinaCat",
-      "dest_owner": "TrinaCat"
+      "dest_owner": "TrinaCat",
+      "meld_keyword": true,
+      "bottom_to": false
     },
     {
       "type": "transfer",
@@ -577,7 +656,9 @@
       "card_name": null,
       "card_age": 3,
       "source_owner": null,
-      "dest_owner": "TrinaCat"
+      "dest_owner": "TrinaCat",
+      "meld_keyword": false,
+      "bottom_to": false
     },
     {
       "move": 22,
@@ -608,7 +689,9 @@
       "card_name": "Construction",
       "card_age": 2,
       "source_owner": "AnotherSava",
-      "dest_owner": "AnotherSava"
+      "dest_owner": "AnotherSava",
+      "meld_keyword": true,
+      "bottom_to": true
     },
     {
       "move": 24,
@@ -624,7 +707,9 @@
       "card_name": "Archery",
       "card_age": 1,
       "source_owner": "TrinaCat",
-      "dest_owner": "TrinaCat"
+      "dest_owner": "TrinaCat",
+      "meld_keyword": true,
+      "bottom_to": true
     },
     {
       "type": "transfer",
@@ -635,7 +720,9 @@
       "card_name": "Mapmaking",
       "card_age": 2,
       "source_owner": "TrinaCat",
-      "dest_owner": "TrinaCat"
+      "dest_owner": "TrinaCat",
+      "meld_keyword": true,
+      "bottom_to": true
     },
     {
       "type": "transfer",
@@ -646,7 +733,9 @@
       "card_name": "Kaifeng",
       "card_age": 3,
       "source_owner": "TrinaCat",
-      "dest_owner": "TrinaCat"
+      "dest_owner": "TrinaCat",
+      "meld_keyword": true,
+      "bottom_to": true
     },
     {
       "type": "transfer",
@@ -657,7 +746,9 @@
       "card_name": "Fermenting",
       "card_age": 2,
       "source_owner": "TrinaCat",
-      "dest_owner": "TrinaCat"
+      "dest_owner": "TrinaCat",
+      "meld_keyword": true,
+      "bottom_to": true
     },
     {
       "move": 29,
@@ -673,7 +764,9 @@
       "card_name": "Monument",
       "card_age": null,
       "source_owner": null,
-      "dest_owner": "TrinaCat"
+      "dest_owner": "TrinaCat",
+      "meld_keyword": false,
+      "bottom_to": false
     },
     {
       "move": 29,
@@ -689,7 +782,9 @@
       "card_name": null,
       "card_age": 3,
       "source_owner": null,
-      "dest_owner": "TrinaCat"
+      "dest_owner": "TrinaCat",
+      "meld_keyword": false,
+      "bottom_to": false
     },
     {
       "move": 30,
@@ -705,7 +800,9 @@
       "card_name": "Road building",
       "card_age": 2,
       "source_owner": "AnotherSava",
-      "dest_owner": "AnotherSava"
+      "dest_owner": "AnotherSava",
+      "meld_keyword": false,
+      "bottom_to": true
     },
     {
       "move": 30,
@@ -731,7 +828,9 @@
       "card_name": "Calendar",
       "card_age": 2,
       "source_owner": "TrinaCat",
-      "dest_owner": "AnotherSava"
+      "dest_owner": "AnotherSava",
+      "meld_keyword": false,
+      "bottom_to": true
     },
     {
       "type": "transfer",
@@ -742,7 +841,9 @@
       "card_name": "Canal building",
       "card_age": 2,
       "source_owner": "TrinaCat",
-      "dest_owner": "AnotherSava"
+      "dest_owner": "AnotherSava",
+      "meld_keyword": false,
+      "bottom_to": true
     },
     {
       "type": "transfer",
@@ -753,7 +854,9 @@
       "card_name": null,
       "card_age": 3,
       "source_owner": null,
-      "dest_owner": "TrinaCat"
+      "dest_owner": "TrinaCat",
+      "meld_keyword": false,
+      "bottom_to": false
     },
     {
       "move": 32,
@@ -769,7 +872,9 @@
       "card_name": "Education",
       "card_age": 3,
       "source_owner": "TrinaCat",
-      "dest_owner": "AnotherSava"
+      "dest_owner": "AnotherSava",
+      "meld_keyword": false,
+      "bottom_to": false
     },
     {
       "type": "transfer",
@@ -780,7 +885,9 @@
       "card_name": "Feudalism",
       "card_age": 3,
       "source_owner": "TrinaCat",
-      "dest_owner": "AnotherSava"
+      "dest_owner": "AnotherSava",
+      "meld_keyword": false,
+      "bottom_to": false
     },
     {
       "type": "transfer",
@@ -791,7 +898,9 @@
       "card_name": null,
       "card_age": 3,
       "source_owner": null,
-      "dest_owner": "TrinaCat"
+      "dest_owner": "TrinaCat",
+      "meld_keyword": false,
+      "bottom_to": false
     },
     {
       "move": 32,
@@ -812,7 +921,9 @@
       "card_name": "Cordoba",
       "card_age": 3,
       "source_owner": "AnotherSava",
-      "dest_owner": "AnotherSava"
+      "dest_owner": "AnotherSava",
+      "meld_keyword": true,
+      "bottom_to": false
     },
     {
       "type": "transfer",
@@ -823,7 +934,9 @@
       "card_name": "Baghdad",
       "card_age": 3,
       "source_owner": null,
-      "dest_owner": "AnotherSava"
+      "dest_owner": "AnotherSava",
+      "meld_keyword": false,
+      "bottom_to": false
     },
     {
       "move": 34,
@@ -854,7 +967,9 @@
       "card_name": null,
       "card_age": 3,
       "source_owner": "TrinaCat",
-      "dest_owner": null
+      "dest_owner": null,
+      "meld_keyword": false,
+      "bottom_to": true
     },
     {
       "type": "transfer",
@@ -865,7 +980,9 @@
       "card_name": "Printing press",
       "card_age": 4,
       "source_owner": null,
-      "dest_owner": "TrinaCat"
+      "dest_owner": "TrinaCat",
+      "meld_keyword": false,
+      "bottom_to": false
     },
     {
       "move": 36,
@@ -906,7 +1023,9 @@
       "card_name": null,
       "card_age": 4,
       "source_owner": null,
-      "dest_owner": "TrinaCat"
+      "dest_owner": "TrinaCat",
+      "meld_keyword": false,
+      "bottom_to": false
     },
     {
       "move": 38,
@@ -922,7 +1041,9 @@
       "card_name": "Baghdad",
       "card_age": 3,
       "source_owner": "AnotherSava",
-      "dest_owner": "AnotherSava"
+      "dest_owner": "AnotherSava",
+      "meld_keyword": false,
+      "bottom_to": true
     },
     {
       "move": 38,
@@ -948,7 +1069,9 @@
       "card_name": "Frankfurt",
       "card_age": 4,
       "source_owner": "TrinaCat",
-      "dest_owner": "AnotherSava"
+      "dest_owner": "AnotherSava",
+      "meld_keyword": false,
+      "bottom_to": false
     },
     {
       "move": 38,
@@ -964,7 +1087,9 @@
       "card_name": null,
       "card_age": 3,
       "source_owner": null,
-      "dest_owner": "TrinaCat"
+      "dest_owner": "TrinaCat",
+      "meld_keyword": false,
+      "bottom_to": false
     },
     {
       "move": 38,
@@ -980,7 +1105,9 @@
       "card_name": "Machinery",
       "card_age": 3,
       "source_owner": "TrinaCat",
-      "dest_owner": "AnotherSava"
+      "dest_owner": "AnotherSava",
+      "meld_keyword": false,
+      "bottom_to": false
     },
     {
       "move": 38,
@@ -996,7 +1123,9 @@
       "card_name": null,
       "card_age": 3,
       "source_owner": null,
-      "dest_owner": "TrinaCat"
+      "dest_owner": "TrinaCat",
+      "meld_keyword": false,
+      "bottom_to": false
     },
     {
       "move": 38,
@@ -1017,7 +1146,9 @@
       "card_name": "Frankfurt",
       "card_age": 4,
       "source_owner": "AnotherSava",
-      "dest_owner": "AnotherSava"
+      "dest_owner": "AnotherSava",
+      "meld_keyword": true,
+      "bottom_to": false
     },
     {
       "type": "transfer",
@@ -1028,7 +1159,9 @@
       "card_name": "Banking",
       "card_age": 5,
       "source_owner": null,
-      "dest_owner": "AnotherSava"
+      "dest_owner": "AnotherSava",
+      "meld_keyword": false,
+      "bottom_to": false
     },
     {
       "type": "transfer",
@@ -1039,7 +1172,9 @@
       "card_name": "Statistics",
       "card_age": 5,
       "source_owner": null,
-      "dest_owner": "AnotherSava"
+      "dest_owner": "AnotherSava",
+      "meld_keyword": false,
+      "bottom_to": false
     },
     {
       "type": "transfer",
@@ -1050,7 +1185,9 @@
       "card_name": "Paper",
       "card_age": 3,
       "source_owner": "TrinaCat",
-      "dest_owner": "TrinaCat"
+      "dest_owner": "TrinaCat",
+      "meld_keyword": true,
+      "bottom_to": false
     },
     {
       "move": 41,
@@ -1081,7 +1218,9 @@
       "card_name": null,
       "card_age": 4,
       "source_owner": null,
-      "dest_owner": "TrinaCat"
+      "dest_owner": "TrinaCat",
+      "meld_keyword": false,
+      "bottom_to": false
     },
     {
       "move": 42,
@@ -1102,7 +1241,9 @@
       "card_name": null,
       "card_age": 4,
       "source_owner": null,
-      "dest_owner": "TrinaCat"
+      "dest_owner": "TrinaCat",
+      "meld_keyword": false,
+      "bottom_to": false
     },
     {
       "move": 43,
@@ -1118,7 +1259,9 @@
       "card_name": "Calendar",
       "card_age": 2,
       "source_owner": "AnotherSava",
-      "dest_owner": "AnotherSava"
+      "dest_owner": "AnotherSava",
+      "meld_keyword": false,
+      "bottom_to": true
     },
     {
       "move": 43,
@@ -1144,7 +1287,9 @@
       "card_name": "Gunpowder",
       "card_age": 4,
       "source_owner": "TrinaCat",
-      "dest_owner": "AnotherSava"
+      "dest_owner": "AnotherSava",
+      "meld_keyword": false,
+      "bottom_to": false
     },
     {
       "type": "transfer",
@@ -1155,7 +1300,9 @@
       "card_name": "Milan",
       "card_age": 4,
       "source_owner": "TrinaCat",
-      "dest_owner": "AnotherSava"
+      "dest_owner": "AnotherSava",
+      "meld_keyword": false,
+      "bottom_to": false
     },
     {
       "type": "transfer",
@@ -1166,7 +1313,9 @@
       "card_name": null,
       "card_age": 3,
       "source_owner": null,
-      "dest_owner": "TrinaCat"
+      "dest_owner": "TrinaCat",
+      "meld_keyword": false,
+      "bottom_to": false
     },
     {
       "move": 43,
@@ -1182,7 +1331,9 @@
       "card_name": "Medicine",
       "card_age": 3,
       "source_owner": "TrinaCat",
-      "dest_owner": "AnotherSava"
+      "dest_owner": "AnotherSava",
+      "meld_keyword": false,
+      "bottom_to": false
     },
     {
       "move": 43,
@@ -1198,7 +1349,9 @@
       "card_name": null,
       "card_age": 3,
       "source_owner": null,
-      "dest_owner": "TrinaCat"
+      "dest_owner": "TrinaCat",
+      "meld_keyword": false,
+      "bottom_to": false
     },
     {
       "move": 43,
@@ -1219,7 +1372,9 @@
       "card_name": "Currency",
       "card_age": 2,
       "source_owner": "AnotherSava",
-      "dest_owner": "AnotherSava"
+      "dest_owner": "AnotherSava",
+      "meld_keyword": true,
+      "bottom_to": false
     },
     {
       "move": 45,
@@ -1265,7 +1420,9 @@
       "card_name": null,
       "card_age": 4,
       "source_owner": null,
-      "dest_owner": "TrinaCat"
+      "dest_owner": "TrinaCat",
+      "meld_keyword": false,
+      "bottom_to": false
     },
     {
       "type": "transfer",
@@ -1276,7 +1433,9 @@
       "card_name": "Invention",
       "card_age": 4,
       "source_owner": "TrinaCat",
-      "dest_owner": "TrinaCat"
+      "dest_owner": "TrinaCat",
+      "meld_keyword": true,
+      "bottom_to": false
     },
     {
       "move": 48,
@@ -1292,7 +1451,9 @@
       "card_name": "Feudalism",
       "card_age": 3,
       "source_owner": "AnotherSava",
-      "dest_owner": "AnotherSava"
+      "dest_owner": "AnotherSava",
+      "meld_keyword": false,
+      "bottom_to": true
     },
     {
       "move": 48,
@@ -1318,7 +1479,9 @@
       "card_name": null,
       "card_age": 3,
       "source_owner": "TrinaCat",
-      "dest_owner": null
+      "dest_owner": null,
+      "meld_keyword": false,
+      "bottom_to": true
     },
     {
       "move": 49,
@@ -1339,7 +1502,9 @@
       "card_name": null,
       "card_age": 3,
       "source_owner": null,
-      "dest_owner": "TrinaCat"
+      "dest_owner": "TrinaCat",
+      "meld_keyword": false,
+      "bottom_to": false
     },
     {
       "move": 49,
@@ -1355,7 +1520,9 @@
       "card_name": "Canal building",
       "card_age": 2,
       "source_owner": "AnotherSava",
-      "dest_owner": null
+      "dest_owner": null,
+      "meld_keyword": false,
+      "bottom_to": true
     },
     {
       "type": "transfer",
@@ -1366,7 +1533,9 @@
       "card_name": "Education",
       "card_age": 3,
       "source_owner": "AnotherSava",
-      "dest_owner": null
+      "dest_owner": null,
+      "meld_keyword": false,
+      "bottom_to": true
     },
     {
       "type": "transfer",
@@ -1377,7 +1546,9 @@
       "card_name": "Milan",
       "card_age": 4,
       "source_owner": "AnotherSava",
-      "dest_owner": null
+      "dest_owner": null,
+      "meld_keyword": false,
+      "bottom_to": true
     },
     {
       "type": "transfer",
@@ -1388,7 +1559,9 @@
       "card_name": "Banking",
       "card_age": 5,
       "source_owner": "AnotherSava",
-      "dest_owner": null
+      "dest_owner": null,
+      "meld_keyword": false,
+      "bottom_to": true
     },
     {
       "move": 54,
@@ -1404,7 +1577,9 @@
       "card_name": "Canal building",
       "card_age": 2,
       "source_owner": null,
-      "dest_owner": "AnotherSava"
+      "dest_owner": "AnotherSava",
+      "meld_keyword": false,
+      "bottom_to": false
     },
     {
       "type": "transfer",
@@ -1415,7 +1590,9 @@
       "card_name": "Optics",
       "card_age": 3,
       "source_owner": null,
-      "dest_owner": "AnotherSava"
+      "dest_owner": "AnotherSava",
+      "meld_keyword": false,
+      "bottom_to": false
     },
     {
       "type": "transfer",
@@ -1426,7 +1603,9 @@
       "card_name": "Translation",
       "card_age": 3,
       "source_owner": null,
-      "dest_owner": "AnotherSava"
+      "dest_owner": "AnotherSava",
+      "meld_keyword": false,
+      "bottom_to": false
     },
     {
       "type": "transfer",
@@ -1437,7 +1616,9 @@
       "card_name": "Education",
       "card_age": 3,
       "source_owner": null,
-      "dest_owner": "AnotherSava"
+      "dest_owner": "AnotherSava",
+      "meld_keyword": false,
+      "bottom_to": false
     },
     {
       "move": 54,
@@ -1453,7 +1634,9 @@
       "card_name": "Medicine",
       "card_age": 3,
       "source_owner": "AnotherSava",
-      "dest_owner": null
+      "dest_owner": null,
+      "meld_keyword": false,
+      "bottom_to": true
     },
     {
       "type": "transfer",
@@ -1464,7 +1647,9 @@
       "card_name": "Gunpowder",
       "card_age": 4,
       "source_owner": "AnotherSava",
-      "dest_owner": null
+      "dest_owner": null,
+      "meld_keyword": false,
+      "bottom_to": true
     },
     {
       "move": 57,
@@ -1480,7 +1665,9 @@
       "card_name": "Medicine",
       "card_age": 3,
       "source_owner": null,
-      "dest_owner": "AnotherSava"
+      "dest_owner": "AnotherSava",
+      "meld_keyword": false,
+      "bottom_to": false
     },
     {
       "type": "transfer",
@@ -1491,7 +1678,9 @@
       "card_name": "Perspective",
       "card_age": 4,
       "source_owner": null,
-      "dest_owner": "AnotherSava"
+      "dest_owner": "AnotherSava",
+      "meld_keyword": false,
+      "bottom_to": false
     },
     {
       "move": 57,
@@ -1507,7 +1696,9 @@
       "card_name": "Experimentation",
       "card_age": 4,
       "source_owner": null,
-      "dest_owner": "AnotherSava"
+      "dest_owner": "AnotherSava",
+      "meld_keyword": false,
+      "bottom_to": false
     },
     {
       "type": "transfer",
@@ -1518,7 +1709,9 @@
       "card_name": null,
       "card_age": 1,
       "source_owner": null,
-      "dest_owner": "AnotherSava"
+      "dest_owner": "AnotherSava",
+      "meld_keyword": false,
+      "bottom_to": false
     },
     {
       "move": 59,
@@ -1549,7 +1742,9 @@
       "card_name": null,
       "card_age": 4,
       "source_owner": null,
-      "dest_owner": "TrinaCat"
+      "dest_owner": "TrinaCat",
+      "meld_keyword": false,
+      "bottom_to": false
     },
     {
       "type": "transfer",
@@ -1560,7 +1755,9 @@
       "card_name": null,
       "card_age": 4,
       "source_owner": null,
-      "dest_owner": "TrinaCat"
+      "dest_owner": "TrinaCat",
+      "meld_keyword": false,
+      "bottom_to": false
     },
     {
       "move": 60,
@@ -1576,7 +1773,9 @@
       "card_name": "Manila",
       "card_age": 4,
       "source_owner": "TrinaCat",
-      "dest_owner": "TrinaCat"
+      "dest_owner": "TrinaCat",
+      "meld_keyword": true,
+      "bottom_to": false
     },
     {
       "type": "transfer",
@@ -1587,7 +1786,9 @@
       "card_name": null,
       "card_age": 4,
       "source_owner": null,
-      "dest_owner": "TrinaCat"
+      "dest_owner": "TrinaCat",
+      "meld_keyword": false,
+      "bottom_to": false
     },
     {
       "move": 62,
@@ -1618,7 +1819,9 @@
       "card_name": "Beijing",
       "card_age": 4,
       "source_owner": "TrinaCat",
-      "dest_owner": "AnotherSava"
+      "dest_owner": "AnotherSava",
+      "meld_keyword": false,
+      "bottom_to": false
     },
     {
       "move": 62,
@@ -1634,7 +1837,9 @@
       "card_name": null,
       "card_age": 4,
       "source_owner": null,
-      "dest_owner": "TrinaCat"
+      "dest_owner": "TrinaCat",
+      "meld_keyword": false,
+      "bottom_to": false
     },
     {
       "move": 62,
@@ -1650,7 +1855,9 @@
       "card_name": null,
       "card_age": 2,
       "source_owner": null,
-      "dest_owner": "AnotherSava"
+      "dest_owner": "AnotherSava",
+      "meld_keyword": false,
+      "bottom_to": false
     },
     {
       "type": "transfer",
@@ -1661,7 +1868,9 @@
       "card_name": "Colonialism",
       "card_age": 4,
       "source_owner": "TrinaCat",
-      "dest_owner": "TrinaCat"
+      "dest_owner": "TrinaCat",
+      "meld_keyword": true,
+      "bottom_to": false
     },
     {
       "move": 65,
@@ -1692,7 +1901,9 @@
       "card_name": "Reformation",
       "card_age": 4,
       "source_owner": null,
-      "dest_owner": "TrinaCat"
+      "dest_owner": "TrinaCat",
+      "meld_keyword": false,
+      "bottom_to": true
     },
     {
       "type": "transfer",
@@ -1703,7 +1914,9 @@
       "card_name": "Beijing",
       "card_age": 4,
       "source_owner": "AnotherSava",
-      "dest_owner": "AnotherSava"
+      "dest_owner": "AnotherSava",
+      "meld_keyword": true,
+      "bottom_to": false
     },
     {
       "type": "transfer",
@@ -1714,7 +1927,9 @@
       "card_name": "Madrid",
       "card_age": 4,
       "source_owner": null,
-      "dest_owner": "AnotherSava"
+      "dest_owner": "AnotherSava",
+      "meld_keyword": false,
+      "bottom_to": false
     },
     {
       "type": "transfer",
@@ -1725,7 +1940,9 @@
       "card_name": "Madrid",
       "card_age": 4,
       "source_owner": "AnotherSava",
-      "dest_owner": "AnotherSava"
+      "dest_owner": "AnotherSava",
+      "meld_keyword": true,
+      "bottom_to": false
     },
     {
       "type": "transfer",
@@ -1736,7 +1953,9 @@
       "card_name": "Legend",
       "card_age": null,
       "source_owner": null,
-      "dest_owner": "AnotherSava"
+      "dest_owner": "AnotherSava",
+      "meld_keyword": false,
+      "bottom_to": false
     },
     {
       "move": 68,
@@ -1767,7 +1986,9 @@
       "card_name": "Enterprise",
       "card_age": 4,
       "source_owner": null,
-      "dest_owner": "TrinaCat"
+      "dest_owner": "TrinaCat",
+      "meld_keyword": false,
+      "bottom_to": true
     },
     {
       "type": "transfer",
@@ -1778,7 +1999,9 @@
       "card_name": "Gunpowder",
       "card_age": 4,
       "source_owner": null,
-      "dest_owner": "TrinaCat"
+      "dest_owner": "TrinaCat",
+      "meld_keyword": false,
+      "bottom_to": true
     },
     {
       "type": "transfer",
@@ -1789,7 +2012,9 @@
       "card_name": "Coal",
       "card_age": 5,
       "source_owner": null,
-      "dest_owner": "TrinaCat"
+      "dest_owner": "TrinaCat",
+      "meld_keyword": false,
+      "bottom_to": true
     },
     {
       "move": 69,
@@ -1820,7 +2045,9 @@
       "card_name": "Chemistry",
       "card_age": 5,
       "source_owner": null,
-      "dest_owner": "TrinaCat"
+      "dest_owner": "TrinaCat",
+      "meld_keyword": false,
+      "bottom_to": true
     },
     {
       "type": "transfer",
@@ -1831,7 +2058,9 @@
       "card_name": null,
       "card_age": 3,
       "source_owner": null,
-      "dest_owner": "AnotherSava"
+      "dest_owner": "AnotherSava",
+      "meld_keyword": false,
+      "bottom_to": false
     },
     {
       "type": "transfer",
@@ -1842,7 +2071,9 @@
       "card_name": null,
       "card_age": 4,
       "source_owner": null,
-      "dest_owner": "AnotherSava"
+      "dest_owner": "AnotherSava",
+      "meld_keyword": false,
+      "bottom_to": false
     },
     {
       "type": "transfer",
@@ -1853,7 +2084,9 @@
       "card_name": null,
       "card_age": 5,
       "source_owner": null,
-      "dest_owner": "TrinaCat"
+      "dest_owner": "TrinaCat",
+      "meld_keyword": false,
+      "bottom_to": false
     },
     {
       "type": "transfer",
@@ -1864,7 +2097,9 @@
       "card_name": "Physics",
       "card_age": 5,
       "source_owner": "TrinaCat",
-      "dest_owner": "TrinaCat"
+      "dest_owner": "TrinaCat",
+      "meld_keyword": true,
+      "bottom_to": false
     },
     {
       "type": "transfer",
@@ -1875,7 +2110,9 @@
       "card_name": "Statistics",
       "card_age": 5,
       "source_owner": "AnotherSava",
-      "dest_owner": "AnotherSava"
+      "dest_owner": "AnotherSava",
+      "meld_keyword": true,
+      "bottom_to": false
     },
     {
       "type": "transfer",
@@ -1886,7 +2123,9 @@
       "card_name": "Astronomy",
       "card_age": 5,
       "source_owner": null,
-      "dest_owner": "AnotherSava"
+      "dest_owner": "AnotherSava",
+      "meld_keyword": false,
+      "bottom_to": false
     },
     {
       "move": 76,
@@ -1917,7 +2156,9 @@
       "card_name": "Atomic theory",
       "card_age": 6,
       "source_owner": null,
-      "dest_owner": "AnotherSava"
+      "dest_owner": "AnotherSava",
+      "meld_keyword": false,
+      "bottom_to": false
     },
     {
       "type": "transfer",
@@ -1928,7 +2169,9 @@
       "card_name": "Machine tools",
       "card_age": 6,
       "source_owner": null,
-      "dest_owner": "AnotherSava"
+      "dest_owner": "AnotherSava",
+      "meld_keyword": false,
+      "bottom_to": false
     },
     {
       "type": "transfer",
@@ -1939,7 +2182,9 @@
       "card_name": "Encyclopedia",
       "card_age": 6,
       "source_owner": null,
-      "dest_owner": "AnotherSava"
+      "dest_owner": "AnotherSava",
+      "meld_keyword": false,
+      "bottom_to": false
     },
     {
       "move": 76,
@@ -1955,7 +2200,9 @@
       "card_name": "Machinery",
       "card_age": 3,
       "source_owner": "AnotherSava",
-      "dest_owner": null
+      "dest_owner": null,
+      "meld_keyword": false,
+      "bottom_to": true
     },
     {
       "type": "transfer",
@@ -1966,7 +2213,9 @@
       "card_name": "Experimentation",
       "card_age": 4,
       "source_owner": "AnotherSava",
-      "dest_owner": null
+      "dest_owner": null,
+      "meld_keyword": false,
+      "bottom_to": true
     },
     {
       "type": "transfer",
@@ -1977,7 +2226,9 @@
       "card_name": "Astronomy",
       "card_age": 5,
       "source_owner": "AnotherSava",
-      "dest_owner": null
+      "dest_owner": null,
+      "meld_keyword": false,
+      "bottom_to": true
     },
     {
       "type": "transfer",
@@ -1988,7 +2239,9 @@
       "card_name": "Atomic theory",
       "card_age": 6,
       "source_owner": "AnotherSava",
-      "dest_owner": null
+      "dest_owner": null,
+      "meld_keyword": false,
+      "bottom_to": true
     },
     {
       "type": "transfer",
@@ -1999,7 +2252,9 @@
       "card_name": "Encyclopedia",
       "card_age": 6,
       "source_owner": "AnotherSava",
-      "dest_owner": null
+      "dest_owner": null,
+      "meld_keyword": false,
+      "bottom_to": true
     },
     {
       "type": "transfer",
@@ -2010,7 +2265,9 @@
       "card_name": "Machine tools",
       "card_age": 6,
       "source_owner": "AnotherSava",
-      "dest_owner": null
+      "dest_owner": null,
+      "meld_keyword": false,
+      "bottom_to": true
     },
     {
       "move": 78,
@@ -2031,7 +2288,9 @@
       "card_name": "Canning",
       "card_age": 6,
       "source_owner": null,
-      "dest_owner": "TrinaCat"
+      "dest_owner": "TrinaCat",
+      "meld_keyword": false,
+      "bottom_to": false
     },
     {
       "type": "transfer",
@@ -2042,7 +2301,9 @@
       "card_name": "Vaccination",
       "card_age": 6,
       "source_owner": null,
-      "dest_owner": "TrinaCat"
+      "dest_owner": "TrinaCat",
+      "meld_keyword": false,
+      "bottom_to": false
     },
     {
       "type": "transfer",
@@ -2053,7 +2314,9 @@
       "card_name": "Democracy",
       "card_age": 6,
       "source_owner": null,
-      "dest_owner": "TrinaCat"
+      "dest_owner": "TrinaCat",
+      "meld_keyword": false,
+      "bottom_to": false
     },
     {
       "move": 78,
@@ -2069,7 +2332,9 @@
       "card_name": "Vaccination",
       "card_age": 6,
       "source_owner": "TrinaCat",
-      "dest_owner": null
+      "dest_owner": null,
+      "meld_keyword": false,
+      "bottom_to": true
     },
     {
       "type": "transfer",
@@ -2080,7 +2345,9 @@
       "card_name": "Democracy",
       "card_age": 6,
       "source_owner": "TrinaCat",
-      "dest_owner": null
+      "dest_owner": null,
+      "meld_keyword": false,
+      "bottom_to": true
     },
     {
       "type": "transfer",
@@ -2091,7 +2358,9 @@
       "card_name": "Canning",
       "card_age": 6,
       "source_owner": "TrinaCat",
-      "dest_owner": null
+      "dest_owner": null,
+      "meld_keyword": false,
+      "bottom_to": true
     },
     {
       "move": 80,
@@ -2112,7 +2381,9 @@
       "card_name": null,
       "card_age": 5,
       "source_owner": null,
-      "dest_owner": "TrinaCat"
+      "dest_owner": "TrinaCat",
+      "meld_keyword": false,
+      "bottom_to": false
     },
     {
       "type": "transfer",
@@ -2123,7 +2394,9 @@
       "card_name": "Measurement",
       "card_age": 5,
       "source_owner": "TrinaCat",
-      "dest_owner": "TrinaCat"
+      "dest_owner": "TrinaCat",
+      "meld_keyword": true,
+      "bottom_to": false
     },
     {
       "type": "transfer",
@@ -2134,7 +2407,9 @@
       "card_name": "The pirate code",
       "card_age": 5,
       "source_owner": null,
-      "dest_owner": "AnotherSava"
+      "dest_owner": "AnotherSava",
+      "meld_keyword": false,
+      "bottom_to": false
     },
     {
       "type": "transfer",
@@ -2145,7 +2420,176 @@
       "card_name": "Steam engine",
       "card_age": 5,
       "source_owner": null,
-      "dest_owner": "AnotherSava"
+      "dest_owner": "AnotherSava",
+      "meld_keyword": false,
+      "bottom_to": false
+    },
+    {
+      "type": "transfer",
+      "move": 84,
+      "card_set": "base",
+      "source": "deck",
+      "dest": "hand",
+      "card_name": null,
+      "card_age": 5,
+      "source_owner": null,
+      "dest_owner": "TrinaCat",
+      "meld_keyword": false,
+      "bottom_to": false
+    },
+    {
+      "move": 85,
+      "type": "logWithCardTooltips",
+      "msg": "TrinaCat activates the dogma of 5 Measurement with [lightbulb] as the featured icon."
+    },
+    {
+      "move": 85,
+      "type": "log",
+      "msg": "AnotherSava has 7 [lightbulb]."
+    },
+    {
+      "move": 85,
+      "type": "log",
+      "msg": "TrinaCat has 9 [lightbulb]."
+    },
+    {
+      "move": 85,
+      "type": "log",
+      "msg": "TrinaCat has to execute the non-demand effect."
+    },
+    {
+      "type": "transfer",
+      "move": 86,
+      "card_set": "base",
+      "source": "hand",
+      "dest": "revealed",
+      "card_name": "Banking",
+      "card_age": 5,
+      "source_owner": "TrinaCat",
+      "dest_owner": "TrinaCat",
+      "meld_keyword": false,
+      "bottom_to": false
+    },
+    {
+      "type": "transfer",
+      "move": 86,
+      "card_set": "base",
+      "source": "revealed",
+      "dest": "deck",
+      "card_name": "Banking",
+      "card_age": 5,
+      "source_owner": "TrinaCat",
+      "dest_owner": null,
+      "meld_keyword": false,
+      "bottom_to": true
+    },
+    {
+      "type": "transfer",
+      "move": 86,
+      "card_set": "cities",
+      "source": "deck",
+      "dest": "hand",
+      "card_name": null,
+      "card_age": 5,
+      "source_owner": null,
+      "dest_owner": "TrinaCat",
+      "meld_keyword": false,
+      "bottom_to": false
+    },
+    {
+      "move": 86,
+      "type": "log",
+      "msg": "TrinaCat has six green cards."
+    },
+    {
+      "type": "transfer",
+      "move": 86,
+      "card_set": "base",
+      "source": "deck",
+      "dest": "hand",
+      "card_name": null,
+      "card_age": 6,
+      "source_owner": null,
+      "dest_owner": "TrinaCat",
+      "meld_keyword": false,
+      "bottom_to": false
+    },
+    {
+      "type": "transfer",
+      "move": 87,
+      "card_set": "base",
+      "source": "hand",
+      "dest": "board",
+      "card_name": "The pirate code",
+      "card_age": 5,
+      "source_owner": "AnotherSava",
+      "dest_owner": "AnotherSava",
+      "meld_keyword": true,
+      "bottom_to": false
+    },
+    {
+      "move": 88,
+      "type": "logWithCardTooltips",
+      "msg": "AnotherSava activates the dogma of 5 The pirate code with [crown] as the featured icon."
+    },
+    {
+      "move": 88,
+      "type": "log",
+      "msg": "AnotherSava has 7 [crown]."
+    },
+    {
+      "move": 88,
+      "type": "log",
+      "msg": "TrinaCat has 6 [crown]."
+    },
+    {
+      "move": 88,
+      "type": "log",
+      "msg": "TrinaCat has to execute the I demand effect."
+    },
+    {
+      "type": "transfer",
+      "move": 88,
+      "card_set": "base",
+      "source": "score",
+      "dest": "score",
+      "card_name": "Alchemy",
+      "card_age": 3,
+      "source_owner": "TrinaCat",
+      "dest_owner": "AnotherSava",
+      "meld_keyword": false,
+      "bottom_to": false
+    },
+    {
+      "type": "transfer",
+      "move": 88,
+      "card_set": "base",
+      "source": "score",
+      "dest": "score",
+      "card_name": "Anatomy",
+      "card_age": 4,
+      "source_owner": "TrinaCat",
+      "dest_owner": "AnotherSava",
+      "meld_keyword": false,
+      "bottom_to": false
+    },
+    {
+      "move": 88,
+      "type": "log",
+      "msg": "AnotherSava has to execute the non-demand effect."
+    },
+    {
+      "type": "transfer",
+      "move": 88,
+      "card_set": "base",
+      "source": "board",
+      "dest": "score",
+      "card_name": "Currency",
+      "card_age": 2,
+      "source_owner": "AnotherSava",
+      "dest_owner": "AnotherSava",
+      "meld_keyword": false,
+      "bottom_to": false
     }
   ]
 }

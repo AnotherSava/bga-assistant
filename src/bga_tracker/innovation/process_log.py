@@ -26,6 +26,8 @@ class TransferEntry:
     card_age: int | None = None
     source_owner: str | None = None
     dest_owner: str | None = None
+    meld_keyword: bool = False
+    bottom_to: bool = False
 
 
 def expand_template(template: str, args: dict) -> str:
@@ -121,6 +123,8 @@ def process_raw_log(raw_data: dict) -> dict:
                     card_age=int(player_args["age"]) if player_args["age"] is not None else None,
                     source_owner=player_names.get(player_args["owner_from"]),
                     dest_owner=player_names.get(player_args["owner_to"]),
+                    meld_keyword=bool(player_args.get("meld_keyword")),
+                    bottom_to=bool(player_args.get("bottom_to")),
                 )
                 log.append({"type": "transfer", **asdict(entry)})
                 continue

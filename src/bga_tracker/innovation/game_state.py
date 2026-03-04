@@ -20,12 +20,14 @@ class GameStateEncoder(json.JSONEncoder):
 @dataclass
 class Action:
     """Uniform representation of any card movement."""
-    source: str = ""                # "deck", "hand", "board", "score", "revealed" — always set
-    dest: str = ""                  # "deck", "hand", "board", "score", "revealed" — always set
-    card_index: str | None = None           # lowercase index name, None for hidden actions
-    group_key: AgeSet | None = None  # (age, card_set), None for named actions
-    source_player: str | None = None
-    dest_player: str | None = None
+    source: str                             # "deck", "hand", "board", "score", "revealed"
+    dest: str                               # "deck", "hand", "board", "score", "revealed"
+    card_index: str | None                  # lowercase index name, None for hidden actions
+    group_key: AgeSet | None                # (age, card_set), None for named actions
+    source_player: str | None               # owner at source, None for decks
+    dest_player: str | None                 # owner at dest, None for decks
+    meld_keyword: bool                      # meld (not tuck)
+    bottom_to: bool                         # tuck (bottom of board stack)
 
 
 class GameState:
@@ -51,11 +53,17 @@ class GameState:
         self._resolved_indices: set[str] = set()
         self._resolved_counts: defaultdict[AgeSet, int] = defaultdict(int)
 
-    def _mark_resolved(self, card: Card, group_key: AgeSet) -> None:
+    def mark_resolved(self, card: Card, group_key: AgeSet) -> None:
         """Track a newly resolved card. Idempotent."""
         if card.card_index not in self._resolved_indices:
             self._resolved_indices.add(card.card_index)
             self._resolved_counts[group_key] += 1
+
+    def unmark_resolved(self, card_index: str, group_key: AgeSet) -> None:
+        """Remove a card from resolved tracking (it became ambiguous again)."""
+        if card_index in self._resolved_indices:
+            self._resolved_indices.discard(card_index)
+            self._resolved_counts[group_key] -= 1
 
     def is_resolved(self, card_index: str) -> bool:
         """Check if a card_index has been resolved anywhere. O(1)."""
@@ -65,7 +73,7 @@ class GameState:
         """Return how many cards are resolved in an (age, card_set) group. O(1)."""
         return self._resolved_counts[AgeSet(age, card_set)]
 
-    def _create_card(self, group_key: AgeSet, index_names: set[str]) -> Card:
+    def create_card(self, group_key: AgeSet, index_names: set[str]) -> Card:
         """Create a Card and register it in the propagation group."""
         card = Card(*group_key, index_names)
         self._groups[group_key].append(card)

@@ -122,7 +122,7 @@
         "age": 5,
         "card_set": 0,
         "candidates": [
-          "banking"
+          "astronomy"
         ],
         "opponent_knows_exact": false,
         "opponent_might_suspect": [],
@@ -132,27 +132,16 @@
         "age": 5,
         "card_set": 0,
         "candidates": [
-          "astronomy"
+          "banking"
         ],
-        "opponent_knows_exact": false,
-        "opponent_might_suspect": [],
-        "suspect_list_explicit": false
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "banking"
+        ],
+        "suspect_list_explicit": true
       }
     ],
     "6/base": [
-      {
-        "age": 6,
-        "card_set": 0,
-        "candidates": [
-          "classification",
-          "emancipation",
-          "industrialization",
-          "metric system"
-        ],
-        "opponent_knows_exact": false,
-        "opponent_might_suspect": [],
-        "suspect_list_explicit": false
-      },
       {
         "age": 6,
         "card_set": 0,
@@ -1696,25 +1685,6 @@
         "opponent_knows_exact": false,
         "opponent_might_suspect": [],
         "suspect_list_explicit": false
-      },
-      {
-        "age": 5,
-        "card_set": 3,
-        "candidates": [
-          "algiers",
-          "amsterdam",
-          "boston",
-          "gdansk",
-          "hoi an",
-          "naples",
-          "osaka",
-          "stockholm",
-          "tokyo",
-          "zurich"
-        ],
-        "opponent_knows_exact": false,
-        "opponent_might_suspect": [],
-        "suspect_list_explicit": false
       }
     ],
     "6/cities": [
@@ -2861,18 +2831,6 @@
         "suspect_list_explicit": true
       },
       {
-        "age": 2,
-        "card_set": 0,
-        "candidates": [
-          "currency"
-        ],
-        "opponent_knows_exact": true,
-        "opponent_might_suspect": [
-          "currency"
-        ],
-        "suspect_list_explicit": true
-      },
-      {
         "age": 3,
         "card_set": 0,
         "candidates": [
@@ -2917,6 +2875,18 @@
         "opponent_knows_exact": true,
         "opponent_might_suspect": [
           "statistics"
+        ],
+        "suspect_list_explicit": true
+      },
+      {
+        "age": 5,
+        "card_set": 0,
+        "candidates": [
+          "the pirate code"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "the pirate code"
         ],
         "suspect_list_explicit": true
       }
@@ -3206,16 +3176,6 @@
         "age": 5,
         "card_set": 0,
         "candidates": [
-          "the pirate code"
-        ],
-        "opponent_knows_exact": false,
-        "opponent_might_suspect": [],
-        "suspect_list_explicit": false
-      },
-      {
-        "age": 5,
-        "card_set": 0,
-        "candidates": [
           "steam engine"
         ],
         "opponent_knows_exact": false,
@@ -3223,7 +3183,40 @@
         "suspect_list_explicit": false
       }
     ],
-    "TrinaCat": []
+    "TrinaCat": [
+      {
+        "age": 5,
+        "card_set": 3,
+        "candidates": [
+          "algiers",
+          "amsterdam",
+          "boston",
+          "gdansk",
+          "hoi an",
+          "naples",
+          "osaka",
+          "stockholm",
+          "tokyo",
+          "zurich"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 6,
+        "card_set": 0,
+        "candidates": [
+          "classification",
+          "emancipation",
+          "industrialization",
+          "metric system"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      }
+    ]
   },
   "scores": {
     "AnotherSava": [
@@ -3296,32 +3289,45 @@
         "opponent_knows_exact": false,
         "opponent_might_suspect": [],
         "suspect_list_explicit": false
-      }
-    ],
-    "TrinaCat": [
+      },
       {
         "age": 3,
         "card_set": 0,
         "candidates": [
-          "alchemy",
-          "engineering"
+          "alchemy"
         ],
         "opponent_knows_exact": true,
-        "opponent_might_suspect": [],
-        "suspect_list_explicit": false
+        "opponent_might_suspect": [
+          "alchemy"
+        ],
+        "suspect_list_explicit": true
       },
       {
         "age": 4,
         "card_set": 0,
         "candidates": [
-          "anatomy",
-          "navigation"
+          "anatomy"
         ],
         "opponent_knows_exact": true,
-        "opponent_might_suspect": [],
-        "suspect_list_explicit": false
+        "opponent_might_suspect": [
+          "anatomy"
+        ],
+        "suspect_list_explicit": true
+      },
+      {
+        "age": 2,
+        "card_set": 0,
+        "candidates": [
+          "currency"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "currency"
+        ],
+        "suspect_list_explicit": true
       }
-    ]
+    ],
+    "TrinaCat": []
   },
   "achievements": [
     {
@@ -3353,7 +3359,6 @@
       "age": 3,
       "card_set": 0,
       "candidates": [
-        "alchemy",
         "engineering"
       ],
       "opponent_knows_exact": false,
@@ -3364,7 +3369,6 @@
       "age": 4,
       "card_set": 0,
       "candidates": [
-        "anatomy",
         "navigation"
       ],
       "opponent_knows_exact": false,

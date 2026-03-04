@@ -40,6 +40,11 @@ def make_tracker(card_db):
     return GameStateTracker(GameState(PLAYERS), card_db, PLAYERS, ME)
 
 
+def make_action(source: str, dest: str, card_index: str | None = None, group_key: AgeSet | None = None, source_player: str | None = None, dest_player: str | None = None, meld_keyword: bool = False, bottom_to: bool = False) -> Action:
+    """Create an Action with sensible defaults for tests."""
+    return Action(source=source, dest=dest, card_index=card_index, group_key=group_key, source_player=source_player, dest_player=dest_player, meld_keyword=meld_keyword, bottom_to=bottom_to)
+
+
 def make_card(name, age=3, card_set=0, candidates=None,
               opp_knows=False, suspect=None, explicit=False):
     """Create a Card with specified opponent knowledge state."""
@@ -60,7 +65,7 @@ class TestBoardPlacement:
         game_state.hands[ME].append(paper)
         game_state._groups[AgeSet(3, CardSet.BASE)].append(paper)
 
-        tracker.move(Action(
+        tracker.move(make_action(
             source="hand", dest="board",
             card_index="paper",
             source_player=ME, dest_player=ME))
@@ -80,7 +85,7 @@ class TestDrawAndReveal:
         game_state.decks[AgeSet(3, CardSet.BASE)] = [card]
         game_state._groups[AgeSet(3, CardSet.BASE)].append(card)
 
-        tracker.move(Action(
+        tracker.move(make_action(
             source="deck", dest="revealed",
             card_index="paper",
             dest_player=ME))
@@ -100,7 +105,7 @@ class TestHiddenDrawToOpponent:
         game_state.decks[AgeSet(3, CardSet.BASE)] = [card]
         game_state._groups[AgeSet(3, CardSet.BASE)].append(card)
 
-        tracker.move(Action(
+        tracker.move(make_action(
             source="deck", dest="hand",
             group_key=AgeSet(3, CardSet.BASE),
             dest_player=OPP))
@@ -120,7 +125,7 @@ class TestNamedDrawNoReveal:
         game_state.decks[AgeSet(3, CardSet.BASE)] = [card]
         game_state._groups[AgeSet(3, CardSet.BASE)].append(card)
 
-        tracker.move(Action(
+        tracker.move(make_action(
             source="deck", dest="hand",
             card_index="paper",
             dest_player=ME))
@@ -139,7 +144,7 @@ class TestTransferBetweenPlayers:
         game_state.hands[ME].append(paper)
         game_state._groups[AgeSet(3, CardSet.BASE)].append(paper)
 
-        tracker.move(Action(
+        tracker.move(make_action(
             source="hand", dest="hand",
             card_index="paper",
             source_player=ME, dest_player=OPP))
@@ -201,7 +206,7 @@ class TestReturnAllKnown:
         game_state.decks[AgeSet(3, CardSet.BASE)] = []
         game_state._groups[AgeSet(3, CardSet.BASE)].extend([paper, compass])
 
-        tracker.move(Action(
+        tracker.move(make_action(
             source="hand", dest="deck",
             card_index="paper",
             source_player=ME))
@@ -233,7 +238,7 @@ class TestReturnPartialKnowledge:
         game_state.decks[AgeSet(3, CardSet.BASE)] = []
         game_state._groups[AgeSet(3, CardSet.BASE)].extend([paper, unknown])
 
-        tracker.move(Action(
+        tracker.move(make_action(
             source="hand", dest="deck",
             card_index="paper",
             source_player=ME))

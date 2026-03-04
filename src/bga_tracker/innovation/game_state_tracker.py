@@ -6,6 +6,9 @@ from bga_tracker.innovation.card import Card, CardDatabase, CardSet, AgeSet
 from bga_tracker.innovation.game_state import GameState, Action
 
 
+REGULAR_ICONS = {"crown", "leaf", "lightbulb", "castle", "factory", "clock"}
+
+
 class GameStateTracker:
     """Applies game actions and constraint propagation to a GameState."""
 
@@ -14,6 +17,9 @@ class GameStateTracker:
         self.card_db = card_db
         self.players = players
         self.perspective = perspective
+        self._meld_icon: str | None = None
+        self._discard_names: set[str] = set()
+        self._remaining_returns: int = 0
 
     def init_game(self, num_players: int) -> None:
         """Set up initial game state: all cards in decks, then deal."""
@@ -21,7 +27,7 @@ class GameStateTracker:
 
         # Create all cards in decks
         for group_key, index_names in self.card_db.groups().items():
-            game_state.decks[group_key] = [game_state._create_card(group_key, index_names) for _ in range(len(index_names))]
+            game_state.decks[group_key] = [game_state.create_card(group_key, index_names) for _ in range(len(index_names))]
 
         # Move 1 card per base age 1-9 to achievements
         for age in range(1, 10):
@@ -47,7 +53,7 @@ class GameStateTracker:
             card = matching[0]
             group_key = self.card_db[card_index].group_key
             card.resolve(card_index)
-            game_state._mark_resolved(card, group_key)
+            game_state.mark_resolved(card, group_key)
             self._propagate(group_key)
 
     # ------------------------------------------------------------------
@@ -90,7 +96,7 @@ class GameStateTracker:
 
         if action.card_index and not card.is_resolved:
             card.resolve(action.card_index)
-            game_state._mark_resolved(card, group_key)
+            game_state.mark_resolved(card, group_key)
             self._propagate(group_key)
 
         source_cards.remove(card)
@@ -117,13 +123,45 @@ class GameStateTracker:
         if is_visible_to_opponent:
             card.opponent_knows_exact = True
 
-    def move(self, action: Action) -> None:
+    def move(self, action: Action) -> Card:
         """Move a card from one location to another."""
         group_key = self.card_db[action.card_index].group_key if action.card_index else action.group_key
+
+        # Detect city meld with a regular icon at position 5
+        if action.meld_keyword and action.source == "hand" and action.dest == "board":
+            info = self.card_db[action.card_index]
+            if info.card_set == CardSet.CITIES and info.icons[5] in REGULAR_ICONS:
+                self._meld_icon = info.icons[5]
+                self._discard_names = set()
+                self._remaining_returns = 0
+
+        # Track draws (draw phase: meld icon set, not yet confirmed)
+        if self._meld_icon and self._remaining_returns == 0:
+            if action.source == "deck" and action.dest == "revealed":
+                if self._meld_icon not in self.card_db[action.card_index].icons:
+                    self._discard_names.add(action.card_index)
+            elif action.source != "revealed" and action.dest != "board":
+                self._meld_icon = None
 
         card = self._take_from_source(action, group_key)
         self._cards_at(action.dest, action.dest_player, group_key).append(card)
         self._update_opponent_knowledge(card, action)
+
+        # Filter returns (return phase: remaining > 0)
+        if self._remaining_returns > 0:
+            assert action.source == "hand" and action.dest == "deck"
+            self.restrict_candidates(card, self._discard_names)
+            self._remaining_returns -= 1
+            if self._remaining_returns == 0:
+                self._meld_icon = None
+
+        return card
+
+    def confirm_meld_filter(self) -> None:
+        """Confirm meld icon filtering — transition from draw phase to return phase."""
+        self._remaining_returns = len(self._discard_names)
+        if self._remaining_returns == 0:
+            self._meld_icon = None
 
     def _merge_candidates(self, card: Card, remaining_source: list[Card]) -> None:
         """Merge candidate sets when we can't tell which card moved.
@@ -134,9 +172,12 @@ class GameStateTracker:
         affected = [card] + [other for other in remaining_source if other.group_key == card.group_key]
         if len(affected) <= 1:
             return
+        was_resolved = [(c, c.card_index) for c in affected if c.is_resolved]
         union = {name for other in affected for name in other.candidates}
         for other in affected:
             other.candidates = set(union)
+        for c, card_index in was_resolved:
+            self.game_state.unmark_resolved(card_index, c.group_key)
 
     def _merge_suspects(self, card: Card, remaining_source: list[Card], action: Action) -> None:
         """Merge suspect lists when opponent can't tell which card moved.
@@ -169,6 +210,19 @@ class GameStateTracker:
             other.opponent_might_suspect = set(suspect_union)
             other.suspect_list_explicit = all_explicit
 
+    def restrict_candidates(self, card: Card, allowed_names: set[str]) -> None:
+        """Restrict card candidates and suspects to a known set of possible names."""
+        was_resolved_index = card.card_index  # None if already unresolved
+        card.candidates = set(allowed_names)
+        if was_resolved_index and not card.is_resolved:
+            self.game_state.unmark_resolved(was_resolved_index, card.group_key)
+        elif card.is_resolved:
+            self.game_state.mark_resolved(card, card.group_key)
+        card.opponent_might_suspect &= allowed_names
+        if card.suspect_list_explicit and len(card.opponent_might_suspect) == 1:
+            card.opponent_knows_exact = True
+        self._propagate(card.group_key)
+
     def reveal_hand(self, player: str, card_indices: list[str]) -> None:
         """Handle 'reveals his hand' — resolve and mark cards without moving them."""
         game_state = self.game_state
@@ -177,7 +231,7 @@ class GameStateTracker:
 
             card: Card = next(other for other in game_state.hands[player] if card_index in other.candidates)
             card.resolve(card_index)
-            game_state._mark_resolved(card, group_key)
+            game_state.mark_resolved(card, group_key)
             card.mark_public()
             self._propagate(group_key)
 
@@ -207,7 +261,7 @@ class GameStateTracker:
                         if other is not card and card.card_index in other.candidates:
                             other.candidates.discard(card.card_index)
                             if other.is_resolved:
-                                game_state._mark_resolved(other, group_key)
+                                game_state.mark_resolved(other, group_key)
                                 changed = True
 
             # 2. Hidden singles
@@ -215,7 +269,7 @@ class GameStateTracker:
                 holders = [card for card in group if candidate_name in card.candidates and not card.is_resolved]
                 if len(holders) == 1:
                     holders[0].resolve(candidate_name)
-                    game_state._mark_resolved(holders[0], group_key)
+                    game_state.mark_resolved(holders[0], group_key)
                     changed = True
 
             # 3. Naked subsets (only for small groups — max 15)
@@ -229,7 +283,7 @@ class GameStateTracker:
                                 if other not in subset:
                                     other.candidates -= union
                                     if other.is_resolved:
-                                        game_state._mark_resolved(other, group_key)
+                                        game_state.mark_resolved(other, group_key)
                                         changed = True
                             break  # restart after changes
 

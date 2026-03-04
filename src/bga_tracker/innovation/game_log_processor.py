@@ -36,20 +36,20 @@ class GameLogProcessor:
 
     def _process_entry(self, entry: dict) -> None:
         """Process a single log entry."""
+        match entry["type"]:
+            case "logWithCardTooltips":
+                if m := re.match(rf"^({self._player_pattern}) reveals his hand: (.+)\.$", entry["msg"]):
+                    card_names = [part[part.index(" ") + 1:].lower() for part in m.group(2).split(", ")]
+                    self.tracker.reveal_hand(m.group(1), card_names)
 
-        if entry["type"] == "logWithCardTooltips":
-            msg = entry["msg"]
-            if m := re.match(rf"^({self._player_pattern}) reveals his hand: (.+)\.$", msg):
-                card_names = [part[part.index(" ") + 1:].lower() for part in m.group(2).split(", ")]
-                self.tracker.reveal_hand(m.group(1), card_names)
-            return
+            case "log":
+                if re.match(r"The revealed cards with a \[(\w+)\] will be kept", entry["msg"]):
+                    self.tracker.confirm_meld_filter()
 
-        if entry["type"] != "transfer":
-            return
+            case "transfer" if entry.get("dest") not in ("achievements", "claimed"):
+                self._process_move_action(entry)
 
-        if entry.get("dest") in ("achievements", "claimed"):
-            return
-
+    def _process_move_action(self, entry: dict) -> None:
         card_name = entry.get("card_name")
         card_index = card_name.lower() if card_name else None
         group_key = AgeSet(entry["card_age"], CardSet.from_label(entry["card_set"])) if not card_index else None
@@ -59,8 +59,7 @@ class GameLogProcessor:
         source_player = entry.get("source_owner") if source != "deck" else None
         dest_player = entry.get("dest_owner") if dest != "deck" else None
 
-        self.tracker.move(Action(
-            source=source, dest=dest,
-            card_index=card_index, group_key=group_key,
-            source_player=source_player, dest_player=dest_player,
-        ))
+        action = Action(source=source, dest=dest, card_index=card_index, group_key=group_key, source_player=source_player, dest_player=dest_player, meld_keyword=bool(entry.get("meld_keyword")),
+                        bottom_to=bool(entry.get("bottom_to")))
+
+        self.tracker.move(action)
