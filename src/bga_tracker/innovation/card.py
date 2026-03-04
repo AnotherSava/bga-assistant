@@ -1,13 +1,40 @@
-"""Card class and CardDB loader for Innovation game state tracking."""
+"""Card class and CardDatabase loader for Innovation game state tracking."""
 
 import json
+from collections import defaultdict
 from dataclasses import dataclass
+from enum import IntEnum
+from typing import NamedTuple
 
-SET_BASE = 0
-SET_CITIES = 3
-SET_LABEL = {SET_BASE: "base", SET_CITIES: "cities"}
-LABEL_TO_SET = {"base": SET_BASE, "cities": SET_CITIES}
-COLOR_ORDER = {"blue": 0, "red": 1, "green": 2, "yellow": 3, "purple": 4}
+
+class CardSet(IntEnum):
+    BASE = 0
+    CITIES = 3
+
+    @property
+    def label(self) -> str:
+        return self.name.lower()
+
+    @classmethod
+    def from_label(cls, label: str) -> "CardSet":
+        return cls[label.upper()]
+
+
+class Color(IntEnum):
+    BLUE = 0
+    RED = 1
+    GREEN = 2
+    YELLOW = 3
+    PURPLE = 4
+
+    def __str__(self) -> str:
+        return self.name.lower()
+
+
+class AgeSet(NamedTuple):
+    """(age, card_set) pair identifying a group of cards with the same age and set."""
+    age: int
+    card_set: CardSet
 
 
 class Card:
@@ -20,14 +47,14 @@ class Card:
 
     __slots__ = (
         "age",                    # int — card age (1-10), always known from draw context
-        "card_set",               # int — 0=base, 3=cities, always known from draw context
+        "card_set",               # CardSet — BASE=0, CITIES=3, always known from draw context
         "candidates",             # set[str] — possible lowercase card names; size 1 = resolved
         "opponent_knows_exact",   # bool — opponent definitely knows this card's identity
         "opponent_might_suspect", # set[str] — names we know opponent could associate; empty = no info
         "suspect_list_explicit",  # bool — True = suspect list is closed/complete
     )
 
-    def __init__(self, age, card_set, candidates=None):
+    def __init__(self, age: int, card_set: CardSet, candidates: set[str] | None = None):
         self.age = age
         self.card_set = card_set
         self.candidates = set(candidates) if candidates else set()
@@ -36,8 +63,8 @@ class Card:
         self.suspect_list_explicit = False
 
     @property
-    def group_key(self) -> tuple[int, int]:
-        return self.age, self.card_set
+    def group_key(self) -> AgeSet:
+        return AgeSet(self.age, self.card_set)
 
     @property
     def is_resolved(self):
@@ -79,21 +106,21 @@ class Card:
 class CardInfo:
     """Static card metadata from the card database."""
 
-    name: str
-    index_name: str
-    age: int
-    color: str
-    card_set: int
-    cardnum: int
-    icons: tuple[str, ...]
-    dogmas: tuple[str, ...]
+    name: str                    # display name as shown in BGA UI
+    index_name: str              # lowercase name, used as lookup key
+    age: int                     # card age (1-10)
+    color: Color                 # BRGYP — used for sorting and CSS class
+    card_set: CardSet            # BASE or CITIES
+    sprite_index: int            # index into BGA sprite sheet, used for asset filenames
+    icons: tuple[str, ...]       # resource icon names in positional order
+    dogmas: tuple[str, ...]      # dogma effect descriptions
 
     @property
-    def group_key(self) -> tuple[int, int]:
-        return self.age, self.card_set
+    def group_key(self) -> AgeSet:
+        return AgeSet(self.age, self.card_set)
 
-class CardDB:
-    """Card database loaded from cardinfo.json."""
+class CardDatabase:
+    """Card database loaded from card_info.json."""
 
     def __init__(self, path):
         with open(path) as f:
@@ -105,19 +132,27 @@ class CardDB:
             if item is None or "age" not in item or "color" not in item:
                 continue
             s = item.get("set")
-            if s not in (SET_BASE, SET_CITIES):
+            if s not in (CardSet.BASE, CardSet.CITIES):
                 continue
             index_name = item["name"].lower()
             self._cards[index_name] = CardInfo(
                 name=item["name"],
                 index_name=index_name,
                 age=item["age"],
-                color=item["color"],
-                card_set=s,
-                cardnum=idx,
+                color=Color[item["color"].upper()],
+                card_set=CardSet(s),
+                sprite_index=idx,
                 icons=tuple(item.get("icons", ())),
                 dogmas=tuple(item.get("dogmas", ())),
             )
+
+        self._groups: dict[AgeSet, set[str]] = defaultdict(set)
+        for info in self._cards.values():
+            self._groups[info.group_key].add(info.index_name)
+
+        self._group_infos: dict[AgeSet, list[CardInfo]] = {}
+        for group_key, names in self._groups.items():
+            self._group_infos[group_key] = sorted([self._cards[name] for name in names], key=lambda info: (info.color, info.name))
 
     def __getitem__(self, name_lower):
         return self._cards[name_lower]
@@ -143,6 +178,14 @@ class CardDB:
     def display_name(self, name_lower):
         return self._cards[name_lower].name
 
+    def groups(self) -> dict[AgeSet, set[str]]:
+        """Return index names grouped by (age, card_set)."""
+        return self._groups
+
+    def group_infos(self, age: int, card_set: CardSet) -> list[CardInfo]:
+        """Return CardInfo objects for an (age, card_set) group, sorted by color and name."""
+        return self._group_infos.get(AgeSet(age, card_set), [])
+
     def sort_key(self, name_lower):
         info = self._cards[name_lower]
-        return info.age, COLOR_ORDER.get(info.color, 99), name_lower
+        return info.age, info.color, name_lower

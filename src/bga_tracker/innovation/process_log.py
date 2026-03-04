@@ -1,7 +1,7 @@
 """Process raw BGA notification packets into a structured game log.
 
 Reads the raw JSON produced by fetch_full_history.js (packets + player names)
-and writes structured game_log.json consumed by state_tracker.py.
+and writes structured game_log.json consumed by game_log_processor.py.
 
 CLI: python -m bga_tracker.innovation.process_log <input_path> <output_path>
 """
@@ -76,13 +76,23 @@ def process_raw_log(raw_data: dict) -> dict:
         either a transfer (structured fields) or a log message (plain text).
     """
     player_names: dict[str, str] = raw_data.get("players", {})
-    packets: list[dict] = [p for p in raw_data.get("packets", []) if p["move_id"] is not None]
+    packets: list[dict] = [packet for packet in raw_data.get("packets", []) if packet["move_id"] is not None]
     log: list[dict] = []
+
+    gamedatas = raw_data.get("gamedatas") or {}
+    gd_hand = gamedatas.get("my_hand", [])
+    gd_cards = gamedatas.get("cards", {})
+    my_hand: list[str] = []
+    for card in gd_hand:
+        info = gd_cards.get(str(card["id"]), {})
+        name = info.get("name")
+        if name:
+            my_hand.append(normalize_hyphens(name))
 
     # Pass 1: collect player-view transferedCard args, grouped by move_id.
     # move_ids are sequential integers — use a list indexed by move_id.
     # Each move can span multiple packets (player-view + spectator-view).
-    max_move = max((int(p["move_id"]) for p in packets), default=0)
+    max_move = max((int(packet["move_id"]) for packet in packets), default=0)
     player_transfer_iters: list[iter] = [iter(())] * (max_move + 1)
     for packet in packets:
         transfers = [notif["args"] for notif in packet["data"] if notif["type"] == "transferedCard"]
@@ -127,7 +137,7 @@ def process_raw_log(raw_data: dict) -> dict:
                     "msg": log_msg,
                 })
 
-    return {"players": player_names, "log": log}
+    return {"players": player_names, "my_hand": my_hand, "log": log}
 
 
 def main() -> None:

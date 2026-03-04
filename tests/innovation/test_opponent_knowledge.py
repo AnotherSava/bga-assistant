@@ -1,15 +1,16 @@
 """Unit tests for opponent knowledge model in Innovation game state tracking.
 
 Tests the opponent_knows_exact, opponent_might_suspect, suspect_list_explicit
-flags and suspect propagation in GameState._propagate().
+flags and suspect propagation in GameStateTracker._propagate().
 """
 
 import json
 
 import pytest
 
-from bga_tracker.innovation.card import Card, CardDB, SET_BASE
+from bga_tracker.innovation.card import Card, CardDatabase, CardSet, AgeSet
 from bga_tracker.innovation.game_state import GameState, Action
+from bga_tracker.innovation.game_state_tracker import GameStateTracker
 
 ME = "Me"
 OPP = "Opponent"
@@ -18,7 +19,7 @@ PLAYERS = [ME, OPP]
 
 @pytest.fixture
 def card_db(tmp_path):
-    """Minimal CardDB with five age-3 base cards — one propagation group."""
+    """Minimal CardDatabase with five age-3 base cards — one propagation group."""
     cards = [
         {"name": "Paper", "age": 3, "color": "green", "set": 0},
         {"name": "Compass", "age": 3, "color": "blue", "set": 0},
@@ -28,37 +29,38 @@ def card_db(tmp_path):
     ]
     path = tmp_path / "cardinfo.json"
     path.write_text(json.dumps(cards))
-    return CardDB(str(path))
+    return CardDatabase(str(path))
 
 
 ALL_NAMES = {"paper", "compass", "education", "alchemy", "translation"}
 
 
-def make_state(card_db):
-    """Create empty GameState for testing."""
-    return GameState(card_db, PLAYERS, ME)
+def make_tracker(card_db):
+    """Create empty GameState wrapped in GameStateTracker for testing."""
+    return GameStateTracker(GameState(PLAYERS), card_db, PLAYERS, ME)
 
 
 def make_card(name, age=3, card_set=0, candidates=None,
               opp_knows=False, suspect=None, explicit=False):
     """Create a Card with specified opponent knowledge state."""
-    c = Card(age, card_set, candidates or {name})
-    c.opponent_knows_exact = opp_knows
-    c.opponent_might_suspect = set(suspect) if suspect else set()
-    c.suspect_list_explicit = explicit
-    return c
+    card = Card(age, card_set, candidates or {name})
+    card.opponent_knows_exact = opp_knows
+    card.opponent_might_suspect = set(suspect) if suspect else set()
+    card.suspect_list_explicit = explicit
+    return card
 
 
 class TestBoardPlacement:
     """Board placement sets opponent knowledge."""
 
     def test_meld_sets_opponent_knowledge(self, card_db):
-        gs = make_state(card_db)
+        tracker = make_tracker(card_db)
+        game_state = tracker.game_state
         paper = make_card("paper")
-        gs.hands[ME].append(paper)
-        gs._groups[(3, 0)].append(paper)
+        game_state.hands[ME].append(paper)
+        game_state._groups[AgeSet(3, CardSet.BASE)].append(paper)
 
-        gs.move(Action(
+        tracker.move(Action(
             source="hand", dest="board",
             card_index="paper",
             source_player=ME, dest_player=ME))
@@ -72,12 +74,13 @@ class TestDrawAndReveal:
     """Draw-and-reveal sets opponent knowledge."""
 
     def test_draw_and_reveal(self, card_db):
-        gs = make_state(card_db)
+        tracker = make_tracker(card_db)
+        game_state = tracker.game_state
         card = Card(3, 0, ALL_NAMES)
-        gs.decks[(3, 0)] = [card]
-        gs._groups[(3, 0)].append(card)
+        game_state.decks[AgeSet(3, CardSet.BASE)] = [card]
+        game_state._groups[AgeSet(3, CardSet.BASE)].append(card)
 
-        gs.move(Action(
+        tracker.move(Action(
             source="deck", dest="revealed",
             card_index="paper",
             dest_player=ME))
@@ -91,14 +94,15 @@ class TestHiddenDrawToOpponent:
     """Hidden draw to opponent's hand."""
 
     def test_hidden_draw_opponent_knows(self, card_db):
-        gs = make_state(card_db)
+        tracker = make_tracker(card_db)
+        game_state = tracker.game_state
         card = Card(3, 0, ALL_NAMES)
-        gs.decks[(3, 0)] = [card]
-        gs._groups[(3, 0)].append(card)
+        game_state.decks[AgeSet(3, CardSet.BASE)] = [card]
+        game_state._groups[AgeSet(3, CardSet.BASE)].append(card)
 
-        gs.move(Action(
+        tracker.move(Action(
             source="deck", dest="hand",
-            group_key=(3, 0),
+            group_key=AgeSet(3, CardSet.BASE),
             dest_player=OPP))
 
         assert card.opponent_knows_exact is True
@@ -110,12 +114,13 @@ class TestNamedDrawNoReveal:
     """Named draw to our hand (no reveal)."""
 
     def test_named_draw_no_opponent_knowledge(self, card_db):
-        gs = make_state(card_db)
+        tracker = make_tracker(card_db)
+        game_state = tracker.game_state
         card = Card(3, 0, ALL_NAMES)
-        gs.decks[(3, 0)] = [card]
-        gs._groups[(3, 0)].append(card)
+        game_state.decks[AgeSet(3, CardSet.BASE)] = [card]
+        game_state._groups[AgeSet(3, CardSet.BASE)].append(card)
 
-        gs.move(Action(
+        tracker.move(Action(
             source="deck", dest="hand",
             card_index="paper",
             dest_player=ME))
@@ -128,12 +133,13 @@ class TestTransferBetweenPlayers:
     """Transfer between players sets reveal."""
 
     def test_transfer_reveals_card(self, card_db):
-        gs = make_state(card_db)
+        tracker = make_tracker(card_db)
+        game_state = tracker.game_state
         paper = make_card("paper")
-        gs.hands[ME].append(paper)
-        gs._groups[(3, 0)].append(paper)
+        game_state.hands[ME].append(paper)
+        game_state._groups[AgeSet(3, CardSet.BASE)].append(paper)
 
-        gs.move(Action(
+        tracker.move(Action(
             source="hand", dest="hand",
             card_index="paper",
             source_player=ME, dest_player=OPP))
@@ -147,25 +153,26 @@ class TestRevealHand:
     """reveal_hand sets full opponent knowledge."""
 
     def test_reveal_hand_resolves_and_marks(self, card_db):
-        gs = make_state(card_db)
+        tracker = make_tracker(card_db)
+        game_state = tracker.game_state
 
         paper = make_card("paper")
-        gs.hands[ME].append(paper)
-        gs._groups[(3, 0)].append(paper)
+        game_state.hands[ME].append(paper)
+        game_state._groups[AgeSet(3, CardSet.BASE)].append(paper)
 
         # Unknown card with compass + education as candidates
         unknown = Card(3, 0, {"compass", "education"})
-        gs.hands[ME].append(unknown)
-        gs._groups[(3, 0)].append(unknown)
+        game_state.hands[ME].append(unknown)
+        game_state._groups[AgeSet(3, CardSet.BASE)].append(unknown)
 
         # Remaining cards resolved elsewhere — complete group prevents
         # hidden singles from misfiring on the incomplete 5-name group.
         for name in ["education", "alchemy", "translation"]:
-            c = make_card(name)
-            gs.boards[OPP].append(c)
-            gs._groups[(3, 0)].append(c)
+            card = make_card(name)
+            game_state.boards[OPP].append(card)
+            game_state._groups[AgeSet(3, CardSet.BASE)].append(card)
 
-        gs.reveal_hand(ME, ["paper", "compass"])
+        tracker.reveal_hand(ME, ["paper", "compass"])
 
         # Paper (was already known)
         assert paper.opponent_knows_exact is True
@@ -183,17 +190,18 @@ class TestReturnAllKnown:
     """Named return to deck — opponent knew all matching cards."""
 
     def test_return_merges_suspects(self, card_db):
-        gs = make_state(card_db)
+        tracker = make_tracker(card_db)
+        game_state = tracker.game_state
 
         paper = make_card("paper", opp_knows=True,
                           suspect={"paper"}, explicit=True)
         compass = make_card("compass", opp_knows=True,
                             suspect={"compass"}, explicit=True)
-        gs.hands[ME].extend([paper, compass])
-        gs.decks[(3, 0)] = []
-        gs._groups[(3, 0)].extend([paper, compass])
+        game_state.hands[ME].extend([paper, compass])
+        game_state.decks[AgeSet(3, CardSet.BASE)] = []
+        game_state._groups[AgeSet(3, CardSet.BASE)].extend([paper, compass])
 
-        gs.move(Action(
+        tracker.move(Action(
             source="hand", dest="deck",
             card_index="paper",
             source_player=ME))
@@ -213,18 +221,19 @@ class TestReturnPartialKnowledge:
     """Named return to deck — opponent knew some matching cards."""
 
     def test_return_partial_suspects(self, card_db):
-        gs = make_state(card_db)
+        tracker = make_tracker(card_db)
+        game_state = tracker.game_state
 
         paper = make_card("paper", opp_knows=True,
                           suspect={"paper"}, explicit=True)
         unknown = Card(3, 0, {"compass", "education"})
         # unknown has opp_knows=False, suspect=None by default
 
-        gs.hands[ME].extend([paper, unknown])
-        gs.decks[(3, 0)] = []
-        gs._groups[(3, 0)].extend([paper, unknown])
+        game_state.hands[ME].extend([paper, unknown])
+        game_state.decks[AgeSet(3, CardSet.BASE)] = []
+        game_state._groups[AgeSet(3, CardSet.BASE)].extend([paper, unknown])
 
-        gs.move(Action(
+        tracker.move(Action(
             source="hand", dest="deck",
             card_index="paper",
             source_player=ME))
@@ -239,7 +248,8 @@ class TestSuspectPropagation:
     """Suspect propagation: the full Oars -> discard -> re-reveal scenario."""
 
     def test_reveal_triggers_suspect_deduction(self, card_db):
-        gs = make_state(card_db)
+        tracker = make_tracker(card_db)
+        game_state = tracker.game_state
 
         # Post-named-return state: candidates known, suspects merged
         card_a = Card(3, 0, {"compass"})
@@ -252,12 +262,12 @@ class TestSuspectPropagation:
         card_b.opponent_might_suspect = {"paper", "compass"}
         card_b.suspect_list_explicit = True
 
-        gs.hands[ME].append(card_a)
-        gs.decks[(3, 0)] = [card_b]
-        gs._groups[(3, 0)].extend([card_a, card_b])
+        game_state.hands[ME].append(card_a)
+        game_state.decks[AgeSet(3, CardSet.BASE)] = [card_b]
+        game_state._groups[AgeSet(3, CardSet.BASE)].extend([card_a, card_b])
 
         # Reveal shows card_a is Compass; suspect propagation deduces card_b
-        gs.reveal_hand(ME, ["compass"])
+        tracker.reveal_hand(ME, ["compass"])
 
         # Card A: revealed as Compass
         assert card_a.candidates == {"compass"}

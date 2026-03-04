@@ -1,506 +1,3264 @@
 {
-  "actual_deck": {
-    "1": {
-      "base": [],
-      "cities": [
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null
-      ]
-    },
-    "2": {
-      "base": [],
-      "cities": [
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null
-      ]
-    },
-    "3": {
-      "base": [],
-      "cities": [
-        null,
-        null,
-        null,
-        null,
-        null
-      ]
-    },
-    "4": {
-      "base": [],
-      "cities": [
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null
-      ]
-    },
-    "5": {
-      "base": [],
-      "cities": [
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null
-      ]
-    },
-    "6": {
-      "base": [],
-      "cities": [
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        {
-          "name": "Paris",
-          "revealed": false
-        }
-      ]
-    },
-    "7": {
-      "base": [],
-      "cities": [
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null
-      ]
-    },
-    "8": {
-      "base": [
-        null,
-        null,
-        null
-      ],
-      "cities": [
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null
-      ]
-    },
-    "9": {
-      "base": [
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null
-      ],
-      "cities": [
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null
-      ]
-    },
-    "10": {
-      "base": [
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null
-      ],
-      "cities": [
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null
-      ]
-    }
-  },
-  "board": {
-    "AnotherSava": [
-      {
-        "name": "Writing"
-      },
-      {
-        "name": "Archery"
-      },
-      {
-        "name": "Metalworking"
-      },
-      {
-        "name": "Babylon"
-      },
-      {
-        "name": "Clothing"
-      },
-      {
-        "name": "Jerusalem"
-      },
-      {
-        "name": "Carthage"
-      },
-      {
-        "name": "Construction"
-      },
-      {
-        "name": "Currency"
-      },
-      {
-        "name": "Fermenting"
-      },
-      {
-        "name": "Monotheism"
-      },
-      {
-        "name": "Philosophy"
-      },
-      {
-        "name": "Rome"
-      },
-      {
-        "name": "Delhi"
-      },
-      {
-        "name": "Optics"
-      },
-      {
-        "name": "Compass"
-      },
-      {
-        "name": "Paper"
-      },
-      {
-        "name": "Machinery"
-      },
-      {
-        "name": "Medicine"
-      },
-      {
-        "name": "Education"
-      },
-      {
-        "name": "Feudalism"
-      },
-      {
-        "name": "Colonialism"
-      },
-      {
-        "name": "Gunpowder"
-      },
-      {
-        "name": "Invention"
-      },
-      {
-        "name": "Navigation"
-      },
-      {
-        "name": "Anatomy"
-      },
-      {
-        "name": "Perspective"
-      },
-      {
-        "name": "Reformation"
-      },
-      {
-        "name": "The Pirate Code"
-      },
-      {
-        "name": "Measurement"
-      },
-      {
-        "name": "Stockholm"
-      },
-      {
-        "name": "Statistics"
-      },
-      {
-        "name": "Steam Engine"
-      },
-      {
-        "name": "Astronomy"
-      },
-      {
-        "name": "Edinburgh"
-      },
-      {
-        "name": "Machine Tools"
-      },
-      {
-        "name": "Canning"
-      },
-      {
-        "name": "Democracy"
-      },
-      {
-        "name": "Flight"
-      }
-    ],
-    "jamdalla": [
-      {
-        "name": "Tools"
-      },
-      {
-        "name": "Troy"
-      },
-      {
-        "name": "Athens"
-      },
-      {
-        "name": "Oars"
-      },
-      {
-        "name": "Sailing"
-      },
-      {
-        "name": "The Wheel"
-      },
-      {
-        "name": "Agriculture"
-      },
-      {
-        "name": "Damascus"
-      },
-      {
-        "name": "Domestication"
-      },
-      {
-        "name": "Masonry"
-      },
-      {
-        "name": "City States"
-      },
-      {
-        "name": "Code of Laws"
-      },
-      {
-        "name": "Mysticism"
-      },
-      {
-        "name": "Calendar"
-      },
-      {
-        "name": "Mapmaking"
-      },
-      {
-        "name": "Canal Building"
-      },
-      {
-        "name": "Cordoba"
-      },
-      {
-        "name": "Baghdad"
-      },
-      {
-        "name": "Mecca"
-      },
-      {
-        "name": "Chemistry"
-      },
-      {
-        "name": "Physics"
-      },
-      {
-        "name": "Publications"
-      },
-      {
-        "name": "Electricity"
-      },
-      {
-        "name": "Rocketry"
-      }
-    ]
-  },
-  "hand": {
-    "AnotherSava": [
-      {
-        "name": "Experimentation",
-        "revealed": true
-      },
-      {
-        "name": "Atomic Theory",
-        "revealed": true
-      },
-      {
-        "name": "Classification",
-        "revealed": true
-      },
-      {
-        "name": "Vaccination",
-        "revealed": true
-      },
-      {
-        "name": "Emancipation",
-        "revealed": true
-      },
-      {
-        "name": "Explosives",
-        "revealed": true
-      },
-      {
-        "name": "Lighting",
-        "revealed": true
-      },
-      {
-        "name": "Railroad",
-        "revealed": true
-      }
-    ],
-    "jamdalla": [
-      {
-        "name": "Encyclopedia",
-        "revealed": true
-      },
-      {
-        "age": 7,
-        "set": 0
-      },
-      {
-        "age": 7,
-        "set": 0
-      },
-      {
-        "age": 7,
-        "set": 3
+  "decks": {
+    "8/base": [
+      {
+        "age": 8,
+        "card_set": 0,
+        "candidates": [
+          "corporations",
+          "mass media",
+          "mobility",
+          "quantum theory",
+          "skyscrapers"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
       },
       {
         "age": 8,
-        "set": 0
+        "card_set": 0,
+        "candidates": [
+          "corporations",
+          "mass media",
+          "mobility",
+          "quantum theory",
+          "skyscrapers"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 8,
+        "card_set": 0,
+        "candidates": [
+          "corporations",
+          "mass media",
+          "mobility",
+          "quantum theory",
+          "skyscrapers"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      }
+    ],
+    "9/base": [
+      {
+        "age": 9,
+        "card_set": 0,
+        "candidates": [
+          "collaboration",
+          "composites",
+          "computers",
+          "ecology",
+          "fission",
+          "genetics",
+          "satellites",
+          "services",
+          "specialization",
+          "suburbia"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 9,
+        "card_set": 0,
+        "candidates": [
+          "collaboration",
+          "composites",
+          "computers",
+          "ecology",
+          "fission",
+          "genetics",
+          "satellites",
+          "services",
+          "specialization",
+          "suburbia"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 9,
+        "card_set": 0,
+        "candidates": [
+          "collaboration",
+          "composites",
+          "computers",
+          "ecology",
+          "fission",
+          "genetics",
+          "satellites",
+          "services",
+          "specialization",
+          "suburbia"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 9,
+        "card_set": 0,
+        "candidates": [
+          "collaboration",
+          "composites",
+          "computers",
+          "ecology",
+          "fission",
+          "genetics",
+          "satellites",
+          "services",
+          "specialization",
+          "suburbia"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 9,
+        "card_set": 0,
+        "candidates": [
+          "collaboration",
+          "composites",
+          "computers",
+          "ecology",
+          "fission",
+          "genetics",
+          "satellites",
+          "services",
+          "specialization",
+          "suburbia"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 9,
+        "card_set": 0,
+        "candidates": [
+          "collaboration",
+          "composites",
+          "computers",
+          "ecology",
+          "fission",
+          "genetics",
+          "satellites",
+          "services",
+          "specialization",
+          "suburbia"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 9,
+        "card_set": 0,
+        "candidates": [
+          "collaboration",
+          "composites",
+          "computers",
+          "ecology",
+          "fission",
+          "genetics",
+          "satellites",
+          "services",
+          "specialization",
+          "suburbia"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 9,
+        "card_set": 0,
+        "candidates": [
+          "collaboration",
+          "composites",
+          "computers",
+          "ecology",
+          "fission",
+          "genetics",
+          "satellites",
+          "services",
+          "specialization",
+          "suburbia"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 9,
+        "card_set": 0,
+        "candidates": [
+          "collaboration",
+          "composites",
+          "computers",
+          "ecology",
+          "fission",
+          "genetics",
+          "satellites",
+          "services",
+          "specialization",
+          "suburbia"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      }
+    ],
+    "10/base": [
+      {
+        "age": 10,
+        "card_set": 0,
+        "candidates": [
+          "a.i.",
+          "bioengineering",
+          "databases",
+          "globalization",
+          "miniaturization",
+          "robotics",
+          "self service",
+          "software",
+          "stem cells",
+          "the internet"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 10,
+        "card_set": 0,
+        "candidates": [
+          "a.i.",
+          "bioengineering",
+          "databases",
+          "globalization",
+          "miniaturization",
+          "robotics",
+          "self service",
+          "software",
+          "stem cells",
+          "the internet"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 10,
+        "card_set": 0,
+        "candidates": [
+          "a.i.",
+          "bioengineering",
+          "databases",
+          "globalization",
+          "miniaturization",
+          "robotics",
+          "self service",
+          "software",
+          "stem cells",
+          "the internet"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 10,
+        "card_set": 0,
+        "candidates": [
+          "a.i.",
+          "bioengineering",
+          "databases",
+          "globalization",
+          "miniaturization",
+          "robotics",
+          "self service",
+          "software",
+          "stem cells",
+          "the internet"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 10,
+        "card_set": 0,
+        "candidates": [
+          "a.i.",
+          "bioengineering",
+          "databases",
+          "globalization",
+          "miniaturization",
+          "robotics",
+          "self service",
+          "software",
+          "stem cells",
+          "the internet"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 10,
+        "card_set": 0,
+        "candidates": [
+          "a.i.",
+          "bioengineering",
+          "databases",
+          "globalization",
+          "miniaturization",
+          "robotics",
+          "self service",
+          "software",
+          "stem cells",
+          "the internet"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 10,
+        "card_set": 0,
+        "candidates": [
+          "a.i.",
+          "bioengineering",
+          "databases",
+          "globalization",
+          "miniaturization",
+          "robotics",
+          "self service",
+          "software",
+          "stem cells",
+          "the internet"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 10,
+        "card_set": 0,
+        "candidates": [
+          "a.i.",
+          "bioengineering",
+          "databases",
+          "globalization",
+          "miniaturization",
+          "robotics",
+          "self service",
+          "software",
+          "stem cells",
+          "the internet"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 10,
+        "card_set": 0,
+        "candidates": [
+          "a.i.",
+          "bioengineering",
+          "databases",
+          "globalization",
+          "miniaturization",
+          "robotics",
+          "self service",
+          "software",
+          "stem cells",
+          "the internet"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 10,
+        "card_set": 0,
+        "candidates": [
+          "a.i.",
+          "bioengineering",
+          "databases",
+          "globalization",
+          "miniaturization",
+          "robotics",
+          "self service",
+          "software",
+          "stem cells",
+          "the internet"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      }
+    ],
+    "1/cities": [
+      {
+        "age": 1,
+        "card_set": 3,
+        "candidates": [
+          "atlantis",
+          "chang'an",
+          "ephesus",
+          "hattusa",
+          "linzi",
+          "memphis",
+          "mohenjo-daro",
+          "thebes",
+          "uruk",
+          "yin"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 1,
+        "card_set": 3,
+        "candidates": [
+          "atlantis",
+          "chang'an",
+          "ephesus",
+          "hattusa",
+          "linzi",
+          "memphis",
+          "mohenjo-daro",
+          "thebes",
+          "uruk",
+          "yin"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 1,
+        "card_set": 3,
+        "candidates": [
+          "atlantis",
+          "chang'an",
+          "ephesus",
+          "hattusa",
+          "linzi",
+          "memphis",
+          "mohenjo-daro",
+          "thebes",
+          "uruk",
+          "yin"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 1,
+        "card_set": 3,
+        "candidates": [
+          "atlantis",
+          "chang'an",
+          "ephesus",
+          "hattusa",
+          "linzi",
+          "memphis",
+          "mohenjo-daro",
+          "thebes",
+          "uruk",
+          "yin"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 1,
+        "card_set": 3,
+        "candidates": [
+          "atlantis",
+          "chang'an",
+          "ephesus",
+          "hattusa",
+          "linzi",
+          "memphis",
+          "mohenjo-daro",
+          "thebes",
+          "uruk",
+          "yin"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 1,
+        "card_set": 3,
+        "candidates": [
+          "atlantis",
+          "chang'an",
+          "ephesus",
+          "hattusa",
+          "linzi",
+          "memphis",
+          "mohenjo-daro",
+          "thebes",
+          "uruk",
+          "yin"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 1,
+        "card_set": 3,
+        "candidates": [
+          "atlantis",
+          "chang'an",
+          "ephesus",
+          "hattusa",
+          "linzi",
+          "memphis",
+          "mohenjo-daro",
+          "thebes",
+          "uruk",
+          "yin"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 1,
+        "card_set": 3,
+        "candidates": [
+          "atlantis",
+          "chang'an",
+          "ephesus",
+          "hattusa",
+          "linzi",
+          "memphis",
+          "mohenjo-daro",
+          "thebes",
+          "uruk",
+          "yin"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 1,
+        "card_set": 3,
+        "candidates": [
+          "atlantis",
+          "chang'an",
+          "ephesus",
+          "hattusa",
+          "linzi",
+          "memphis",
+          "mohenjo-daro",
+          "thebes",
+          "uruk",
+          "yin"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 1,
+        "card_set": 3,
+        "candidates": [
+          "atlantis",
+          "chang'an",
+          "ephesus",
+          "hattusa",
+          "linzi",
+          "memphis",
+          "mohenjo-daro",
+          "thebes",
+          "uruk",
+          "yin"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      }
+    ],
+    "2/cities": [
+      {
+        "age": 2,
+        "card_set": 3,
+        "candidates": [
+          "alexandria",
+          "luoyang",
+          "marseille",
+          "nanjing",
+          "nineveh",
+          "sparta",
+          "teotihuacan",
+          "tikal"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 2,
+        "card_set": 3,
+        "candidates": [
+          "alexandria",
+          "luoyang",
+          "marseille",
+          "nanjing",
+          "nineveh",
+          "sparta",
+          "teotihuacan",
+          "tikal"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 2,
+        "card_set": 3,
+        "candidates": [
+          "alexandria",
+          "luoyang",
+          "marseille",
+          "nanjing",
+          "nineveh",
+          "sparta",
+          "teotihuacan",
+          "tikal"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 2,
+        "card_set": 3,
+        "candidates": [
+          "alexandria",
+          "luoyang",
+          "marseille",
+          "nanjing",
+          "nineveh",
+          "sparta",
+          "teotihuacan",
+          "tikal"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 2,
+        "card_set": 3,
+        "candidates": [
+          "alexandria",
+          "luoyang",
+          "marseille",
+          "nanjing",
+          "nineveh",
+          "sparta",
+          "teotihuacan",
+          "tikal"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 2,
+        "card_set": 3,
+        "candidates": [
+          "alexandria",
+          "luoyang",
+          "marseille",
+          "nanjing",
+          "nineveh",
+          "sparta",
+          "teotihuacan",
+          "tikal"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 2,
+        "card_set": 3,
+        "candidates": [
+          "alexandria",
+          "luoyang",
+          "marseille",
+          "nanjing",
+          "nineveh",
+          "sparta",
+          "teotihuacan",
+          "tikal"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 2,
+        "card_set": 3,
+        "candidates": [
+          "alexandria",
+          "luoyang",
+          "marseille",
+          "nanjing",
+          "nineveh",
+          "sparta",
+          "teotihuacan",
+          "tikal"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      }
+    ],
+    "3/cities": [
+      {
+        "age": 3,
+        "card_set": 3,
+        "candidates": [
+          "barcelona",
+          "constantinople",
+          "jakarta",
+          "kaifeng",
+          "venice"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 3,
+        "card_set": 3,
+        "candidates": [
+          "barcelona",
+          "constantinople",
+          "jakarta",
+          "kaifeng",
+          "venice"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 3,
+        "card_set": 3,
+        "candidates": [
+          "barcelona",
+          "constantinople",
+          "jakarta",
+          "kaifeng",
+          "venice"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 3,
+        "card_set": 3,
+        "candidates": [
+          "barcelona",
+          "constantinople",
+          "jakarta",
+          "kaifeng",
+          "venice"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 3,
+        "card_set": 3,
+        "candidates": [
+          "barcelona",
+          "constantinople",
+          "jakarta",
+          "kaifeng",
+          "venice"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      }
+    ],
+    "4/cities": [
+      {
+        "age": 4,
+        "card_set": 3,
+        "candidates": [
+          "beijing",
+          "calicut",
+          "florence",
+          "frankfurt",
+          "lisbon",
+          "madrid",
+          "manila",
+          "milan",
+          "seville",
+          "tenochtitlan"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 4,
+        "card_set": 3,
+        "candidates": [
+          "beijing",
+          "calicut",
+          "florence",
+          "frankfurt",
+          "lisbon",
+          "madrid",
+          "manila",
+          "milan",
+          "seville",
+          "tenochtitlan"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 4,
+        "card_set": 3,
+        "candidates": [
+          "beijing",
+          "calicut",
+          "florence",
+          "frankfurt",
+          "lisbon",
+          "madrid",
+          "manila",
+          "milan",
+          "seville",
+          "tenochtitlan"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 4,
+        "card_set": 3,
+        "candidates": [
+          "beijing",
+          "calicut",
+          "florence",
+          "frankfurt",
+          "lisbon",
+          "madrid",
+          "manila",
+          "milan",
+          "seville",
+          "tenochtitlan"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 4,
+        "card_set": 3,
+        "candidates": [
+          "beijing",
+          "calicut",
+          "florence",
+          "frankfurt",
+          "lisbon",
+          "madrid",
+          "manila",
+          "milan",
+          "seville",
+          "tenochtitlan"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 4,
+        "card_set": 3,
+        "candidates": [
+          "beijing",
+          "calicut",
+          "florence",
+          "frankfurt",
+          "lisbon",
+          "madrid",
+          "manila",
+          "milan",
+          "seville",
+          "tenochtitlan"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 4,
+        "card_set": 3,
+        "candidates": [
+          "beijing",
+          "calicut",
+          "florence",
+          "frankfurt",
+          "lisbon",
+          "madrid",
+          "manila",
+          "milan",
+          "seville",
+          "tenochtitlan"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 4,
+        "card_set": 3,
+        "candidates": [
+          "beijing",
+          "calicut",
+          "florence",
+          "frankfurt",
+          "lisbon",
+          "madrid",
+          "manila",
+          "milan",
+          "seville",
+          "tenochtitlan"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 4,
+        "card_set": 3,
+        "candidates": [
+          "beijing",
+          "calicut",
+          "florence",
+          "frankfurt",
+          "lisbon",
+          "madrid",
+          "manila",
+          "milan",
+          "seville",
+          "tenochtitlan"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 4,
+        "card_set": 3,
+        "candidates": [
+          "beijing",
+          "calicut",
+          "florence",
+          "frankfurt",
+          "lisbon",
+          "madrid",
+          "manila",
+          "milan",
+          "seville",
+          "tenochtitlan"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      }
+    ],
+    "5/cities": [
+      {
+        "age": 5,
+        "card_set": 3,
+        "candidates": [
+          "algiers",
+          "amsterdam",
+          "boston",
+          "gdansk",
+          "hoi an",
+          "naples",
+          "osaka",
+          "tokyo",
+          "zurich"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 5,
+        "card_set": 3,
+        "candidates": [
+          "algiers",
+          "amsterdam",
+          "boston",
+          "gdansk",
+          "hoi an",
+          "naples",
+          "osaka",
+          "tokyo",
+          "zurich"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 5,
+        "card_set": 3,
+        "candidates": [
+          "algiers",
+          "amsterdam",
+          "boston",
+          "gdansk",
+          "hoi an",
+          "naples",
+          "osaka",
+          "tokyo",
+          "zurich"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 5,
+        "card_set": 3,
+        "candidates": [
+          "algiers",
+          "amsterdam",
+          "boston",
+          "gdansk",
+          "hoi an",
+          "naples",
+          "osaka",
+          "tokyo",
+          "zurich"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 5,
+        "card_set": 3,
+        "candidates": [
+          "algiers",
+          "amsterdam",
+          "boston",
+          "gdansk",
+          "hoi an",
+          "naples",
+          "osaka",
+          "tokyo",
+          "zurich"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 5,
+        "card_set": 3,
+        "candidates": [
+          "algiers",
+          "amsterdam",
+          "boston",
+          "gdansk",
+          "hoi an",
+          "naples",
+          "osaka",
+          "tokyo",
+          "zurich"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 5,
+        "card_set": 3,
+        "candidates": [
+          "algiers",
+          "amsterdam",
+          "boston",
+          "gdansk",
+          "hoi an",
+          "naples",
+          "osaka",
+          "tokyo",
+          "zurich"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 5,
+        "card_set": 3,
+        "candidates": [
+          "algiers",
+          "amsterdam",
+          "boston",
+          "gdansk",
+          "hoi an",
+          "naples",
+          "osaka",
+          "tokyo",
+          "zurich"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 5,
+        "card_set": 3,
+        "candidates": [
+          "algiers",
+          "amsterdam",
+          "boston",
+          "gdansk",
+          "hoi an",
+          "naples",
+          "osaka",
+          "tokyo",
+          "zurich"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      }
+    ],
+    "6/cities": [
+      {
+        "age": 6,
+        "card_set": 3,
+        "candidates": [
+          "berlin",
+          "bombay",
+          "dublin",
+          "new york city",
+          "philadelphia",
+          "rio de janeiro",
+          "tehran",
+          "vienna"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 6,
+        "card_set": 3,
+        "candidates": [
+          "berlin",
+          "bombay",
+          "dublin",
+          "new york city",
+          "philadelphia",
+          "rio de janeiro",
+          "tehran",
+          "vienna"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 6,
+        "card_set": 3,
+        "candidates": [
+          "berlin",
+          "bombay",
+          "dublin",
+          "new york city",
+          "philadelphia",
+          "rio de janeiro",
+          "tehran",
+          "vienna"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 6,
+        "card_set": 3,
+        "candidates": [
+          "berlin",
+          "bombay",
+          "dublin",
+          "new york city",
+          "philadelphia",
+          "rio de janeiro",
+          "tehran",
+          "vienna"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 6,
+        "card_set": 3,
+        "candidates": [
+          "berlin",
+          "bombay",
+          "dublin",
+          "new york city",
+          "philadelphia",
+          "rio de janeiro",
+          "tehran",
+          "vienna"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 6,
+        "card_set": 3,
+        "candidates": [
+          "berlin",
+          "bombay",
+          "dublin",
+          "new york city",
+          "philadelphia",
+          "rio de janeiro",
+          "tehran",
+          "vienna"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 6,
+        "card_set": 3,
+        "candidates": [
+          "berlin",
+          "bombay",
+          "dublin",
+          "new york city",
+          "philadelphia",
+          "rio de janeiro",
+          "tehran",
+          "vienna"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 6,
+        "card_set": 3,
+        "candidates": [
+          "berlin",
+          "bombay",
+          "dublin",
+          "new york city",
+          "philadelphia",
+          "rio de janeiro",
+          "tehran",
+          "vienna"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 6,
+        "card_set": 3,
+        "candidates": [
+          "paris"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "paris"
+        ],
+        "suspect_list_explicit": true
+      }
+    ],
+    "7/cities": [
+      {
+        "age": 7,
+        "card_set": 3,
+        "candidates": [
+          "johannesburg",
+          "london",
+          "lyon",
+          "melbourne",
+          "montreal",
+          "munich",
+          "san francisco",
+          "st. petersburg",
+          "toronto",
+          "washington"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 7,
+        "card_set": 3,
+        "candidates": [
+          "johannesburg",
+          "london",
+          "lyon",
+          "melbourne",
+          "montreal",
+          "munich",
+          "san francisco",
+          "st. petersburg",
+          "toronto",
+          "washington"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 7,
+        "card_set": 3,
+        "candidates": [
+          "johannesburg",
+          "london",
+          "lyon",
+          "melbourne",
+          "montreal",
+          "munich",
+          "san francisco",
+          "st. petersburg",
+          "toronto",
+          "washington"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 7,
+        "card_set": 3,
+        "candidates": [
+          "johannesburg",
+          "london",
+          "lyon",
+          "melbourne",
+          "montreal",
+          "munich",
+          "san francisco",
+          "st. petersburg",
+          "toronto",
+          "washington"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 7,
+        "card_set": 3,
+        "candidates": [
+          "johannesburg",
+          "london",
+          "lyon",
+          "melbourne",
+          "montreal",
+          "munich",
+          "san francisco",
+          "st. petersburg",
+          "toronto",
+          "washington"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 7,
+        "card_set": 3,
+        "candidates": [
+          "johannesburg",
+          "london",
+          "lyon",
+          "melbourne",
+          "montreal",
+          "munich",
+          "san francisco",
+          "st. petersburg",
+          "toronto",
+          "washington"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 7,
+        "card_set": 3,
+        "candidates": [
+          "johannesburg",
+          "london",
+          "lyon",
+          "melbourne",
+          "montreal",
+          "munich",
+          "san francisco",
+          "st. petersburg",
+          "toronto",
+          "washington"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 7,
+        "card_set": 3,
+        "candidates": [
+          "johannesburg",
+          "london",
+          "lyon",
+          "melbourne",
+          "montreal",
+          "munich",
+          "san francisco",
+          "st. petersburg",
+          "toronto",
+          "washington"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 7,
+        "card_set": 3,
+        "candidates": [
+          "johannesburg",
+          "london",
+          "lyon",
+          "melbourne",
+          "montreal",
+          "munich",
+          "san francisco",
+          "st. petersburg",
+          "toronto",
+          "washington"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      }
+    ],
+    "8/cities": [
+      {
+        "age": 8,
+        "card_set": 3,
+        "candidates": [
+          "buenos aires",
+          "chicago",
+          "chongqing",
+          "hamburg",
+          "kiev",
+          "kuala lumpur",
+          "los angeles",
+          "sao paulo",
+          "shanghai",
+          "vancouver"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 8,
+        "card_set": 3,
+        "candidates": [
+          "buenos aires",
+          "chicago",
+          "chongqing",
+          "hamburg",
+          "kiev",
+          "kuala lumpur",
+          "los angeles",
+          "sao paulo",
+          "shanghai",
+          "vancouver"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 8,
+        "card_set": 3,
+        "candidates": [
+          "buenos aires",
+          "chicago",
+          "chongqing",
+          "hamburg",
+          "kiev",
+          "kuala lumpur",
+          "los angeles",
+          "sao paulo",
+          "shanghai",
+          "vancouver"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 8,
+        "card_set": 3,
+        "candidates": [
+          "buenos aires",
+          "chicago",
+          "chongqing",
+          "hamburg",
+          "kiev",
+          "kuala lumpur",
+          "los angeles",
+          "sao paulo",
+          "shanghai",
+          "vancouver"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 8,
+        "card_set": 3,
+        "candidates": [
+          "buenos aires",
+          "chicago",
+          "chongqing",
+          "hamburg",
+          "kiev",
+          "kuala lumpur",
+          "los angeles",
+          "sao paulo",
+          "shanghai",
+          "vancouver"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 8,
+        "card_set": 3,
+        "candidates": [
+          "buenos aires",
+          "chicago",
+          "chongqing",
+          "hamburg",
+          "kiev",
+          "kuala lumpur",
+          "los angeles",
+          "sao paulo",
+          "shanghai",
+          "vancouver"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 8,
+        "card_set": 3,
+        "candidates": [
+          "buenos aires",
+          "chicago",
+          "chongqing",
+          "hamburg",
+          "kiev",
+          "kuala lumpur",
+          "los angeles",
+          "sao paulo",
+          "shanghai",
+          "vancouver"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 8,
+        "card_set": 3,
+        "candidates": [
+          "buenos aires",
+          "chicago",
+          "chongqing",
+          "hamburg",
+          "kiev",
+          "kuala lumpur",
+          "los angeles",
+          "sao paulo",
+          "shanghai",
+          "vancouver"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 8,
+        "card_set": 3,
+        "candidates": [
+          "buenos aires",
+          "chicago",
+          "chongqing",
+          "hamburg",
+          "kiev",
+          "kuala lumpur",
+          "los angeles",
+          "sao paulo",
+          "shanghai",
+          "vancouver"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 8,
+        "card_set": 3,
+        "candidates": [
+          "buenos aires",
+          "chicago",
+          "chongqing",
+          "hamburg",
+          "kiev",
+          "kuala lumpur",
+          "los angeles",
+          "sao paulo",
+          "shanghai",
+          "vancouver"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      }
+    ],
+    "9/cities": [
+      {
+        "age": 9,
+        "card_set": 3,
+        "candidates": [
+          "dallas",
+          "guadalajara",
+          "hong kong",
+          "houston",
+          "miami",
+          "moscow",
+          "perth",
+          "santiago",
+          "sydney",
+          "taipei"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 9,
+        "card_set": 3,
+        "candidates": [
+          "dallas",
+          "guadalajara",
+          "hong kong",
+          "houston",
+          "miami",
+          "moscow",
+          "perth",
+          "santiago",
+          "sydney",
+          "taipei"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 9,
+        "card_set": 3,
+        "candidates": [
+          "dallas",
+          "guadalajara",
+          "hong kong",
+          "houston",
+          "miami",
+          "moscow",
+          "perth",
+          "santiago",
+          "sydney",
+          "taipei"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 9,
+        "card_set": 3,
+        "candidates": [
+          "dallas",
+          "guadalajara",
+          "hong kong",
+          "houston",
+          "miami",
+          "moscow",
+          "perth",
+          "santiago",
+          "sydney",
+          "taipei"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 9,
+        "card_set": 3,
+        "candidates": [
+          "dallas",
+          "guadalajara",
+          "hong kong",
+          "houston",
+          "miami",
+          "moscow",
+          "perth",
+          "santiago",
+          "sydney",
+          "taipei"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 9,
+        "card_set": 3,
+        "candidates": [
+          "dallas",
+          "guadalajara",
+          "hong kong",
+          "houston",
+          "miami",
+          "moscow",
+          "perth",
+          "santiago",
+          "sydney",
+          "taipei"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 9,
+        "card_set": 3,
+        "candidates": [
+          "dallas",
+          "guadalajara",
+          "hong kong",
+          "houston",
+          "miami",
+          "moscow",
+          "perth",
+          "santiago",
+          "sydney",
+          "taipei"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 9,
+        "card_set": 3,
+        "candidates": [
+          "dallas",
+          "guadalajara",
+          "hong kong",
+          "houston",
+          "miami",
+          "moscow",
+          "perth",
+          "santiago",
+          "sydney",
+          "taipei"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 9,
+        "card_set": 3,
+        "candidates": [
+          "dallas",
+          "guadalajara",
+          "hong kong",
+          "houston",
+          "miami",
+          "moscow",
+          "perth",
+          "santiago",
+          "sydney",
+          "taipei"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 9,
+        "card_set": 3,
+        "candidates": [
+          "dallas",
+          "guadalajara",
+          "hong kong",
+          "houston",
+          "miami",
+          "moscow",
+          "perth",
+          "santiago",
+          "sydney",
+          "taipei"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      }
+    ],
+    "10/cities": [
+      {
+        "age": 10,
+        "card_set": 3,
+        "candidates": [
+          "atlanta",
+          "bangalore",
+          "bangkok",
+          "brussels",
+          "copenhagen",
+          "dubai",
+          "essen",
+          "seoul",
+          "singapore",
+          "tel aviv"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 10,
+        "card_set": 3,
+        "candidates": [
+          "atlanta",
+          "bangalore",
+          "bangkok",
+          "brussels",
+          "copenhagen",
+          "dubai",
+          "essen",
+          "seoul",
+          "singapore",
+          "tel aviv"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 10,
+        "card_set": 3,
+        "candidates": [
+          "atlanta",
+          "bangalore",
+          "bangkok",
+          "brussels",
+          "copenhagen",
+          "dubai",
+          "essen",
+          "seoul",
+          "singapore",
+          "tel aviv"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 10,
+        "card_set": 3,
+        "candidates": [
+          "atlanta",
+          "bangalore",
+          "bangkok",
+          "brussels",
+          "copenhagen",
+          "dubai",
+          "essen",
+          "seoul",
+          "singapore",
+          "tel aviv"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 10,
+        "card_set": 3,
+        "candidates": [
+          "atlanta",
+          "bangalore",
+          "bangkok",
+          "brussels",
+          "copenhagen",
+          "dubai",
+          "essen",
+          "seoul",
+          "singapore",
+          "tel aviv"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 10,
+        "card_set": 3,
+        "candidates": [
+          "atlanta",
+          "bangalore",
+          "bangkok",
+          "brussels",
+          "copenhagen",
+          "dubai",
+          "essen",
+          "seoul",
+          "singapore",
+          "tel aviv"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 10,
+        "card_set": 3,
+        "candidates": [
+          "atlanta",
+          "bangalore",
+          "bangkok",
+          "brussels",
+          "copenhagen",
+          "dubai",
+          "essen",
+          "seoul",
+          "singapore",
+          "tel aviv"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 10,
+        "card_set": 3,
+        "candidates": [
+          "atlanta",
+          "bangalore",
+          "bangkok",
+          "brussels",
+          "copenhagen",
+          "dubai",
+          "essen",
+          "seoul",
+          "singapore",
+          "tel aviv"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 10,
+        "card_set": 3,
+        "candidates": [
+          "atlanta",
+          "bangalore",
+          "bangkok",
+          "brussels",
+          "copenhagen",
+          "dubai",
+          "essen",
+          "seoul",
+          "singapore",
+          "tel aviv"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 10,
+        "card_set": 3,
+        "candidates": [
+          "atlanta",
+          "bangalore",
+          "bangkok",
+          "brussels",
+          "copenhagen",
+          "dubai",
+          "essen",
+          "seoul",
+          "singapore",
+          "tel aviv"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
       }
     ]
   },
-  "score": {
+  "boards": {
     "AnotherSava": [
       {
-        "name": "Hangzhou",
-        "revealed": false
+        "age": 1,
+        "card_set": 0,
+        "candidates": [
+          "clothing"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "clothing"
+        ],
+        "suspect_list_explicit": true
       },
       {
-        "name": "Engineering",
-        "revealed": true
+        "age": 1,
+        "card_set": 0,
+        "candidates": [
+          "archery"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "archery"
+        ],
+        "suspect_list_explicit": true
       },
       {
-        "name": "Coal",
-        "revealed": true
+        "age": 1,
+        "card_set": 3,
+        "candidates": [
+          "jerusalem"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "jerusalem"
+        ],
+        "suspect_list_explicit": true
       },
       {
-        "name": "Antibiotics",
-        "revealed": false
+        "age": 1,
+        "card_set": 0,
+        "candidates": [
+          "metalworking"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "metalworking"
+        ],
+        "suspect_list_explicit": true
       },
       {
-        "name": "Empiricism",
-        "revealed": false
+        "age": 1,
+        "card_set": 0,
+        "candidates": [
+          "writing"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "writing"
+        ],
+        "suspect_list_explicit": true
       },
       {
-        "name": "Socialism",
-        "revealed": false
+        "age": 1,
+        "card_set": 3,
+        "candidates": [
+          "babylon"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "babylon"
+        ],
+        "suspect_list_explicit": true
+      },
+      {
+        "age": 2,
+        "card_set": 0,
+        "candidates": [
+          "monotheism"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "monotheism"
+        ],
+        "suspect_list_explicit": true
+      },
+      {
+        "age": 2,
+        "card_set": 3,
+        "candidates": [
+          "carthage"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "carthage"
+        ],
+        "suspect_list_explicit": true
+      },
+      {
+        "age": 2,
+        "card_set": 0,
+        "candidates": [
+          "fermenting"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "fermenting"
+        ],
+        "suspect_list_explicit": true
+      },
+      {
+        "age": 2,
+        "card_set": 0,
+        "candidates": [
+          "philosophy"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "philosophy"
+        ],
+        "suspect_list_explicit": true
+      },
+      {
+        "age": 2,
+        "card_set": 3,
+        "candidates": [
+          "rome"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "rome"
+        ],
+        "suspect_list_explicit": true
+      },
+      {
+        "age": 3,
+        "card_set": 3,
+        "candidates": [
+          "delhi"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "delhi"
+        ],
+        "suspect_list_explicit": true
+      },
+      {
+        "age": 2,
+        "card_set": 0,
+        "candidates": [
+          "construction"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "construction"
+        ],
+        "suspect_list_explicit": true
+      },
+      {
+        "age": 4,
+        "card_set": 0,
+        "candidates": [
+          "reformation"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "reformation"
+        ],
+        "suspect_list_explicit": true
+      },
+      {
+        "age": 3,
+        "card_set": 0,
+        "candidates": [
+          "feudalism"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "feudalism"
+        ],
+        "suspect_list_explicit": true
+      },
+      {
+        "age": 5,
+        "card_set": 0,
+        "candidates": [
+          "statistics"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "statistics"
+        ],
+        "suspect_list_explicit": true
+      },
+      {
+        "age": 3,
+        "card_set": 0,
+        "candidates": [
+          "education"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "education"
+        ],
+        "suspect_list_explicit": true
+      },
+      {
+        "age": 5,
+        "card_set": 3,
+        "candidates": [
+          "stockholm"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "stockholm"
+        ],
+        "suspect_list_explicit": true
+      },
+      {
+        "age": 5,
+        "card_set": 0,
+        "candidates": [
+          "measurement"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "measurement"
+        ],
+        "suspect_list_explicit": true
+      },
+      {
+        "age": 4,
+        "card_set": 0,
+        "candidates": [
+          "anatomy"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "anatomy"
+        ],
+        "suspect_list_explicit": true
+      },
+      {
+        "age": 3,
+        "card_set": 0,
+        "candidates": [
+          "machinery"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "machinery"
+        ],
+        "suspect_list_explicit": true
+      },
+      {
+        "age": 3,
+        "card_set": 0,
+        "candidates": [
+          "medicine"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "medicine"
+        ],
+        "suspect_list_explicit": true
+      },
+      {
+        "age": 6,
+        "card_set": 3,
+        "candidates": [
+          "edinburgh"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "edinburgh"
+        ],
+        "suspect_list_explicit": true
+      },
+      {
+        "age": 6,
+        "card_set": 0,
+        "candidates": [
+          "canning"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "canning"
+        ],
+        "suspect_list_explicit": true
+      },
+      {
+        "age": 6,
+        "card_set": 0,
+        "candidates": [
+          "machine tools"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "machine tools"
+        ],
+        "suspect_list_explicit": true
+      },
+      {
+        "age": 3,
+        "card_set": 0,
+        "candidates": [
+          "compass"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "compass"
+        ],
+        "suspect_list_explicit": true
+      },
+      {
+        "age": 5,
+        "card_set": 0,
+        "candidates": [
+          "the pirate code"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "the pirate code"
+        ],
+        "suspect_list_explicit": true
+      },
+      {
+        "age": 4,
+        "card_set": 0,
+        "candidates": [
+          "navigation"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "navigation"
+        ],
+        "suspect_list_explicit": true
+      },
+      {
+        "age": 4,
+        "card_set": 0,
+        "candidates": [
+          "gunpowder"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "gunpowder"
+        ],
+        "suspect_list_explicit": true
+      },
+      {
+        "age": 5,
+        "card_set": 0,
+        "candidates": [
+          "steam engine"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "steam engine"
+        ],
+        "suspect_list_explicit": true
+      },
+      {
+        "age": 4,
+        "card_set": 0,
+        "candidates": [
+          "colonialism"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "colonialism"
+        ],
+        "suspect_list_explicit": true
+      },
+      {
+        "age": 5,
+        "card_set": 0,
+        "candidates": [
+          "astronomy"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "astronomy"
+        ],
+        "suspect_list_explicit": true
+      },
+      {
+        "age": 2,
+        "card_set": 0,
+        "candidates": [
+          "currency"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "currency"
+        ],
+        "suspect_list_explicit": true
+      },
+      {
+        "age": 3,
+        "card_set": 0,
+        "candidates": [
+          "paper"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "paper"
+        ],
+        "suspect_list_explicit": true
+      },
+      {
+        "age": 4,
+        "card_set": 0,
+        "candidates": [
+          "perspective"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "perspective"
+        ],
+        "suspect_list_explicit": true
+      },
+      {
+        "age": 6,
+        "card_set": 0,
+        "candidates": [
+          "democracy"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "democracy"
+        ],
+        "suspect_list_explicit": true
+      },
+      {
+        "age": 3,
+        "card_set": 0,
+        "candidates": [
+          "optics"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "optics"
+        ],
+        "suspect_list_explicit": true
+      },
+      {
+        "age": 8,
+        "card_set": 0,
+        "candidates": [
+          "flight"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "flight"
+        ],
+        "suspect_list_explicit": true
+      },
+      {
+        "age": 4,
+        "card_set": 0,
+        "candidates": [
+          "invention"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "invention"
+        ],
+        "suspect_list_explicit": true
       }
     ],
     "jamdalla": [
       {
-        "name": "Mathematics",
-        "revealed": true
+        "age": 1,
+        "card_set": 0,
+        "candidates": [
+          "the wheel"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "the wheel"
+        ],
+        "suspect_list_explicit": true
       },
       {
-        "name": "Translation",
-        "revealed": true
+        "age": 1,
+        "card_set": 0,
+        "candidates": [
+          "code of laws"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "code of laws"
+        ],
+        "suspect_list_explicit": true
       },
       {
-        "name": "Enterprise",
-        "revealed": true
+        "age": 1,
+        "card_set": 3,
+        "candidates": [
+          "athens"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "athens"
+        ],
+        "suspect_list_explicit": true
       },
       {
-        "name": "Societies",
-        "revealed": true
+        "age": 1,
+        "card_set": 3,
+        "candidates": [
+          "damascus"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "damascus"
+        ],
+        "suspect_list_explicit": true
       },
       {
-        "name": "Industrialization",
-        "revealed": true
+        "age": 1,
+        "card_set": 3,
+        "candidates": [
+          "troy"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "troy"
+        ],
+        "suspect_list_explicit": true
       },
       {
-        "name": "Combustion",
-        "revealed": true
+        "age": 1,
+        "card_set": 0,
+        "candidates": [
+          "tools"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "tools"
+        ],
+        "suspect_list_explicit": true
       },
       {
-        "name": "Refrigeration",
-        "revealed": true
+        "age": 1,
+        "card_set": 0,
+        "candidates": [
+          "masonry"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "masonry"
+        ],
+        "suspect_list_explicit": true
+      },
+      {
+        "age": 1,
+        "card_set": 0,
+        "candidates": [
+          "oars"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "oars"
+        ],
+        "suspect_list_explicit": true
+      },
+      {
+        "age": 1,
+        "card_set": 0,
+        "candidates": [
+          "sailing"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "sailing"
+        ],
+        "suspect_list_explicit": true
+      },
+      {
+        "age": 2,
+        "card_set": 0,
+        "candidates": [
+          "calendar"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "calendar"
+        ],
+        "suspect_list_explicit": true
+      },
+      {
+        "age": 1,
+        "card_set": 0,
+        "candidates": [
+          "agriculture"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "agriculture"
+        ],
+        "suspect_list_explicit": true
+      },
+      {
+        "age": 3,
+        "card_set": 3,
+        "candidates": [
+          "mecca"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "mecca"
+        ],
+        "suspect_list_explicit": true
+      },
+      {
+        "age": 3,
+        "card_set": 3,
+        "candidates": [
+          "baghdad"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "baghdad"
+        ],
+        "suspect_list_explicit": true
+      },
+      {
+        "age": 2,
+        "card_set": 0,
+        "candidates": [
+          "canal building"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "canal building"
+        ],
+        "suspect_list_explicit": true
+      },
+      {
+        "age": 3,
+        "card_set": 3,
+        "candidates": [
+          "cordoba"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "cordoba"
+        ],
+        "suspect_list_explicit": true
+      },
+      {
+        "age": 2,
+        "card_set": 0,
+        "candidates": [
+          "mapmaking"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "mapmaking"
+        ],
+        "suspect_list_explicit": true
+      },
+      {
+        "age": 1,
+        "card_set": 0,
+        "candidates": [
+          "domestication"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "domestication"
+        ],
+        "suspect_list_explicit": true
+      },
+      {
+        "age": 1,
+        "card_set": 0,
+        "candidates": [
+          "city states"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "city states"
+        ],
+        "suspect_list_explicit": true
+      },
+      {
+        "age": 1,
+        "card_set": 0,
+        "candidates": [
+          "mysticism"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "mysticism"
+        ],
+        "suspect_list_explicit": true
+      },
+      {
+        "age": 5,
+        "card_set": 0,
+        "candidates": [
+          "chemistry"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "chemistry"
+        ],
+        "suspect_list_explicit": true
+      },
+      {
+        "age": 5,
+        "card_set": 0,
+        "candidates": [
+          "physics"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "physics"
+        ],
+        "suspect_list_explicit": true
+      },
+      {
+        "age": 7,
+        "card_set": 0,
+        "candidates": [
+          "electricity"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "electricity"
+        ],
+        "suspect_list_explicit": true
+      },
+      {
+        "age": 7,
+        "card_set": 0,
+        "candidates": [
+          "publications"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "publications"
+        ],
+        "suspect_list_explicit": true
+      },
+      {
+        "age": 8,
+        "card_set": 0,
+        "candidates": [
+          "rocketry"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "rocketry"
+        ],
+        "suspect_list_explicit": true
+      }
+    ]
+  },
+  "hands": {
+    "AnotherSava": [
+      {
+        "age": 4,
+        "card_set": 0,
+        "candidates": [
+          "experimentation"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "experimentation"
+        ],
+        "suspect_list_explicit": true
+      },
+      {
+        "age": 6,
+        "card_set": 0,
+        "candidates": [
+          "classification"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "classification"
+        ],
+        "suspect_list_explicit": true
+      },
+      {
+        "age": 6,
+        "card_set": 0,
+        "candidates": [
+          "emancipation"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "emancipation"
+        ],
+        "suspect_list_explicit": true
+      },
+      {
+        "age": 6,
+        "card_set": 0,
+        "candidates": [
+          "atomic theory"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "atomic theory"
+        ],
+        "suspect_list_explicit": true
+      },
+      {
+        "age": 6,
+        "card_set": 0,
+        "candidates": [
+          "vaccination"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "vaccination"
+        ],
+        "suspect_list_explicit": true
+      },
+      {
+        "age": 7,
+        "card_set": 0,
+        "candidates": [
+          "railroad"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "railroad"
+        ],
+        "suspect_list_explicit": true
+      },
+      {
+        "age": 7,
+        "card_set": 0,
+        "candidates": [
+          "lighting"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "lighting"
+        ],
+        "suspect_list_explicit": true
+      },
+      {
+        "age": 7,
+        "card_set": 0,
+        "candidates": [
+          "explosives"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "explosives"
+        ],
+        "suspect_list_explicit": true
+      }
+    ],
+    "jamdalla": [
+      {
+        "age": 6,
+        "card_set": 0,
+        "candidates": [
+          "encyclopedia"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "encyclopedia"
+        ],
+        "suspect_list_explicit": true
+      },
+      {
+        "age": 7,
+        "card_set": 0,
+        "candidates": [
+          "bicycle",
+          "evolution",
+          "sanitation"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 7,
+        "card_set": 3,
+        "candidates": [
+          "johannesburg",
+          "london",
+          "lyon",
+          "melbourne",
+          "montreal",
+          "munich",
+          "san francisco",
+          "st. petersburg",
+          "toronto",
+          "washington"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 7,
+        "card_set": 0,
+        "candidates": [
+          "bicycle",
+          "evolution",
+          "sanitation"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 8,
+        "card_set": 0,
+        "candidates": [
+          "corporations",
+          "mass media",
+          "mobility",
+          "quantum theory",
+          "skyscrapers"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      }
+    ]
+  },
+  "scores": {
+    "AnotherSava": [
+      {
+        "age": 3,
+        "card_set": 3,
+        "candidates": [
+          "hangzhou"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 8,
+        "card_set": 0,
+        "candidates": [
+          "socialism"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 8,
+        "card_set": 0,
+        "candidates": [
+          "empiricism"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      },
+      {
+        "age": 5,
+        "card_set": 0,
+        "candidates": [
+          "coal"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "coal"
+        ],
+        "suspect_list_explicit": true
+      },
+      {
+        "age": 3,
+        "card_set": 0,
+        "candidates": [
+          "engineering"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "engineering"
+        ],
+        "suspect_list_explicit": true
+      },
+      {
+        "age": 8,
+        "card_set": 0,
+        "candidates": [
+          "antibiotics"
+        ],
+        "opponent_knows_exact": false,
+        "opponent_might_suspect": [],
+        "suspect_list_explicit": false
+      }
+    ],
+    "jamdalla": [
+      {
+        "age": 2,
+        "card_set": 0,
+        "candidates": [
+          "mathematics"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "mathematics"
+        ],
+        "suspect_list_explicit": true
+      },
+      {
+        "age": 3,
+        "card_set": 0,
+        "candidates": [
+          "translation"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "translation"
+        ],
+        "suspect_list_explicit": true
+      },
+      {
+        "age": 5,
+        "card_set": 0,
+        "candidates": [
+          "societies"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "societies"
+        ],
+        "suspect_list_explicit": true
+      },
+      {
+        "age": 4,
+        "card_set": 0,
+        "candidates": [
+          "enterprise"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "enterprise"
+        ],
+        "suspect_list_explicit": true
+      },
+      {
+        "age": 7,
+        "card_set": 0,
+        "candidates": [
+          "combustion"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "combustion"
+        ],
+        "suspect_list_explicit": true
+      },
+      {
+        "age": 7,
+        "card_set": 0,
+        "candidates": [
+          "refrigeration"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "refrigeration"
+        ],
+        "suspect_list_explicit": true
+      },
+      {
+        "age": 6,
+        "card_set": 0,
+        "candidates": [
+          "industrialization"
+        ],
+        "opponent_knows_exact": true,
+        "opponent_might_suspect": [
+          "industrialization"
+        ],
+        "suspect_list_explicit": true
       }
     ]
   },
   "achievements": [
     {
-      "name": "Pottery"
+      "age": 1,
+      "card_set": 0,
+      "candidates": [
+        "pottery"
+      ],
+      "opponent_knows_exact": false,
+      "opponent_might_suspect": [],
+      "suspect_list_explicit": false
     },
     {
-      "name": "Road Building"
+      "age": 2,
+      "card_set": 0,
+      "candidates": [
+        "road building"
+      ],
+      "opponent_knows_exact": false,
+      "opponent_might_suspect": [],
+      "suspect_list_explicit": false
     },
     {
-      "name": "Alchemy"
+      "age": 3,
+      "card_set": 0,
+      "candidates": [
+        "alchemy"
+      ],
+      "opponent_knows_exact": false,
+      "opponent_might_suspect": [],
+      "suspect_list_explicit": false
     },
     {
-      "name": "Printing Press"
+      "age": 4,
+      "card_set": 0,
+      "candidates": [
+        "printing press"
+      ],
+      "opponent_knows_exact": false,
+      "opponent_might_suspect": [],
+      "suspect_list_explicit": false
     },
     {
-      "name": "Banking"
+      "age": 5,
+      "card_set": 0,
+      "candidates": [
+        "banking"
+      ],
+      "opponent_knows_exact": false,
+      "opponent_might_suspect": [],
+      "suspect_list_explicit": false
     },
     {
-      "name": "Metric System"
+      "age": 6,
+      "card_set": 0,
+      "candidates": [
+        "metric system"
+      ],
+      "opponent_knows_exact": false,
+      "opponent_might_suspect": [],
+      "suspect_list_explicit": false
     },
-    null,
-    null,
-    null
+    {
+      "age": 7,
+      "card_set": 0,
+      "candidates": [
+        "bicycle",
+        "evolution",
+        "sanitation"
+      ],
+      "opponent_knows_exact": false,
+      "opponent_might_suspect": [],
+      "suspect_list_explicit": false
+    },
+    {
+      "age": 8,
+      "card_set": 0,
+      "candidates": [
+        "corporations",
+        "mass media",
+        "mobility",
+        "quantum theory",
+        "skyscrapers"
+      ],
+      "opponent_knows_exact": false,
+      "opponent_might_suspect": [],
+      "suspect_list_explicit": false
+    },
+    {
+      "age": 9,
+      "card_set": 0,
+      "candidates": [
+        "collaboration",
+        "composites",
+        "computers",
+        "ecology",
+        "fission",
+        "genetics",
+        "satellites",
+        "services",
+        "specialization",
+        "suburbia"
+      ],
+      "opponent_knows_exact": false,
+      "opponent_might_suspect": [],
+      "suspect_list_explicit": false
+    }
   ]
 }

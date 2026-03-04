@@ -69,8 +69,6 @@ body {
   min-width: 20px;
   color: #fff;
 }
-.card-age.starred { color: #ff4444; }
-.b-red .card-age.starred { color: #ff9999; }
 
 /* Image tooltip (base cards) */
 .card-tip {
@@ -101,13 +99,14 @@ body {
 .card:hover > .card-tip-text { display: block; }
 
 /* Layout */
-.deck-age {
+.section-row {
   display: flex;
   align-items: flex-start;
   min-height: 49px;
   gap: 6px;
+  margin-bottom: 4px;
 }
-.deck-age-label {
+.row-label {
   font-family: 'Russo One', sans-serif;
   font-size: 18px;
   font-weight: bold;
@@ -117,13 +116,7 @@ body {
   text-align: center;
   align-self: center;
 }
-.age-label {
-  min-width: 24px;
-  text-align: right;
-  color: #888;
-  font-size: 13px;
-  padding-top: 6px;
-}
+.row-label svg { width: 20px; height: 20px; fill: #888; }
 .card-row {
   display: flex;
   flex-wrap: wrap;
@@ -132,20 +125,7 @@ body {
 /* Tall grid layout */
 .tall-grid { border-collapse: collapse; }
 .tall-grid td { padding: 0; vertical-align: top; }
-.tall-grid .deck-age-label { vertical-align: middle; padding-right: 6px; }
-.hand-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 6px;
-  margin-bottom: 4px;
-}
-.row-label {
-  width: 24px;
-  flex-shrink: 0;
-  align-self: center;
-  text-align: center;
-}
-.row-label svg { width: 20px; height: 20px; fill: #888; }
+.tall-grid .row-label { vertical-align: middle; padding-right: 6px; }
 /* Tri-toggle (Hide | Show | None | All | Unknown) */
 .tri-toggle { font-size: 12px; font-weight: normal; vertical-align: baseline; color: #aaa; }
 .tri-sep { color: #555; margin: 0 2px; }
