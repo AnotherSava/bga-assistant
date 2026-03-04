@@ -1,0 +1,2151 @@
+{
+  "players": {
+    "76419314": "AnotherSava",
+    "84538461": "TrinaCat"
+  },
+  "my_hand": [
+    "The pirate code",
+    "Steam engine"
+  ],
+  "log": [
+    {
+      "move": 2,
+      "type": "log",
+      "msg": "TrinaCat chooses a card."
+    },
+    {
+      "move": 3,
+      "type": "log",
+      "msg": "AnotherSava chooses a card."
+    },
+    {
+      "type": "transfer",
+      "move": 3,
+      "card_set": "base",
+      "source": "hand",
+      "dest": "board",
+      "card_name": "The wheel",
+      "card_age": 1,
+      "source_owner": "AnotherSava",
+      "dest_owner": "AnotherSava"
+    },
+    {
+      "type": "transfer",
+      "move": 3,
+      "card_set": "base",
+      "source": "hand",
+      "dest": "board",
+      "card_name": "Tools",
+      "card_age": 1,
+      "source_owner": "TrinaCat",
+      "dest_owner": "TrinaCat"
+    },
+    {
+      "move": 3,
+      "type": "log",
+      "msg": "AnotherSava melded the first card in English alphabetical order (The wheel): he plays first."
+    },
+    {
+      "type": "transfer",
+      "move": 4,
+      "card_set": "base",
+      "source": "hand",
+      "dest": "board",
+      "card_name": "Metalworking",
+      "card_age": 1,
+      "source_owner": "AnotherSava",
+      "dest_owner": "AnotherSava"
+    },
+    {
+      "type": "transfer",
+      "move": 4,
+      "card_set": "cities",
+      "source": "deck",
+      "dest": "hand",
+      "card_name": "Thebes",
+      "card_age": 1,
+      "source_owner": null,
+      "dest_owner": "AnotherSava"
+    },
+    {
+      "type": "transfer",
+      "move": 5,
+      "card_set": "base",
+      "source": "hand",
+      "dest": "board",
+      "card_name": "Domestication",
+      "card_age": 1,
+      "source_owner": "TrinaCat",
+      "dest_owner": "TrinaCat"
+    },
+    {
+      "type": "transfer",
+      "move": 5,
+      "card_set": "cities",
+      "source": "deck",
+      "dest": "hand",
+      "card_name": null,
+      "card_age": 1,
+      "source_owner": null,
+      "dest_owner": "TrinaCat"
+    },
+    {
+      "type": "transfer",
+      "move": 6,
+      "card_set": "cities",
+      "source": "hand",
+      "dest": "board",
+      "card_name": "Ephesus",
+      "card_age": 1,
+      "source_owner": "TrinaCat",
+      "dest_owner": "TrinaCat"
+    },
+    {
+      "type": "transfer",
+      "move": 6,
+      "card_set": "base",
+      "source": "deck",
+      "dest": "hand",
+      "card_name": null,
+      "card_age": 2,
+      "source_owner": null,
+      "dest_owner": "TrinaCat"
+    },
+    {
+      "type": "transfer",
+      "move": 6,
+      "card_set": "cities",
+      "source": "deck",
+      "dest": "hand",
+      "card_name": null,
+      "card_age": 1,
+      "source_owner": null,
+      "dest_owner": "TrinaCat"
+    },
+    {
+      "move": 7,
+      "type": "logWithCardTooltips",
+      "msg": "AnotherSava activates the dogma of 1 The wheel with [castle] as the featured icon."
+    },
+    {
+      "move": 7,
+      "type": "log",
+      "msg": "AnotherSava has 6 [castle]."
+    },
+    {
+      "move": 7,
+      "type": "log",
+      "msg": "TrinaCat has 4 [castle]."
+    },
+    {
+      "move": 7,
+      "type": "log",
+      "msg": "AnotherSava has to execute the non-demand effect."
+    },
+    {
+      "type": "transfer",
+      "move": 7,
+      "card_set": "base",
+      "source": "deck",
+      "dest": "hand",
+      "card_name": "Writing",
+      "card_age": 1,
+      "source_owner": null,
+      "dest_owner": "AnotherSava"
+    },
+    {
+      "type": "transfer",
+      "move": 7,
+      "card_set": "base",
+      "source": "deck",
+      "dest": "hand",
+      "card_name": "Oars",
+      "card_age": 1,
+      "source_owner": null,
+      "dest_owner": "AnotherSava"
+    },
+    {
+      "type": "transfer",
+      "move": 8,
+      "card_set": "cities",
+      "source": "hand",
+      "dest": "board",
+      "card_name": "Thebes",
+      "card_age": 1,
+      "source_owner": "AnotherSava",
+      "dest_owner": "AnotherSava"
+    },
+    {
+      "type": "transfer",
+      "move": 8,
+      "card_set": "base",
+      "source": "deck",
+      "dest": "revealed",
+      "card_name": "City states",
+      "card_age": 1,
+      "source_owner": null,
+      "dest_owner": "AnotherSava"
+    },
+    {
+      "type": "transfer",
+      "move": 8,
+      "card_set": "base",
+      "source": "revealed",
+      "dest": "hand",
+      "card_name": "City states",
+      "card_age": 1,
+      "source_owner": "AnotherSava",
+      "dest_owner": "AnotherSava"
+    },
+    {
+      "move": 8,
+      "type": "log",
+      "msg": "The revealed cards with a [lightbulb] will be kept and the others will be returned."
+    },
+    {
+      "type": "transfer",
+      "move": 8,
+      "card_set": "base",
+      "source": "hand",
+      "dest": "deck",
+      "card_name": "City states",
+      "card_age": 1,
+      "source_owner": "AnotherSava",
+      "dest_owner": null
+    },
+    {
+      "move": 9,
+      "type": "logWithCardTooltips",
+      "msg": "TrinaCat endorses the dogma of 1 Domestication with [castle] as the featured icon."
+    },
+    {
+      "type": "transfer",
+      "move": 9,
+      "card_set": "cities",
+      "source": "hand",
+      "dest": "board",
+      "card_name": "Hattusa",
+      "card_age": 1,
+      "source_owner": "TrinaCat",
+      "dest_owner": "TrinaCat"
+    },
+    {
+      "move": 9,
+      "type": "log",
+      "msg": "AnotherSava has 3 [castle]."
+    },
+    {
+      "move": 9,
+      "type": "log",
+      "msg": "TrinaCat has 4 [castle]."
+    },
+    {
+      "move": 9,
+      "type": "log",
+      "msg": "TrinaCat has to execute the non-demand effect."
+    },
+    {
+      "type": "transfer",
+      "move": 9,
+      "card_set": "base",
+      "source": "hand",
+      "dest": "board",
+      "card_name": "Mathematics",
+      "card_age": 2,
+      "source_owner": "TrinaCat",
+      "dest_owner": "TrinaCat"
+    },
+    {
+      "type": "transfer",
+      "move": 9,
+      "card_set": "base",
+      "source": "deck",
+      "dest": "hand",
+      "card_name": null,
+      "card_age": 1,
+      "source_owner": null,
+      "dest_owner": "TrinaCat"
+    },
+    {
+      "move": 9,
+      "type": "log",
+      "msg": "TrinaCat has to execute the non-demand effect again because it was endorsed."
+    },
+    {
+      "type": "transfer",
+      "move": 9,
+      "card_set": "base",
+      "source": "hand",
+      "dest": "board",
+      "card_name": "Masonry",
+      "card_age": 1,
+      "source_owner": "TrinaCat",
+      "dest_owner": "TrinaCat"
+    },
+    {
+      "type": "transfer",
+      "move": 9,
+      "card_set": "base",
+      "source": "deck",
+      "dest": "hand",
+      "card_name": null,
+      "card_age": 1,
+      "source_owner": null,
+      "dest_owner": "TrinaCat"
+    },
+    {
+      "type": "transfer",
+      "move": 10,
+      "card_set": "base",
+      "source": "deck",
+      "dest": "hand",
+      "card_name": null,
+      "card_age": 2,
+      "source_owner": null,
+      "dest_owner": "TrinaCat"
+    },
+    {
+      "type": "transfer",
+      "move": 11,
+      "card_set": "base",
+      "source": "hand",
+      "dest": "board",
+      "card_name": "Writing",
+      "card_age": 1,
+      "source_owner": "AnotherSava",
+      "dest_owner": "AnotherSava"
+    },
+    {
+      "type": "transfer",
+      "move": 11,
+      "card_set": "cities",
+      "source": "deck",
+      "dest": "hand",
+      "card_name": "Troy",
+      "card_age": 1,
+      "source_owner": null,
+      "dest_owner": "AnotherSava"
+    },
+    {
+      "move": 12,
+      "type": "logWithCardTooltips",
+      "msg": "AnotherSava endorses the dogma of 1 Writing with [lightbulb] as the featured icon."
+    },
+    {
+      "type": "transfer",
+      "move": 12,
+      "card_set": "cities",
+      "source": "hand",
+      "dest": "board",
+      "card_name": "Troy",
+      "card_age": 1,
+      "source_owner": "AnotherSava",
+      "dest_owner": "AnotherSava"
+    },
+    {
+      "move": 12,
+      "type": "log",
+      "msg": "AnotherSava has 4 [lightbulb]."
+    },
+    {
+      "move": 12,
+      "type": "log",
+      "msg": "TrinaCat has 2 [lightbulb]."
+    },
+    {
+      "move": 12,
+      "type": "log",
+      "msg": "AnotherSava has to execute the non-demand effect."
+    },
+    {
+      "type": "transfer",
+      "move": 12,
+      "card_set": "base",
+      "source": "deck",
+      "dest": "hand",
+      "card_name": "Road building",
+      "card_age": 2,
+      "source_owner": null,
+      "dest_owner": "AnotherSava"
+    },
+    {
+      "move": 12,
+      "type": "log",
+      "msg": "AnotherSava has to execute the non-demand effect again because it was endorsed."
+    },
+    {
+      "type": "transfer",
+      "move": 12,
+      "card_set": "base",
+      "source": "deck",
+      "dest": "hand",
+      "card_name": "Construction",
+      "card_age": 2,
+      "source_owner": null,
+      "dest_owner": "AnotherSava"
+    },
+    {
+      "type": "transfer",
+      "move": 13,
+      "card_set": "base",
+      "source": "deck",
+      "dest": "hand",
+      "card_name": null,
+      "card_age": 2,
+      "source_owner": null,
+      "dest_owner": "TrinaCat"
+    },
+    {
+      "type": "transfer",
+      "move": 14,
+      "card_set": "base",
+      "source": "deck",
+      "dest": "hand",
+      "card_name": null,
+      "card_age": 2,
+      "source_owner": null,
+      "dest_owner": "TrinaCat"
+    },
+    {
+      "move": 15,
+      "type": "logWithCardTooltips",
+      "msg": "AnotherSava endorses the dogma of 1 Writing with [lightbulb] as the featured icon."
+    },
+    {
+      "type": "transfer",
+      "move": 15,
+      "card_set": "base",
+      "source": "hand",
+      "dest": "board",
+      "card_name": "Oars",
+      "card_age": 1,
+      "source_owner": "AnotherSava",
+      "dest_owner": "AnotherSava"
+    },
+    {
+      "move": 15,
+      "type": "log",
+      "msg": "AnotherSava has 4 [lightbulb]."
+    },
+    {
+      "move": 15,
+      "type": "log",
+      "msg": "TrinaCat has 2 [lightbulb]."
+    },
+    {
+      "move": 15,
+      "type": "log",
+      "msg": "AnotherSava has to execute the non-demand effect."
+    },
+    {
+      "type": "transfer",
+      "move": 15,
+      "card_set": "base",
+      "source": "deck",
+      "dest": "hand",
+      "card_name": "Currency",
+      "card_age": 2,
+      "source_owner": null,
+      "dest_owner": "AnotherSava"
+    },
+    {
+      "move": 15,
+      "type": "log",
+      "msg": "AnotherSava has to execute the non-demand effect again because it was endorsed."
+    },
+    {
+      "type": "transfer",
+      "move": 15,
+      "card_set": "base",
+      "source": "deck",
+      "dest": "hand",
+      "card_name": "Philosophy",
+      "card_age": 2,
+      "source_owner": null,
+      "dest_owner": "AnotherSava"
+    },
+    {
+      "type": "transfer",
+      "move": 16,
+      "card_set": "base",
+      "source": "hand",
+      "dest": "board",
+      "card_name": "Philosophy",
+      "card_age": 2,
+      "source_owner": "AnotherSava",
+      "dest_owner": "AnotherSava"
+    },
+    {
+      "type": "transfer",
+      "move": 16,
+      "card_set": "cities",
+      "source": "deck",
+      "dest": "hand",
+      "card_name": "Nineveh",
+      "card_age": 2,
+      "source_owner": null,
+      "dest_owner": "AnotherSava"
+    },
+    {
+      "type": "transfer",
+      "move": 17,
+      "card_set": "base",
+      "source": "deck",
+      "dest": "hand",
+      "card_name": null,
+      "card_age": 2,
+      "source_owner": null,
+      "dest_owner": "TrinaCat"
+    },
+    {
+      "type": "transfer",
+      "move": 18,
+      "card_set": "base",
+      "source": "deck",
+      "dest": "hand",
+      "card_name": null,
+      "card_age": 3,
+      "source_owner": null,
+      "dest_owner": "TrinaCat"
+    },
+    {
+      "type": "transfer",
+      "move": 19,
+      "card_set": "cities",
+      "source": "hand",
+      "dest": "board",
+      "card_name": "Nineveh",
+      "card_age": 2,
+      "source_owner": "AnotherSava",
+      "dest_owner": "AnotherSava"
+    },
+    {
+      "move": 19,
+      "type": "log",
+      "msg": "The [2] supply pile was empty, so no cards could be drawn."
+    },
+    {
+      "type": "transfer",
+      "move": 19,
+      "card_set": "cities",
+      "source": "deck",
+      "dest": "hand",
+      "card_name": "Constantinople",
+      "card_age": 3,
+      "source_owner": null,
+      "dest_owner": "AnotherSava"
+    },
+    {
+      "type": "transfer",
+      "move": 20,
+      "card_set": "cities",
+      "source": "hand",
+      "dest": "board",
+      "card_name": "Constantinople",
+      "card_age": 3,
+      "source_owner": "AnotherSava",
+      "dest_owner": "AnotherSava"
+    },
+    {
+      "type": "transfer",
+      "move": 20,
+      "card_set": "cities",
+      "source": "deck",
+      "dest": "hand",
+      "card_name": "Cordoba",
+      "card_age": 3,
+      "source_owner": null,
+      "dest_owner": "AnotherSava"
+    },
+    {
+      "type": "transfer",
+      "move": 21,
+      "card_set": "base",
+      "source": "hand",
+      "dest": "board",
+      "card_name": "Compass",
+      "card_age": 3,
+      "source_owner": "TrinaCat",
+      "dest_owner": "TrinaCat"
+    },
+    {
+      "type": "transfer",
+      "move": 21,
+      "card_set": "cities",
+      "source": "deck",
+      "dest": "hand",
+      "card_name": null,
+      "card_age": 3,
+      "source_owner": null,
+      "dest_owner": "TrinaCat"
+    },
+    {
+      "move": 22,
+      "type": "logWithCardTooltips",
+      "msg": "TrinaCat activates the dogma of 1 Masonry with [castle] as the featured icon."
+    },
+    {
+      "move": 22,
+      "type": "log",
+      "msg": "AnotherSava has 5 [castle]."
+    },
+    {
+      "move": 22,
+      "type": "log",
+      "msg": "TrinaCat has 4 [castle]."
+    },
+    {
+      "move": 22,
+      "type": "log",
+      "msg": "AnotherSava has to execute the non-demand effect."
+    },
+    {
+      "type": "transfer",
+      "move": 23,
+      "card_set": "base",
+      "source": "hand",
+      "dest": "board",
+      "card_name": "Construction",
+      "card_age": 2,
+      "source_owner": "AnotherSava",
+      "dest_owner": "AnotherSava"
+    },
+    {
+      "move": 24,
+      "type": "log",
+      "msg": "TrinaCat has to execute the non-demand effect."
+    },
+    {
+      "type": "transfer",
+      "move": 25,
+      "card_set": "base",
+      "source": "hand",
+      "dest": "board",
+      "card_name": "Archery",
+      "card_age": 1,
+      "source_owner": "TrinaCat",
+      "dest_owner": "TrinaCat"
+    },
+    {
+      "type": "transfer",
+      "move": 26,
+      "card_set": "base",
+      "source": "hand",
+      "dest": "board",
+      "card_name": "Mapmaking",
+      "card_age": 2,
+      "source_owner": "TrinaCat",
+      "dest_owner": "TrinaCat"
+    },
+    {
+      "type": "transfer",
+      "move": 27,
+      "card_set": "cities",
+      "source": "hand",
+      "dest": "board",
+      "card_name": "Kaifeng",
+      "card_age": 3,
+      "source_owner": "TrinaCat",
+      "dest_owner": "TrinaCat"
+    },
+    {
+      "type": "transfer",
+      "move": 28,
+      "card_set": "base",
+      "source": "hand",
+      "dest": "board",
+      "card_name": "Fermenting",
+      "card_age": 2,
+      "source_owner": "TrinaCat",
+      "dest_owner": "TrinaCat"
+    },
+    {
+      "move": 29,
+      "type": "log",
+      "msg": "At least four cards have been melded."
+    },
+    {
+      "type": "transfer",
+      "move": 29,
+      "card_set": "base",
+      "source": "achievements",
+      "dest": "achievements",
+      "card_name": "Monument",
+      "card_age": null,
+      "source_owner": null,
+      "dest_owner": "TrinaCat"
+    },
+    {
+      "move": 29,
+      "type": "log",
+      "msg": "Sharing bonus."
+    },
+    {
+      "type": "transfer",
+      "move": 29,
+      "card_set": "base",
+      "source": "deck",
+      "dest": "hand",
+      "card_name": null,
+      "card_age": 3,
+      "source_owner": null,
+      "dest_owner": "TrinaCat"
+    },
+    {
+      "move": 30,
+      "type": "logWithCardTooltips",
+      "msg": "AnotherSava endorses the dogma of 2 Construction with [castle] as the featured icon."
+    },
+    {
+      "type": "transfer",
+      "move": 30,
+      "card_set": "base",
+      "source": "hand",
+      "dest": "board",
+      "card_name": "Road building",
+      "card_age": 2,
+      "source_owner": "AnotherSava",
+      "dest_owner": "AnotherSava"
+    },
+    {
+      "move": 30,
+      "type": "log",
+      "msg": "AnotherSava has 8 [castle]."
+    },
+    {
+      "move": 30,
+      "type": "log",
+      "msg": "TrinaCat has 5 [castle]."
+    },
+    {
+      "move": 30,
+      "type": "log",
+      "msg": "TrinaCat has to execute the I demand effect."
+    },
+    {
+      "type": "transfer",
+      "move": 31,
+      "card_set": "base",
+      "source": "hand",
+      "dest": "hand",
+      "card_name": "Calendar",
+      "card_age": 2,
+      "source_owner": "TrinaCat",
+      "dest_owner": "AnotherSava"
+    },
+    {
+      "type": "transfer",
+      "move": 32,
+      "card_set": "base",
+      "source": "hand",
+      "dest": "hand",
+      "card_name": "Canal building",
+      "card_age": 2,
+      "source_owner": "TrinaCat",
+      "dest_owner": "AnotherSava"
+    },
+    {
+      "type": "transfer",
+      "move": 32,
+      "card_set": "base",
+      "source": "deck",
+      "dest": "hand",
+      "card_name": null,
+      "card_age": 3,
+      "source_owner": null,
+      "dest_owner": "TrinaCat"
+    },
+    {
+      "move": 32,
+      "type": "log",
+      "msg": "TrinaCat has to execute the I demand effect again because it was endorsed."
+    },
+    {
+      "type": "transfer",
+      "move": 32,
+      "card_set": "base",
+      "source": "hand",
+      "dest": "hand",
+      "card_name": "Education",
+      "card_age": 3,
+      "source_owner": "TrinaCat",
+      "dest_owner": "AnotherSava"
+    },
+    {
+      "type": "transfer",
+      "move": 32,
+      "card_set": "base",
+      "source": "hand",
+      "dest": "hand",
+      "card_name": "Feudalism",
+      "card_age": 3,
+      "source_owner": "TrinaCat",
+      "dest_owner": "AnotherSava"
+    },
+    {
+      "type": "transfer",
+      "move": 32,
+      "card_set": "base",
+      "source": "deck",
+      "dest": "hand",
+      "card_name": null,
+      "card_age": 3,
+      "source_owner": null,
+      "dest_owner": "TrinaCat"
+    },
+    {
+      "move": 32,
+      "type": "log",
+      "msg": "AnotherSava has to execute the non-demand effect."
+    },
+    {
+      "move": 32,
+      "type": "log",
+      "msg": "AnotherSava has to execute the non-demand effect again because it was endorsed."
+    },
+    {
+      "type": "transfer",
+      "move": 33,
+      "card_set": "cities",
+      "source": "hand",
+      "dest": "board",
+      "card_name": "Cordoba",
+      "card_age": 3,
+      "source_owner": "AnotherSava",
+      "dest_owner": "AnotherSava"
+    },
+    {
+      "type": "transfer",
+      "move": 33,
+      "card_set": "cities",
+      "source": "deck",
+      "dest": "hand",
+      "card_name": "Baghdad",
+      "card_age": 3,
+      "source_owner": null,
+      "dest_owner": "AnotherSava"
+    },
+    {
+      "move": 34,
+      "type": "logWithCardTooltips",
+      "msg": "TrinaCat activates the dogma of 2 Mathematics with [lightbulb] as the featured icon."
+    },
+    {
+      "move": 34,
+      "type": "log",
+      "msg": "AnotherSava has 2 [lightbulb]."
+    },
+    {
+      "move": 34,
+      "type": "log",
+      "msg": "TrinaCat has 3 [lightbulb]."
+    },
+    {
+      "move": 34,
+      "type": "log",
+      "msg": "TrinaCat has to execute the non-demand effect."
+    },
+    {
+      "type": "transfer",
+      "move": 35,
+      "card_set": "base",
+      "source": "hand",
+      "dest": "deck",
+      "card_name": null,
+      "card_age": 3,
+      "source_owner": "TrinaCat",
+      "dest_owner": null
+    },
+    {
+      "type": "transfer",
+      "move": 35,
+      "card_set": "base",
+      "source": "deck",
+      "dest": "board",
+      "card_name": "Printing press",
+      "card_age": 4,
+      "source_owner": null,
+      "dest_owner": "TrinaCat"
+    },
+    {
+      "move": 36,
+      "type": "logWithCardTooltips",
+      "msg": "TrinaCat activates the dogma of 4 Printing press with [lightbulb] as the featured icon."
+    },
+    {
+      "move": 36,
+      "type": "log",
+      "msg": "AnotherSava has 2 [lightbulb]."
+    },
+    {
+      "move": 36,
+      "type": "log",
+      "msg": "TrinaCat has 3 [lightbulb]."
+    },
+    {
+      "move": 36,
+      "type": "log",
+      "msg": "TrinaCat has to execute the 1st non-demand effect."
+    },
+    {
+      "move": 36,
+      "type": "log",
+      "msg": "No card matches the criteria of the effect."
+    },
+    {
+      "move": 36,
+      "type": "log",
+      "msg": "TrinaCat has to execute the 2nd non-demand effect."
+    },
+    {
+      "type": "transfer",
+      "move": 37,
+      "card_set": "cities",
+      "source": "deck",
+      "dest": "hand",
+      "card_name": null,
+      "card_age": 4,
+      "source_owner": null,
+      "dest_owner": "TrinaCat"
+    },
+    {
+      "move": 38,
+      "type": "logWithCardTooltips",
+      "msg": "AnotherSava endorses the dogma of 2 Construction with [castle] as the featured icon."
+    },
+    {
+      "type": "transfer",
+      "move": 38,
+      "card_set": "cities",
+      "source": "hand",
+      "dest": "board",
+      "card_name": "Baghdad",
+      "card_age": 3,
+      "source_owner": "AnotherSava",
+      "dest_owner": "AnotherSava"
+    },
+    {
+      "move": 38,
+      "type": "log",
+      "msg": "AnotherSava has 9 [castle]."
+    },
+    {
+      "move": 38,
+      "type": "log",
+      "msg": "TrinaCat has 5 [castle]."
+    },
+    {
+      "move": 38,
+      "type": "log",
+      "msg": "TrinaCat has to execute the I demand effect."
+    },
+    {
+      "type": "transfer",
+      "move": 38,
+      "card_set": "cities",
+      "source": "hand",
+      "dest": "hand",
+      "card_name": "Frankfurt",
+      "card_age": 4,
+      "source_owner": "TrinaCat",
+      "dest_owner": "AnotherSava"
+    },
+    {
+      "move": 38,
+      "type": "log",
+      "msg": "No more card matches the criteria of the effect."
+    },
+    {
+      "type": "transfer",
+      "move": 38,
+      "card_set": "base",
+      "source": "deck",
+      "dest": "hand",
+      "card_name": null,
+      "card_age": 3,
+      "source_owner": null,
+      "dest_owner": "TrinaCat"
+    },
+    {
+      "move": 38,
+      "type": "log",
+      "msg": "TrinaCat has to execute the I demand effect again because it was endorsed."
+    },
+    {
+      "type": "transfer",
+      "move": 38,
+      "card_set": "base",
+      "source": "hand",
+      "dest": "hand",
+      "card_name": "Machinery",
+      "card_age": 3,
+      "source_owner": "TrinaCat",
+      "dest_owner": "AnotherSava"
+    },
+    {
+      "move": 38,
+      "type": "log",
+      "msg": "No more card matches the criteria of the effect."
+    },
+    {
+      "type": "transfer",
+      "move": 38,
+      "card_set": "base",
+      "source": "deck",
+      "dest": "hand",
+      "card_name": null,
+      "card_age": 3,
+      "source_owner": null,
+      "dest_owner": "TrinaCat"
+    },
+    {
+      "move": 38,
+      "type": "log",
+      "msg": "AnotherSava has to execute the non-demand effect."
+    },
+    {
+      "move": 38,
+      "type": "log",
+      "msg": "AnotherSava has to execute the non-demand effect again because it was endorsed."
+    },
+    {
+      "type": "transfer",
+      "move": 39,
+      "card_set": "cities",
+      "source": "hand",
+      "dest": "board",
+      "card_name": "Frankfurt",
+      "card_age": 4,
+      "source_owner": "AnotherSava",
+      "dest_owner": "AnotherSava"
+    },
+    {
+      "type": "transfer",
+      "move": 39,
+      "card_set": "base",
+      "source": "deck",
+      "dest": "hand",
+      "card_name": "Banking",
+      "card_age": 5,
+      "source_owner": null,
+      "dest_owner": "AnotherSava"
+    },
+    {
+      "type": "transfer",
+      "move": 39,
+      "card_set": "base",
+      "source": "deck",
+      "dest": "hand",
+      "card_name": "Statistics",
+      "card_age": 5,
+      "source_owner": null,
+      "dest_owner": "AnotherSava"
+    },
+    {
+      "type": "transfer",
+      "move": 40,
+      "card_set": "base",
+      "source": "hand",
+      "dest": "board",
+      "card_name": "Paper",
+      "card_age": 3,
+      "source_owner": "TrinaCat",
+      "dest_owner": "TrinaCat"
+    },
+    {
+      "move": 41,
+      "type": "logWithCardTooltips",
+      "msg": "TrinaCat activates the dogma of 3 Paper with [lightbulb] as the featured icon."
+    },
+    {
+      "move": 41,
+      "type": "log",
+      "msg": "AnotherSava has 4 [lightbulb]."
+    },
+    {
+      "move": 41,
+      "type": "log",
+      "msg": "TrinaCat has 7 [lightbulb]."
+    },
+    {
+      "move": 41,
+      "type": "log",
+      "msg": "TrinaCat has to execute the 1st non-demand effect."
+    },
+    {
+      "type": "transfer",
+      "move": 42,
+      "card_set": "cities",
+      "source": "deck",
+      "dest": "hand",
+      "card_name": null,
+      "card_age": 4,
+      "source_owner": null,
+      "dest_owner": "TrinaCat"
+    },
+    {
+      "move": 42,
+      "type": "log",
+      "msg": "TrinaCat has to execute the 2nd non-demand effect."
+    },
+    {
+      "move": 42,
+      "type": "log",
+      "msg": "TrinaCat has 1 color splayed left."
+    },
+    {
+      "type": "transfer",
+      "move": 42,
+      "card_set": "base",
+      "source": "deck",
+      "dest": "hand",
+      "card_name": null,
+      "card_age": 4,
+      "source_owner": null,
+      "dest_owner": "TrinaCat"
+    },
+    {
+      "move": 43,
+      "type": "logWithCardTooltips",
+      "msg": "AnotherSava endorses the dogma of 2 Construction with [castle] as the featured icon."
+    },
+    {
+      "type": "transfer",
+      "move": 43,
+      "card_set": "base",
+      "source": "hand",
+      "dest": "board",
+      "card_name": "Calendar",
+      "card_age": 2,
+      "source_owner": "AnotherSava",
+      "dest_owner": "AnotherSava"
+    },
+    {
+      "move": 43,
+      "type": "log",
+      "msg": "AnotherSava has 9 [castle]."
+    },
+    {
+      "move": 43,
+      "type": "log",
+      "msg": "TrinaCat has 5 [castle]."
+    },
+    {
+      "move": 43,
+      "type": "log",
+      "msg": "TrinaCat has to execute the I demand effect."
+    },
+    {
+      "type": "transfer",
+      "move": 43,
+      "card_set": "base",
+      "source": "hand",
+      "dest": "hand",
+      "card_name": "Gunpowder",
+      "card_age": 4,
+      "source_owner": "TrinaCat",
+      "dest_owner": "AnotherSava"
+    },
+    {
+      "type": "transfer",
+      "move": 43,
+      "card_set": "cities",
+      "source": "hand",
+      "dest": "hand",
+      "card_name": "Milan",
+      "card_age": 4,
+      "source_owner": "TrinaCat",
+      "dest_owner": "AnotherSava"
+    },
+    {
+      "type": "transfer",
+      "move": 43,
+      "card_set": "base",
+      "source": "deck",
+      "dest": "hand",
+      "card_name": null,
+      "card_age": 3,
+      "source_owner": null,
+      "dest_owner": "TrinaCat"
+    },
+    {
+      "move": 43,
+      "type": "log",
+      "msg": "TrinaCat has to execute the I demand effect again because it was endorsed."
+    },
+    {
+      "type": "transfer",
+      "move": 43,
+      "card_set": "base",
+      "source": "hand",
+      "dest": "hand",
+      "card_name": "Medicine",
+      "card_age": 3,
+      "source_owner": "TrinaCat",
+      "dest_owner": "AnotherSava"
+    },
+    {
+      "move": 43,
+      "type": "log",
+      "msg": "No more card matches the criteria of the effect."
+    },
+    {
+      "type": "transfer",
+      "move": 43,
+      "card_set": "base",
+      "source": "deck",
+      "dest": "hand",
+      "card_name": null,
+      "card_age": 3,
+      "source_owner": null,
+      "dest_owner": "TrinaCat"
+    },
+    {
+      "move": 43,
+      "type": "log",
+      "msg": "AnotherSava has to execute the non-demand effect."
+    },
+    {
+      "move": 43,
+      "type": "log",
+      "msg": "AnotherSava has to execute the non-demand effect again because it was endorsed."
+    },
+    {
+      "type": "transfer",
+      "move": 44,
+      "card_set": "base",
+      "source": "hand",
+      "dest": "board",
+      "card_name": "Currency",
+      "card_age": 2,
+      "source_owner": "AnotherSava",
+      "dest_owner": "AnotherSava"
+    },
+    {
+      "move": 45,
+      "type": "logWithCardTooltips",
+      "msg": "TrinaCat activates the dogma of 3 Paper with [lightbulb] as the featured icon."
+    },
+    {
+      "move": 45,
+      "type": "log",
+      "msg": "AnotherSava has 5 [lightbulb]."
+    },
+    {
+      "move": 45,
+      "type": "log",
+      "msg": "TrinaCat has 7 [lightbulb]."
+    },
+    {
+      "move": 45,
+      "type": "log",
+      "msg": "TrinaCat has to execute the 1st non-demand effect."
+    },
+    {
+      "move": 46,
+      "type": "log",
+      "msg": "TrinaCat passes."
+    },
+    {
+      "move": 46,
+      "type": "log",
+      "msg": "TrinaCat has to execute the 2nd non-demand effect."
+    },
+    {
+      "move": 46,
+      "type": "log",
+      "msg": "TrinaCat has 1 color splayed left."
+    },
+    {
+      "type": "transfer",
+      "move": 46,
+      "card_set": "base",
+      "source": "deck",
+      "dest": "hand",
+      "card_name": null,
+      "card_age": 4,
+      "source_owner": null,
+      "dest_owner": "TrinaCat"
+    },
+    {
+      "type": "transfer",
+      "move": 47,
+      "card_set": "base",
+      "source": "hand",
+      "dest": "board",
+      "card_name": "Invention",
+      "card_age": 4,
+      "source_owner": "TrinaCat",
+      "dest_owner": "TrinaCat"
+    },
+    {
+      "move": 48,
+      "type": "logWithCardTooltips",
+      "msg": "AnotherSava endorses the dogma of 2 Currency with [crown] as the featured icon."
+    },
+    {
+      "type": "transfer",
+      "move": 48,
+      "card_set": "base",
+      "source": "hand",
+      "dest": "board",
+      "card_name": "Feudalism",
+      "card_age": 3,
+      "source_owner": "AnotherSava",
+      "dest_owner": "AnotherSava"
+    },
+    {
+      "move": 48,
+      "type": "log",
+      "msg": "AnotherSava has 5 [crown]."
+    },
+    {
+      "move": 48,
+      "type": "log",
+      "msg": "TrinaCat has 5 [crown]."
+    },
+    {
+      "move": 48,
+      "type": "log",
+      "msg": "TrinaCat has to execute the non-demand effect."
+    },
+    {
+      "type": "transfer",
+      "move": 49,
+      "card_set": "base",
+      "source": "hand",
+      "dest": "deck",
+      "card_name": null,
+      "card_age": 3,
+      "source_owner": "TrinaCat",
+      "dest_owner": null
+    },
+    {
+      "move": 49,
+      "type": "log",
+      "msg": "No more card matches the criteria of the effect."
+    },
+    {
+      "move": 49,
+      "type": "log",
+      "msg": "Each card TrinaCat returned has the same value."
+    },
+    {
+      "type": "transfer",
+      "move": 49,
+      "card_set": "base",
+      "source": "deck",
+      "dest": "score",
+      "card_name": null,
+      "card_age": 3,
+      "source_owner": null,
+      "dest_owner": "TrinaCat"
+    },
+    {
+      "move": 49,
+      "type": "log",
+      "msg": "AnotherSava has to execute the non-demand effect."
+    },
+    {
+      "type": "transfer",
+      "move": 50,
+      "card_set": "base",
+      "source": "hand",
+      "dest": "deck",
+      "card_name": "Canal building",
+      "card_age": 2,
+      "source_owner": "AnotherSava",
+      "dest_owner": null
+    },
+    {
+      "type": "transfer",
+      "move": 51,
+      "card_set": "base",
+      "source": "hand",
+      "dest": "deck",
+      "card_name": "Education",
+      "card_age": 3,
+      "source_owner": "AnotherSava",
+      "dest_owner": null
+    },
+    {
+      "type": "transfer",
+      "move": 52,
+      "card_set": "cities",
+      "source": "hand",
+      "dest": "deck",
+      "card_name": "Milan",
+      "card_age": 4,
+      "source_owner": "AnotherSava",
+      "dest_owner": null
+    },
+    {
+      "type": "transfer",
+      "move": 53,
+      "card_set": "base",
+      "source": "hand",
+      "dest": "deck",
+      "card_name": "Banking",
+      "card_age": 5,
+      "source_owner": "AnotherSava",
+      "dest_owner": null
+    },
+    {
+      "move": 54,
+      "type": "log",
+      "msg": "There are four different values that can be found in the cards AnotherSava returned."
+    },
+    {
+      "type": "transfer",
+      "move": 54,
+      "card_set": "base",
+      "source": "deck",
+      "dest": "score",
+      "card_name": "Canal building",
+      "card_age": 2,
+      "source_owner": null,
+      "dest_owner": "AnotherSava"
+    },
+    {
+      "type": "transfer",
+      "move": 54,
+      "card_set": "base",
+      "source": "deck",
+      "dest": "score",
+      "card_name": "Optics",
+      "card_age": 3,
+      "source_owner": null,
+      "dest_owner": "AnotherSava"
+    },
+    {
+      "type": "transfer",
+      "move": 54,
+      "card_set": "base",
+      "source": "deck",
+      "dest": "score",
+      "card_name": "Translation",
+      "card_age": 3,
+      "source_owner": null,
+      "dest_owner": "AnotherSava"
+    },
+    {
+      "type": "transfer",
+      "move": 54,
+      "card_set": "base",
+      "source": "deck",
+      "dest": "score",
+      "card_name": "Education",
+      "card_age": 3,
+      "source_owner": null,
+      "dest_owner": "AnotherSava"
+    },
+    {
+      "move": 54,
+      "type": "log",
+      "msg": "AnotherSava has to execute the non-demand effect again because it was endorsed."
+    },
+    {
+      "type": "transfer",
+      "move": 55,
+      "card_set": "base",
+      "source": "hand",
+      "dest": "deck",
+      "card_name": "Medicine",
+      "card_age": 3,
+      "source_owner": "AnotherSava",
+      "dest_owner": null
+    },
+    {
+      "type": "transfer",
+      "move": 56,
+      "card_set": "base",
+      "source": "hand",
+      "dest": "deck",
+      "card_name": "Gunpowder",
+      "card_age": 4,
+      "source_owner": "AnotherSava",
+      "dest_owner": null
+    },
+    {
+      "move": 57,
+      "type": "log",
+      "msg": "There are two different values that can be found in the cards AnotherSava returned."
+    },
+    {
+      "type": "transfer",
+      "move": 57,
+      "card_set": "base",
+      "source": "deck",
+      "dest": "score",
+      "card_name": "Medicine",
+      "card_age": 3,
+      "source_owner": null,
+      "dest_owner": "AnotherSava"
+    },
+    {
+      "type": "transfer",
+      "move": 57,
+      "card_set": "base",
+      "source": "deck",
+      "dest": "score",
+      "card_name": "Perspective",
+      "card_age": 4,
+      "source_owner": null,
+      "dest_owner": "AnotherSava"
+    },
+    {
+      "move": 57,
+      "type": "log",
+      "msg": "Sharing bonus."
+    },
+    {
+      "type": "transfer",
+      "move": 57,
+      "card_set": "base",
+      "source": "deck",
+      "dest": "hand",
+      "card_name": "Experimentation",
+      "card_age": 4,
+      "source_owner": null,
+      "dest_owner": "AnotherSava"
+    },
+    {
+      "type": "transfer",
+      "move": 58,
+      "card_set": "base",
+      "source": "achievements",
+      "dest": "achievements",
+      "card_name": null,
+      "card_age": 1,
+      "source_owner": null,
+      "dest_owner": "AnotherSava"
+    },
+    {
+      "move": 59,
+      "type": "logWithCardTooltips",
+      "msg": "TrinaCat activates the dogma of 4 Invention with [lightbulb] as the featured icon."
+    },
+    {
+      "move": 59,
+      "type": "log",
+      "msg": "AnotherSava has 5 [lightbulb]."
+    },
+    {
+      "move": 59,
+      "type": "log",
+      "msg": "TrinaCat has 7 [lightbulb]."
+    },
+    {
+      "move": 59,
+      "type": "log",
+      "msg": "TrinaCat has to execute the 1st non-demand effect."
+    },
+    {
+      "type": "transfer",
+      "move": 60,
+      "card_set": "cities",
+      "source": "deck",
+      "dest": "hand",
+      "card_name": null,
+      "card_age": 4,
+      "source_owner": null,
+      "dest_owner": "TrinaCat"
+    },
+    {
+      "type": "transfer",
+      "move": 60,
+      "card_set": "base",
+      "source": "deck",
+      "dest": "score",
+      "card_name": null,
+      "card_age": 4,
+      "source_owner": null,
+      "dest_owner": "TrinaCat"
+    },
+    {
+      "move": 60,
+      "type": "log",
+      "msg": "TrinaCat has to execute the 2nd non-demand effect."
+    },
+    {
+      "type": "transfer",
+      "move": 61,
+      "card_set": "cities",
+      "source": "hand",
+      "dest": "board",
+      "card_name": "Manila",
+      "card_age": 4,
+      "source_owner": "TrinaCat",
+      "dest_owner": "TrinaCat"
+    },
+    {
+      "type": "transfer",
+      "move": 61,
+      "card_set": "cities",
+      "source": "deck",
+      "dest": "hand",
+      "card_name": null,
+      "card_age": 4,
+      "source_owner": null,
+      "dest_owner": "TrinaCat"
+    },
+    {
+      "move": 62,
+      "type": "logWithCardTooltips",
+      "msg": "AnotherSava activates the dogma of 2 Construction with [castle] as the featured icon."
+    },
+    {
+      "move": 62,
+      "type": "log",
+      "msg": "AnotherSava has 7 [castle]."
+    },
+    {
+      "move": 62,
+      "type": "log",
+      "msg": "TrinaCat has 5 [castle]."
+    },
+    {
+      "move": 62,
+      "type": "log",
+      "msg": "TrinaCat has to execute the I demand effect."
+    },
+    {
+      "type": "transfer",
+      "move": 62,
+      "card_set": "cities",
+      "source": "hand",
+      "dest": "hand",
+      "card_name": "Beijing",
+      "card_age": 4,
+      "source_owner": "TrinaCat",
+      "dest_owner": "AnotherSava"
+    },
+    {
+      "move": 62,
+      "type": "log",
+      "msg": "No more card matches the criteria of the effect."
+    },
+    {
+      "type": "transfer",
+      "move": 62,
+      "card_set": "base",
+      "source": "deck",
+      "dest": "hand",
+      "card_name": null,
+      "card_age": 4,
+      "source_owner": null,
+      "dest_owner": "TrinaCat"
+    },
+    {
+      "move": 62,
+      "type": "log",
+      "msg": "AnotherSava has to execute the non-demand effect."
+    },
+    {
+      "type": "transfer",
+      "move": 63,
+      "card_set": "base",
+      "source": "achievements",
+      "dest": "achievements",
+      "card_name": null,
+      "card_age": 2,
+      "source_owner": null,
+      "dest_owner": "AnotherSava"
+    },
+    {
+      "type": "transfer",
+      "move": 64,
+      "card_set": "base",
+      "source": "hand",
+      "dest": "board",
+      "card_name": "Colonialism",
+      "card_age": 4,
+      "source_owner": "TrinaCat",
+      "dest_owner": "TrinaCat"
+    },
+    {
+      "move": 65,
+      "type": "logWithCardTooltips",
+      "msg": "TrinaCat activates the dogma of 4 Colonialism with [factory] as the featured icon."
+    },
+    {
+      "move": 65,
+      "type": "log",
+      "msg": "AnotherSava has 1 [factory]."
+    },
+    {
+      "move": 65,
+      "type": "log",
+      "msg": "TrinaCat has 3 [factory]."
+    },
+    {
+      "move": 65,
+      "type": "log",
+      "msg": "TrinaCat has to execute the non-demand effect."
+    },
+    {
+      "type": "transfer",
+      "move": 65,
+      "card_set": "base",
+      "source": "deck",
+      "dest": "board",
+      "card_name": "Reformation",
+      "card_age": 4,
+      "source_owner": null,
+      "dest_owner": "TrinaCat"
+    },
+    {
+      "type": "transfer",
+      "move": 66,
+      "card_set": "cities",
+      "source": "hand",
+      "dest": "board",
+      "card_name": "Beijing",
+      "card_age": 4,
+      "source_owner": "AnotherSava",
+      "dest_owner": "AnotherSava"
+    },
+    {
+      "type": "transfer",
+      "move": 66,
+      "card_set": "cities",
+      "source": "deck",
+      "dest": "hand",
+      "card_name": "Madrid",
+      "card_age": 4,
+      "source_owner": null,
+      "dest_owner": "AnotherSava"
+    },
+    {
+      "type": "transfer",
+      "move": 67,
+      "card_set": "cities",
+      "source": "hand",
+      "dest": "board",
+      "card_name": "Madrid",
+      "card_age": 4,
+      "source_owner": "AnotherSava",
+      "dest_owner": "AnotherSava"
+    },
+    {
+      "type": "transfer",
+      "move": 67,
+      "card_set": "cities",
+      "source": "achievements",
+      "dest": "achievements",
+      "card_name": "Legend",
+      "card_age": null,
+      "source_owner": null,
+      "dest_owner": "AnotherSava"
+    },
+    {
+      "move": 68,
+      "type": "logWithCardTooltips",
+      "msg": "TrinaCat activates the dogma of 4 Colonialism with [factory] as the featured icon."
+    },
+    {
+      "move": 68,
+      "type": "log",
+      "msg": "AnotherSava has 1 [factory]."
+    },
+    {
+      "move": 68,
+      "type": "log",
+      "msg": "TrinaCat has 3 [factory]."
+    },
+    {
+      "move": 68,
+      "type": "log",
+      "msg": "TrinaCat has to execute the non-demand effect."
+    },
+    {
+      "type": "transfer",
+      "move": 68,
+      "card_set": "base",
+      "source": "deck",
+      "dest": "board",
+      "card_name": "Enterprise",
+      "card_age": 4,
+      "source_owner": null,
+      "dest_owner": "TrinaCat"
+    },
+    {
+      "type": "transfer",
+      "move": 68,
+      "card_set": "base",
+      "source": "deck",
+      "dest": "board",
+      "card_name": "Gunpowder",
+      "card_age": 4,
+      "source_owner": null,
+      "dest_owner": "TrinaCat"
+    },
+    {
+      "type": "transfer",
+      "move": 68,
+      "card_set": "base",
+      "source": "deck",
+      "dest": "board",
+      "card_name": "Coal",
+      "card_age": 5,
+      "source_owner": null,
+      "dest_owner": "TrinaCat"
+    },
+    {
+      "move": 69,
+      "type": "logWithCardTooltips",
+      "msg": "TrinaCat activates the dogma of 4 Colonialism with [factory] as the featured icon."
+    },
+    {
+      "move": 69,
+      "type": "log",
+      "msg": "AnotherSava has 1 [factory]."
+    },
+    {
+      "move": 69,
+      "type": "log",
+      "msg": "TrinaCat has 3 [factory]."
+    },
+    {
+      "move": 69,
+      "type": "log",
+      "msg": "TrinaCat has to execute the non-demand effect."
+    },
+    {
+      "type": "transfer",
+      "move": 69,
+      "card_set": "base",
+      "source": "deck",
+      "dest": "board",
+      "card_name": "Chemistry",
+      "card_age": 5,
+      "source_owner": null,
+      "dest_owner": "TrinaCat"
+    },
+    {
+      "type": "transfer",
+      "move": 70,
+      "card_set": "base",
+      "source": "achievements",
+      "dest": "achievements",
+      "card_name": null,
+      "card_age": 3,
+      "source_owner": null,
+      "dest_owner": "AnotherSava"
+    },
+    {
+      "type": "transfer",
+      "move": 71,
+      "card_set": "base",
+      "source": "achievements",
+      "dest": "achievements",
+      "card_name": null,
+      "card_age": 4,
+      "source_owner": null,
+      "dest_owner": "AnotherSava"
+    },
+    {
+      "type": "transfer",
+      "move": 72,
+      "card_set": "base",
+      "source": "deck",
+      "dest": "hand",
+      "card_name": null,
+      "card_age": 5,
+      "source_owner": null,
+      "dest_owner": "TrinaCat"
+    },
+    {
+      "type": "transfer",
+      "move": 73,
+      "card_set": "base",
+      "source": "hand",
+      "dest": "board",
+      "card_name": "Physics",
+      "card_age": 5,
+      "source_owner": "TrinaCat",
+      "dest_owner": "TrinaCat"
+    },
+    {
+      "type": "transfer",
+      "move": 74,
+      "card_set": "base",
+      "source": "hand",
+      "dest": "board",
+      "card_name": "Statistics",
+      "card_age": 5,
+      "source_owner": "AnotherSava",
+      "dest_owner": "AnotherSava"
+    },
+    {
+      "type": "transfer",
+      "move": 75,
+      "card_set": "base",
+      "source": "deck",
+      "dest": "hand",
+      "card_name": "Astronomy",
+      "card_age": 5,
+      "source_owner": null,
+      "dest_owner": "AnotherSava"
+    },
+    {
+      "move": 76,
+      "type": "logWithCardTooltips",
+      "msg": "TrinaCat activates the dogma of 5 Physics with [lightbulb] as the featured icon."
+    },
+    {
+      "move": 76,
+      "type": "log",
+      "msg": "AnotherSava has 7 [lightbulb]."
+    },
+    {
+      "move": 76,
+      "type": "log",
+      "msg": "TrinaCat has 7 [lightbulb]."
+    },
+    {
+      "move": 76,
+      "type": "log",
+      "msg": "AnotherSava has to execute the non-demand effect."
+    },
+    {
+      "type": "transfer",
+      "move": 76,
+      "card_set": "base",
+      "source": "deck",
+      "dest": "revealed",
+      "card_name": "Atomic theory",
+      "card_age": 6,
+      "source_owner": null,
+      "dest_owner": "AnotherSava"
+    },
+    {
+      "type": "transfer",
+      "move": 76,
+      "card_set": "base",
+      "source": "deck",
+      "dest": "revealed",
+      "card_name": "Machine tools",
+      "card_age": 6,
+      "source_owner": null,
+      "dest_owner": "AnotherSava"
+    },
+    {
+      "type": "transfer",
+      "move": 76,
+      "card_set": "base",
+      "source": "deck",
+      "dest": "revealed",
+      "card_name": "Encyclopedia",
+      "card_age": 6,
+      "source_owner": null,
+      "dest_owner": "AnotherSava"
+    },
+    {
+      "move": 76,
+      "type": "log",
+      "msg": "AnotherSava drew two cards of the same color."
+    },
+    {
+      "type": "transfer",
+      "move": 76,
+      "card_set": "base",
+      "source": "hand",
+      "dest": "deck",
+      "card_name": "Machinery",
+      "card_age": 3,
+      "source_owner": "AnotherSava",
+      "dest_owner": null
+    },
+    {
+      "type": "transfer",
+      "move": 76,
+      "card_set": "base",
+      "source": "hand",
+      "dest": "deck",
+      "card_name": "Experimentation",
+      "card_age": 4,
+      "source_owner": "AnotherSava",
+      "dest_owner": null
+    },
+    {
+      "type": "transfer",
+      "move": 76,
+      "card_set": "base",
+      "source": "hand",
+      "dest": "deck",
+      "card_name": "Astronomy",
+      "card_age": 5,
+      "source_owner": "AnotherSava",
+      "dest_owner": null
+    },
+    {
+      "type": "transfer",
+      "move": 77,
+      "card_set": "base",
+      "source": "revealed",
+      "dest": "deck",
+      "card_name": "Atomic theory",
+      "card_age": 6,
+      "source_owner": "AnotherSava",
+      "dest_owner": null
+    },
+    {
+      "type": "transfer",
+      "move": 78,
+      "card_set": "base",
+      "source": "revealed",
+      "dest": "deck",
+      "card_name": "Encyclopedia",
+      "card_age": 6,
+      "source_owner": "AnotherSava",
+      "dest_owner": null
+    },
+    {
+      "type": "transfer",
+      "move": 78,
+      "card_set": "base",
+      "source": "revealed",
+      "dest": "deck",
+      "card_name": "Machine tools",
+      "card_age": 6,
+      "source_owner": "AnotherSava",
+      "dest_owner": null
+    },
+    {
+      "move": 78,
+      "type": "log",
+      "msg": "No more card matches the criteria of the effect."
+    },
+    {
+      "move": 78,
+      "type": "log",
+      "msg": "TrinaCat has to execute the non-demand effect."
+    },
+    {
+      "type": "transfer",
+      "move": 78,
+      "card_set": "base",
+      "source": "deck",
+      "dest": "revealed",
+      "card_name": "Canning",
+      "card_age": 6,
+      "source_owner": null,
+      "dest_owner": "TrinaCat"
+    },
+    {
+      "type": "transfer",
+      "move": 78,
+      "card_set": "base",
+      "source": "deck",
+      "dest": "revealed",
+      "card_name": "Vaccination",
+      "card_age": 6,
+      "source_owner": null,
+      "dest_owner": "TrinaCat"
+    },
+    {
+      "type": "transfer",
+      "move": 78,
+      "card_set": "base",
+      "source": "deck",
+      "dest": "revealed",
+      "card_name": "Democracy",
+      "card_age": 6,
+      "source_owner": null,
+      "dest_owner": "TrinaCat"
+    },
+    {
+      "move": 78,
+      "type": "log",
+      "msg": "TrinaCat drew two cards of the same color."
+    },
+    {
+      "type": "transfer",
+      "move": 79,
+      "card_set": "base",
+      "source": "revealed",
+      "dest": "deck",
+      "card_name": "Vaccination",
+      "card_age": 6,
+      "source_owner": "TrinaCat",
+      "dest_owner": null
+    },
+    {
+      "type": "transfer",
+      "move": 80,
+      "card_set": "base",
+      "source": "revealed",
+      "dest": "deck",
+      "card_name": "Democracy",
+      "card_age": 6,
+      "source_owner": "TrinaCat",
+      "dest_owner": null
+    },
+    {
+      "type": "transfer",
+      "move": 80,
+      "card_set": "base",
+      "source": "revealed",
+      "dest": "deck",
+      "card_name": "Canning",
+      "card_age": 6,
+      "source_owner": "TrinaCat",
+      "dest_owner": null
+    },
+    {
+      "move": 80,
+      "type": "log",
+      "msg": "No more card matches the criteria of the effect."
+    },
+    {
+      "move": 80,
+      "type": "log",
+      "msg": "Sharing bonus."
+    },
+    {
+      "type": "transfer",
+      "move": 80,
+      "card_set": "base",
+      "source": "deck",
+      "dest": "hand",
+      "card_name": null,
+      "card_age": 5,
+      "source_owner": null,
+      "dest_owner": "TrinaCat"
+    },
+    {
+      "type": "transfer",
+      "move": 81,
+      "card_set": "base",
+      "source": "hand",
+      "dest": "board",
+      "card_name": "Measurement",
+      "card_age": 5,
+      "source_owner": "TrinaCat",
+      "dest_owner": "TrinaCat"
+    },
+    {
+      "type": "transfer",
+      "move": 82,
+      "card_set": "base",
+      "source": "deck",
+      "dest": "hand",
+      "card_name": "The pirate code",
+      "card_age": 5,
+      "source_owner": null,
+      "dest_owner": "AnotherSava"
+    },
+    {
+      "type": "transfer",
+      "move": 83,
+      "card_set": "base",
+      "source": "deck",
+      "dest": "hand",
+      "card_name": "Steam engine",
+      "card_age": 5,
+      "source_owner": null,
+      "dest_owner": "AnotherSava"
+    }
+  ]
+}
