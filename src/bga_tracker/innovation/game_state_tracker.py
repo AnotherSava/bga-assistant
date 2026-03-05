@@ -157,8 +157,9 @@ class GameStateTracker:
 
         return card
 
-    def confirm_meld_filter(self) -> None:
+    def confirm_meld_filter(self, icon: str) -> None:
         """Confirm meld icon filtering — transition from draw phase to return phase."""
+        assert icon == self._meld_icon, f"Meld filter icon mismatch: log says '{icon}', card_info says '{self._meld_icon}'"
         self._remaining_returns = len(self._discard_names)
         if self._remaining_returns == 0:
             self._meld_icon = None

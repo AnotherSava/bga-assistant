@@ -5914,10 +5914,10 @@
     "icons": [
       "crown",
       "crown",
-      "castle",
+      "crown",
       "castle",
       "hex",
-      "crown"
+      "castle"
     ],
     "karmatext": null,
     "name": "Troy",
@@ -6026,10 +6026,10 @@
     "icons": [
       "castle",
       "crown",
-      "castle",
+      "crown",
       "castle",
       "hex",
-      "crown"
+      "castle"
     ],
     "karmatext": null,
     "name": "Linzi",
@@ -6042,10 +6042,10 @@
     "icons": [
       "leaf",
       "leaf",
-      "castle",
+      "leaf",
       "castle",
       "hex",
-      "leaf"
+      "castle"
     ],
     "karmatext": null,
     "name": "Hattusa",
@@ -6075,7 +6075,7 @@
       "crown",
       "crown",
       "crown",
-      "leaf",
+      "castle",
       "hex",
       "plus"
     ],
@@ -6376,12 +6376,12 @@
     "color": "yellow",
     "html": "<span cardnum=\"366\" class=\"card b-yellow c\">Jakarta</span><span class=\"age c\">3</span>",
     "icons": [
-      "leaf",
+      "crown",
       "crown",
       "leaf",
       "leaf",
       "hex",
-      "crown"
+      "leaf"
     ],
     "karmatext": null,
     "name": "Jakarta",
@@ -6587,7 +6587,7 @@
       "castle",
       "castle",
       "bonus-4",
-      "crown",
+      "lightbulb",
       "hex",
       "left"
     ],
@@ -6648,10 +6648,10 @@
     "color": "green",
     "html": "<span cardnum=\"383\" class=\"card b-green c\">Amsterdam</span><span class=\"age c\">5</span>",
     "icons": [
-      "crown",
-      "crown",
-      "plus",
+      "castle",
       "leaf",
+      "plus",
+      "castle",
       "hex",
       "plus"
     ],
@@ -7018,10 +7018,10 @@
     "icons": [
       "bonus-7",
       "bonus-7",
-      "crown",
+      "leaf",
       "crown",
       "hex",
-      "leaf"
+      "crown"
     ],
     "karmatext": null,
     "name": "Melbourne",
@@ -7049,7 +7049,7 @@
     "html": "<span cardnum=\"408\" class=\"card b-purple c\">San Francisco</span><span class=\"age c\">7</span>",
     "icons": [
       "crown",
-      "bonus-9",
+      "lightbulb",
       "bonus-9",
       "crown",
       "hex",
@@ -7435,9 +7435,9 @@
       "bonus-10",
       "bonus-10",
       "clock",
-      "clock",
+      "lightbulb",
       "hex",
-      "lightbulb"
+      "clock"
     ],
     "karmatext": null,
     "name": "Atlanta",
@@ -7464,7 +7464,7 @@
     "color": "green",
     "html": "<span cardnum=\"434\" class=\"card b-green c\">Bangkok</span><span class=\"age c\">10</span>",
     "icons": [
-      "bonus-11",
+      "clock",
       "crown",
       "bonus-11",
       "crown",

@@ -43,8 +43,9 @@ class GameLogProcessor:
                     self.tracker.reveal_hand(m.group(1), card_names)
 
             case "log":
-                if re.match(r"The revealed cards with a \[(\w+)\] will be kept", entry["msg"]):
-                    self.tracker.confirm_meld_filter()
+                if m := re.match(r"The revealed cards with a \[(\w+)\] will be kept", entry["msg"]):
+                    self.tracker.confirm_meld_filter(m.group(1))
+
 
             case "transfer" if entry.get("dest") not in ("achievements", "claimed"):
                 self._process_move_action(entry)
