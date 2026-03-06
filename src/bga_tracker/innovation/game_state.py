@@ -40,11 +40,11 @@ class GameState:
 
     def __init__(self, players: list[str]) -> None:
         self.decks: defaultdict[AgeSet, list[Card]] = defaultdict(list)  # (age, card_set) -> [Card], index 0 = top
-        self.hands = {player: [] for player in players}
-        self.boards = {player: [] for player in players}
-        self.scores = {player: [] for player in players}
-        self.revealed = {player: [] for player in players}  # transient zone for draw-and-reveal
-        self.achievements = []    # 9 slots (ages 1-9)
+        self.hands: dict[str, list[Card]] = {player: [] for player in players}
+        self.boards: dict[str, list[Card]] = {player: [] for player in players}
+        self.scores: dict[str, list[Card]] = {player: [] for player in players}
+        self.revealed: dict[str, list[Card]] = {player: [] for player in players}  # transient zone for draw-and-reveal
+        self.achievements: list[Card] = []    # 9 slots (ages 1-9)
 
         # All Card objects per (age, card_set) group — for propagation
         self._groups: dict[AgeSet, list[Card]] = defaultdict(list)

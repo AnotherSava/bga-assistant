@@ -37,6 +37,11 @@ class AgeSet(NamedTuple):
     card_set: CardSet
 
 
+def card_index(name: str) -> str:
+    """Convert a display card name to a lowercase card index key."""
+    return name.lower()
+
+
 class Card:
     """A card with a set of possible identities (candidates).
 
@@ -134,7 +139,7 @@ class CardDatabase:
             s = item.get("set")
             if s not in (CardSet.BASE, CardSet.CITIES):
                 continue
-            index_name = item["name"].lower()
+            index_name = card_index(item["name"])
             self._cards[index_name] = CardInfo(
                 name=item["name"],
                 index_name=index_name,

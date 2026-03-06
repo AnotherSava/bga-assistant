@@ -2,7 +2,7 @@
 
 from itertools import combinations
 
-from bga_tracker.innovation.card import Card, CardDatabase, CardSet, AgeSet
+from bga_tracker.innovation.card import Card, CardDatabase, CardSet, AgeSet, card_index
 from bga_tracker.innovation.game_state import GameState, Action
 
 
@@ -41,18 +41,14 @@ class GameStateTracker:
                 game_state.hands[player].append(deck.pop())
 
     def resolve_hand(self, player: str, card_names: list[str]) -> None:
-        """Resolve hand cards using known card names (e.g. from gamedatas)."""
+        """Resolve initial hand cards right after init_game."""
         game_state = self.game_state
-        for name in card_names:
-            card_index = name.lower()
-            if card_index not in self.card_db:
-                continue
-            matching = [card for card in game_state.hands[player] if not card.is_resolved and card_index in card.candidates]
-            if not matching:
-                continue
-            card = matching[0]
-            group_key = self.card_db[card_index].group_key
-            card.resolve(card_index)
+        hand = game_state.hands[player]
+        for i, name in enumerate(card_names):
+            idx = card_index(name)
+            card = hand[i]
+            group_key = self.card_db[idx].group_key
+            card.resolve(idx)
             game_state.mark_resolved(card, group_key)
             self._propagate(group_key)
 

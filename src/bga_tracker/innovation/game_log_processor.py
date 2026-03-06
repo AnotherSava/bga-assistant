@@ -3,7 +3,7 @@
 import json
 import re
 
-from bga_tracker.innovation.card import CardDatabase, CardSet, AgeSet
+from bga_tracker.innovation.card import CardDatabase, CardSet, AgeSet, card_index
 from bga_tracker.innovation.game_state import GameState, Action
 from bga_tracker.innovation.game_state_tracker import GameStateTracker
 
@@ -25,21 +25,30 @@ class GameLogProcessor:
         with open(game_log_path) as f:
             log_data = json.load(f)
 
-        my_hand_names = log_data.get("my_hand", [])
-        if my_hand_names:
-            self.tracker.resolve_hand(self.perspective, my_hand_names)
+        initial_hand = self._deduce_initial_hand(log_data["log"], log_data["my_hand"])
+        self.tracker.resolve_hand(self.perspective, initial_hand)
 
         for entry in log_data["log"]:
             self._process_entry(entry)
 
         return self.game_state
 
+    def _deduce_initial_hand(self, log: list[dict], my_hand_names: list[str]) -> list[str]:
+        """Backtrack through log to find the 2 initial hand card names."""
+        hand = set(my_hand_names)
+        for entry in reversed(log):
+            if entry["type"] == "transfer" and entry.get("dest") == "hand" and entry.get("dest_owner") == self.perspective:
+                hand.discard(entry.get("card_name"))
+            if entry["type"] == "transfer" and entry.get("source") == "hand" and entry.get("source_owner") == self.perspective:
+                hand.add(entry.get("card_name"))
+        return [card_index(name) for name in hand]
+
     def _process_entry(self, entry: dict) -> None:
         """Process a single log entry."""
         match entry["type"]:
             case "logWithCardTooltips":
                 if m := re.match(rf"^({self._player_pattern}) reveals his hand: (.+)\.$", entry["msg"]):
-                    card_names = [part[part.index(" ") + 1:].lower() for part in m.group(2).split(", ")]
+                    card_names = [card_index(part[part.index(" ") + 1:]) for part in m.group(2).split(", ")]
                     self.tracker.reveal_hand(m.group(1), card_names)
 
             case "log":
@@ -52,15 +61,15 @@ class GameLogProcessor:
 
     def _process_move_action(self, entry: dict) -> None:
         card_name = entry.get("card_name")
-        card_index = card_name.lower() if card_name else None
-        group_key = AgeSet(entry["card_age"], CardSet.from_label(entry["card_set"])) if not card_index else None
+        card_idx = card_index(card_name) if card_name else None
+        group_key = AgeSet(entry["card_age"], CardSet.from_label(entry["card_set"])) if not card_idx else None
 
         source = entry["source"]
         dest = entry["dest"]
         source_player = entry.get("source_owner") if source != "deck" else None
         dest_player = entry.get("dest_owner") if dest != "deck" else None
 
-        action = Action(source=source, dest=dest, card_index=card_index, group_key=group_key, source_player=source_player, dest_player=dest_player, meld_keyword=bool(entry.get("meld_keyword")),
+        action = Action(source=source, dest=dest, card_index=card_idx, group_key=group_key, source_player=source_player, dest_player=dest_player, meld_keyword=bool(entry.get("meld_keyword")),
                         bottom_to=bool(entry.get("bottom_to")))
 
         self.tracker.move(action)

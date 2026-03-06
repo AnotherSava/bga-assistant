@@ -102,6 +102,29 @@ def test_from_json_round_trip(table_id, opponent, table_dir):
 
 @pytest.mark.parametrize("table_id,opponent,table_dir", TABLE_PARAMS,
                          ids=[p[0] for p in TABLE_PARAMS])
+def test_deduce_initial_hand(table_id, opponent, table_dir):
+    """Backtracking from my_hand through the log recovers exactly 2 initial base age-1 cards."""
+    game_log_path = table_dir / "game_log.json"
+    with open(game_log_path, encoding="utf-8") as f:
+        log_data = json.load(f)
+
+    my_hand = log_data.get("my_hand", [])
+    if not my_hand:
+        pytest.skip("no my_hand in fixture")
+
+    card_db = CardDatabase(CARD_INFO_PATH)
+    processor = GameLogProcessor(card_db, [CONFIG.player_name, opponent], CONFIG.player_name)
+    initial = processor._deduce_initial_hand(log_data["log"], my_hand)
+
+    assert len(initial) == 2, f"expected 2 initial cards, got {len(initial)}: {initial}"
+    for name in initial:
+        card = card_db[name]
+        assert card.age == 1, f"{name} is age {card.age}, expected 1"
+        assert card.card_set == CardSet.BASE, f"{name} is {card.card_set}, expected BASE"
+
+
+@pytest.mark.parametrize("table_id,opponent,table_dir", TABLE_PARAMS,
+                         ids=[p[0] for p in TABLE_PARAMS])
 def test_format_state_from_game_state_json(table_id, opponent, table_dir):
     """Verify format_state produces the same summary.html when reading from game_state.json
     (via GameState.from_json) as the reference fixture."""
