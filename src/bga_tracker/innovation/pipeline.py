@@ -1,10 +1,15 @@
 """End-to-end Innovation pipeline: fetch → process → track → format → open.
 
-Usage: python -m bga_tracker.innovation.pipeline URL [--no-open] [--skip-fetch]
+Usage:
+  python -m bga_tracker.innovation.pipeline run URL [--no-open] [--skip-fetch]
+  python -m bga_tracker.innovation.pipeline serve [--port 8787]
 
-  URL          Full BGA game URL, e.g. https://boardgamearena.com/10/innovation?table=815951228
+  run   URL          Fetch, process, track, format, and open an Innovation game
+  serve              Start HTTP server for Chrome extension
+
   --no-open    Skip opening summary.html in the default browser
   --skip-fetch Skip browser fetch step; reuse existing raw_log.json
+  --port PORT  Port for the HTTP server (default: 8787)
 """
 
 import argparse
@@ -13,33 +18,40 @@ import webbrowser
 
 from bga_tracker.innovation.card import CardDatabase
 from bga_tracker.innovation.config import Config
-from bga_tracker.innovation.fetch import fetch_game_data
+from bga_tracker.innovation.fetch import _determine_opponent, fetch_game_data
 from bga_tracker.innovation.format_state import SummaryFormatter
 from bga_tracker.innovation.game_log_processor import GameLogProcessor
 from bga_tracker.innovation.game_state import GameStateEncoder
-from bga_tracker.innovation.paths import CARD_INFO_PATH, find_table, parse_bga_url
+from bga_tracker.innovation.paths import CARD_INFO_PATH, create_table_dir, find_table, parse_bga_url
 from bga_tracker.innovation.process_log import process_raw_log
 
 
-def _extract_opponent(players_dict: dict[str, str], player_name: str) -> str:
-    """Find the opponent's name from a log file's players dict (ID → name)."""
-    if player_name not in players_dict.values():
-        raise ValueError(f"PLAYER_NAME '{player_name}' not found in game players: {list(players_dict.values())}. Check your .env configuration.")
-    opponents = [name for name in players_dict.values() if name != player_name]
-    if len(opponents) != 1:
-        raise ValueError(f"Expected exactly one opponent, found {len(opponents)} other players: {opponents}")
-    return opponents[0]
 
+def run_pipeline(url: str, *, no_open: bool = False, skip_fetch: bool = False, raw_data: dict | None = None) -> dict:
+    """Execute the full pipeline: fetch, process, track, format, open.
 
-def run_pipeline(url: str, *, no_open: bool = False, skip_fetch: bool = False) -> None:
-    """Execute the full pipeline: fetch, process, track, format, open."""
+    When raw_data is provided (from the Chrome extension / server), it is used
+    directly instead of fetching via Playwright.  The data is saved to disk
+    and processed through the same pipeline.
+
+    Returns a dict with 'table_dir' and 'summary_path' keys (as strings).
+    """
     config = Config.from_env()
 
     # 1. Parse table_id from URL
     table_id = parse_bga_url(url)
     print(f"Table ID: {table_id}")
 
-    if skip_fetch:
+    if raw_data is not None:
+        # In-memory raw data from Chrome extension
+        opponent = _determine_opponent(raw_data["players"], config.player_name)
+        table_dir = create_table_dir(table_id, opponent)
+
+        # Save raw_log.json
+        raw_log_path = table_dir / "raw_log.json"
+        raw_log_path.write_text(json.dumps(raw_data, indent=2), encoding="utf-8")
+        print(f"Saved raw_log.json to {table_dir}")
+    elif skip_fetch:
         # Locate existing table directory
         table_dir, _ = find_table(table_id)
         raw_log_path = table_dir / "raw_log.json"
@@ -52,7 +64,7 @@ def run_pipeline(url: str, *, no_open: bool = False, skip_fetch: bool = False) -
             raw_data = None
             # Extract real opponent name from log data (directory name may be sanitized)
             log_data = json.loads(game_log_path.read_text(encoding="utf-8"))
-            opponent = _extract_opponent(log_data["players"], config.player_name)
+            opponent = _determine_opponent(log_data["players"], config.player_name)
         else:
             print("Skipping fetch — using existing raw_log.json")
             try:
@@ -60,7 +72,7 @@ def run_pipeline(url: str, *, no_open: bool = False, skip_fetch: bool = False) -
             except json.JSONDecodeError as exc:
                 raise ValueError(f"Malformed JSON in {raw_log_path}: {exc}") from exc
             # Extract real opponent name from raw data (directory name may be sanitized)
-            opponent = _extract_opponent(raw_data["players"], config.player_name)
+            opponent = _determine_opponent(raw_data["players"], config.player_name)
     else:
         # 2. Fetch game data via browser
         print("Fetching game data from BGA...")
@@ -105,15 +117,42 @@ def run_pipeline(url: str, *, no_open: bool = False, skip_fetch: bool = False) -
     else:
         print(f"Done. Open {summary_path} to view.")
 
+    return {"table_dir": str(table_dir), "summary_path": str(summary_path)}
+
+
+def build_parser() -> argparse.ArgumentParser:
+    """Build and return the CLI argument parser."""
+    parser = argparse.ArgumentParser(description="Innovation pipeline: fetch → process → track → format → open.")
+    subparsers = parser.add_subparsers(dest="command")
+
+    # run subcommand
+    run_parser = subparsers.add_parser("run", help="Run the full pipeline for a BGA game URL")
+    run_parser.add_argument("url", help="Full BGA game URL, e.g. https://boardgamearena.com/10/innovation?table=815951228")
+    run_parser.add_argument("--no-open", action="store_true", help="Skip opening summary.html in the default browser")
+    run_parser.add_argument("--skip-fetch", action="store_true", help="Skip browser fetch step; reuse existing raw_log.json")
+
+    # serve subcommand
+    serve_parser = subparsers.add_parser("serve", help="Start HTTP server for Chrome extension")
+    serve_parser.add_argument("--port", type=int, default=8787, help="Port to listen on (default: 8787)")
+
+    return parser
+
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="End-to-end Innovation pipeline: fetch → process → track → format → open.")
-    parser.add_argument("url", help="Full BGA game URL, e.g. https://boardgamearena.com/10/innovation?table=815951228")
-    parser.add_argument("--no-open", action="store_true", help="Skip opening summary.html in the default browser")
-    parser.add_argument("--skip-fetch", action="store_true", help="Skip browser fetch step; reuse existing raw_log.json")
+    parser = build_parser()
     args = parser.parse_args()
 
-    run_pipeline(args.url, no_open=args.no_open, skip_fetch=args.skip_fetch)
+    if args.command == "serve":
+        import uvicorn
+
+        from bga_tracker.innovation.server import app
+
+        print(f"Starting Innovation tracker server on port {args.port}...")
+        uvicorn.run(app, host="127.0.0.1", port=args.port)
+    elif args.command == "run":
+        run_pipeline(args.url, no_open=args.no_open, skip_fetch=args.skip_fetch)
+    else:
+        parser.print_help()
 
 
 if __name__ == "__main__":

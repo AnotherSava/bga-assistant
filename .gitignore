@@ -17,3 +17,4 @@ __pycache__/
 .venv/
 .ralphex/progress/
 .coverage
+docs/plans/

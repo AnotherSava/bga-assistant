@@ -10,10 +10,16 @@ My initial focus is on 2p games of **Innovation** with Cities of Destiny expansi
 
 ## How it works
 
-1. A Playwright-controlled browser navigates to the BGA game page and fetches the full notification history via the BGA API
-2. A JS script (running in the browser context) extracts card transfer events into a structured game log
-3. A Python script replays every card movement from the log, tracking current locations, deck stack order, and which cards the opponent knows about
-4. A formatter produces a colored HTML summary of the current game state from both perspectives
+There are two ways to extract game data from BGA:
+
+**Chrome extension (recommended):** A Chrome extension adds a toolbar button. Clicking it on a BGA Innovation game page extracts the game data and sends it to a local server that runs the processing pipeline.
+
+**Playwright pipeline:** A Playwright-controlled browser navigates to the BGA game page and fetches the full notification history via the BGA API.
+
+In both cases:
+1. A JS script extracts card transfer events into a structured game log
+2. A Python script replays every card movement from the log, tracking current locations, deck stack order, and which cards the opponent knows about
+3. A formatter produces a colored HTML summary of the current game state from both perspectives
 
 Player names are detected automatically from the game log. The `PLAYER_NAME` in `.env` determines which side is "me" vs "opponent".
 
@@ -60,19 +66,45 @@ Icon and card image assets are committed to the repo in `assets/`. To regenerate
 python -m bga_tracker.innovation.download_assets
 ```
 
+## Chrome Extension
+
+### Extension setup
+
+1. Open Chrome and navigate to `chrome://extensions`
+2. Enable "Developer mode" (toggle in the top-right corner)
+3. Click "Load unpacked" and select the `extension/` directory in this project
+4. The Innovation tracker icon appears in the Chrome toolbar
+
+### Usage with Chrome extension
+
+1. Start the local server:
+   ```
+   python -m bga_tracker.innovation.pipeline serve
+   ```
+   The server runs on port 8787 by default. Use `--port` to change it (note: the Chrome extension expects port 8787; update `SERVER_URL` in `extension/background.js` if using a different port).
+
+2. Navigate to your BGA Innovation game in Chrome
+
+3. Click the Innovation tracker icon in the toolbar
+   - Badge shows "..." while extracting
+   - Badge shows a green checkmark on success
+   - Badge shows red "ERR" on failure
+
+4. The server processes the game data and generates `summary.html` in `data/<TABLE_ID> <opponent>/`
+
 ## Usage
 
-### Pipeline (recommended)
+### Pipeline (Playwright)
 
 The pipeline automates the full workflow in a single command:
 
 ```
-python -m bga_tracker.innovation.pipeline URL [--no-open] [--skip-fetch]
+python -m bga_tracker.innovation.pipeline run URL [--no-open] [--skip-fetch]
 ```
 
 Example:
 ```
-python -m bga_tracker.innovation.pipeline "https://boardgamearena.com/10/innovation?table=815951228"
+python -m bga_tracker.innovation.pipeline run "https://boardgamearena.com/10/innovation?table=815951228"
 ```
 
 This will:
@@ -149,11 +181,17 @@ src/
       format_state.py           — HTML summary formatter
       fetch.py                  — browser-based BGA game data fetcher
       pipeline.py               — end-to-end CLI: fetch → process → track → format → open
+      server.py                 — FastAPI server for Chrome extension (POST /extract)
       config.py                 — Config dataclass from .env
       paths.py                  — shared path constants and directory lookup
       download_assets.py        — download BGA sprites + extract icons & card images
   browser/
     browse.py                   — Playwright-based browser helper
+extension/
+  manifest.json                 — Chrome extension manifest (Manifest V3)
+  background.js                 — service worker: toolbar click → extract → POST to server
+  extract.js                    — content script: reads gamedatas + notification history
+  icons/                        — toolbar icons (16, 48, 128 px)
 scripts/
   fetch_full_history.js         — BGA notification history fetch (generic, any game)
   innovation/
@@ -175,6 +213,8 @@ tests/
     test_paths.py               — unit tests for URL parsing and directory creation
     test_fetch.py               — unit tests for browser fetch (mocked Playwright)
     test_pipeline.py            — end-to-end pipeline tests (skip-fetch mode)
+    test_server.py              — FastAPI server endpoint tests (TestClient)
+    test_cli.py                 — CLI argument parsing tests (run + serve subcommands)
     fixtures/                   — committed fixture data (game logs + reference output)
 pyproject.toml                  — package config (editable install)
 .env                            — player name + display config (not committed)

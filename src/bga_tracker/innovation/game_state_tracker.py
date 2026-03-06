@@ -173,8 +173,8 @@ class GameStateTracker:
         union = {name for other in affected for name in other.candidates}
         for other in affected:
             other.candidates = set(union)
-        for c, card_index in was_resolved:
-            self.game_state.unmark_resolved(card_index, c.group_key)
+        for c, resolved_index in was_resolved:
+            self.game_state.unmark_resolved(resolved_index, c.group_key)
 
     def _merge_suspects(self, card: Card, remaining_source: list[Card], action: Action) -> None:
         """Merge suspect lists when opponent can't tell which card moved.
@@ -223,11 +223,11 @@ class GameStateTracker:
     def reveal_hand(self, player: str, card_indices: list[str]) -> None:
         """Handle 'reveals his hand' — resolve and mark cards without moving them."""
         game_state = self.game_state
-        for card_index in card_indices:
-            group_key = self.card_db[card_index].group_key
+        for idx in card_indices:
+            group_key = self.card_db[idx].group_key
 
-            card: Card = next(other for other in game_state.hands[player] if card_index in other.candidates)
-            card.resolve(card_index)
+            card: Card = next(other for other in game_state.hands[player] if idx in other.candidates)
+            card.resolve(idx)
             game_state.mark_resolved(card, group_key)
             card.mark_public()
             self._propagate(group_key)

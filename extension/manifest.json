@@ -1,0 +1,25 @@
+{
+  "manifest_version": 3,
+  "name": "BGA Innovation Tracker",
+  "version": "1.0",
+  "description": "Extract Innovation game data from Board Game Arena and send to local tracker server.",
+  "permissions": ["activeTab", "scripting"],
+  "host_permissions": ["http://localhost/*"],
+  "action": {
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "48": "icons/icon-48.png",
+      "128": "icons/icon-128.png"
+    },
+    "default_title": "Track Innovation Game"
+  },
+  "icons": {
+    "16": "icons/icon-16.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "minimum_chrome_version": "128",
+  "background": {
+    "service_worker": "background.js"
+  }
+}
