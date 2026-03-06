@@ -85,6 +85,13 @@ chrome.action.onClicked.addListener(async (tab: chrome.tabs.Tab) => {
   setBadge(tab.id, "...", "#1976D2");
   extracting = true;
 
+  // Open side panel immediately while user gesture context is valid
+  try {
+    await chrome.sidePanel.open({ tabId: tab.id });
+  } catch (err) {
+    console.warn("Could not open side panel:", err);
+  }
+
   try {
     // Inject extract.js into the active tab's MAIN world (with timeout
     // so a hung BGA ajaxcall doesn't permanently block the extension)
@@ -111,8 +118,7 @@ chrome.action.onClicked.addListener(async (tab: chrome.tabs.Tab) => {
     lastResults = runPipeline(extractResult as RawExtractionData, cardDb);
     console.log("Pipeline complete:", Object.keys(lastResults));
 
-    // Open side panel and notify it of new results
-    await chrome.sidePanel.open({ tabId: tab.id });
+    // Notify side panel of new results
     chrome.runtime.sendMessage({ type: "resultsReady" }).catch(() => {});
 
     // Success badge
