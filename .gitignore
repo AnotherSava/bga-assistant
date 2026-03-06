@@ -24,4 +24,5 @@ Thumbs.db
 
 # Ralphex
 .ralphex/progress/
+.coverage
 docs/plans/
