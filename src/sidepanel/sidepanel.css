@@ -13,7 +13,8 @@ body {
 .toolbar {
   display: flex;
   gap: 8px;
-  margin-bottom: 16px;
+  justify-content: flex-end;
+  margin-top: 16px;
   flex-wrap: wrap;
 }
 .toolbar button {
