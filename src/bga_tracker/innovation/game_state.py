@@ -108,3 +108,39 @@ class GameState:
             "scores": self.scores,
             "achievements": self.achievements,
         }
+
+    @classmethod
+    def from_json(cls, data: dict) -> "GameState":
+        """Deserialize game_state.json back into a fully functional GameState.
+
+        Reconstructs Card objects, _groups, _resolved_indices, and
+        _resolved_counts so that query methods work correctly.
+        """
+        players = list(data["hands"].keys())
+        state = cls(players)
+
+        def _load_card(d: dict) -> Card:
+            card = Card(d["age"], CardSet(d["card_set"]), set(d["candidates"]))
+            card.opponent_knows_exact = d["opponent_knows_exact"]
+            card.opponent_might_suspect = set(d["opponent_might_suspect"])
+            card.suspect_list_explicit = d["suspect_list_explicit"]
+            group_key = card.group_key
+            state._groups[group_key].append(card)
+            if card.is_resolved:
+                state.mark_resolved(card, group_key)
+            return card
+
+        def _load_cards(card_dicts: list[dict]) -> list[Card]:
+            return [_load_card(d) for d in card_dicts]
+
+        for key, card_dicts in data.get("decks", {}).items():
+            age_str, set_label = key.split("/")
+            state.decks[AgeSet(int(age_str), CardSet.from_label(set_label))] = _load_cards(card_dicts)
+
+        for player in players:
+            state.hands[player] = _load_cards(data["hands"][player])
+            state.boards[player] = _load_cards(data["boards"][player])
+            state.scores[player] = _load_cards(data["scores"][player])
+
+        state.achievements = _load_cards(data.get("achievements", []))
+        return state

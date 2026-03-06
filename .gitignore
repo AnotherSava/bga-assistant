@@ -13,5 +13,7 @@ assets/sprites/
 __pycache__/
 *.egg-info/
 
-# ralphex progress logs
+# ralphex
+.venv/
 .ralphex/progress/
+.coverage

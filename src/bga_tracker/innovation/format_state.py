@@ -1,15 +1,16 @@
 """
 Innovation Game State Summary Formatter
 
-Runs the state tracker on game_log.json and produces summary.html showing
-hidden information from both perspectives, with card images.
+Reads game_state.json and produces summary.html showing hidden information
+from both perspectives, with card images.
 
 Usage: python -m bga_tracker.innovation.format_state TABLE_ID
 
-Input:  data/<TABLE_ID>/game_log.json + .env for PLAYER_NAME
+Input:  data/<TABLE_ID>/game_state.json + .env for PLAYER_NAME
 Output: data/<TABLE_ID>/summary.html
 """
 
+import json
 import sys
 from itertools import groupby
 from dataclasses import dataclass, field
@@ -19,7 +20,6 @@ from bga_tracker.innovation.paths import CARD_INFO_PATH, TEMPLATE_DIR, find_tabl
 from bga_tracker.innovation.card import Card, CardDatabase, CardInfo, CardSet, Color
 from bga_tracker.innovation.config import Config
 from bga_tracker.innovation.game_state import GameState
-from bga_tracker.innovation.game_log_processor import GameLogProcessor
 
 # Relative paths from summary.html (data/<TABLE_ID>/) to assets/
 ICONS_REL = "../../assets/icons"
@@ -81,7 +81,8 @@ def _visibility_toggle(target_id: str, default: str, none_label: str, all_label:
     options = [("none", none_label), ("all", all_label)]
     if unknown_label is not None:
         options.append(("unknown", unknown_label))
-    default_mode = next(mode for mode, label in options if label.lower() == default)
+    config_to_mode = {"hide": "none", "none": "none", "show": "all", "unknown": "unknown"}
+    default_mode = config_to_mode.get(default, "none")
     return {"target_id": target_id, "default_mode": default_mode, "options": [{"mode": mode, "label": label, "active": mode == default_mode} for mode, label in options]}
 
 
@@ -220,14 +221,20 @@ def main() -> None:
     config = Config.from_env()
 
     table_id = sys.argv[1]
-    table_dir, opponent = find_table(table_id)
+    table_dir, _ = find_table(table_id)
+
+    game_state_path = table_dir / "game_state.json"
+    card_db = CardDatabase(CARD_INFO_PATH)
+    with open(game_state_path, encoding="utf-8") as f:
+        game_state = GameState.from_json(json.load(f))
+
+    # Extract real opponent name from game state (directory name may be sanitized)
+    opponents = [p for p in game_state.hands if p != config.player_name]
+    if len(opponents) != 1:
+        raise ValueError(f"Expected exactly one opponent, found {len(opponents)} other players: {opponents}")
+    opponent = opponents[0]
     players = [config.player_name, opponent]
     print(f"Players: {', '.join(players)}")
-
-    game_log_path = table_dir / "game_log.json"
-    card_db = CardDatabase(CARD_INFO_PATH)
-    tracker = GameLogProcessor(card_db, players, config.player_name)
-    game_state = tracker.process_log(game_log_path)
 
     html = SummaryFormatter(game_state, table_id, config, card_db, players, config.player_name).render()
 

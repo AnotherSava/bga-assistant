@@ -123,7 +123,7 @@ class CardDatabase:
     """Card database loaded from card_info.json."""
 
     def __init__(self, path):
-        with open(path) as f:
+        with open(path, encoding="utf-8") as f:
             raw = json.load(f)
 
         self._cards = {}

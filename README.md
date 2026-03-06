@@ -8,8 +8,6 @@ My initial focus is on 2p games of **Innovation** with Cities of Destiny expansi
 - cards revealed with Oars
 
 
-> **Note:** Only tested on Windows. Scripts, paths, and commands all assume a Windows environment.
-
 ## How it works
 
 1. A Playwright-controlled browser navigates to the BGA game page and fetches the full notification history via the BGA API
@@ -23,9 +21,9 @@ Player names are detected automatically from the game log. The `PLAYER_NAME` in 
 
 ```
 python -m venv venv
-venv/Scripts/pip install -e .
-venv/Scripts/pip install Pillow  # optional, for download_assets
-venv/Scripts/playwright install chromium
+pip install -e .
+pip install Pillow  # optional, for download_assets
+playwright install chromium
 ```
 
 Create a `.env` file in the project root:
@@ -59,20 +57,54 @@ Only `PLAYER_NAME` is required. All other settings are optional with sensible de
 
 Icon and card image assets are committed to the repo in `assets/`. To regenerate them from the upstream BGA sprite sheets (requires Pillow):
 ```
-venv/Scripts/python -m bga_tracker.innovation.download_assets
+python -m bga_tracker.innovation.download_assets
 ```
 
 ## Usage
 
-### 1. Start the browser helper
+### Pipeline (recommended)
+
+The pipeline automates the full workflow in a single command:
 
 ```
-venv/Scripts/python -m browser.browse
+python -m bga_tracker.innovation.pipeline URL [--no-open] [--skip-fetch]
+```
+
+Example:
+```
+python -m bga_tracker.innovation.pipeline "https://boardgamearena.com/10/innovation?table=815951228"
+```
+
+This will:
+1. Launch a browser and navigate to the game page
+2. Fetch the full notification history from BGA
+3. Process the raw data into a structured game log
+4. Track all card movements and build game state
+5. Generate a colored HTML summary
+6. Open `summary.html` in your default browser
+
+Options:
+- `--no-open` — skip opening the browser at the end
+- `--skip-fetch` — reuse an existing `raw_log.json` instead of fetching from BGA (useful for re-processing without a live session)
+
+On first run you must be logged in to BGA. If the pipeline detects you are not logged in, it will tell you to log in first via:
+```
+python -m browser.browse https://boardgamearena.com
+```
+
+### Manual workflow
+
+You can also run each step individually:
+
+#### 1. Start the browser helper
+
+```
+python -m browser.browse
 ```
 
 This opens a persistent Chrome session. Commands are sent by writing to `scripts/cmd.txt`; results appear in `output/result.txt`.
 
-### 2. Extract game log
+#### 2. Extract game log
 
 Send these commands (one at a time, waiting for each result):
 ```
@@ -83,18 +115,18 @@ eval scripts/innovation/extract_log.js
 
 Save the final output to `data/<TABLE_ID>/game_log.json`.
 
-### 3. Track card state
+#### 3. Track card state
 
 ```
-venv/Scripts/python -m bga_tracker.innovation.track_state TABLE_ID
+python -m bga_tracker.innovation.track_state TABLE_ID
 ```
 
 Produces `game_state.json` — structured game state with card objects.
 
-### 4. Format summary
+#### 4. Format summary
 
 ```
-venv/Scripts/python -m bga_tracker.innovation.format_state TABLE_ID
+python -m bga_tracker.innovation.format_state TABLE_ID
 ```
 
 Produces `summary.html` — a colored HTML page showing deck contents, hands, and scores from both perspectives. Open it in a browser.
@@ -112,8 +144,11 @@ src/
       game_state.py             — GameState: card locations, queries, serialization
       game_state_tracker.py     — GameStateTracker: mutations, constraint propagation
       game_log_processor.py     — GameLogProcessor: log parsing → Actions
+      process_log.py            — raw BGA notifications → structured game_log.json
       track_state.py            — CLI entry point (delegates to GameLogProcessor)
       format_state.py           — HTML summary formatter
+      fetch.py                  — browser-based BGA game data fetcher
+      pipeline.py               — end-to-end CLI: fetch → process → track → format → open
       config.py                 — Config dataclass from .env
       paths.py                  — shared path constants and directory lookup
       download_assets.py        — download BGA sprites + extract icons & card images
@@ -129,13 +164,17 @@ assets/                         — static game data and images
   cards/                        — full card face images (750x550, used for hover tooltips)
 data/                           — per-game data (gitignored)
   <TABLE_ID> <opponent>/
-    game_log.json                — extracted game log (input)
-    game_state.json              — structured game state (output)
-    summary.html                 — colored HTML summary (output)
+    raw_log.json                 — raw BGA notification data (from fetch)
+    game_log.json                — structured game log (from process_log)
+    game_state.json              — tracked game state (from track_state)
+    summary.html                 — colored HTML summary (from format_state)
 tests/
   innovation/
     test_regression.py          — regression tests for track_state + format_state
     test_opponent_knowledge.py  — unit tests for opponent knowledge model
+    test_paths.py               — unit tests for URL parsing and directory creation
+    test_fetch.py               — unit tests for browser fetch (mocked Playwright)
+    test_pipeline.py            — end-to-end pipeline tests (skip-fetch mode)
     fixtures/                   — committed fixture data (game logs + reference output)
 pyproject.toml                  — package config (editable install)
 .env                            — player name + display config (not committed)
@@ -146,7 +185,7 @@ pyproject.toml                  — package config (editable install)
 Regression tests replay the full pipeline on committed fixture data and compare output to reference files.
 
 ```
-venv/Scripts/python -m pytest tests/ -v
+python -m pytest tests/ -v
 ```
 
 Fixtures live in `tests/innovation/fixtures/` — each subfolder contains a `game_log.json` (input) and the expected `game_state.json` + `summary.html` (reference output).
