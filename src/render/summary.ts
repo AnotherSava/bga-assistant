@@ -154,7 +154,6 @@ interface SectionData {
   columnCount: number;
   arrangeByColumns: boolean;
   empty: boolean;
-  markResolved: boolean;
 }
 
 function renderTallGrid(rows: Row[], columnCount: number, arrangeByColumns: boolean): string {
@@ -347,7 +346,7 @@ function prepareAllCards(gameState: GameState, cardSet: CardSet, cardDb: CardDat
   return rows;
 }
 
-function makeSection(sectionId: SectionId, title: string, rows: Row[], config: SectionConfig, options: { hasUnknown?: boolean; columnCount?: number; arrangeByColumns?: boolean; markResolved?: boolean }): SectionData {
+function makeSection(sectionId: SectionId, title: string, rows: Row[], config: SectionConfig, options: { hasUnknown?: boolean; columnCount?: number; arrangeByColumns?: boolean }): SectionData {
   const toggle = visibilityToggle(sectionId, config.defaultVisibility, options.hasUnknown ?? false);
   const extraToggles: Toggle[] = [];
   if (options.columnCount && options.columnCount > 0 && config.defaultLayout) {
@@ -364,11 +363,10 @@ function makeSection(sectionId: SectionId, title: string, rows: Row[], config: S
     columnCount: options.columnCount ?? 0,
     arrangeByColumns: options.arrangeByColumns ?? true,
     empty,
-    markResolved: options.markResolved ?? false,
   };
 }
 
-function makeCompositeSection(sectionId: SectionId, title: string, baseRows: Row[], citiesRows: Row[], config: SectionConfig, options: { hasUnknown?: boolean; columnCount?: number; arrangeByColumns?: boolean; markResolved?: boolean }): SectionData {
+function makeCompositeSection(sectionId: SectionId, title: string, baseRows: Row[], citiesRows: Row[], config: SectionConfig, options: { hasUnknown?: boolean; columnCount?: number; arrangeByColumns?: boolean }): SectionData {
   const toggle = compositeToggle(sectionId, config.defaultVisibility);
   const extraToggles: Toggle[] = [];
   if (options.hasUnknown) {
@@ -397,7 +395,6 @@ function makeCompositeSection(sectionId: SectionId, title: string, baseRows: Row
     columnCount: options.columnCount ?? 0,
     arrangeByColumns: options.arrangeByColumns ?? true,
     empty,
-    markResolved: options.markResolved ?? false,
   };
 }
 
@@ -417,7 +414,7 @@ export function renderSummary(gameState: GameState, cardDb: CardDatabase, perspe
     "score-me": () => makeSection("score-me", "Score &mdash; me", prepareMyCards(gameState.scores.get(perspective) ?? [], gameState, cardDb), config["score-me"], {}),
     "achievements": () => makeSection("achievements", "Achievements", [achievements], config["achievements"], { columnCount: TALL_COLUMNS, arrangeByColumns: false }),
     "deck": () => makeCompositeSection("deck", "Deck", prepareDeck(gameState, CardSet.BASE, cardDb), prepareDeck(gameState, CardSet.CITIES, cardDb), config["deck"], {}),
-    "cards": () => makeCompositeSection("cards", "Cards", prepareAllCards(gameState, CardSet.BASE, cardDb), prepareAllCards(gameState, CardSet.CITIES, cardDb), config["cards"], { hasUnknown: true, columnCount: TALL_COLUMNS, markResolved: true }),
+    "cards": () => makeCompositeSection("cards", "Cards", prepareAllCards(gameState, CardSet.BASE, cardDb), prepareAllCards(gameState, CardSet.CITIES, cardDb), config["cards"], { hasUnknown: true, columnCount: TALL_COLUMNS }),
   };
 
   let html = "";
@@ -479,10 +476,14 @@ document.querySelectorAll('.tri-toggle').forEach(function(toggle) {
     toggle.querySelectorAll('.tri-opt').forEach(function(o) { o.classList.remove('active'); });
     opt.classList.add('active');
     var id = toggle.getAttribute('data-target');
-    var siblingDisplay = mode === 'none' ? 'none' : '';
-    toggle.parentElement.querySelectorAll('.tri-toggle[data-target="'+id+'"]').forEach(function(sib) {
-      if (sib !== toggle) sib.style.display = siblingDisplay;
-    });
+    var allToggles = toggle.parentElement.querySelectorAll('.tri-toggle[data-target="'+id+'"]');
+    var isPrimary = allToggles[0] === toggle;
+    if (isPrimary) {
+      var siblingDisplay = mode === 'none' ? 'none' : '';
+      allToggles.forEach(function(sib) {
+        if (sib !== toggle) sib.style.display = siblingDisplay;
+      });
+    }
     if (mode === 'none') {
       target.style.display = 'none';
     } else if (mode === 'base' || mode === 'cities') {
@@ -491,10 +492,10 @@ document.querySelectorAll('.tri-toggle').forEach(function(toggle) {
         el.style.display = el.getAttribute('data-set') === mode ? '' : 'none';
       });
     } else if (mode === 'all') {
-      target.style.display = '';
+      if (isPrimary) target.style.display = '';
       target.classList.remove('mode-unknown');
     } else if (mode === 'unknown') {
-      target.style.display = '';
+      if (isPrimary) target.style.display = '';
       target.classList.add('mode-unknown');
     } else if (mode === 'wide' || mode === 'tall') {
       document.querySelectorAll('.layout-wide[data-list="'+id+'"]').forEach(function(el) {
