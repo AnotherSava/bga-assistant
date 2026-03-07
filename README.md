@@ -8,10 +8,13 @@ A Chrome extension for [Board Game Arena](https://boardgamearena.com) that keeps
 
 Reads the full game log from [Innovation](https://boardgamegeek.com/boardgame/63888/innovation) tables and reconstructs the game state — deck stack order, hand contents, score piles — displayed as a visual summary in a Chrome side panel.
 
-- Card grids: hands, scores, achievements, decks, full card lists
-- Visibility toggles: None / All / Unknown (show only unaccounted cards)
-- Layout toggles: Wide (one row per age) / Tall (color columns)
+- Card grids: hands, scores, deck, full card list, achievements
+- Set toggle: switch between Base and Cities card sets for deck and card list
+- Filter toggle: All / Unknown (show only unaccounted cards)
+- Layout toggle: Wide (one row per age) / Tall (color columns)
+- Section selector: eye button to show/hide entire sections
 - Hover tooltips: card face images for base cards, names for cities
+- Persistent settings: all toggle states and section visibility are saved across sessions
 - Download: bundled zip with raw data, game log, game state, and standalone summary
 
 ## Setup

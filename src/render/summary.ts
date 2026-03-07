@@ -3,7 +3,7 @@
 
 import { type CardInfo, type Card, CardSet, Color, CardDatabase, colorLabel, cardSetLabel, ageSetKey } from "../models/types.js";
 import { GameState } from "../engine/game_state.js";
-import { type SectionId, type SectionConfig, type Toggle, type Layout, DEFAULT_SECTION_CONFIG, TALL_COLUMNS, visibilityToggle, layoutToggle } from "./config.js";
+import { type SectionId, type SectionConfig, type Toggle, DEFAULT_SECTION_CONFIG, SECTION_IDS, TALL_COLUMNS, visibilityToggle, layoutToggle, compositeToggle } from "./config.js";
 
 // ---------------------------------------------------------------------------
 // Asset URL resolution
@@ -131,39 +131,44 @@ function renderSectionRow(row: Row): string {
 // Toggle rendering
 // ---------------------------------------------------------------------------
 
-function renderTriToggle(toggle: Toggle): string {
+function renderTriToggle(toggle: Toggle, extraAttrs: string = ""): string {
   const opts = toggle.options.map(opt => `<span class="tri-opt${opt.active ? " active" : ""}" data-mode="${opt.mode}">${opt.label}</span>`);
-  return `<span class="tri-toggle" data-target="${toggle.targetId}">[${opts.join('<span class="tri-sep">|</span>')}]</span>`;
+  return `<span class="tri-toggle" data-target="${toggle.targetId}"${extraAttrs}>[${opts.join('<span class="tri-sep">|</span>')}]</span>`;
 }
 
 // ---------------------------------------------------------------------------
 // Section rendering
 // ---------------------------------------------------------------------------
 
+interface SetRows {
+  set: string;
+  rows: Row[];
+}
+
 interface SectionData {
   sectionId: SectionId;
   title: string;
   toggle: Toggle | null;
-  layoutToggle: Toggle | null;
-  rows: Row[];
+  extraToggles: Toggle[];
+  sets: SetRows[];
   columnCount: number;
   arrangeByColumns: boolean;
   empty: boolean;
   markResolved: boolean;
 }
 
-function renderTallGrid(section: SectionData): string {
+function renderTallGrid(rows: Row[], columnCount: number, arrangeByColumns: boolean): string {
   let html = '<table class="tall-grid">';
-  for (const row of section.rows) {
-    const numRows = Math.ceil(row.cards.length / section.columnCount);
+  for (const row of rows) {
+    const numRows = Math.ceil(row.cards.length / columnCount);
     for (let r = 0; r < numRows; r++) {
       const rowClass = row.allKnown ? ' class="all-known"' : "";
       html += `<tr${rowClass}>`;
       if (r === 0) {
         html += `<td class="row-label" rowspan="${numRows}">${renderRowLabel(row.label)}</td>`;
       }
-      for (let c = 0; c < section.columnCount; c++) {
-        const idx = section.arrangeByColumns ? c * numRows + r : r * section.columnCount + c;
+      for (let c = 0; c < columnCount; c++) {
+        const idx = arrangeByColumns ? c * numRows + r : r * columnCount + c;
         const card = idx < row.cards.length ? row.cards[idx] : "";
         html += `<td>${card}</td>`;
       }
@@ -174,37 +179,65 @@ function renderTallGrid(section: SectionData): string {
   return html;
 }
 
+function renderSetContent(rows: Row[], section: SectionData, hasLayout: boolean): string {
+  let html = "";
+  if (hasLayout) {
+    const lt = section.extraToggles.find(t => t.defaultMode === "wide" || t.defaultMode === "tall");
+    const defaultLayout = lt?.defaultMode ?? "wide";
+    const wideHide = defaultLayout === "tall" ? ' style="display:none"' : "";
+    const tallHide = defaultLayout !== "tall" ? ' style="display:none"' : "";
+    html += `<div class="layout-wide" data-list="${section.sectionId}"${wideHide}>`;
+    for (const row of rows) html += renderSectionRow(row);
+    html += `</div><div class="layout-tall" data-list="${section.sectionId}"${tallHide}>`;
+    html += renderTallGrid(rows, section.columnCount, section.arrangeByColumns);
+    html += "</div>";
+  } else {
+    for (const row of rows) html += renderSectionRow(row);
+  }
+  return html;
+}
+
 function renderSection(section: SectionData): string {
-  let html = '<div class="section">';
+  let html = `<div class="section" data-section="${section.sectionId}">`;
 
   // Title with toggles
   html += `<div class="section-title">${section.title}`;
   if (section.toggle) html += ` ${renderTriToggle(section.toggle)}`;
-  if (section.layoutToggle) html += ` ${renderTriToggle(section.layoutToggle)}`;
+  const hideExtra = section.toggle?.defaultMode === "none" ? ' style="display:none"' : "";
+  for (const t of section.extraToggles) html += ` ${renderTriToggle(t, hideExtra)}`;
   html += "</div>";
 
+  const isComposite = section.sets.length > 1;
+  const allRows = section.sets.flatMap(s => s.rows);
+
   if (section.empty) {
+    if (section.toggle) {
+      const hideStyle = section.toggle.defaultMode === "none" ? ' style="display:none"' : "";
+      html += `<div id="${section.sectionId}"${hideStyle}>`;
+    }
     html += '<div class="section-row"><span class="row-label"> </span><div class="card-row"><div class="empty-card">empty</div></div></div>';
+    if (section.toggle) html += "</div>";
   } else if (section.toggle) {
     const hideStyle = section.toggle.defaultMode === "none" ? ' style="display:none"' : "";
-    const unknownCls = section.toggle.defaultMode === "unknown" ? ' class="mode-unknown"' : "";
+    const hasUnknownDefault = section.toggle.defaultMode === "unknown" || section.extraToggles.some(t => t.defaultMode === "unknown");
+    const unknownCls = hasUnknownDefault ? ' class="mode-unknown"' : "";
     html += `<div id="${section.sectionId}"${hideStyle}${unknownCls}>`;
 
-    if (section.layoutToggle) {
-      const wideHide = section.layoutToggle.defaultMode === "tall" ? ' style="display:none"' : "";
-      const tallHide = section.layoutToggle.defaultMode !== "tall" ? ' style="display:none"' : "";
-      html += `<div class="layout-wide" data-list="${section.sectionId}"${wideHide}>`;
-      for (const row of section.rows) html += renderSectionRow(row);
-      html += `</div><div class="layout-tall" data-list="${section.sectionId}"${tallHide}>`;
-      html += renderTallGrid(section);
-      html += "</div>";
+    if (isComposite) {
+      const hasLayout = section.columnCount > 0;
+      for (const setData of section.sets) {
+        const setDisplay = setData.set === section.toggle.defaultMode ? "" : ' style="display:none"';
+        html += `<div data-set="${setData.set}"${setDisplay}>`;
+        html += renderSetContent(setData.rows, section, hasLayout);
+        html += "</div>";
+      }
     } else {
-      for (const row of section.rows) html += renderSectionRow(row);
+      html += renderSetContent(allRows, section, section.columnCount > 0 && section.extraToggles.length > 0);
     }
 
     html += "</div>";
   } else {
-    for (const row of section.rows) html += renderSectionRow(row);
+    for (const row of allRows) html += renderSectionRow(row);
   }
 
   html += "</div>";
@@ -316,15 +349,51 @@ function prepareAllCards(gameState: GameState, cardSet: CardSet, cardDb: CardDat
 
 function makeSection(sectionId: SectionId, title: string, rows: Row[], config: SectionConfig, options: { hasUnknown?: boolean; columnCount?: number; arrangeByColumns?: boolean; markResolved?: boolean }): SectionData {
   const toggle = visibilityToggle(sectionId, config.defaultVisibility, options.hasUnknown ?? false);
-  const lt = options.columnCount && options.columnCount > 0 && config.defaultLayout ? layoutToggle(sectionId, config.defaultLayout) : null;
+  const extraToggles: Toggle[] = [];
+  if (options.columnCount && options.columnCount > 0 && config.defaultLayout) {
+    extraToggles.push(layoutToggle(sectionId, config.defaultLayout));
+  }
   const empty = !rows.some(row => row.cards.length > 0);
 
   return {
     sectionId,
     title,
     toggle,
-    layoutToggle: lt,
-    rows,
+    extraToggles,
+    sets: [{ set: "base", rows }],
+    columnCount: options.columnCount ?? 0,
+    arrangeByColumns: options.arrangeByColumns ?? true,
+    empty,
+    markResolved: options.markResolved ?? false,
+  };
+}
+
+function makeCompositeSection(sectionId: SectionId, title: string, baseRows: Row[], citiesRows: Row[], config: SectionConfig, options: { hasUnknown?: boolean; columnCount?: number; arrangeByColumns?: boolean; markResolved?: boolean }): SectionData {
+  const toggle = compositeToggle(sectionId, config.defaultVisibility);
+  const extraToggles: Toggle[] = [];
+  if (options.hasUnknown) {
+    const filterMode = config.defaultFilter ?? "all";
+    extraToggles.push({
+      targetId: sectionId,
+      defaultMode: filterMode,
+      options: [
+        { mode: "all", label: "All", active: filterMode === "all" },
+        { mode: "unknown", label: "Unknown", active: filterMode === "unknown" },
+      ],
+    });
+  }
+  if (options.columnCount && options.columnCount > 0 && config.defaultLayout) {
+    extraToggles.push(layoutToggle(sectionId, config.defaultLayout));
+  }
+  const allRows = [...baseRows, ...citiesRows];
+  const empty = !allRows.some(row => row.cards.length > 0);
+
+  return {
+    sectionId,
+    title,
+    toggle,
+    extraToggles,
+    sets: [{ set: "base", rows: baseRows }, { set: "cities", rows: citiesRows }],
     columnCount: options.columnCount ?? 0,
     arrangeByColumns: options.arrangeByColumns ?? true,
     empty,
@@ -341,53 +410,20 @@ export function renderSummary(gameState: GameState, cardDb: CardDatabase, perspe
   const opponentScore = prepareCards(gameState.scores.get(opponent) ?? [], cardDb, "", true, false);
   const achievements = prepareCards(gameState.achievements, cardDb, "", true, false);
 
-  const sections: SectionData[] = [
-    makeSection("hand-opponent", "Hand &mdash; opponent", [opponentHand], config["hand-opponent"], {}),
-    makeSection("hand-me", "Hand &mdash; me", prepareMyCards(gameState.hands.get(perspective) ?? [], gameState, cardDb), config["hand-me"], {}),
-    makeSection("score-opponent", "Score &mdash; opponent", [opponentScore], config["score-opponent"], {}),
-    makeSection("score-me", "Score &mdash; me", prepareMyCards(gameState.scores.get(perspective) ?? [], gameState, cardDb), config["score-me"], {}),
-    makeSection("achievements", "Achievements", [achievements], config["achievements"], { columnCount: TALL_COLUMNS, arrangeByColumns: false }),
-    makeSection("base-deck", "Base deck", prepareDeck(gameState, CardSet.BASE, cardDb), config["base-deck"], {}),
-    makeSection("cities-deck", "Cities deck", prepareDeck(gameState, CardSet.CITIES, cardDb), config["cities-deck"], {}),
-    makeSection("base-list", "Base list", prepareAllCards(gameState, CardSet.BASE, cardDb), config["base-list"], { hasUnknown: true, columnCount: TALL_COLUMNS, markResolved: true }),
-    makeSection("cities-list", "Cities list", prepareAllCards(gameState, CardSet.CITIES, cardDb), config["cities-list"], { hasUnknown: true, columnCount: TALL_COLUMNS, markResolved: true }),
-  ];
+  const sectionBuilders: Record<SectionId, () => SectionData> = {
+    "hand-opponent": () => makeSection("hand-opponent", "Hand &mdash; opponent", [opponentHand], config["hand-opponent"], {}),
+    "hand-me": () => makeSection("hand-me", "Hand &mdash; me", prepareMyCards(gameState.hands.get(perspective) ?? [], gameState, cardDb), config["hand-me"], {}),
+    "score-opponent": () => makeSection("score-opponent", "Score &mdash; opponent", [opponentScore], config["score-opponent"], {}),
+    "score-me": () => makeSection("score-me", "Score &mdash; me", prepareMyCards(gameState.scores.get(perspective) ?? [], gameState, cardDb), config["score-me"], {}),
+    "achievements": () => makeSection("achievements", "Achievements", [achievements], config["achievements"], { columnCount: TALL_COLUMNS, arrangeByColumns: false }),
+    "deck": () => makeCompositeSection("deck", "Deck", prepareDeck(gameState, CardSet.BASE, cardDb), prepareDeck(gameState, CardSet.CITIES, cardDb), config["deck"], {}),
+    "cards": () => makeCompositeSection("cards", "Cards", prepareAllCards(gameState, CardSet.BASE, cardDb), prepareAllCards(gameState, CardSet.CITIES, cardDb), config["cards"], { hasUnknown: true, columnCount: TALL_COLUMNS, markResolved: true }),
+  };
 
-  // Sort by (column, order) and group into columns
-  sections.sort((a, b) => {
-    const ca = config[a.sectionId];
-    const cb = config[b.sectionId];
-    return ca.column - cb.column || ca.order - cb.order;
-  });
-
-  const columns: SectionData[][] = [];
-  let currentCol = -1;
-  for (const section of sections) {
-    const col = config[section.sectionId].column;
-    if (col !== currentCol) {
-      columns.push([]);
-      currentCol = col;
-    }
-    columns[columns.length - 1].push(section);
-  }
-
-  // Build HTML
   let html = "";
-
-  if (columns.length === 1) {
-    for (const section of columns[0]) html += renderSection(section);
-  } else {
-    const listIds = new Set(["base-list", "cities-list"]);
-    const colWidths = columns.map(col => col.some(s => listIds.has(s.sectionId)) ? "auto" : "1fr");
-    html += `<div class="page-grid" style="grid-template-columns: ${colWidths.join(" ")};">`;
-    for (const col of columns) {
-      html += '<div class="page-col">';
-      for (const section of col) html += renderSection(section);
-      html += "</div>";
-    }
-    html += "</div>";
+  for (const id of SECTION_IDS) {
+    html += renderSection(sectionBuilders[id]());
   }
-
   return html;
 }
 
@@ -442,9 +478,18 @@ document.querySelectorAll('.tri-toggle').forEach(function(toggle) {
     if (!target) return;
     toggle.querySelectorAll('.tri-opt').forEach(function(o) { o.classList.remove('active'); });
     opt.classList.add('active');
+    var id = toggle.getAttribute('data-target');
+    var siblingDisplay = mode === 'none' ? 'none' : '';
+    toggle.parentElement.querySelectorAll('.tri-toggle[data-target="'+id+'"]').forEach(function(sib) {
+      if (sib !== toggle) sib.style.display = siblingDisplay;
+    });
     if (mode === 'none') {
       target.style.display = 'none';
-      target.classList.remove('mode-unknown');
+    } else if (mode === 'base' || mode === 'cities') {
+      target.style.display = '';
+      target.querySelectorAll('[data-set]').forEach(function(el) {
+        el.style.display = el.getAttribute('data-set') === mode ? '' : 'none';
+      });
     } else if (mode === 'all') {
       target.style.display = '';
       target.classList.remove('mode-unknown');
@@ -452,7 +497,6 @@ document.querySelectorAll('.tri-toggle').forEach(function(toggle) {
       target.style.display = '';
       target.classList.add('mode-unknown');
     } else if (mode === 'wide' || mode === 'tall') {
-      var id = toggle.getAttribute('data-target');
       document.querySelectorAll('.layout-wide[data-list="'+id+'"]').forEach(function(el) {
         el.style.display = mode === 'wide' ? '' : 'none';
       });

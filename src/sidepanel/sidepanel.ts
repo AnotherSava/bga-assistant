@@ -2,6 +2,7 @@
 
 import JSZip from "jszip";
 import { renderSummary, renderFullPage, setAssetResolver } from "../render/summary.js";
+import { SECTION_IDS, SECTION_LABELS } from "../render/config.js";
 import { renderHelp } from "../render/help.js";
 import { CardDatabase } from "../models/types.js";
 import { GameState } from "../engine/game_state.js";
@@ -63,39 +64,93 @@ function setupTooltips(): void {
 }
 
 // ---------------------------------------------------------------------------
-// Toggle handlers (visibility + layout)
+// Toggle handlers (visibility + layout) with persistence
 // ---------------------------------------------------------------------------
 
+const STORAGE_KEY_TOGGLES = "bgaa_toggle_state";
+
+function loadToggleState(): Record<string, string[]> {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY_TOGGLES);
+    if (stored) return JSON.parse(stored);
+  } catch { /* ignore */ }
+  return {};
+}
+
+function saveToggleState(state: Record<string, string[]>): void {
+  try {
+    localStorage.setItem(STORAGE_KEY_TOGGLES, JSON.stringify(state));
+  } catch { /* ignore */ }
+}
+
+function applyToggleMode(toggle: HTMLElement, mode: string, targetId: string): void {
+  const target = document.getElementById(targetId);
+  if (!target) return;
+
+  toggle.querySelectorAll(".tri-opt").forEach((o) => o.classList.remove("active"));
+  toggle.querySelector<HTMLElement>(`.tri-opt[data-mode="${mode}"]`)?.classList.add("active");
+
+  const siblingDisplay = mode === "none" ? "none" : "";
+  toggle.parentElement?.querySelectorAll<HTMLElement>(`.tri-toggle[data-target="${targetId}"]`).forEach((sib) => {
+    if (sib !== toggle) sib.style.display = siblingDisplay;
+  });
+
+  if (mode === "none") {
+    target.style.display = "none";
+  } else if (mode === "base" || mode === "cities") {
+    target.style.display = "";
+    target.querySelectorAll<HTMLElement>("[data-set]").forEach((el) => {
+      el.style.display = el.getAttribute("data-set") === mode ? "" : "none";
+    });
+  } else if (mode === "all") {
+    target.style.display = "";
+    target.classList.remove("mode-unknown");
+  } else if (mode === "unknown") {
+    target.style.display = "";
+    target.classList.add("mode-unknown");
+  } else if (mode === "wide" || mode === "tall") {
+    document.querySelectorAll<HTMLElement>(`.layout-wide[data-list="${targetId}"]`).forEach((el) => {
+      el.style.display = mode === "wide" ? "" : "none";
+    });
+    document.querySelectorAll<HTMLElement>(`.layout-tall[data-list="${targetId}"]`).forEach((el) => {
+      el.style.display = mode === "tall" ? "" : "none";
+    });
+  }
+}
+
+function persistToggleMode(targetId: string, toggle: HTMLElement, mode: string): void {
+  const state = loadToggleState();
+  const modes = state[targetId] ?? [];
+  // Find which slot this toggle occupies (by DOM order among siblings with same target)
+  const allToggles = Array.from(toggle.parentElement?.querySelectorAll<HTMLElement>(`.tri-toggle[data-target="${targetId}"]`) ?? []);
+  const idx = allToggles.indexOf(toggle);
+  while (modes.length <= idx) modes.push("");
+  modes[idx] = mode;
+  state[targetId] = modes;
+  saveToggleState(state);
+}
+
 function setupToggles(): void {
+  // Restore saved state
+  const saved = loadToggleState();
+  for (const [targetId, modes] of Object.entries(saved)) {
+    const toggles = Array.from(document.querySelectorAll<HTMLElement>(`.tri-toggle[data-target="${targetId}"]`));
+    for (let i = 0; i < Math.min(modes.length, toggles.length); i++) {
+      if (modes[i]) applyToggleMode(toggles[i], modes[i], targetId);
+    }
+  }
+
+  // Attach click handlers
   document.querySelectorAll<HTMLElement>(".tri-toggle").forEach((toggle) => {
     toggle.addEventListener("click", (e: Event) => {
       const opt = (e.target as HTMLElement).closest(".tri-opt") as HTMLElement | null;
       if (!opt) return;
       const mode = opt.getAttribute("data-mode");
       const targetId = toggle.getAttribute("data-target");
-      const target = targetId ? document.getElementById(targetId) : null;
-      if (!target || !mode) return;
+      if (!targetId || !mode) return;
 
-      toggle.querySelectorAll(".tri-opt").forEach((o) => o.classList.remove("active"));
-      opt.classList.add("active");
-
-      if (mode === "none") {
-        target.style.display = "none";
-        target.classList.remove("mode-unknown");
-      } else if (mode === "all") {
-        target.style.display = "";
-        target.classList.remove("mode-unknown");
-      } else if (mode === "unknown") {
-        target.style.display = "";
-        target.classList.add("mode-unknown");
-      } else if (mode === "wide" || mode === "tall") {
-        document.querySelectorAll<HTMLElement>(`.layout-wide[data-list="${targetId}"]`).forEach((el) => {
-          el.style.display = mode === "wide" ? "" : "none";
-        });
-        document.querySelectorAll<HTMLElement>(`.layout-tall[data-list="${targetId}"]`).forEach((el) => {
-          el.style.display = mode === "tall" ? "" : "none";
-        });
-      }
+      applyToggleMode(toggle, mode, targetId);
+      persistToggleMode(targetId, toggle, mode);
     });
   });
 }
@@ -139,6 +194,7 @@ function renderWithDb(cardDb: CardDatabase, results: PipelineResults, contentEl:
   // Set up interactivity
   setupTooltips();
   setupToggles();
+  applySectionVisibility();
 
   // Cache CSS for downloads
   loadCss();
@@ -238,6 +294,84 @@ document.getElementById("btn-zoom-in")?.addEventListener("click", () => {
 });
 
 // ---------------------------------------------------------------------------
+// Section selector (eye button)
+// ---------------------------------------------------------------------------
+
+const STORAGE_KEY_SECTIONS = "bgaa_section_visibility";
+
+function loadSectionVisibility(): Record<string, boolean> {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY_SECTIONS);
+    if (stored) return JSON.parse(stored);
+  } catch { /* ignore */ }
+  return {};
+}
+
+function saveSectionVisibility(state: Record<string, boolean>): void {
+  try {
+    localStorage.setItem(STORAGE_KEY_SECTIONS, JSON.stringify(state));
+  } catch { /* ignore */ }
+}
+
+function buildSectionSelector(): void {
+  const panel = document.getElementById("section-selector");
+  if (!panel) return;
+
+  const state = loadSectionVisibility();
+  panel.innerHTML = "";
+
+  for (const id of SECTION_IDS) {
+    const checked = state[id] !== false;
+    const label = document.createElement("label");
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.checked = checked;
+    checkbox.dataset.sectionId = id;
+    label.appendChild(checkbox);
+    label.appendChild(document.createTextNode(SECTION_LABELS[id]));
+    panel.appendChild(label);
+
+    checkbox.addEventListener("change", () => {
+      const current = loadSectionVisibility();
+      current[id] = checkbox.checked;
+      saveSectionVisibility(current);
+      applySectionVisibility();
+    });
+  }
+}
+
+function applySectionVisibility(): void {
+  const state = loadSectionVisibility();
+  for (const id of SECTION_IDS) {
+    const visible = state[id] !== false;
+    const sectionEl = document.querySelector<HTMLElement>(`.section[data-section="${id}"]`);
+    if (sectionEl) {
+      sectionEl.classList.toggle("section-hidden", !visible);
+    }
+  }
+}
+
+document.getElementById("btn-sections")?.addEventListener("click", (e) => {
+  e.stopPropagation();
+  const panel = document.getElementById("section-selector");
+  if (!panel) return;
+  if (panel.style.display === "none") {
+    buildSectionSelector();
+    panel.style.display = "";
+  } else {
+    panel.style.display = "none";
+  }
+});
+
+document.addEventListener("click", (e) => {
+  const panel = document.getElementById("section-selector");
+  if (!panel || panel.style.display === "none") return;
+  if (!panel.contains(e.target as Node)) {
+    panel.style.display = "none";
+  }
+});
+
+// ---------------------------------------------------------------------------
 // Help page
 // ---------------------------------------------------------------------------
 
@@ -291,4 +425,4 @@ if (typeof chrome !== "undefined" && chrome.runtime?.onMessage) {
 }
 
 // Export for testing
-export { render, showHelp, setupTooltips, setupToggles, downloadBlob, fetchCardDb };
+export { render, showHelp, setupTooltips, setupToggles, applySectionVisibility, downloadBlob, fetchCardDb };
