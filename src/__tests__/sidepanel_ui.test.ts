@@ -158,6 +158,75 @@ describe("sidepanel UI functions", () => {
       expect(tallEl.style.display).toBe("");
     });
 
+    it("handles composite set toggles (base/cities)", () => {
+      document.body.innerHTML = `
+        <div class="tri-toggle" data-target="section-comp">
+          <span class="tri-opt" data-mode="none">Hide</span>
+          <span class="tri-opt active" data-mode="base">Base</span>
+          <span class="tri-opt" data-mode="cities">Cities</span>
+        </div>
+        <div id="section-comp">
+          <div data-set="base">Base content</div>
+          <div data-set="cities" style="display:none">Cities content</div>
+        </div>
+      `;
+
+      setupToggles();
+      const citiesOpt = document.querySelector('[data-mode="cities"]') as HTMLElement;
+      citiesOpt.click();
+
+      const baseEl = document.querySelector('[data-set="base"]') as HTMLElement;
+      const citiesEl = document.querySelector('[data-set="cities"]') as HTMLElement;
+      expect(baseEl.style.display).toBe("none");
+      expect(citiesEl.style.display).toBe("");
+
+      // Switch back to base
+      const baseOpt = document.querySelector('[data-mode="base"]') as HTMLElement;
+      baseOpt.click();
+      expect(baseEl.style.display).toBe("");
+      expect(citiesEl.style.display).toBe("none");
+    });
+
+    it("secondary toggle does not override primary none state", () => {
+      document.body.innerHTML = `
+        <div class="section-title">
+          <span class="tri-toggle" data-target="section-multi">
+            <span class="tri-opt" data-mode="none">Hide</span>
+            <span class="tri-opt active" data-mode="base">Base</span>
+            <span class="tri-opt" data-mode="cities">Cities</span>
+          </span>
+          <span class="tri-toggle" data-target="section-multi">
+            <span class="tri-opt active" data-mode="all">All</span>
+            <span class="tri-opt" data-mode="unknown">Unknown</span>
+          </span>
+        </div>
+        <div id="section-multi">
+          <div data-set="base">Base content</div>
+          <div data-set="cities" style="display:none">Cities content</div>
+        </div>
+      `;
+
+      setupToggles();
+
+      // Click primary toggle to "none"
+      const noneOpt = document.querySelector('[data-mode="none"]') as HTMLElement;
+      noneOpt.click();
+
+      const target = document.getElementById("section-multi")!;
+      expect(target.style.display).toBe("none");
+
+      // Secondary toggle should be hidden
+      const secondaryToggle = document.querySelectorAll('.tri-toggle')[1] as HTMLElement;
+      expect(secondaryToggle.style.display).toBe("none");
+
+      // Now click secondary "unknown" (simulating restore scenario)
+      const unknownOpt = document.querySelector('[data-mode="unknown"]') as HTMLElement;
+      unknownOpt.click();
+
+      // Target should remain hidden because secondary toggle should not change display
+      expect(target.style.display).toBe("none");
+    });
+
     it("ignores clicks outside tri-opt elements", () => {
       document.body.innerHTML = `
         <div class="tri-toggle" data-target="section-noop">

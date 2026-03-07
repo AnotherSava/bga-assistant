@@ -90,10 +90,16 @@ function applyToggleMode(toggle: HTMLElement, mode: string, targetId: string): v
   toggle.querySelectorAll(".tri-opt").forEach((o) => o.classList.remove("active"));
   toggle.querySelector<HTMLElement>(`.tri-opt[data-mode="${mode}"]`)?.classList.add("active");
 
-  const siblingDisplay = mode === "none" ? "none" : "";
-  toggle.parentElement?.querySelectorAll<HTMLElement>(`.tri-toggle[data-target="${targetId}"]`).forEach((sib) => {
-    if (sib !== toggle) sib.style.display = siblingDisplay;
-  });
+  // Only the primary (first) toggle for a target controls visibility and sibling display
+  const allToggles = toggle.parentElement?.querySelectorAll<HTMLElement>(`.tri-toggle[data-target="${targetId}"]`);
+  const isPrimary = !allToggles || allToggles[0] === toggle;
+
+  if (isPrimary) {
+    const siblingDisplay = mode === "none" ? "none" : "";
+    allToggles?.forEach((sib) => {
+      if (sib !== toggle) sib.style.display = siblingDisplay;
+    });
+  }
 
   if (mode === "none") {
     target.style.display = "none";
@@ -103,10 +109,10 @@ function applyToggleMode(toggle: HTMLElement, mode: string, targetId: string): v
       el.style.display = el.getAttribute("data-set") === mode ? "" : "none";
     });
   } else if (mode === "all") {
-    target.style.display = "";
+    if (isPrimary) target.style.display = "";
     target.classList.remove("mode-unknown");
   } else if (mode === "unknown") {
-    target.style.display = "";
+    if (isPrimary) target.style.display = "";
     target.classList.add("mode-unknown");
   } else if (mode === "wide" || mode === "tall") {
     document.querySelectorAll<HTMLElement>(`.layout-wide[data-list="${targetId}"]`).forEach((el) => {
@@ -225,7 +231,7 @@ function renderWithDb(cardDb: CardDatabase, results: PipelineResults, contentEl:
   }
 }
 
-async function loadCss(): Promise<void> {
+function loadCss(): void {
   if (currentCss !== null) return;
   try {
     const sheets = document.styleSheets;
