@@ -12,7 +12,7 @@ Reads the full game log from [Innovation](https://boardgamegeek.com/boardgame/63
 - Visibility toggles: None / All / Unknown (show only unaccounted cards)
 - Layout toggles: Wide (one row per age) / Tall (color columns)
 - Hover tooltips: card face images for base cards, names for cities
-- Download: game_log.json, game_state.json, standalone summary.html
+- Download: bundled zip with raw data, game log, game state, and standalone summary
 
 ## Setup
 
@@ -40,7 +40,7 @@ npm run build
 1. Navigate to a supported BGA game page in Chrome
 2. Click the BGA Assistant icon in the toolbar
 3. The side panel opens with a visual summary of the game state
-4. Use the download toolbar to save game data or a standalone summary
+4. Use the download button to save a zip with game data and a standalone summary
 
 ## Development
 
@@ -54,36 +54,38 @@ npm run lint         # TypeScript type checking
 ## Architecture
 
 ```
-manifest.json          Chrome extension manifest (v3, side panel)
-sidepanel.html         Side panel page shell (Vite HTML entry point)
+manifest.json                Chrome extension manifest (v3, side panel)
+sidepanel.html               Side panel page shell (Vite HTML entry point)
 src/
-  background.ts        Service worker: pipeline orchestration, side panel management
-  extract.ts           Content script: BGA data extraction (MAIN world)
+  background.ts              Service worker: pipeline orchestration, side panel management
+  extract.ts                 Content script: BGA data extraction (MAIN world)
   sidepanel/
-    sidepanel.ts       Receives data, triggers render, handles downloads
-    sidepanel.css      Dark theme, card grids, tooltips
+    sidepanel.ts             Receives data, triggers render, handles downloads
+    sidepanel.css            Dark theme, card grids, tooltips
   models/
-    types.ts           Type definitions: Card, CardInfo, GameState, Action, enums
+    types.ts                 Type definitions: Card, CardInfo, GameState, Action, enums
   engine/
-    process_log.ts     Raw BGA packets -> structured game log
-    game_state.ts      State tracking + constraint propagation
+    process_log.ts           Raw BGA packets -> structured game log
+    game_state.ts            State tracking + constraint propagation
   render/
-    summary.ts         GameState -> HTML string via template literals
-    config.ts          Section layout config, visibility/layout defaults
-    help.ts            Help page content
+    summary.ts               GameState -> HTML string via template literals
+    config.ts                Section layout config, visibility/layout defaults
+    help.ts                  Help page content
 assets/
-  card_info.json       Card database (210 cards: 105 base + 105 cities)
-  icons/               Resource and hex icon PNGs
-  cards/               Full card face images (for tooltips)
-  sprites/             Card sprite sheets
+  bga/innovation/
+    card_info.json           Card database (210 cards: 105 base + 105 cities)
+    icons/                   Resource and hex icon PNGs
+    cards/                   Full card face images (for tooltips)
+    sprites/                 Card sprite sheets (gitignored)
+  extension/                 Extension toolbar icons
 ```
 
-Data flow:
+### Data flow
 1. User clicks extension icon on a BGA game page
 2. extract.ts (MAIN world) fetches game data from BGA internals
 3. background.ts receives data, runs pipeline (processRawLog -> GameState)
 4. background.ts opens side panel, sends results via chrome.runtime messaging
-5. sidepanel.ts renders summary with download buttons
+5. sidepanel.ts renders summary with download button
 
 ## Testing
 
