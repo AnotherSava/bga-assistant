@@ -5,24 +5,16 @@ dist/
 
 # Project data
 data/
-assets/sprites/
-output/
+assets/bga/innovation/sprites/
 
 # IDE and tools
-.idea/
-.vscode/
 .claude/settings.json
 .claude/settings.local.json
 
 # Environment
 .env
-.chrome_bga_profile/
-
-# OS
-.DS_Store
-Thumbs.db
 
 # Ralphex
-.ralphex/progress/
-.coverage
+.ralphex/
+coverage/
 docs/plans/
