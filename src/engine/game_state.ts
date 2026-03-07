@@ -307,9 +307,9 @@ export class GameState {
     this.cardsAtMut(action.dest, action.destPlayer, groupKey).push(card);
     this.updateOpponentKnowledge(card, action);
 
-    // Filter returns (return phase: remaining > 0, only for cards leaving revealed zone)
-    if (this.remainingReturns > 0 && action.source === "revealed") {
-      this.restrictCandidates(card, this.discardNames);
+    // Filter returns (return phase: remaining > 0)
+    // BGA routes meld filter returns through hand (revealed->hand, then hand->deck).
+    if (this.remainingReturns > 0 && action.source === "hand" && action.dest === "deck" && card.isResolved && this.discardNames.has(card.resolvedName!)) {
       this.remainingReturns -= 1;
       if (this.remainingReturns === 0) {
         this.meldIcon = null;

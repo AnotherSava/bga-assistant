@@ -627,6 +627,52 @@ describe("meld filtering", () => {
     gs.confirmMeldFilter("crown");
     // After confirm with no discards, should not throw
   });
+
+  it("does not corrupt later revealed->deck cards when meld filter returns go through hand (bug #816652225)", () => {
+    // Jakarta (cities age 3) has leaf at icon position 5, triggering meld filter.
+    // Draw phase: Education, Engineering, Alchemy drawn deck->revealed->hand.
+    // Education and Engineering lack leaf -> discardNames.
+    // confirmMeldFilter sets remainingReturns = 2.
+    // Returns go hand->deck (NOT revealed->deck).
+    // Later, unrelated Colonialism/Navigation go revealed->deck and must NOT be corrupted.
+    const gs = createInitializedGameState();
+    gs.resolveHand("Alice", ["agriculture", "archery"]);
+    gs.resolveHand("Bob", ["clothing", "city states"]);
+
+    // Draw Jakarta from cities deck, then meld it (meldKeyword triggers filter)
+    gs.move(namedAction({ cardName: "jakarta", source: "deck", dest: "hand", destPlayer: "Alice" }));
+    gs.move(namedAction({ cardName: "jakarta", source: "hand", dest: "board", sourcePlayer: "Alice", destPlayer: "Alice", meldKeyword: true }));
+
+    // Draw phase: deck->revealed->hand for Education, Engineering, Alchemy
+    gs.move(namedAction({ cardName: "education", source: "deck", dest: "revealed", destPlayer: "Alice" }));
+    gs.move(namedAction({ cardName: "education", source: "revealed", dest: "hand", sourcePlayer: "Alice", destPlayer: "Alice" }));
+    gs.move(namedAction({ cardName: "engineering", source: "deck", dest: "revealed", destPlayer: "Alice" }));
+    gs.move(namedAction({ cardName: "engineering", source: "revealed", dest: "hand", sourcePlayer: "Alice", destPlayer: "Alice" }));
+    gs.move(namedAction({ cardName: "alchemy", source: "deck", dest: "revealed", destPlayer: "Alice" }));
+    gs.move(namedAction({ cardName: "alchemy", source: "revealed", dest: "hand", sourcePlayer: "Alice", destPlayer: "Alice" }));
+
+    // Confirm meld filter
+    gs.confirmMeldFilter("leaf");
+
+    // Returns go hand->deck (the actual BGA flow)
+    gs.move(namedAction({ cardName: "education", source: "hand", dest: "deck", sourcePlayer: "Alice" }));
+    gs.move(namedAction({ cardName: "engineering", source: "hand", dest: "deck", sourcePlayer: "Alice" }));
+
+    // Later: unrelated deck->revealed->deck for age 4 base cards
+    gs.move(namedAction({ cardName: "colonialism", source: "deck", dest: "revealed", destPlayer: "Alice" }));
+    gs.move(namedAction({ cardName: "navigation", source: "deck", dest: "revealed", destPlayer: "Alice" }));
+    // Return them to deck
+    gs.move(namedAction({ cardName: "navigation", source: "revealed", dest: "deck", sourcePlayer: "Alice" }));
+    gs.move(namedAction({ cardName: "colonialism", source: "revealed", dest: "deck", sourcePlayer: "Alice" }));
+
+    // Colonialism and Navigation must still be themselves, not corrupted to education/engineering
+    const age4Deck = gs.decks.get(ageSetKey(4, CardSet.BASE))!;
+    const resolvedNames = age4Deck.filter(c => c.isResolved).map(c => c.resolvedName).sort();
+    expect(resolvedNames).toContain("colonialism");
+    expect(resolvedNames).toContain("navigation");
+    expect(resolvedNames).not.toContain("education");
+    expect(resolvedNames).not.toContain("engineering");
+  });
 });
 
 // ---------------------------------------------------------------------------
