@@ -26,6 +26,7 @@ import { downloadBlob, setupTooltips, setupToggles } from "../sidepanel/sidepane
 describe("sidepanel UI functions", () => {
   beforeEach(() => {
     document.body.innerHTML = "";
+    localStorage.clear();
   });
 
   describe("downloadBlob", () => {

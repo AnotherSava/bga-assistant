@@ -13,11 +13,21 @@ vi.hoisted(() => {
     },
     scripting: { executeScript: () => Promise.resolve([]) },
     sidePanel: { open: () => Promise.resolve() },
-    runtime: { onMessage: { addListener: () => {} } },
+    runtime: {
+      onMessage: { addListener: () => {} },
+      onConnect: { addListener: () => {} },
+      sendMessage: () => Promise.resolve(),
+    },
+    tabs: {
+      onActivated: { addListener: () => {} },
+      onUpdated: { addListener: () => {} },
+      get: () => Promise.resolve({}),
+      query: () => Promise.resolve([]),
+    },
   };
 });
 
-import { runPipeline, type PipelineResults } from "../background";
+import { runPipeline, classifyNavigation, type PipelineResults, type NavigationAction } from "../background";
 import { CardDatabase } from "../models/types";
 import type { RawExtractionData } from "../engine/process_log";
 
@@ -270,5 +280,47 @@ describe("runPipeline", () => {
     expect(result.gameLog).toHaveProperty("players");
     expect(result.gameLog).toHaveProperty("myHand");
     expect(result.gameLog).toHaveProperty("log");
+  });
+});
+
+describe("classifyNavigation", () => {
+  it("returns skip when URL matches the current table", () => {
+    const result = classifyNavigation("https://boardgamearena.com/table?table=999", "999");
+    expect(result).toEqual({ action: "skip" });
+  });
+
+  it("returns extract when URL is a different BGA table", () => {
+    const result = classifyNavigation("https://boardgamearena.com/table?table=888", "999");
+    expect(result).toEqual({ action: "extract", tableNumber: "888" });
+  });
+
+  it("returns extract when no current table is tracked", () => {
+    const result = classifyNavigation("https://boardgamearena.com/table?table=555", null);
+    expect(result).toEqual({ action: "extract", tableNumber: "555" });
+  });
+
+  it("returns showHelp for a non-BGA URL", () => {
+    const result = classifyNavigation("https://example.com/page", "999");
+    expect(result).toEqual({ action: "showHelp", url: "https://example.com/page" });
+  });
+
+  it("returns showHelp for undefined URL", () => {
+    const result = classifyNavigation(undefined, "999");
+    expect(result).toEqual({ action: "showHelp", url: "" });
+  });
+
+  it("returns showHelp for a BGA URL without a table parameter", () => {
+    const result = classifyNavigation("https://boardgamearena.com/lobby", "999");
+    expect(result).toEqual({ action: "showHelp", url: "https://boardgamearena.com/lobby" });
+  });
+
+  it("handles BGA subdomain URLs with table param", () => {
+    const result = classifyNavigation("https://en.boardgamearena.com/table?table=123", null);
+    expect(result).toEqual({ action: "extract", tableNumber: "123" });
+  });
+
+  it("handles table param embedded in longer query string", () => {
+    const result = classifyNavigation("https://boardgamearena.com/innovation?table=456&other=1", null);
+    expect(result).toEqual({ action: "extract", tableNumber: "456" });
   });
 });

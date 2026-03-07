@@ -14,6 +14,7 @@ import type { PipelineResults } from "../background.js";
 
 let currentResults: PipelineResults | null = null;
 let currentCss: string | null = null;
+let cachedCardDb: CardDatabase | null = null;
 
 // ---------------------------------------------------------------------------
 // Asset URL resolution for Chrome extension context
@@ -21,6 +22,11 @@ let currentCss: string | null = null;
 
 if (typeof chrome !== "undefined" && chrome.runtime?.getURL) {
   setAssetResolver((path: string) => chrome.runtime.getURL(path));
+}
+
+// Establish a port to the background script so it can track side panel open/close
+if (typeof chrome !== "undefined" && chrome.runtime?.connect) {
+  chrome.runtime.connect(undefined, { name: "sidepanel" });
 }
 
 // ---------------------------------------------------------------------------
@@ -179,9 +185,11 @@ function render(results: PipelineResults): void {
 }
 
 async function fetchCardDb(url: string): Promise<CardDatabase> {
+  if (cachedCardDb) return cachedCardDb;
   const response = await fetch(url);
   const data = await response.json();
-  return new CardDatabase(data);
+  cachedCardDb = new CardDatabase(data);
+  return cachedCardDb;
 }
 
 function renderWithDb(cardDb: CardDatabase, results: PipelineResults, contentEl: HTMLElement): void {
