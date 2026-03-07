@@ -307,7 +307,7 @@ function prepareAllCards(gameState: GameState, cardSet: CardSet, cardDb: CardDat
     for (const info of cardInfos) {
       const resolved = isCardResolved(info.indexName, gameState);
       if (!resolved) allKnown = false;
-      items.push(resolved ? renderKnownCard(info, true) : renderUnknownCard(info.age, info.cardSet));
+      items.push(renderKnownCard(info, resolved));
     }
     rows.push({ cards: items, label: String(age), allKnown });
   }

@@ -268,6 +268,49 @@ describe("renderSummary", () => {
     expect(html).toContain("data-known");
   });
 
+  it("renders unresolved base-list cards face-up with card names in All mode", () => {
+    const gs = makeGameState(["Alice", "Bob"], "Alice");
+    // Only resolve two cards — the rest are unresolved
+    gs.resolveHand("Alice", ["agriculture", "archery"]);
+    const html = renderSummary(gs, cardDb, "Alice", ["Alice", "Bob"], "12345");
+
+    // Extract just the base-list section (renderer uses <div class="section">, not <section>)
+    const baseListStart = html.indexOf('id="base-list"');
+    const citiesListStart = html.indexOf('id="cities-list"');
+    const baseListHtml = html.slice(baseListStart, citiesListStart === -1 ? undefined : citiesListStart);
+
+    // Unresolved age-1 cards (e.g. Metalworking, Oars) should render face-up with names
+    expect(baseListHtml).toContain("Metalworking");
+    expect(baseListHtml).toContain("Oars");
+    // They should NOT be gray placeholders (b-gray-base is the unknown card class)
+    expect(baseListHtml).not.toContain("b-gray-base");
+  });
+
+  it("marks only resolved base-list cards with data-known for Unknown mode masking", () => {
+    const gs = makeGameState(["Alice", "Bob"], "Alice");
+    gs.resolveHand("Alice", ["agriculture", "archery"]);
+    const html = renderSummary(gs, cardDb, "Alice", ["Alice", "Bob"], "12345");
+
+    // Extract just the base-list section
+    const baseListStart = html.indexOf('id="base-list"');
+    const citiesListStart = html.indexOf('id="cities-list"');
+    const baseListHtml = html.slice(baseListStart, citiesListStart === -1 ? undefined : citiesListStart);
+
+    // Resolved card (Agriculture) should have data-known on its outer card div
+    const agricultureIdx = baseListHtml.indexOf("Agriculture");
+    expect(agricultureIdx).toBeGreaterThan(-1);
+    const agricultureCardStart = baseListHtml.lastIndexOf('<div class="card ', agricultureIdx);
+    const agricultureSnippet = baseListHtml.slice(agricultureCardStart, agricultureIdx);
+    expect(agricultureSnippet).toContain("data-known");
+
+    // Unresolved card (Metalworking) should render face-up WITHOUT data-known on its outer card div
+    const metalworkingIdx = baseListHtml.indexOf("Metalworking");
+    expect(metalworkingIdx).toBeGreaterThan(-1);
+    const metalworkingCardStart = baseListHtml.lastIndexOf('<div class="card ', metalworkingIdx);
+    const metalworkingSnippet = baseListHtml.slice(metalworkingCardStart, metalworkingIdx);
+    expect(metalworkingSnippet).not.toContain("data-known");
+  });
+
   it("renders tall grid for base-list section", () => {
     const gs = makeGameState(["Alice", "Bob"], "Alice");
     const html = renderSummary(gs, cardDb, "Alice", ["Alice", "Bob"], "12345");
