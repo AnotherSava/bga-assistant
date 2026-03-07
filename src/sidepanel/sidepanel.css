@@ -17,10 +17,6 @@ body {
   padding: 20px;
 }
 
-/* Multi-column page layout */
-.page-grid { display: grid; gap: 20px; align-items: start; }
-.page-col { min-width: 0; }
-
 .section { margin-bottom: 12px; }
 .section-title { font-size: 13px; margin-bottom: 4px; font-weight: bold; color: #eee; }
 .dim { color: #666; }
@@ -195,6 +191,28 @@ body {
   text-align: center;
 }
 .zoom-indicator.visible { opacity: 1; }
+
+/* Section selector panel */
+#section-selector {
+  position: fixed;
+  top: 38px;
+  right: 8px;
+  z-index: 20;
+  background: #2a2a2a;
+  border: 1px solid #555;
+  border-radius: 4px;
+  padding: 6px 10px;
+  font-size: 12px;
+}
+#section-selector label {
+  display: block;
+  padding: 2px 0;
+  cursor: pointer;
+  color: #bbb;
+}
+#section-selector label:hover { color: #fff; }
+#section-selector input[type="checkbox"] { margin-right: 6px; vertical-align: middle; }
+.section.section-hidden { display: none !important; }
 
 /* Help content */
 .help-note {

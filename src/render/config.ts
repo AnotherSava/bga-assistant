@@ -1,13 +1,13 @@
-// Section layout configuration: column positions, visibility/layout defaults.
-// Replaces Python Config with a typed Record<string, SectionConfig>.
+// Section layout configuration: visibility/layout defaults.
+// Section order follows the SECTION_IDS array order.
 
-export type Visibility = "show" | "hide" | "none" | "unknown";
+export type Visibility = "show" | "hide" | "none" | "unknown" | "base" | "cities";
 export type Layout = "wide" | "tall";
+export type Filter = "all" | "unknown";
 
 export interface SectionConfig {
-  column: number;
-  order: number;
   defaultVisibility: Visibility;
+  defaultFilter?: Filter;
   defaultLayout?: Layout;
 }
 
@@ -16,26 +16,33 @@ export const SECTION_IDS = [
   "hand-me",
   "score-opponent",
   "score-me",
+  "deck",
+  "cards",
   "achievements",
-  "base-deck",
-  "cities-deck",
-  "base-list",
-  "cities-list",
 ] as const;
 
 export type SectionId = (typeof SECTION_IDS)[number];
 
-/** Default section configuration. All sections in column 1, ordered sequentially. */
+/** Display labels for sections (matching rendered titles). */
+export const SECTION_LABELS: Record<SectionId, string> = {
+  "hand-opponent": "Hand \u2014 opponent",
+  "hand-me": "Hand \u2014 me",
+  "score-opponent": "Score \u2014 opponent",
+  "score-me": "Score \u2014 me",
+  "deck": "Deck",
+  "cards": "Cards",
+  "achievements": "Achievements",
+};
+
+/** Default section configuration. Order follows SECTION_IDS array. */
 export const DEFAULT_SECTION_CONFIG: Record<SectionId, SectionConfig> = {
-  "hand-opponent":  { column: 1, order: 1, defaultVisibility: "show" },
-  "hand-me":        { column: 1, order: 2, defaultVisibility: "show" },
-  "score-opponent": { column: 1, order: 3, defaultVisibility: "show" },
-  "score-me":       { column: 1, order: 4, defaultVisibility: "show" },
-  "achievements":   { column: 1, order: 5, defaultVisibility: "show", defaultLayout: "wide" },
-  "base-deck":      { column: 1, order: 6, defaultVisibility: "show" },
-  "cities-deck":    { column: 1, order: 7, defaultVisibility: "hide" },
-  "base-list":      { column: 1, order: 8, defaultVisibility: "none", defaultLayout: "wide" },
-  "cities-list":    { column: 1, order: 9, defaultVisibility: "none", defaultLayout: "wide" },
+  "hand-opponent":  { defaultVisibility: "show" },
+  "hand-me":        { defaultVisibility: "show" },
+  "score-opponent": { defaultVisibility: "none" },
+  "score-me":       { defaultVisibility: "none" },
+  "deck":           { defaultVisibility: "base" },
+  "cards":          { defaultVisibility: "base", defaultFilter: "unknown", defaultLayout: "wide" },
+  "achievements":   { defaultVisibility: "none", defaultLayout: "wide" },
 };
 
 /** Visibility toggle options for a section. */
@@ -78,6 +85,20 @@ export function layoutToggle(sectionId: SectionId, defaultLayout: Layout): Toggl
     options: [
       { mode: "wide", label: "Wide", active: defaultLayout === "wide" },
       { mode: "tall", label: "Tall", active: defaultLayout === "tall" },
+    ],
+  };
+}
+
+/** Build a composite set toggle (Hide/Base/Cities) for merged sections. */
+export function compositeToggle(sectionId: SectionId, defaultVisibility: Visibility): Toggle {
+  const defaultMode = defaultVisibility === "base" || defaultVisibility === "cities" ? defaultVisibility : "none";
+  return {
+    targetId: sectionId,
+    defaultMode,
+    options: [
+      { mode: "none", label: "Hide", active: defaultMode === "none" },
+      { mode: "base", label: "Base", active: defaultMode === "base" },
+      { mode: "cities", label: "Cities", active: defaultMode === "cities" },
     ],
   };
 }

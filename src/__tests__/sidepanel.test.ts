@@ -1,4 +1,4 @@
-// Tests for Task 6: config, summary rendering, toggle state management
+// Tests for config, summary rendering, toggle state management
 
 import { describe, it, expect, beforeAll } from "vitest";
 import { readFileSync } from "fs";
@@ -11,6 +11,7 @@ import {
   TALL_COLUMNS,
   visibilityToggle,
   layoutToggle,
+  compositeToggle,
   type SectionId,
 } from "../render/config.js";
 import { renderSummary, renderFullPage, setAssetResolver, SUMMARY_JS } from "../render/summary.js";
@@ -44,31 +45,28 @@ function makeGameState(players: string[], perspective: string): GameState {
 // ---------------------------------------------------------------------------
 
 describe("Section Config", () => {
-  it("has all 9 section IDs", () => {
-    expect(SECTION_IDS).toHaveLength(9);
+  it("has all 7 section IDs with configs", () => {
+    expect(SECTION_IDS).toHaveLength(7);
     for (const id of SECTION_IDS) {
       expect(DEFAULT_SECTION_CONFIG[id]).toBeDefined();
     }
   });
 
-  it("all sections default to column 1", () => {
-    for (const id of SECTION_IDS) {
-      expect(DEFAULT_SECTION_CONFIG[id].column).toBe(1);
-    }
+  it("section order follows SECTION_IDS array", () => {
+    expect(SECTION_IDS).toEqual([
+      "hand-opponent", "hand-me", "score-opponent", "score-me",
+      "deck", "cards", "achievements",
+    ]);
   });
 
-  it("sections are ordered 1-9", () => {
-    const orders = SECTION_IDS.map((id) => DEFAULT_SECTION_CONFIG[id].order);
-    expect(orders).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+  it("deck defaults to base visibility", () => {
+    expect(DEFAULT_SECTION_CONFIG["deck"].defaultVisibility).toBe("base");
   });
 
-  it("base-list and cities-list default to none visibility", () => {
-    expect(DEFAULT_SECTION_CONFIG["base-list"].defaultVisibility).toBe("none");
-    expect(DEFAULT_SECTION_CONFIG["cities-list"].defaultVisibility).toBe("none");
-  });
-
-  it("cities-deck defaults to hide visibility", () => {
-    expect(DEFAULT_SECTION_CONFIG["cities-deck"].defaultVisibility).toBe("hide");
+  it("cards defaults to base visibility, unknown filter, wide layout", () => {
+    expect(DEFAULT_SECTION_CONFIG["cards"].defaultVisibility).toBe("base");
+    expect(DEFAULT_SECTION_CONFIG["cards"].defaultFilter).toBe("unknown");
+    expect(DEFAULT_SECTION_CONFIG["cards"].defaultLayout).toBe("wide");
   });
 
   it("hand sections default to show visibility", () => {
@@ -76,10 +74,8 @@ describe("Section Config", () => {
     expect(DEFAULT_SECTION_CONFIG["hand-me"].defaultVisibility).toBe("show");
   });
 
-  it("achievements, base-list, cities-list have defaultLayout", () => {
+  it("achievements has defaultLayout", () => {
     expect(DEFAULT_SECTION_CONFIG["achievements"].defaultLayout).toBe("wide");
-    expect(DEFAULT_SECTION_CONFIG["base-list"].defaultLayout).toBe("wide");
-    expect(DEFAULT_SECTION_CONFIG["cities-list"].defaultLayout).toBe("wide");
   });
 
   it("TALL_COLUMNS is 5 (one per color)", () => {
@@ -101,7 +97,7 @@ describe("visibilityToggle", () => {
   });
 
   it("builds toggle with unknown option", () => {
-    const toggle = visibilityToggle("base-list", "unknown", true);
+    const toggle = visibilityToggle("cards", "unknown", true);
     expect(toggle.defaultMode).toBe("unknown");
     expect(toggle.options).toHaveLength(3);
     expect(toggle.options[0].label).toBe("None");
@@ -111,22 +107,42 @@ describe("visibilityToggle", () => {
   });
 
   it("maps hide to none mode", () => {
-    const toggle = visibilityToggle("cities-deck", "hide", false);
+    const toggle = visibilityToggle("deck", "hide", false);
     expect(toggle.defaultMode).toBe("none");
     expect(toggle.options[0].active).toBe(true); // "Hide" is active
   });
 
   it("maps none to none mode", () => {
-    const toggle = visibilityToggle("base-list", "none", true);
+    const toggle = visibilityToggle("cards", "none", true);
     expect(toggle.defaultMode).toBe("none");
     expect(toggle.options[0].active).toBe(true); // "None" is active
   });
 });
 
+describe("compositeToggle", () => {
+  it("builds Hide/Base/Cities toggle with base default", () => {
+    const toggle = compositeToggle("deck", "base");
+    expect(toggle.targetId).toBe("deck");
+    expect(toggle.defaultMode).toBe("base");
+    expect(toggle.options).toHaveLength(3);
+    expect(toggle.options[0]).toEqual({ mode: "none", label: "Hide", active: false });
+    expect(toggle.options[1]).toEqual({ mode: "base", label: "Base", active: true });
+    expect(toggle.options[2]).toEqual({ mode: "cities", label: "Cities", active: false });
+  });
+
+  it("builds Hide/Base/Cities toggle with none default", () => {
+    const toggle = compositeToggle("cards", "none");
+    expect(toggle.defaultMode).toBe("none");
+    expect(toggle.options[0].active).toBe(true);
+    expect(toggle.options[1].active).toBe(false);
+    expect(toggle.options[2].active).toBe(false);
+  });
+});
+
 describe("layoutToggle", () => {
   it("builds wide/tall toggle with wide default", () => {
-    const toggle = layoutToggle("base-list", "wide");
-    expect(toggle.targetId).toBe("base-list");
+    const toggle = layoutToggle("cards", "wide");
+    expect(toggle.targetId).toBe("cards");
     expect(toggle.defaultMode).toBe("wide");
     expect(toggle.options).toHaveLength(2);
     expect(toggle.options[0].active).toBe(true);
@@ -146,7 +162,7 @@ describe("layoutToggle", () => {
 // ---------------------------------------------------------------------------
 
 describe("renderSummary", () => {
-  it("produces HTML with all 9 section titles", () => {
+  it("produces HTML with all 7 section titles", () => {
     const gs = makeGameState(["Alice", "Bob"], "Alice");
     const html = renderSummary(gs, cardDb, "Alice", ["Alice", "Bob"], "12345");
 
@@ -155,10 +171,8 @@ describe("renderSummary", () => {
     expect(html).toContain("Score &mdash; opponent");
     expect(html).toContain("Score &mdash; me");
     expect(html).toContain("Achievements");
-    expect(html).toContain("Base deck");
-    expect(html).toContain("Cities deck");
-    expect(html).toContain("Base list");
-    expect(html).toContain("Cities list");
+    expect(html).toContain("Deck");
+    expect(html).toContain("Cards");
   });
 
   it("contains tri-toggle elements", () => {
@@ -185,46 +199,137 @@ describe("renderSummary", () => {
     expect(html).toContain('class="card-age"');
   });
 
-  it("renders deck sections with age labels", () => {
+  it("renders deck section with age labels", () => {
     const gs = makeGameState(["Alice", "Bob"], "Alice");
     const html = renderSummary(gs, cardDb, "Alice", ["Alice", "Bob"], "12345");
 
-    // Base deck should show age labels
     expect(html).toContain("section-row");
     expect(html).toContain("row-label");
+  });
+
+  it("renders section divs with data-section attributes", () => {
+    const gs = makeGameState(["Alice", "Bob"], "Alice");
+    const html = renderSummary(gs, cardDb, "Alice", ["Alice", "Bob"], "12345");
+
+    expect(html).toContain('data-section="hand-opponent"');
+    expect(html).toContain('data-section="hand-me"');
+    expect(html).toContain('data-section="deck"');
+    expect(html).toContain('data-section="cards"');
+    expect(html).toContain('data-section="achievements"');
   });
 
   it("renders section divs with IDs for toggle targeting", () => {
     const gs = makeGameState(["Alice", "Bob"], "Alice");
     const html = renderSummary(gs, cardDb, "Alice", ["Alice", "Bob"], "12345");
 
-    // Sections with toggles get id attributes
     expect(html).toContain('id="hand-opponent"');
-    expect(html).toContain('id="base-list"');
+    expect(html).toContain('id="deck"');
+    expect(html).toContain('id="cards"');
   });
 
-  it("hides sections with none default visibility", () => {
+  it("cards section defaults to base with unknown filter", () => {
     const gs = makeGameState(["Alice", "Bob"], "Alice");
     const html = renderSummary(gs, cardDb, "Alice", ["Alice", "Bob"], "12345");
 
-    // base-list defaults to none -> display:none
-    expect(html).toContain('id="base-list" style="display:none"');
+    // Cards visible (no display:none), with mode-unknown class
+    expect(html).toContain('id="cards" class="mode-unknown"');
   });
 
-  it("hides cities-deck by default", () => {
+  it("deck section shows base set by default and hides cities", () => {
     const gs = makeGameState(["Alice", "Bob"], "Alice");
     const html = renderSummary(gs, cardDb, "Alice", ["Alice", "Bob"], "12345");
 
-    expect(html).toContain('id="cities-deck" style="display:none"');
+    // Extract deck section content — use enough chars to include both sets
+    const deckStart = html.indexOf('id="deck"');
+    expect(deckStart).toBeGreaterThan(-1);
+    // Find the end of the deck section (next <div class="section"> or end)
+    const nextSectionStart = html.indexOf('<div class="section">', deckStart);
+    const deckHtml = nextSectionStart > deckStart ? html.slice(deckStart, nextSectionStart) : html.slice(deckStart);
+
+    expect(deckHtml).toContain('data-set="base"');
+    expect(deckHtml).toContain('data-set="cities"');
+    // Base visible (no style="display:none" on base set div)
+    expect(deckHtml).toMatch(/data-set="base">/)
+    // Cities hidden
+    expect(deckHtml).toContain('data-set="cities" style="display:none"');
+  });
+
+  it("cards section contains both data-set containers", () => {
+    const gs = makeGameState(["Alice", "Bob"], "Alice");
+    const html = renderSummary(gs, cardDb, "Alice", ["Alice", "Bob"], "12345");
+
+    const cardsStart = html.indexOf('id="cards"');
+    const cardsHtml = html.slice(cardsStart);
+
+    expect(cardsHtml).toContain('data-set="base"');
+    expect(cardsHtml).toContain('data-set="cities"');
+  });
+
+  it("deck section has Hide/Base/Cities composite toggle", () => {
+    const gs = makeGameState(["Alice", "Bob"], "Alice");
+    const html = renderSummary(gs, cardDb, "Alice", ["Alice", "Bob"], "12345");
+
+    // Find the Deck section title area
+    const deckTitleIdx = html.indexOf(">Deck");
+    const deckTitleArea = html.slice(deckTitleIdx, deckTitleIdx + 500);
+
+    expect(deckTitleArea).toContain('data-mode="none"');
+    expect(deckTitleArea).toContain('data-mode="base"');
+    expect(deckTitleArea).toContain('data-mode="cities"');
+    expect(deckTitleArea).toContain(">Hide<");
+    expect(deckTitleArea).toContain(">Base<");
+    expect(deckTitleArea).toContain(">Cities<");
+  });
+
+  it("cards section has All/Unknown and Wide/Tall toggles alongside set toggle", () => {
+    const gs = makeGameState(["Alice", "Bob"], "Alice");
+    const html = renderSummary(gs, cardDb, "Alice", ["Alice", "Bob"], "12345");
+
+    // Find the Cards section title area
+    const cardsTitleIdx = html.indexOf(">Cards");
+    const cardsTitleArea = html.slice(cardsTitleIdx, cardsTitleIdx + 800);
+
+    // Composite toggle: Hide/Base/Cities
+    expect(cardsTitleArea).toContain(">Hide<");
+    expect(cardsTitleArea).toContain(">Base<");
+    expect(cardsTitleArea).toContain(">Cities<");
+    // Visibility toggle: All/Unknown (no None — Hide in composite toggle replaces it)
+    expect(cardsTitleArea).toContain(">All<");
+    expect(cardsTitleArea).toContain(">Unknown<");
+    expect(cardsTitleArea).not.toContain(">None<");
+    // Layout toggle: Wide/Tall
+    expect(cardsTitleArea).toContain(">Wide<");
+    expect(cardsTitleArea).toContain(">Tall<");
+  });
+
+  it("hides extra toggles initially when section defaults to none", () => {
+    const gs = makeGameState(["Alice", "Bob"], "Alice");
+    const html = renderSummary(gs, cardDb, "Alice", ["Alice", "Bob"], "12345");
+
+    // Achievements defaults to "none" — its Wide/Tall toggle should be hidden
+    const achTitleIdx = html.indexOf(">Achievements");
+    const achTitleArea = html.slice(achTitleIdx, achTitleIdx + 500);
+    // The layout toggle exists but is hidden
+    expect(achTitleArea).toContain(">Wide<");
+    expect(achTitleArea).toContain('style="display:none"');
+  });
+
+  it("shows extra toggles when section is visible", () => {
+    const gs = makeGameState(["Alice", "Bob"], "Alice");
+    const html = renderSummary(gs, cardDb, "Alice", ["Alice", "Bob"], "12345");
+
+    // Cards defaults to "base" — its extra toggles should be visible (no display:none)
+    const cardsTitleIdx = html.indexOf(">Cards");
+    const cardsTitleEnd = html.indexOf("</div>", cardsTitleIdx);
+    const cardsTitleArea = html.slice(cardsTitleIdx, cardsTitleEnd);
+    expect(cardsTitleArea).not.toContain('style="display:none"');
   });
 
   it("renders resolved cards with known card info", () => {
     const gs = makeGameState(["Alice", "Bob"], "Alice");
-    // Resolve a card in Alice's hand
     gs.resolveHand("Alice", ["agriculture", "archery"]);
     const html = renderSummary(gs, cardDb, "Alice", ["Alice", "Bob"], "12345");
 
-    // Resolved cards should have card names
     expect(html).toContain("Agriculture");
     expect(html).toContain("Archery");
   });
@@ -234,7 +339,6 @@ describe("renderSummary", () => {
     gs.resolveHand("Alice", ["agriculture", "archery"]);
     const html = renderSummary(gs, cardDb, "Alice", ["Alice", "Bob"], "12345");
 
-    // Cards should have icon images
     expect(html).toContain("assets/bga/innovation/icons/");
     expect(html).toContain('width="20"');
   });
@@ -244,7 +348,6 @@ describe("renderSummary", () => {
     gs.resolveHand("Alice", ["agriculture", "archery"]);
     const html = renderSummary(gs, cardDb, "Alice", ["Alice", "Bob"], "12345");
 
-    // Known base cards should have image tooltips
     expect(html).toContain("card-tip");
     expect(html).toContain("assets/bga/innovation/cards/card_");
   });
@@ -254,68 +357,65 @@ describe("renderSummary", () => {
     gs.resolveHand("Alice", ["agriculture", "archery"]);
     const html = renderSummary(gs, cardDb, "Alice", ["Alice", "Bob"], "12345");
 
-    // My hand should have eye_closed SVG icon (opponent doesn't know these cards)
-    // The key "eye_closed" is replaced by inline SVG; check for the SVG path
     expect(html).toContain("M12 7c2.76");
   });
 
-  it("renders base-list with data-known attributes for resolved cards", () => {
+  it("renders cards section with data-known attributes for resolved cards", () => {
     const gs = makeGameState(["Alice", "Bob"], "Alice");
     gs.resolveHand("Alice", ["agriculture", "archery"]);
     const html = renderSummary(gs, cardDb, "Alice", ["Alice", "Bob"], "12345");
 
-    // Base list marks resolved cards with data-known
     expect(html).toContain("data-known");
   });
 
-  it("renders unresolved base-list cards face-up with card names in All mode", () => {
+  it("renders unresolved card-list cards face-up with card names", () => {
     const gs = makeGameState(["Alice", "Bob"], "Alice");
-    // Only resolve two cards — the rest are unresolved
     gs.resolveHand("Alice", ["agriculture", "archery"]);
     const html = renderSummary(gs, cardDb, "Alice", ["Alice", "Bob"], "12345");
 
-    // Extract just the base-list section (renderer uses <div class="section">, not <section>)
-    const baseListStart = html.indexOf('id="base-list"');
-    const citiesListStart = html.indexOf('id="cities-list"');
-    const baseListHtml = html.slice(baseListStart, citiesListStart === -1 ? undefined : citiesListStart);
+    // Extract the cards section (base set)
+    const cardsStart = html.indexOf('id="cards"');
+    const cardsHtml = html.slice(cardsStart);
 
-    // Unresolved age-1 cards (e.g. Metalworking, Oars) should render face-up with names
-    expect(baseListHtml).toContain("Metalworking");
-    expect(baseListHtml).toContain("Oars");
-    // They should NOT be gray placeholders (b-gray-base is the unknown card class)
-    expect(baseListHtml).not.toContain("b-gray-base");
+    expect(cardsHtml).toContain("Metalworking");
+    expect(cardsHtml).toContain("Oars");
+    // Should NOT be gray placeholders in the card list
+    const baseSetStart = cardsHtml.indexOf('data-set="base"');
+    const citiesSetStart = cardsHtml.indexOf('data-set="cities"');
+    const baseSetHtml = cardsHtml.slice(baseSetStart, citiesSetStart);
+    expect(baseSetHtml).not.toContain("b-gray-base");
   });
 
-  it("marks only resolved base-list cards with data-known for Unknown mode masking", () => {
+  it("marks only resolved card-list cards with data-known", () => {
     const gs = makeGameState(["Alice", "Bob"], "Alice");
     gs.resolveHand("Alice", ["agriculture", "archery"]);
     const html = renderSummary(gs, cardDb, "Alice", ["Alice", "Bob"], "12345");
 
-    // Extract just the base-list section
-    const baseListStart = html.indexOf('id="base-list"');
-    const citiesListStart = html.indexOf('id="cities-list"');
-    const baseListHtml = html.slice(baseListStart, citiesListStart === -1 ? undefined : citiesListStart);
+    const cardsStart = html.indexOf('id="cards"');
+    const cardsHtml = html.slice(cardsStart);
+    const baseSetStart = cardsHtml.indexOf('data-set="base"');
+    const citiesSetStart = cardsHtml.indexOf('data-set="cities"');
+    const baseSetHtml = cardsHtml.slice(baseSetStart, citiesSetStart);
 
-    // Resolved card (Agriculture) should have data-known on its outer card div
-    const agricultureIdx = baseListHtml.indexOf("Agriculture");
+    // Resolved card (Agriculture) should have data-known
+    const agricultureIdx = baseSetHtml.indexOf("Agriculture");
     expect(agricultureIdx).toBeGreaterThan(-1);
-    const agricultureCardStart = baseListHtml.lastIndexOf('<div class="card ', agricultureIdx);
-    const agricultureSnippet = baseListHtml.slice(agricultureCardStart, agricultureIdx);
+    const agricultureCardStart = baseSetHtml.lastIndexOf('<div class="card ', agricultureIdx);
+    const agricultureSnippet = baseSetHtml.slice(agricultureCardStart, agricultureIdx);
     expect(agricultureSnippet).toContain("data-known");
 
-    // Unresolved card (Metalworking) should render face-up WITHOUT data-known on its outer card div
-    const metalworkingIdx = baseListHtml.indexOf("Metalworking");
+    // Unresolved card (Metalworking) should NOT have data-known
+    const metalworkingIdx = baseSetHtml.indexOf("Metalworking");
     expect(metalworkingIdx).toBeGreaterThan(-1);
-    const metalworkingCardStart = baseListHtml.lastIndexOf('<div class="card ', metalworkingIdx);
-    const metalworkingSnippet = baseListHtml.slice(metalworkingCardStart, metalworkingIdx);
+    const metalworkingCardStart = baseSetHtml.lastIndexOf('<div class="card ', metalworkingIdx);
+    const metalworkingSnippet = baseSetHtml.slice(metalworkingCardStart, metalworkingIdx);
     expect(metalworkingSnippet).not.toContain("data-known");
   });
 
-  it("renders tall grid for base-list section", () => {
+  it("renders tall grid for cards section", () => {
     const gs = makeGameState(["Alice", "Bob"], "Alice");
     const html = renderSummary(gs, cardDb, "Alice", ["Alice", "Bob"], "12345");
 
-    // Base list has layout toggle -> both wide and tall layouts
     expect(html).toContain("layout-wide");
     expect(html).toContain("layout-tall");
     expect(html).toContain("tall-grid");
@@ -325,30 +425,15 @@ describe("renderSummary", () => {
     const gs = makeGameState(["Alice", "Bob"], "Alice");
     const html = renderSummary(gs, cardDb, "Alice", ["Alice", "Bob"], "12345");
 
-    // Score sections should be empty initially
     expect(html).toContain("empty-card");
     expect(html).toContain("empty");
   });
 
-  it("renders with custom multi-column config", () => {
-    const gs = makeGameState(["Alice", "Bob"], "Alice");
-    const config = { ...DEFAULT_SECTION_CONFIG };
-    config["base-list"] = { column: 2, order: 1, defaultVisibility: "show" as const, defaultLayout: "wide" as const };
-    const html = renderSummary(gs, cardDb, "Alice", ["Alice", "Bob"], "12345", { sectionConfig: config });
-
-    // Should have multi-column layout
-    expect(html).toContain("page-grid");
-    expect(html).toContain("page-col");
-  });
-
   it("renders all-known class on fully resolved age rows in card lists", () => {
     const gs = makeGameState(["Alice", "Bob"], "Alice");
-    // Resolve all base age-1 cards by resolving hand cards
     gs.resolveHand("Alice", ["agriculture", "archery"]);
 
     const html = renderSummary(gs, cardDb, "Alice", ["Alice", "Bob"], "12345");
-    // Some rows in base-list may have all-known class (depending on resolution state)
-    // At minimum the HTML structure should be correct
     expect(html).toContain("section-row");
   });
 });
@@ -403,6 +488,12 @@ describe("SUMMARY_JS", () => {
     expect(SUMMARY_JS).toContain("mode === 'unknown'");
   });
 
+  it("handles composite modes: base, cities", () => {
+    expect(SUMMARY_JS).toContain("mode === 'base'");
+    expect(SUMMARY_JS).toContain("mode === 'cities'");
+    expect(SUMMARY_JS).toContain("data-set");
+  });
+
   it("handles layout modes: wide, tall", () => {
     expect(SUMMARY_JS).toContain("mode === 'wide'");
     expect(SUMMARY_JS).toContain("mode === 'tall'");
@@ -422,22 +513,19 @@ describe("rendering edge cases", () => {
       gs.decks.set(key, []);
     }
     const html = renderSummary(gs, cardDb, "Alice", ["Alice", "Bob"], "12345");
-    expect(html).toContain("Cities deck");
+    expect(html).toContain("Deck");
   });
 
   it("escapes HTML in card names", () => {
-    // Verify the escapeHtml function works through renderKnownCard
     const gs = makeGameState(["Alice", "Bob"], "Alice");
     gs.resolveHand("Alice", ["agriculture", "archery"]);
     const html = renderSummary(gs, cardDb, "Alice", ["Alice", "Bob"], "12345");
-    // No unescaped angle brackets in card names
     expect(html).not.toContain("<Agriculture>");
   });
 
   it("renders SVG icons in row labels for my-hand section", () => {
     const gs = makeGameState(["Alice", "Bob"], "Alice");
     const html = renderSummary(gs, cardDb, "Alice", ["Alice", "Bob"], "12345");
-    // My hand section should have SVG row labels (eye_closed since opponent doesn't know)
     expect(html).toContain("<svg");
     expect(html).toContain("viewBox");
   });
