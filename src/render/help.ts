@@ -1,8 +1,10 @@
 // Help page content for the side panel.
 
+import { escapeHtml } from "./summary.js";
+
 export function renderHelp(errorMessage?: string): string {
   const errorNote = errorMessage
-    ? `<div class="help-note"><span class="help-note-icon">&#x26A0;</span> Failed to process game log for this table.<br><span class="help-note-hint">${errorMessage}</span></div>`
+    ? `<div class="help-note"><span class="help-note-icon">&#x26A0;</span> Failed to process game log for this table.<br><span class="help-note-hint">${escapeHtml(errorMessage)}</span></div>`
     : "";
 
   return `${errorNote}
