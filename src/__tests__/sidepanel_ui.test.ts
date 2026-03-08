@@ -253,7 +253,7 @@ describe("sidepanel UI functions", () => {
 
 describe("live indicator", () => {
   it("shows live indicator when liveStatus active=true", () => {
-    document.body.innerHTML = '<span id="live-indicator" class="live-indicator" style="display:none"><span class="live-dot"></span> LIVE</span>';
+    document.body.innerHTML = '<div id="content"></div><span id="live-indicator" class="live-dot" style="display:none"></span>';
     const listeners = (globalThis as any).__sidepanelMessageListeners as Array<(message: any) => void>;
     for (const listener of listeners) {
       listener({ type: "liveStatus", active: true });
@@ -263,7 +263,7 @@ describe("live indicator", () => {
   });
 
   it("hides live indicator when liveStatus active=false", () => {
-    document.body.innerHTML = '<span id="live-indicator" class="live-indicator" style="display:"><span class="live-dot"></span> LIVE</span>';
+    document.body.innerHTML = '<div id="content"></div><span id="live-indicator" class="live-dot" style="display:"></span>';
     const listeners = (globalThis as any).__sidepanelMessageListeners as Array<(message: any) => void>;
     for (const listener of listeners) {
       listener({ type: "liveStatus", active: false });

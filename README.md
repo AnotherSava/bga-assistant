@@ -8,7 +8,7 @@ A Chrome extension for [Board Game Arena](https://boardgamearena.com) that keeps
 
 Reads the full game log from [Innovation](https://boardgamegeek.com/boardgame/63888/innovation) tables and reconstructs the game state — deck stack order, hand contents, score piles — displayed as a visual summary in a Chrome side panel.
 
-- Live tracking: while the side panel is open, the display automatically updates when the game progresses — no manual re-extraction needed
+- Live tracking: while the side panel is open, the display automatically updates when the game progresses — a green status dot appears in the status bar
 - Auto-update: while the side panel is open, switching to another supported game tab automatically extracts and displays its state
 - Status bar: shows the table number and timestamp of the last game log action
 - Card grids: hands, scores, deck, full card list, achievements
@@ -46,7 +46,7 @@ npm run build
 1. Navigate to a supported BGA game page in Chrome
 2. Click the BGA Assistant icon in the toolbar
 3. The side panel opens with a visual summary of the game state
-4. While viewing a game, the side panel automatically updates when the game progresses — a green LIVE indicator appears in the toolbar
+4. While viewing a game, the side panel automatically updates when the game progresses — a green dot in the status bar indicates active tracking
 5. Switching to another supported game tab automatically updates the display
 6. Use the download button to save a zip with game data and a standalone summary
 
