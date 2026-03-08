@@ -5,6 +5,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 
 // Mock Chrome APIs before sidepanel.ts module-level code runs.
 vi.hoisted(() => {
+  (globalThis as any).__sidepanelMessageListeners = [];
   (globalThis as any).chrome = {
     action: {
       onClicked: { addListener: () => {} },
@@ -14,14 +15,15 @@ vi.hoisted(() => {
     scripting: { executeScript: () => Promise.resolve([]) },
     sidePanel: { open: () => Promise.resolve() },
     runtime: {
-      onMessage: { addListener: () => {} },
+      onMessage: { addListener: (fn: any) => { (globalThis as any).__sidepanelMessageListeners.push(fn); } },
       sendMessage: () => Promise.resolve(null),
       getURL: (path: string) => `chrome-extension://test/${path}`,
     },
   };
 });
 
-import { downloadBlob, setupTooltips, setupToggles } from "../sidepanel/sidepanel";
+import { downloadBlob, setupTooltips, setupToggles, render, fetchCardDb } from "../sidepanel/sidepanel";
+import type { PipelineResults } from "../background";
 
 describe("sidepanel UI functions", () => {
   beforeEach(() => {
@@ -245,6 +247,67 @@ describe("sidepanel UI functions", () => {
       // Nothing should change
       const allOpt = document.querySelector('[data-mode="all"]') as HTMLElement;
       expect(allOpt.classList.contains("active")).toBe(true);
+    });
+  });
+});
+
+describe("live indicator", () => {
+  it("shows live indicator when liveStatus active=true", () => {
+    document.body.innerHTML = '<span id="live-indicator" class="live-indicator" style="display:none"><span class="live-dot"></span> LIVE</span>';
+    const listeners = (globalThis as any).__sidepanelMessageListeners as Array<(message: any) => void>;
+    for (const listener of listeners) {
+      listener({ type: "liveStatus", active: true });
+    }
+    const indicator = document.getElementById("live-indicator")!;
+    expect(indicator.style.display).toBe("");
+  });
+
+  it("hides live indicator when liveStatus active=false", () => {
+    document.body.innerHTML = '<span id="live-indicator" class="live-indicator" style="display:"><span class="live-dot"></span> LIVE</span>';
+    const listeners = (globalThis as any).__sidepanelMessageListeners as Array<(message: any) => void>;
+    for (const listener of listeners) {
+      listener({ type: "liveStatus", active: false });
+    }
+    const indicator = document.getElementById("live-indicator")!;
+    expect(indicator.style.display).toBe("none");
+  });
+});
+
+describe("scroll position preservation", () => {
+  it("restores scrollTop after render", async () => {
+    // Pre-populate the card database cache by mocking fetch with valid card data
+    const { readFileSync } = await import("fs");
+    const { resolve, dirname } = await import("path");
+    const { fileURLToPath } = await import("url");
+    const thisDir = dirname(fileURLToPath(import.meta.url));
+    const cardData = readFileSync(resolve(thisDir, "../../assets/bga/innovation/card_info.json"), "utf-8");
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(cardData));
+    await fetchCardDb("chrome-extension://test/assets/bga/innovation/card_info.json");
+    fetchSpy.mockRestore();
+
+    document.body.innerHTML = '<div id="content" style="overflow:auto; height:200px;"></div>';
+    const contentEl = document.getElementById("content")!;
+
+    // Track scrollTop via a backing variable so we can verify restoration
+    let scrollTopValue = 150;
+    Object.defineProperty(contentEl, "scrollTop", {
+      get: () => scrollTopValue,
+      set: (v: number) => { scrollTopValue = v; },
+      configurable: true,
+    });
+
+    // Create minimal PipelineResults with enough structure for renderWithDb to succeed
+    const results: PipelineResults = {
+      tableNumber: "12345",
+      rawData: { packets: [] },
+      gameLog: { currentPlayerId: "1", players: { "1": "Alice", "2": "Bob" }, log: [], myHand: [] },
+      gameState: { hands: { "Alice": [], "Bob": [] }, scores: { "Alice": [], "Bob": [] }, boards: { "Alice": [], "Bob": [] }, achievements: [], specialAchievements: [], decks: {}, forecast: {} },
+    } as any;
+
+    render(results);
+    // Wait for the async render chain to complete and verify scrollTop restored
+    await vi.waitFor(() => {
+      expect(scrollTopValue).toBe(150);
     });
   });
 });

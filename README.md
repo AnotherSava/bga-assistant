@@ -8,6 +8,7 @@ A Chrome extension for [Board Game Arena](https://boardgamearena.com) that keeps
 
 Reads the full game log from [Innovation](https://boardgamegeek.com/boardgame/63888/innovation) tables and reconstructs the game state — deck stack order, hand contents, score piles — displayed as a visual summary in a Chrome side panel.
 
+- Live tracking: while the side panel is open, the display automatically updates when the game progresses — no manual re-extraction needed
 - Auto-update: while the side panel is open, switching to another supported game tab automatically extracts and displays its state
 - Status bar: shows the table number and timestamp of the last game log action
 - Card grids: hands, scores, deck, full card list, achievements
@@ -45,8 +46,9 @@ npm run build
 1. Navigate to a supported BGA game page in Chrome
 2. Click the BGA Assistant icon in the toolbar
 3. The side panel opens with a visual summary of the game state
-4. While the side panel is open, switching to another supported game tab automatically updates the display
-5. Use the download button to save a zip with game data and a standalone summary
+4. While viewing a game, the side panel automatically updates when the game progresses — a green LIVE indicator appears in the toolbar
+5. Switching to another supported game tab automatically updates the display
+6. Use the download button to save a zip with game data and a standalone summary
 
 ## Development
 
@@ -63,7 +65,7 @@ npm run lint         # TypeScript type checking
 manifest.json                Chrome extension manifest (v3, side panel)
 sidepanel.html               Side panel page shell (Vite HTML entry point)
 src/
-  background.ts              Service worker: pipeline orchestration, side panel management
+  background.ts              Service worker: pipeline orchestration, side panel management, live tracking
   extract.ts                 Content script: BGA data extraction (MAIN world)
   sidepanel/
     sidepanel.ts             Receives data, triggers render, handles downloads
@@ -92,6 +94,9 @@ assets/
 3. background.ts receives data, runs pipeline (processRawLog -> GameState)
 4. background.ts opens side panel, sends results via chrome.runtime messaging
 5. sidepanel.ts renders summary with download button
+6. A MutationObserver watcher is injected to monitor the game log DOM for changes
+7. When new log entries appear, the watcher notifies the background (debounced + throttled)
+8. The background re-runs the extraction pipeline and pushes updated results to the side panel
 
 ## Testing
 

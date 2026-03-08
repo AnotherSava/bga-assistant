@@ -184,12 +184,14 @@ function setupToggles(): void {
 
 function render(results: PipelineResults): void {
   const contentEl = document.getElementById("content")!;
+  const savedScroll = contentEl.scrollTop;
 
   const cardInfoUrl = typeof chrome !== "undefined" && chrome.runtime?.getURL
     ? chrome.runtime.getURL("assets/bga/innovation/card_info.json")
     : "assets/bga/innovation/card_info.json";
   fetchCardDb(cardInfoUrl).then((db) => {
     renderWithDb(db, results, contentEl);
+    contentEl.scrollTop = savedScroll;
   }).catch(() => {
     contentEl.innerHTML = '<div class="status">Error loading card database</div>';
   });
@@ -443,8 +445,11 @@ if (typeof chrome !== "undefined" && chrome.runtime?.onMessage) {
   });
 
   // Listen for pushed updates when re-extraction occurs while panel is open
-  chrome.runtime.onMessage.addListener((message: { type: string; error?: string }) => {
-    if (message.type === "resultsReady") {
+  chrome.runtime.onMessage.addListener((message: { type: string; error?: string; active?: boolean }) => {
+    if (message.type === "liveStatus") {
+      const indicator = document.getElementById("live-indicator");
+      if (indicator) indicator.style.display = message.active ? "" : "none";
+    } else if (message.type === "resultsReady") {
       chrome.runtime.sendMessage({ type: "getResults" }).then((response: PipelineResults | null) => {
         if (response) {
           currentResults = response;

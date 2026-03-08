@@ -1,35 +1,48 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { readFileSync } from "fs";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
 
+// Store captured Chrome event listeners for testing.
+const listeners: Record<string, Function> = {};
+
 // Mock Chrome APIs before background.ts module-level code runs.
 vi.hoisted(() => {
+  const _listeners: Record<string, Function> = {};
+  (globalThis as any).__chromeMockListeners = _listeners;
   (globalThis as any).chrome = {
     action: {
-      onClicked: { addListener: () => {} },
-      setBadgeText: () => {},
-      setBadgeBackgroundColor: () => {},
+      onClicked: { addListener: (cb: Function) => { _listeners.onClicked = cb; } },
+      setBadgeText: vi.fn(),
+      setBadgeBackgroundColor: vi.fn(),
     },
-    scripting: { executeScript: () => Promise.resolve([]) },
-    sidePanel: { open: () => Promise.resolve() },
+    scripting: { executeScript: vi.fn(() => Promise.resolve([])) },
+    sidePanel: { open: vi.fn(() => Promise.resolve()) },
     runtime: {
-      onMessage: { addListener: () => {} },
-      onConnect: { addListener: () => {} },
-      sendMessage: () => Promise.resolve(),
+      onMessage: { addListener: (cb: Function) => { _listeners.onMessage = cb; } },
+      onConnect: { addListener: (cb: Function) => { _listeners.onConnect = cb; } },
+      sendMessage: vi.fn(() => Promise.resolve()),
     },
     tabs: {
-      onActivated: { addListener: () => {} },
-      onUpdated: { addListener: () => {} },
-      get: () => Promise.resolve({}),
+      onActivated: { addListener: (cb: Function) => { _listeners.onActivated = cb; } },
+      onUpdated: { addListener: (cb: Function) => { _listeners.onUpdated = cb; } },
+      get: vi.fn(() => Promise.resolve({})),
       query: () => Promise.resolve([]),
     },
   };
 });
 
-import { runPipeline, classifyNavigation, type PipelineResults, type NavigationAction } from "../background";
+// Copy captured listeners into module-scoped object after import
+const copyListeners = () => {
+  Object.assign(listeners, (globalThis as any).__chromeMockListeners);
+};
+
+import { runPipeline, classifyNavigation, watcherFunction, type PipelineResults, type NavigationAction } from "../background";
 import { CardDatabase } from "../models/types";
 import type { RawExtractionData } from "../engine/process_log";
+
+// Initialize listeners after module import so all addListener calls have fired.
+copyListeners();
 
 const thisDir = dirname(fileURLToPath(import.meta.url));
 
@@ -327,5 +340,193 @@ describe("classifyNavigation", () => {
   it("handles table param embedded in longer query string", () => {
     const result = classifyNavigation("https://boardgamearena.com/8/innovation?table=456&other=1", null);
     expect(result).toEqual({ action: "extract", tableNumber: "456" });
+  });
+});
+
+describe("watcherFunction", () => {
+  it("is exported and can be serialized by executeScript", () => {
+    expect(typeof watcherFunction).toBe("function");
+    expect(watcherFunction.name).toBe("watcherFunction");
+  });
+});
+
+describe("live tracking", () => {
+  const mockExecuteScript = chrome.scripting.executeScript as ReturnType<typeof vi.fn>;
+  const mockSendMessage = chrome.runtime.sendMessage as ReturnType<typeof vi.fn>;
+  const cardDb = loadCardDb();
+
+  // Helper: simulate port connect + set side panel open
+  function connectSidePanel(): { triggerDisconnect: () => void } {
+    const disconnectListeners: Function[] = [];
+    const port = {
+      name: "sidepanel",
+      onDisconnect: { addListener: (cb: Function) => { disconnectListeners.push(cb); } },
+    };
+    listeners.onConnect(port);
+    return {
+      triggerDisconnect: () => disconnectListeners.forEach((cb) => cb()),
+    };
+  }
+
+  // Helper: trigger a click on a BGA game tab to set up live tracking
+  async function clickExtract(tabId: number): Promise<void> {
+    const rawData = makeRawData({ "1": "Alice", "2": "Bob" }, []);
+    mockExecuteScript.mockResolvedValueOnce([{ result: rawData }]);
+    const tab = { id: tabId, url: "https://boardgamearena.com/8/innovation?table=123" };
+    await listeners.onClicked(tab);
+  }
+
+  beforeEach(async () => {
+    // Flush any pending async operations (e.g. gameLogChanged fire-and-forget chains)
+    await new Promise((r) => setTimeout(r, 50));
+    vi.clearAllMocks();
+    mockSendMessage.mockImplementation(() => Promise.resolve());
+  });
+
+  it("injects watcher after successful extraction", async () => {
+    connectSidePanel();
+    await clickExtract(42);
+
+    // executeScript called twice: once for extract.js, once for watcher
+    expect(mockExecuteScript).toHaveBeenCalledTimes(2);
+    const watcherCall = mockExecuteScript.mock.calls[1];
+    expect(watcherCall[0]).toMatchObject({
+      target: { tabId: 42 },
+      func: watcherFunction,
+    });
+  });
+
+  it("sends liveStatus active after watcher injection", async () => {
+    connectSidePanel();
+    await clickExtract(42);
+
+    expect(mockSendMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ type: "liveStatus", active: true }),
+    );
+  });
+
+  it("gameLogChanged triggers extraction from the live tab", async () => {
+    connectSidePanel();
+    await clickExtract(42);
+    vi.clearAllMocks();
+
+    // Set up next extraction
+    const rawData = makeRawData({ "1": "Alice", "2": "Bob" }, [
+      { move_id: 1, time: 1001, data: [{ type: "transferedCard_spectator", args: { type: "0" } }] },
+    ]);
+    mockExecuteScript.mockResolvedValueOnce([{ result: rawData }]);
+
+    // Simulate enough time passing
+    vi.spyOn(Date, "now").mockReturnValue(Date.now() + 10000);
+
+    const sender = { tab: { id: 42 } };
+    listeners.onMessage({ type: "gameLogChanged" }, sender, () => {});
+
+    // Wait for async extraction and full promise chain
+    await vi.waitFor(() => {
+      expect(mockExecuteScript).toHaveBeenCalled();
+    });
+    // Flush .then/.finally handlers
+    await new Promise((r) => setTimeout(r, 50));
+
+    vi.restoreAllMocks();
+  });
+
+  it("gameLogChanged skipped when extracting", async () => {
+    connectSidePanel();
+    await clickExtract(42);
+
+    // Now start a second extraction via gameLogChanged that won't resolve yet
+    let resolveExtraction!: Function;
+    mockExecuteScript.mockReturnValueOnce(new Promise((r) => { resolveExtraction = () => r([{ result: makeRawData({ "1": "Alice", "2": "Bob" }, []) }]); }));
+
+    vi.spyOn(Date, "now").mockReturnValue(Date.now() + 10000);
+
+    const sender = { tab: { id: 42 } };
+    listeners.onMessage({ type: "gameLogChanged" }, sender, () => {});
+
+    // extracting is now true; a second gameLogChanged should be ignored
+    vi.clearAllMocks();
+    vi.spyOn(Date, "now").mockReturnValue(Date.now() + 20000);
+    listeners.onMessage({ type: "gameLogChanged" }, sender, () => {});
+    expect(mockExecuteScript).not.toHaveBeenCalled();
+
+    // Clean up
+    vi.restoreAllMocks();
+    resolveExtraction();
+    await new Promise((r) => setTimeout(r, 50));
+  });
+
+  it("gameLogChanged skipped within minimum interval", async () => {
+    connectSidePanel();
+    await clickExtract(42);
+    vi.clearAllMocks();
+
+    // Don't advance time — lastExtractionTime was just set
+    const sender = { tab: { id: 42 } };
+    listeners.onMessage({ type: "gameLogChanged" }, sender, () => {});
+
+    // No extraction should have been triggered
+    expect(mockExecuteScript).not.toHaveBeenCalled();
+  });
+
+  it("packet-count guard skips resultsReady when count unchanged", async () => {
+    connectSidePanel();
+    await clickExtract(42);
+
+    // Wait for extraction to fully complete
+    await new Promise((r) => setTimeout(r, 50));
+    vi.clearAllMocks();
+
+    // Return same data (0 packets, same as initial extraction)
+    const rawData = makeRawData({ "1": "Alice", "2": "Bob" }, []);
+    mockExecuteScript.mockResolvedValueOnce([{ result: rawData }]);
+
+    vi.spyOn(Date, "now").mockReturnValue(Date.now() + 10000);
+
+    const sender = { tab: { id: 42 } };
+    listeners.onMessage({ type: "gameLogChanged" }, sender, () => {});
+
+    // Wait for full extraction chain to complete
+    await new Promise((r) => setTimeout(r, 50));
+
+    // The extraction should have run (executeScript called for extract.js + watcher)
+    expect(mockExecuteScript).toHaveBeenCalled();
+
+    // resultsReady should NOT be sent since packet count is the same
+    const resultsReadyCalls = mockSendMessage.mock.calls.filter(
+      (call: any[]) => call[0]?.type === "resultsReady",
+    );
+    expect(resultsReadyCalls.length).toBe(0);
+
+    vi.restoreAllMocks();
+  });
+
+  it("gameLogChanged from wrong tab is ignored", async () => {
+    connectSidePanel();
+    await clickExtract(42);
+    vi.clearAllMocks();
+
+    vi.spyOn(Date, "now").mockReturnValue(Date.now() + 10000);
+
+    // Message from a different tab
+    const sender = { tab: { id: 99 } };
+    listeners.onMessage({ type: "gameLogChanged" }, sender, () => {});
+
+    expect(mockExecuteScript).not.toHaveBeenCalled();
+
+    vi.restoreAllMocks();
+  });
+
+  it("stopLiveTracking on panel disconnect", async () => {
+    const { triggerDisconnect } = connectSidePanel();
+    await clickExtract(42);
+    vi.clearAllMocks();
+
+    triggerDisconnect();
+
+    expect(mockSendMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ type: "liveStatus", active: false }),
+    );
   });
 });
