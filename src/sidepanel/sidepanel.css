@@ -179,6 +179,15 @@ body {
 .top-buttons button:hover { background: #444; color: #fff; }
 #btn-help { font-size: 14px; font-weight: bold; }
 
+/* Game info */
+.game-info {
+  color: #bbb;
+  font-size: 15px;
+  pointer-events: none;
+  white-space: nowrap;
+  margin-right: auto;
+}
+
 /* Zoom indicator */
 .zoom-indicator {
   color: #aaa;

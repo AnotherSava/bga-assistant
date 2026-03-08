@@ -205,6 +205,15 @@ function renderWithDb(cardDb: CardDatabase, results: PipelineResults, contentEl:
   const summaryHtml = renderSummary(gameState, cardDb, perspective, players, tableId);
   contentEl.innerHTML = summaryHtml;
 
+  // Populate game info bar
+  const gameInfoEl = document.getElementById("game-info");
+  if (gameInfoEl) {
+    const packets = results.rawData.packets;
+    const lastTime = packets.length > 0 ? packets[packets.length - 1].time : 0;
+    const timeStr = lastTime ? new Date(lastTime * 1000).toLocaleDateString("en-US", { month: "short", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false }) : "";
+    gameInfoEl.innerHTML = timeStr ? `# ${results.tableNumber} \u00b7 ${timeStr}` : `# ${results.tableNumber}`;
+  }
+
   // Set up interactivity
   setupTooltips();
   setupToggles();
@@ -389,10 +398,12 @@ document.addEventListener("click", (e) => {
 // Help page
 // ---------------------------------------------------------------------------
 
-function showHelp(notAGameUrl?: string): void {
+function showHelp(errorMessage?: string): void {
   const contentEl = document.getElementById("content");
   if (!contentEl) return;
-  contentEl.innerHTML = renderHelp(notAGameUrl);
+  contentEl.innerHTML = renderHelp(errorMessage);
+  const gameInfoEl = document.getElementById("game-info");
+  if (gameInfoEl) gameInfoEl.innerHTML = "";
   const btnDownload = document.getElementById("btn-download");
   if (btnDownload) btnDownload.style.display = "none";
 }
@@ -421,7 +432,7 @@ if (typeof chrome !== "undefined" && chrome.runtime?.onMessage) {
   });
 
   // Listen for pushed updates when re-extraction occurs while panel is open
-  chrome.runtime.onMessage.addListener((message: { type: string; url?: string }) => {
+  chrome.runtime.onMessage.addListener((message: { type: string; error?: string }) => {
     if (message.type === "resultsReady") {
       chrome.runtime.sendMessage({ type: "getResults" }).then((response: PipelineResults | null) => {
         if (response) {
@@ -431,8 +442,14 @@ if (typeof chrome !== "undefined" && chrome.runtime?.onMessage) {
       }).catch(() => {
         document.getElementById("content")!.innerHTML = '<div class="status">Connection lost. Click the extension icon to re-extract.</div>';
       });
+    } else if (message.type === "loading") {
+      document.getElementById("content")!.innerHTML = '<div class="status">Loading game data...</div>';
+      const gameInfoEl = document.getElementById("game-info");
+      if (gameInfoEl) gameInfoEl.innerHTML = "";
     } else if (message.type === "notAGame") {
-      showHelp(message.url);
+      showHelp();
+    } else if (message.type === "gameError") {
+      showHelp(message.error);
     }
     return undefined;
   });
