@@ -119,7 +119,10 @@ function injectWatcher(tabId: number): void {
   chrome.runtime.sendMessage({ type: "liveStatus", active: true }).catch(() => {});
 }
 
-function stopLiveTracking(): void {
+function stopLiveTracking(reason: string): void {
+  if (liveTabId !== null) {
+    console.log("[live] stopped:", reason);
+  }
   liveTabId = null;
   chrome.runtime.sendMessage({ type: "liveStatus", active: false }).catch(() => {});
 }
@@ -200,10 +203,26 @@ async function extractFromTab(tabId: number, url: string, tableNumber?: string, 
 // Track side panel open/close via port connection
 chrome.runtime.onConnect.addListener((port: chrome.runtime.Port) => {
   if (port.name !== "sidepanel") return;
+  console.log("[live] port connected");
   sidePanelOpen = true;
+
+  // After service worker restart, state is lost. Re-inject watcher on the active game tab
+  // so it can detect DOM changes and trigger extraction on demand (no immediate BGA query).
+  chrome.tabs.query({ active: true, currentWindow: true }).then((tabs) => {
+    const tab = tabs[0];
+    if (!tab?.id || !tab.url) return;
+    activeTabId = tab.id;
+    const nav = classifyNavigation(tab.url, null);
+    if (nav.action === "extract") {
+      console.log("[live] reconnect: re-injecting watcher on tab", tab.id);
+      injectWatcher(tab.id);
+    }
+  });
+
   port.onDisconnect.addListener(() => {
+    console.log("[live] port disconnected");
     sidePanelOpen = false;
-    stopLiveTracking();
+    stopLiveTracking("port disconnect");
   });
 });
 
@@ -214,7 +233,7 @@ chrome.action.onClicked.addListener(async (tab: chrome.tabs.Tab) => {
   const clickNav = classifyNavigation(tab.url, null);
   if (clickNav.action === "showHelp") {
     lastResults = null;
-    stopLiveTracking();
+    stopLiveTracking("click: not a game");
     try {
       await chrome.sidePanel.open({ tabId: tab.id });
       chrome.runtime.sendMessage({ type: "notAGame" }).catch(() => {});
@@ -241,7 +260,7 @@ chrome.action.onClicked.addListener(async (tab: chrome.tabs.Tab) => {
     console.error("BGA Assistant error:", err);
     setBadge(tab.id, "ERR", "#D32F2F");
     lastResults = null;
-    stopLiveTracking();
+    stopLiveTracking("click: extraction error");
     const errorMsg = err instanceof Error ? err.message : String(err);
     chrome.runtime.sendMessage({ type: "gameError", error: errorMsg }).catch(() => {});
   } finally {
@@ -274,19 +293,19 @@ async function handleNavigation(initialTabId: number): Promise<void> {
         } catch (err) {
           console.error("Extraction error:", err);
           lastResults = null;
-          stopLiveTracking();
+          stopLiveTracking("nav: extraction error");
           const errorMsg = err instanceof Error ? err.message : String(err);
           chrome.runtime.sendMessage({ type: "gameError", error: errorMsg }).catch(() => {});
         }
       } else if (nav.action === "showHelp") {
         lastResults = null;
-        stopLiveTracking();
+        stopLiveTracking("nav: not a game");
         chrome.runtime.sendMessage({ type: "notAGame" }).catch(() => {});
       }
     } catch (err) {
       console.error("Navigation error:", err);
       lastResults = null;
-      stopLiveTracking();
+      stopLiveTracking("nav: infrastructure error");
       chrome.runtime.sendMessage({ type: "notAGame" }).catch(() => {});
     } finally {
       extracting = false;
@@ -329,9 +348,13 @@ chrome.runtime.onMessage.addListener(
   ) => {
     if (message.type === "getResults") {
       sendResponse(lastResults);
+    } else if (message.type === "pauseLive") {
+      stopLiveTracking("help page opened");
+    } else if (message.type === "resumeLive") {
+      if (activeTabId !== null) injectWatcher(activeTabId);
     } else if (message.type === "gameLogChanged") {
-      if (sender.tab?.id !== liveTabId) return;
-      if (extracting || !sidePanelOpen || liveTabId === null) return;
+      if (sender.tab?.id !== liveTabId) { console.log("[live] ignored: sender tab", sender.tab?.id, "!= liveTabId", liveTabId); return; }
+      if (extracting || !sidePanelOpen || liveTabId === null) { console.log("[live] ignored: extracting=", extracting, "sidePanelOpen=", sidePanelOpen, "liveTabId=", liveTabId); return; }
       if (Date.now() - lastExtractionTime < LIVE_MIN_INTERVAL_MS) return;
       const previousPacketCount = lastResults?.rawData?.packets?.length ?? 0;
       extracting = true;

@@ -15,6 +15,7 @@ import type { PipelineResults } from "../background.js";
 let currentResults: PipelineResults | null = null;
 let currentCss: string | null = null;
 let cachedCardDb: CardDatabase | null = null;
+let disconnectTimer: number | undefined;
 
 // ---------------------------------------------------------------------------
 // Asset URL resolution for Chrome extension context
@@ -31,6 +32,12 @@ if (typeof chrome !== "undefined" && chrome.runtime?.connect) {
     try {
       const port = chrome.runtime.connect(undefined, { name: "sidepanel" });
       port.onDisconnect.addListener(() => {
+        disconnectTimer = window.setTimeout(() => {
+          const indicator = document.getElementById("live-indicator");
+          if (indicator && indicator.style.display !== "none") {
+            indicator.classList.add("disconnected");
+          }
+        }, 3000);
         setTimeout(connectToBackground, 1000);
       });
     } catch {
@@ -219,12 +226,13 @@ function renderWithDb(cardDb: CardDatabase, results: PipelineResults, contentEl:
   contentEl.innerHTML = summaryHtml;
 
   // Populate game info bar
-  const gameInfoEl = document.getElementById("game-info");
-  if (gameInfoEl) {
+  const tableEl = document.getElementById("game-info-table");
+  if (tableEl) tableEl.textContent = `# ${results.tableNumber}`;
+  const timeEl = document.getElementById("game-info-time");
+  if (timeEl) {
     const packets = results.rawData.packets;
     const lastTime = packets.length > 0 ? packets[packets.length - 1].time : 0;
-    const timeStr = lastTime ? new Date(lastTime * 1000).toLocaleDateString("en-US", { month: "short", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false }) : "";
-    gameInfoEl.innerHTML = timeStr ? `# ${results.tableNumber} \u00b7 ${timeStr}` : `# ${results.tableNumber}`;
+    timeEl.textContent = lastTime ? new Date(lastTime * 1000).toLocaleDateString("en-US", { month: "short", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false }) : "";
   }
 
   // Set up interactivity
@@ -415,15 +423,25 @@ function showHelp(errorMessage?: string): void {
   const contentEl = document.getElementById("content");
   if (!contentEl) return;
   contentEl.innerHTML = renderHelp(errorMessage);
-  const gameInfoEl = document.getElementById("game-info");
-  if (gameInfoEl) gameInfoEl.innerHTML = "";
+  const tableEl = document.getElementById("game-info-table");
+  if (tableEl) tableEl.textContent = "";
+  const timeEl = document.getElementById("game-info-time");
+  if (timeEl) timeEl.textContent = "";
+  const indicator = document.getElementById("live-indicator");
+  if (indicator) indicator.style.display = "none";
   const btnDownload = document.getElementById("btn-download");
   if (btnDownload) btnDownload.style.display = "none";
+  chrome.runtime.sendMessage({ type: "pauseLive" }).catch(() => {});
 }
 
-// Wire help button
+// Wire help button — toggles between help and summary
 document.getElementById("btn-help")?.addEventListener("click", () => {
-  showHelp();
+  if (currentResults && document.getElementById("content")?.querySelector(".help")) {
+    render(currentResults);
+    chrome.runtime.sendMessage({ type: "resumeLive" }).catch(() => {});
+  } else {
+    showHelp();
+  }
 });
 
 
@@ -447,8 +465,12 @@ if (typeof chrome !== "undefined" && chrome.runtime?.onMessage) {
   // Listen for pushed updates when re-extraction occurs while panel is open
   chrome.runtime.onMessage.addListener((message: { type: string; error?: string; active?: boolean }) => {
     if (message.type === "liveStatus") {
+      if (disconnectTimer) { clearTimeout(disconnectTimer); disconnectTimer = undefined; }
       const indicator = document.getElementById("live-indicator");
-      if (indicator) indicator.style.display = message.active ? "" : "none";
+      if (indicator) {
+        indicator.style.display = message.active ? "" : "none";
+        indicator.classList.remove("disconnected");
+      }
     } else if (message.type === "resultsReady") {
       chrome.runtime.sendMessage({ type: "getResults" }).then((response: PipelineResults | null) => {
         if (response) {
@@ -460,8 +482,10 @@ if (typeof chrome !== "undefined" && chrome.runtime?.onMessage) {
       });
     } else if (message.type === "loading") {
       document.getElementById("content")!.innerHTML = '<div class="status">Loading game data...</div>';
-      const gameInfoEl = document.getElementById("game-info");
-      if (gameInfoEl) gameInfoEl.innerHTML = "";
+      const tableEl = document.getElementById("game-info-table");
+      if (tableEl) tableEl.textContent = "";
+      const timeEl = document.getElementById("game-info-time");
+      if (timeEl) timeEl.textContent = "";
     } else if (message.type === "notAGame") {
       showHelp();
     } else if (message.type === "gameError") {
