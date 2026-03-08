@@ -24,9 +24,20 @@ if (typeof chrome !== "undefined" && chrome.runtime?.getURL) {
   setAssetResolver((path: string) => chrome.runtime.getURL(path));
 }
 
-// Establish a port to the background script so it can track side panel open/close
+// Establish a port to the background script so it can track side panel open/close.
+// Reconnect on disconnect (service worker restart) to keep sidePanelOpen accurate.
 if (typeof chrome !== "undefined" && chrome.runtime?.connect) {
-  chrome.runtime.connect(undefined, { name: "sidepanel" });
+  const connectToBackground = (): void => {
+    try {
+      const port = chrome.runtime.connect(undefined, { name: "sidepanel" });
+      port.onDisconnect.addListener(() => {
+        setTimeout(connectToBackground, 1000);
+      });
+    } catch {
+      // Extension context invalidated (e.g. after update/uninstall); stop reconnecting.
+    }
+  };
+  connectToBackground();
 }
 
 // ---------------------------------------------------------------------------
