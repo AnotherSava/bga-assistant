@@ -40,8 +40,8 @@ body {
 .card.b-purple { background: #3a1a5c; border-color: #bb66ff; color: #dd99ff; }
 .card.b-gray   { background: #333; border-color: #555; color: #888; }
 .card.b-gray-base   { background: #363328; border-color: #6b6545; color: #999078; }
-.card.b-gray-cities { background: #3d2d3a; border-color: #7a5070; color: #a87898; }
-.card.b-gray-echoes { background: #283646; border-color: #456b8a; color: #708ea8; }
+.card.b-gray-cities { background: #4a3548; border-color: #9a6890; color: #c090b8; }
+.card.b-gray-echoes { background: #354858; border-color: #6890a8; color: #90b0c8; }
 .card img { width: 20px; height: 20px; display: block; }
 
 /* Set 0 (base) — 2x3 CSS grid */
@@ -141,8 +141,10 @@ body {
 .tri-opt:hover { color: #bbb; }
 .tri-opt.active { color: #aaa; }
 
-/* Unknown mode: mask known cards to look like b-gray unknowns */
-.mode-unknown [data-known] { background: #333 !important; border-color: #555 !important; color: #888 !important; }
+/* Unknown mode: mask known cards to look like set-specific unknowns */
+.mode-unknown [data-known] { background: #363328 !important; border-color: #6b6545 !important; color: #999078 !important; }
+.mode-unknown [data-set="echoes"] [data-known] { background: #354858 !important; border-color: #6890a8 !important; color: #90b0c8 !important; }
+.mode-unknown [data-set="cities"] [data-known] { background: #4a3548 !important; border-color: #9a6890 !important; color: #c090b8 !important; }
 .mode-unknown [data-known] .cb-tl,
 .mode-unknown [data-known] .cb-name,
 .mode-unknown [data-known] .cb-bl,
