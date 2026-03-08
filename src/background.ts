@@ -11,7 +11,7 @@ import cardInfoRaw from "../assets/bga/innovation/card_info.json";
 
 const BADGE_CLEAR_DELAY_MS = 5000;
 const EXTRACTION_TIMEOUT_MS = 60000;
-const BGA_URL_PATTERN = /^https?:\/\/([a-z0-9]+\.)?boardgamearena\.com\/.*[?&]table=\d/;
+const BGA_URL_PATTERN = /^https:\/\/([a-z0-9]+\.)?boardgamearena\.com\/.*[?&]table=\d/;
 
 // ---------------------------------------------------------------------------
 // State
@@ -159,7 +159,7 @@ chrome.action.onClicked.addListener(async (tab: chrome.tabs.Tab) => {
     lastResults = null;
     try {
       await chrome.sidePanel.open({ tabId: tab.id });
-      chrome.runtime.sendMessage({ type: "notAGame", url: tab.url ?? "" }).catch(() => {});
+      chrome.runtime.sendMessage({ type: "notAGame" }).catch(() => {});
     } catch (err) {
       console.warn("Could not open side panel:", err);
     }
@@ -182,6 +182,9 @@ chrome.action.onClicked.addListener(async (tab: chrome.tabs.Tab) => {
   } catch (err) {
     console.error("BGA Assistant error:", err);
     setBadge(tab.id, "ERR", "#D32F2F");
+    lastResults = null;
+    const errorMsg = err instanceof Error ? err.message : String(err);
+    chrome.runtime.sendMessage({ type: "gameError", error: errorMsg }).catch(() => {});
   } finally {
     extracting = false;
     clearBadgeLater(tab.id);
@@ -203,17 +206,26 @@ async function handleNavigation(initialTabId: number): Promise<void> {
     extracting = true;
     try {
       const tab = await chrome.tabs.get(tabId);
+      if (tab.status !== "complete") break;
       const nav = classifyNavigation(tab.url, lastResults?.tableNumber ?? null);
       if (nav.action === "extract") {
-        await extractFromTab(tabId, tab.url ?? "", nav.tableNumber);
+        chrome.runtime.sendMessage({ type: "loading" }).catch(() => {});
+        try {
+          await extractFromTab(tabId, tab.url ?? "", nav.tableNumber);
+        } catch (err) {
+          console.error("Extraction error:", err);
+          lastResults = null;
+          const errorMsg = err instanceof Error ? err.message : String(err);
+          chrome.runtime.sendMessage({ type: "gameError", error: errorMsg }).catch(() => {});
+        }
       } else if (nav.action === "showHelp") {
         lastResults = null;
-        chrome.runtime.sendMessage({ type: "notAGame", url: nav.url }).catch(() => {});
+        chrome.runtime.sendMessage({ type: "notAGame" }).catch(() => {});
       }
     } catch (err) {
       console.error("Navigation error:", err);
       lastResults = null;
-      chrome.runtime.sendMessage({ type: "notAGame", url: "" }).catch(() => {});
+      chrome.runtime.sendMessage({ type: "notAGame" }).catch(() => {});
     } finally {
       extracting = false;
     }
