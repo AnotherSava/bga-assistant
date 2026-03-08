@@ -6,17 +6,17 @@ A Chrome extension for [Board Game Arena](https://boardgamearena.com) that keeps
 
 ### Innovation
 
-Reads the full game log from [Innovation](https://boardgamegeek.com/boardgame/63888/innovation) tables and reconstructs the game state — deck stack order, hand contents, score piles — displayed as a visual summary in a Chrome side panel.
+Reads the full game log from [Innovation](https://boardgamegeek.com/boardgame/63888/innovation) tables and reconstructs the game state — deck stack order, hand contents, score piles — displayed as a visual summary in a Chrome side panel. Supports the base game and the Echoes of the Past and Cities of Destiny expansions.
 
 - Live tracking: while the side panel is open, the display automatically updates when the game progresses — a green status dot appears in the status bar
 - Auto-update: while the side panel is open, switching to another supported game tab automatically extracts and displays its state
 - Status bar: shows the table number and timestamp of the last game log action
 - Card grids: hands, scores, deck, full card list, achievements
-- Set toggle: switch between Base and Cities card sets for deck and card list
+- Set toggle: switch between Base, Echoes, and Cities card sets for deck and card list
 - Filter toggle: All / Unknown (show only unaccounted cards)
 - Layout toggle: Wide (one row per age) / Tall (color columns)
 - Section selector: eye button to show/hide entire sections
-- Hover tooltips: card face images for base cards, names for cities
+- Hover tooltips: card face images with full card details on hover
 - Persistent settings: all toggle states and section visibility are saved across sessions
 - Download: bundled zip with raw data, game log, game state, and standalone summary
 
@@ -81,7 +81,7 @@ src/
     help.ts                  Help page content
 assets/
   bga/innovation/
-    card_info.json           Card database (210 cards: 105 base + 105 cities)
+    card_info.json           Card database (315 cards: 105 base + 105 echoes + 105 cities)
     icons/                   Resource and hex icon PNGs
     cards/                   Full card face images (for tooltips)
     sprites/                 Card sprite sheets (gitignored)

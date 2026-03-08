@@ -18,11 +18,20 @@ Squash all commits on the current feature branch into a single Conventional Comm
    ```
    Fall back to `main` if the command fails.
 
-2. Get the current branch name:
+2. Get the current branch name and working tree status — ralphex manipulates branches outside of Claude Code, so never assume the branch or status from earlier in the conversation:
    ```
    git rev-parse --abbrev-ref HEAD
+   git status
    ```
-   **Abort if on the main branch.** Tell the user to switch to a feature branch first.
+   **If on the main branch**, ralphex may have already finished and switched back. List recent feature branches to find the right one:
+   ```
+   git branch --sort=-committerdate
+   ```
+   Look for a branch that is ahead of main. Ask the user to confirm which branch to use, then check it out:
+   ```
+   git checkout <branch-name>
+   ```
+   If no feature branches exist or none are ahead of main, abort.
 
 3. Check if the remote branch has commits already merged to main:
    ```

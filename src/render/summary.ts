@@ -39,6 +39,12 @@ function iconImg(iconName: string, color: string, spriteIndex: number): string {
   if (iconName === "hex") {
     return `<img src="${resolveAssetUrl(`assets/bga/innovation/icons/hex_${spriteIndex}.png`)}" width="20" height="20" alt="${iconName}">`;
   }
+  if (iconName === "hexnote") {
+    return `<img src="${resolveAssetUrl("assets/bga/innovation/icons/hexnote_purple.png")}" width="20" height="20" alt="${iconName}">`;
+  }
+  if (iconName === "echo") {
+    return `<img src="${resolveAssetUrl("assets/bga/innovation/icons/echo.svg")}" width="20" height="20" alt="${iconName}">`;
+  }
   if (iconName === "left" || iconName === "right" || iconName === "up") {
     return `<img src="${resolveAssetUrl(`assets/bga/innovation/icons/arrow_${color}.png`)}" width="20" height="20" alt="${iconName}">`;
   }
@@ -61,7 +67,7 @@ function renderKnownCard(info: CardInfo, markResolved: boolean): string {
   const color = colorLabel(info.color);
   const resolvedAttr = markResolved ? " data-known" : "";
 
-  if (info.cardSet === CardSet.BASE) {
+  if (info.cardSet === CardSet.BASE || info.cardSet === CardSet.ECHOES) {
     return `<div class="card card-base b-${color}"${resolvedAttr}>`
       + `<div class="cb-tl">${iconImg(info.icons[0], color, info.spriteIndex)}</div>`
       + `<div class="cb-name">${escapeHtml(info.name)}</div>`
@@ -90,6 +96,7 @@ function renderUnknownCard(age: number | null, cardSet: CardSet): string {
   let cls: string;
   if (cardSet === CardSet.BASE) cls = "b-gray-base";
   else if (cardSet === CardSet.CITIES) cls = "b-gray-cities";
+  else if (cardSet === CardSet.ECHOES) cls = "b-gray-echoes";
   else cls = "b-gray";
 
   return `<div class="card card-base ${cls}"><div class="cb-tl"></div><div class="cb-name"></div><div class="cb-bl"></div><div class="cb-mid"></div><div class="card-age">${age ?? ""}</div></div>`;
@@ -366,7 +373,7 @@ function makeSection(sectionId: SectionId, title: string, rows: Row[], config: S
   };
 }
 
-function makeCompositeSection(sectionId: SectionId, title: string, baseRows: Row[], citiesRows: Row[], config: SectionConfig, options: { hasUnknown?: boolean; columnCount?: number; arrangeByColumns?: boolean }): SectionData {
+function makeCompositeSection(sectionId: SectionId, title: string, baseRows: Row[], echoesRows: Row[], citiesRows: Row[], config: SectionConfig, options: { hasUnknown?: boolean; columnCount?: number; arrangeByColumns?: boolean }): SectionData {
   const toggle = compositeToggle(sectionId, config.defaultVisibility);
   const extraToggles: Toggle[] = [];
   if (options.hasUnknown) {
@@ -383,7 +390,7 @@ function makeCompositeSection(sectionId: SectionId, title: string, baseRows: Row
   if (options.columnCount && options.columnCount > 0 && config.defaultLayout) {
     extraToggles.push(layoutToggle(sectionId, config.defaultLayout));
   }
-  const allRows = [...baseRows, ...citiesRows];
+  const allRows = [...baseRows, ...echoesRows, ...citiesRows];
   const empty = !allRows.some(row => row.cards.length > 0);
 
   return {
@@ -391,7 +398,7 @@ function makeCompositeSection(sectionId: SectionId, title: string, baseRows: Row
     title,
     toggle,
     extraToggles,
-    sets: [{ set: "base", rows: baseRows }, { set: "cities", rows: citiesRows }],
+    sets: [{ set: "base", rows: baseRows }, { set: "echoes", rows: echoesRows }, { set: "cities", rows: citiesRows }],
     columnCount: options.columnCount ?? 0,
     arrangeByColumns: options.arrangeByColumns ?? true,
     empty,
@@ -413,8 +420,8 @@ export function renderSummary(gameState: GameState, cardDb: CardDatabase, perspe
     "score-opponent": () => makeSection("score-opponent", "Score &mdash; opponent", [opponentScore], config["score-opponent"], {}),
     "score-me": () => makeSection("score-me", "Score &mdash; me", prepareMyCards(gameState.scores.get(perspective) ?? [], gameState, cardDb), config["score-me"], {}),
     "achievements": () => makeSection("achievements", "Achievements", [achievements], config["achievements"], { columnCount: TALL_COLUMNS, arrangeByColumns: false }),
-    "deck": () => makeCompositeSection("deck", "Deck", prepareDeck(gameState, CardSet.BASE, cardDb), prepareDeck(gameState, CardSet.CITIES, cardDb), config["deck"], {}),
-    "cards": () => makeCompositeSection("cards", "Cards", prepareAllCards(gameState, CardSet.BASE, cardDb), prepareAllCards(gameState, CardSet.CITIES, cardDb), config["cards"], { hasUnknown: true, columnCount: TALL_COLUMNS }),
+    "deck": () => makeCompositeSection("deck", "Deck", prepareDeck(gameState, CardSet.BASE, cardDb), prepareDeck(gameState, CardSet.ECHOES, cardDb), prepareDeck(gameState, CardSet.CITIES, cardDb), config["deck"], {}),
+    "cards": () => makeCompositeSection("cards", "Cards", prepareAllCards(gameState, CardSet.BASE, cardDb), prepareAllCards(gameState, CardSet.ECHOES, cardDb), prepareAllCards(gameState, CardSet.CITIES, cardDb), config["cards"], { hasUnknown: true, columnCount: TALL_COLUMNS }),
   };
 
   let html = "";
@@ -486,7 +493,7 @@ document.querySelectorAll('.tri-toggle').forEach(function(toggle) {
     }
     if (mode === 'none') {
       target.style.display = 'none';
-    } else if (mode === 'base' || mode === 'cities') {
+    } else if (mode === 'base' || mode === 'echoes' || mode === 'cities') {
       target.style.display = '';
       target.querySelectorAll('[data-set]').forEach(function(el) {
         el.style.display = el.getAttribute('data-set') === mode ? '' : 'none';

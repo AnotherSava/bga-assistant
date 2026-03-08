@@ -20,11 +20,12 @@ export const ICON_MAP: Record<string, string> = {
 export const SET_MAP: Record<string, string> = {
   "0": "base",
   "2": "cities",
+  "3": "echoes",
 };
 
 /** Known BGA expansion type ids not yet supported -> display names. */
 const UNSUPPORTED_EXPANSION_NAMES: Record<string, string> = {
-  "3": "Echoes of the Past",
+  "1": "Figures",
 };
 
 // ---------------------------------------------------------------------------
@@ -61,6 +62,7 @@ export interface GameLog {
   currentPlayerId: string;
   myHand: string[];
   log: GameLogEntry[];
+  expansions: { echoes: boolean };
 }
 
 // ---------------------------------------------------------------------------
@@ -181,6 +183,7 @@ export function processRawLog(rawData: RawExtractionData): GameLog {
   }
 
   // Pass 2: iterate spectator notifications (the canonical ordering).
+  let hasEchoesTransfer = false;
   for (const packet of packets) {
     const moveId = packet.move_id!;
 
@@ -204,6 +207,8 @@ export function processRawLog(rawData: RawExtractionData): GameLog {
           if (expansionName) throw new Error(`This table uses the "${expansionName}" expansion, which is not yet supported.`);
           throw new Error(`Unknown card set type ID: ${setTypeId}`);
         }
+
+        if (cardSet === "echoes") hasEchoesTransfer = true;
 
         const entry: TransferEntry = {
           type: "transfer",
@@ -236,5 +241,5 @@ export function processRawLog(rawData: RawExtractionData): GameLog {
     }
   }
 
-  return { players: playerNames, currentPlayerId: rawData.currentPlayerId ?? "", myHand, log };
+  return { players: playerNames, currentPlayerId: rawData.currentPlayerId ?? "", myHand, log, expansions: { echoes: hasEchoesTransfer } };
 }

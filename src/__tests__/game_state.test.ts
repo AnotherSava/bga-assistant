@@ -43,9 +43,9 @@ function createGameState(): GameState {
   return new GameState(cardDb, PLAYERS, PERSPECTIVE);
 }
 
-function createInitializedGameState(): GameState {
+function createInitializedGameState(expansions?: { echoes: boolean }): GameState {
   const gs = createGameState();
-  gs.initGame();
+  gs.initGame(expansions);
   return gs;
 }
 
@@ -1057,5 +1057,115 @@ describe("propagation with many resolved cards", () => {
     ];
     const resolved = allCards.filter(c => c.isResolved);
     expect(resolved.length).toBe(groupNames.length);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Echoes expansion: initial deal
+// ---------------------------------------------------------------------------
+
+describe("echoes expansion initGame", () => {
+  it("deals 1 base + 1 echoes age-1 card per player when echoes active", () => {
+    const gs = createInitializedGameState({ echoes: true });
+    for (const player of PLAYERS) {
+      const hand = gs.hands.get(player)!;
+      expect(hand.length).toBe(2);
+      const sets = hand.map(c => c.cardSet);
+      expect(sets).toContain(CardSet.BASE);
+      expect(sets).toContain(CardSet.ECHOES);
+    }
+  });
+
+  it("removes 1 card from base age-1 deck per player when echoes active", () => {
+    const gs = createInitializedGameState({ echoes: true });
+    const baseAge1Key = ageSetKey(1, CardSet.BASE);
+    const baseGroupSize = cardDb.groups().get(baseAge1Key)!.size;
+    const baseDeck = gs.decks.get(baseAge1Key)!;
+    // base age-1 deck: groupSize - 1 achievement - 1 per player (not 2)
+    expect(baseDeck.length).toBe(baseGroupSize - 1 - PLAYERS.length);
+  });
+
+  it("removes 1 card from echoes age-1 deck per player when echoes active", () => {
+    const gs = createInitializedGameState({ echoes: true });
+    const echoesAge1Key = ageSetKey(1, CardSet.ECHOES);
+    const echoesGroupSize = cardDb.groups().get(echoesAge1Key)!.size;
+    const echoesDeck = gs.decks.get(echoesAge1Key)!;
+    // echoes age-1 deck: groupSize - 1 per player (no achievements from echoes)
+    expect(echoesDeck.length).toBe(echoesGroupSize - PLAYERS.length);
+  });
+
+  it("creates echoes decks for all ages", () => {
+    const gs = createInitializedGameState({ echoes: true });
+    for (let age = 1; age <= 10; age++) {
+      const key = ageSetKey(age, CardSet.ECHOES);
+      const deck = gs.decks.get(key);
+      expect(deck).toBeDefined();
+      expect(deck!.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("deals 2 base age-1 cards when echoes not active (default)", () => {
+    const gs = createInitializedGameState();
+    for (const player of PLAYERS) {
+      const hand = gs.hands.get(player)!;
+      expect(hand.length).toBe(2);
+      for (const card of hand) {
+        expect(card.cardSet).toBe(CardSet.BASE);
+        expect(card.age).toBe(1);
+      }
+    }
+  });
+
+  it("deals 2 base age-1 cards when echoes explicitly false", () => {
+    const gs = createInitializedGameState({ echoes: false });
+    for (const player of PLAYERS) {
+      const hand = gs.hands.get(player)!;
+      expect(hand.length).toBe(2);
+      for (const card of hand) {
+        expect(card.cardSet).toBe(CardSet.BASE);
+      }
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Echoes expansion: resolveHand with mixed sets
+// ---------------------------------------------------------------------------
+
+describe("echoes resolveHand", () => {
+  it("resolves mixed-set hand cards by candidate matching", () => {
+    const gs = createInitializedGameState({ echoes: true });
+    // Find a base age-1 card and an echoes age-1 card from the database
+    const baseNames = [...cardDb.groups().get(ageSetKey(1, CardSet.BASE))!];
+    const echoesNames = [...cardDb.groups().get(ageSetKey(1, CardSet.ECHOES))!];
+    const baseName = baseNames[0];
+    const echoesName = echoesNames[0];
+
+    // Resolve with echoes name first, base second (opposite of deal order)
+    gs.resolveHand("Alice", [echoesName, baseName]);
+    const hand = gs.hands.get("Alice")!;
+    const resolved = hand.filter(c => c.isResolved);
+    expect(resolved.length).toBe(2);
+    const resolvedNames = resolved.map(c => c.resolvedName).sort();
+    expect(resolvedNames).toEqual([baseName, echoesName].sort());
+  });
+
+  it("propagates constraints in both base and echoes groups", () => {
+    const gs = createInitializedGameState({ echoes: true });
+    const baseNames = [...cardDb.groups().get(ageSetKey(1, CardSet.BASE))!];
+    const echoesNames = [...cardDb.groups().get(ageSetKey(1, CardSet.ECHOES))!];
+
+    gs.resolveHand("Alice", [baseNames[0], echoesNames[0]]);
+
+    // Base deck should not contain the resolved base card
+    const baseDeck = gs.decks.get(ageSetKey(1, CardSet.BASE))!;
+    for (const card of baseDeck) {
+      expect(card.candidates.has(baseNames[0])).toBe(false);
+    }
+    // Echoes deck should not contain the resolved echoes card
+    const echoesDeck = gs.decks.get(ageSetKey(1, CardSet.ECHOES))!;
+    for (const card of echoesDeck) {
+      expect(card.candidates.has(echoesNames[0])).toBe(false);
+    }
   });
 });

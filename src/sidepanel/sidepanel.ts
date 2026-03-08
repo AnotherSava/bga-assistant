@@ -127,7 +127,7 @@ function applyToggleMode(toggle: HTMLElement, mode: string, targetId: string): v
 
   if (mode === "none") {
     target.style.display = "none";
-  } else if (mode === "base" || mode === "cities") {
+  } else if (mode === "base" || mode === "echoes" || mode === "cities") {
     target.style.display = "";
     target.querySelectorAll<HTMLElement>("[data-set]").forEach((el) => {
       el.style.display = el.getAttribute("data-set") === mode ? "" : "none";

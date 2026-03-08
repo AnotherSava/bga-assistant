@@ -294,6 +294,46 @@ describe("runPipeline", () => {
     expect(result.gameLog).toHaveProperty("myHand");
     expect(result.gameLog).toHaveProperty("log");
   });
+
+  it("detects echoes expansion from myHand card names", () => {
+    const rawData = makeRawData(
+      { "1": "Alice", "2": "Bob" },
+      [],
+      {
+        my_hand: [{ id: 1 }, { id: 2 }],
+        cards: { "1": { name: "Pottery" }, "2": { name: "Bangle" } },
+      },
+    );
+    const result = runPipeline(rawData, cardDb, "12345");
+    expect(result.gameLog.expansions.echoes).toBe(true);
+    // With echoes active, each player gets 1 base + 1 echoes
+    const hand = result.gameState.hands["Alice"];
+    expect(hand.length).toBe(2);
+  });
+
+  it("does not detect echoes when myHand has only base cards", () => {
+    const rawData = makeRawData(
+      { "1": "Alice", "2": "Bob" },
+      [],
+      {
+        my_hand: [{ id: 1 }, { id: 2 }],
+        cards: { "1": { name: "Pottery" }, "2": { name: "Tools" } },
+      },
+    );
+    const result = runPipeline(rawData, cardDb, "12345");
+    expect(result.gameLog.expansions.echoes).toBe(false);
+  });
+
+  it("detects echoes from transfers even without myHand", () => {
+    const packets = transferPair(
+      1,
+      { type: "3" },
+      { name: "Bangle", age: 1, location_from: "deck", location_to: "hand", owner_from: "0", owner_to: "1", meld_keyword: false },
+    );
+    const rawData = makeRawData({ "1": "Alice", "2": "Bob" }, packets);
+    const result = runPipeline(rawData, cardDb, "12345");
+    expect(result.gameLog.expansions.echoes).toBe(true);
+  });
 });
 
 describe("classifyNavigation", () => {

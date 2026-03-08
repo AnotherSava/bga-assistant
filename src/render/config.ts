@@ -1,7 +1,7 @@
 // Section layout configuration: visibility/layout defaults.
 // Section order follows the SECTION_IDS array order.
 
-export type Visibility = "show" | "hide" | "none" | "unknown" | "base" | "cities";
+export type Visibility = "show" | "hide" | "none" | "unknown" | "base" | "echoes" | "cities";
 export type Layout = "wide" | "tall";
 export type Filter = "all" | "unknown";
 
@@ -89,15 +89,16 @@ export function layoutToggle(sectionId: SectionId, defaultLayout: Layout): Toggl
   };
 }
 
-/** Build a composite set toggle (Hide/Base/Cities) for merged sections. */
+/** Build a composite set toggle (Hide/Base/Echoes/Cities) for merged sections. */
 export function compositeToggle(sectionId: SectionId, defaultVisibility: Visibility): Toggle {
-  const defaultMode = defaultVisibility === "base" || defaultVisibility === "cities" ? defaultVisibility : "none";
+  const defaultMode = defaultVisibility === "base" || defaultVisibility === "echoes" || defaultVisibility === "cities" ? defaultVisibility : "none";
   return {
     targetId: sectionId,
     defaultMode,
     options: [
       { mode: "none", label: "Hide", active: defaultMode === "none" },
       { mode: "base", label: "Base", active: defaultMode === "base" },
+      { mode: "echoes", label: "Echoes", active: defaultMode === "echoes" },
       { mode: "cities", label: "Cities", active: defaultMode === "cities" },
     ],
   };

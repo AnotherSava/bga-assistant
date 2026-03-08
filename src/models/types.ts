@@ -6,7 +6,8 @@
 
 export enum CardSet {
   BASE = 0,
-  CITIES = 3,
+  CITIES = 2,
+  ECHOES = 3,
 }
 
 export enum Color {
@@ -27,11 +28,12 @@ export function cardSetLabel(cardSet: CardSet): string {
   return CardSet[cardSet].toLowerCase();
 }
 
-/** Parse a lowercase label ("base" | "cities") to a CardSet enum. */
+/** Parse a lowercase label ("base" | "cities" | "echoes") to a CardSet enum. */
 export function cardSetFromLabel(label: string): CardSet {
   const upper = label.toUpperCase();
   if (upper === "BASE") return CardSet.BASE;
   if (upper === "CITIES") return CardSet.CITIES;
+  if (upper === "ECHOES") return CardSet.ECHOES;
   throw new Error(`Unknown card set label: ${label}`);
 }
 
@@ -164,7 +166,7 @@ export class CardDatabase {
     for (let idx = 0; idx < rawEntries.length; idx++) {
       const item = rawEntries[idx];
       if (item === null || item === undefined || !("age" in item) || !("color" in item)) continue;
-      if (item.set !== CardSet.BASE && item.set !== CardSet.CITIES) continue;
+      if (item.set !== CardSet.BASE && item.set !== CardSet.CITIES && item.set !== CardSet.ECHOES) continue;
 
       const indexName = cardIndex(item.name);
       const color = COLOR_MAP[item.color.toLowerCase()];

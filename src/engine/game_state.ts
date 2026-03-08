@@ -143,7 +143,9 @@ export class GameState {
   // ------------------------------------------------------------------
 
   /** Set up initial game state: all cards in decks, achievements, initial deal. */
-  initGame(): void {
+  initGame(expansions?: { echoes: boolean }): void {
+    const echoesActive = expansions?.echoes ?? false;
+
     // Create all cards in decks
     for (const [groupKey, indexNames] of this.cardDb.groups()) {
       const deck: Card[] = [];
@@ -160,24 +162,31 @@ export class GameState {
       this.achievements.push(deck.pop()!);
     }
 
-    // Deal 2 base age-1 cards per player
-    const age1Deck = this.decks.get(ageSetKey(1, CardSet.BASE))!;
+    // Deal initial hand: 1 base + 1 echoes age-1 when echoes active, 2 base age-1 otherwise
+    const baseAge1Deck = this.decks.get(ageSetKey(1, CardSet.BASE))!;
+    const echoesAge1Deck = echoesActive ? this.decks.get(ageSetKey(1, CardSet.ECHOES)) : undefined;
     for (const player of this.players) {
       const hand = this.hands.get(player)!;
-      hand.push(age1Deck.pop()!);
-      hand.push(age1Deck.pop()!);
+      hand.push(baseAge1Deck.pop()!);
+      if (echoesActive && echoesAge1Deck) {
+        hand.push(echoesAge1Deck.pop()!);
+      } else {
+        hand.push(baseAge1Deck.pop()!);
+      }
     }
   }
 
   /** Resolve initial hand cards right after initGame. */
   resolveHand(player: string, cardNames: string[]): void {
     const hand = this.hands.get(player)!;
-    for (let i = 0; i < cardNames.length; i++) {
-      const idx = cardNames[i];
-      const card = hand[i];
+    const resolved = new Set<Card>();
+    for (const idx of cardNames) {
+      const card = hand.find(c => !resolved.has(c) && c.candidates.has(idx));
+      if (!card) throw new Error(`Cannot resolve hand card "${idx}" for ${player}`);
       const info = this.cardDb.get(idx)!;
       const groupKey = ageSetKey(info.age, info.cardSet);
       card.resolve(idx);
+      resolved.add(card);
       this.propagate(groupKey);
     }
   }

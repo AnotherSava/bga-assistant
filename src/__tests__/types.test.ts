@@ -37,22 +37,25 @@ function loadCardDatabase(): CardDatabase {
 describe("CardSet enum", () => {
   it("has correct numeric values", () => {
     expect(CardSet.BASE).toBe(0);
-    expect(CardSet.CITIES).toBe(3);
+    expect(CardSet.CITIES).toBe(2);
+    expect(CardSet.ECHOES).toBe(3);
   });
 
   it("cardSetLabel returns lowercase", () => {
     expect(cardSetLabel(CardSet.BASE)).toBe("base");
     expect(cardSetLabel(CardSet.CITIES)).toBe("cities");
+    expect(cardSetLabel(CardSet.ECHOES)).toBe("echoes");
   });
 
   it("cardSetFromLabel parses labels", () => {
     expect(cardSetFromLabel("base")).toBe(CardSet.BASE);
     expect(cardSetFromLabel("CITIES")).toBe(CardSet.CITIES);
+    expect(cardSetFromLabel("Echoes")).toBe(CardSet.ECHOES);
     expect(cardSetFromLabel("Base")).toBe(CardSet.BASE);
   });
 
   it("cardSetFromLabel throws on unknown label", () => {
-    expect(() => cardSetFromLabel("echoes")).toThrow("Unknown card set label: echoes");
+    expect(() => cardSetFromLabel("figures")).toThrow("Unknown card set label: figures");
   });
 });
 
@@ -86,7 +89,7 @@ describe("AgeSetKey", () => {
 
   it("round-trips cities cards", () => {
     const key = ageSetKey(5, CardSet.CITIES);
-    expect(key).toBe("5:3");
+    expect(key).toBe("5:2");
     const parsed = parseAgeSetKey(key);
     expect(parsed.age).toBe(5);
     expect(parsed.cardSet).toBe(CardSet.CITIES);
@@ -127,7 +130,7 @@ describe("Card", () => {
 
   it("groupKey returns correct AgeSetKey", () => {
     const card = new Card(5, CardSet.CITIES);
-    expect(card.groupKey).toBe("5:3");
+    expect(card.groupKey).toBe("5:2");
   });
 
   it("resolve sets single candidate", () => {
@@ -302,12 +305,14 @@ describe("CardDatabase", () => {
       null,
       { name: "Alpha", age: 1, color: "blue", set: 0, icons: ["hex", "crown"], dogmas: ["Do something"] },
       { name: "Beta", age: 1, color: "red", set: 0, icons: ["leaf", "factory"], dogmas: [] },
-      { name: "CityA", age: 1, color: "green", set: 3, icons: ["castle"], dogmas: [] },
+      { name: "CityA", age: 1, color: "green", set: 2, icons: ["castle"], dogmas: [] },
+      { name: "EchoA", age: 1, color: "purple", set: 3, icons: ["hex", "castle", "echo", "bonus-1"], dogmas: [] },
     ]);
-    expect(db.size).toBe(3);
+    expect(db.size).toBe(4);
     expect(db.get("alpha")!.spriteIndex).toBe(1);
     expect(db.get("beta")!.spriteIndex).toBe(2);
     expect(db.get("citya")!.cardSet).toBe(CardSet.CITIES);
+    expect(db.get("echoa")!.cardSet).toBe(CardSet.ECHOES);
 
     const baseAge1 = db.groupInfos(1, CardSet.BASE);
     expect(baseAge1.length).toBe(2);
@@ -316,6 +321,10 @@ describe("CardDatabase", () => {
     const citiesAge1 = db.groupInfos(1, CardSet.CITIES);
     expect(citiesAge1.length).toBe(1);
     expect(citiesAge1[0].name).toBe("CityA");
+
+    const echoesAge1 = db.groupInfos(1, CardSet.ECHOES);
+    expect(echoesAge1.length).toBe(1);
+    expect(echoesAge1[0].name).toBe("EchoA");
   });
 });
 

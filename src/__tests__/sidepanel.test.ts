@@ -120,22 +120,33 @@ describe("visibilityToggle", () => {
 });
 
 describe("compositeToggle", () => {
-  it("builds Hide/Base/Cities toggle with base default", () => {
+  it("builds Hide/Base/Echoes/Cities toggle with base default", () => {
     const toggle = compositeToggle("deck", "base");
     expect(toggle.targetId).toBe("deck");
     expect(toggle.defaultMode).toBe("base");
-    expect(toggle.options).toHaveLength(3);
+    expect(toggle.options).toHaveLength(4);
     expect(toggle.options[0]).toEqual({ mode: "none", label: "Hide", active: false });
     expect(toggle.options[1]).toEqual({ mode: "base", label: "Base", active: true });
-    expect(toggle.options[2]).toEqual({ mode: "cities", label: "Cities", active: false });
+    expect(toggle.options[2]).toEqual({ mode: "echoes", label: "Echoes", active: false });
+    expect(toggle.options[3]).toEqual({ mode: "cities", label: "Cities", active: false });
   });
 
-  it("builds Hide/Base/Cities toggle with none default", () => {
+  it("builds Hide/Base/Echoes/Cities toggle with none default", () => {
     const toggle = compositeToggle("cards", "none");
     expect(toggle.defaultMode).toBe("none");
     expect(toggle.options[0].active).toBe(true);
     expect(toggle.options[1].active).toBe(false);
     expect(toggle.options[2].active).toBe(false);
+    expect(toggle.options[3].active).toBe(false);
+  });
+
+  it("builds toggle with echoes default", () => {
+    const toggle = compositeToggle("deck", "echoes");
+    expect(toggle.defaultMode).toBe("echoes");
+    expect(toggle.options[0].active).toBe(false);
+    expect(toggle.options[1].active).toBe(false);
+    expect(toggle.options[2].active).toBe(true);
+    expect(toggle.options[3].active).toBe(false);
   });
 });
 
@@ -235,11 +246,11 @@ describe("renderSummary", () => {
     expect(html).toContain('id="cards" class="mode-unknown"');
   });
 
-  it("deck section shows base set by default and hides cities", () => {
+  it("deck section shows base set by default and hides echoes/cities", () => {
     const gs = makeGameState(["Alice", "Bob"], "Alice");
     const html = renderSummary(gs, cardDb, "Alice", ["Alice", "Bob"], "12345");
 
-    // Extract deck section content — use enough chars to include both sets
+    // Extract deck section content — use enough chars to include all sets
     const deckStart = html.indexOf('id="deck"');
     expect(deckStart).toBeGreaterThan(-1);
     // Find the end of the deck section (next <div class="section"> or end)
@@ -247,14 +258,16 @@ describe("renderSummary", () => {
     const deckHtml = nextSectionStart > deckStart ? html.slice(deckStart, nextSectionStart) : html.slice(deckStart);
 
     expect(deckHtml).toContain('data-set="base"');
+    expect(deckHtml).toContain('data-set="echoes"');
     expect(deckHtml).toContain('data-set="cities"');
     // Base visible (no style="display:none" on base set div)
     expect(deckHtml).toMatch(/data-set="base">/)
-    // Cities hidden
+    // Echoes and cities hidden
+    expect(deckHtml).toContain('data-set="echoes" style="display:none"');
     expect(deckHtml).toContain('data-set="cities" style="display:none"');
   });
 
-  it("cards section contains both data-set containers", () => {
+  it("cards section contains all three data-set containers", () => {
     const gs = makeGameState(["Alice", "Bob"], "Alice");
     const html = renderSummary(gs, cardDb, "Alice", ["Alice", "Bob"], "12345");
 
@@ -262,22 +275,25 @@ describe("renderSummary", () => {
     const cardsHtml = html.slice(cardsStart);
 
     expect(cardsHtml).toContain('data-set="base"');
+    expect(cardsHtml).toContain('data-set="echoes"');
     expect(cardsHtml).toContain('data-set="cities"');
   });
 
-  it("deck section has Hide/Base/Cities composite toggle", () => {
+  it("deck section has Hide/Base/Echoes/Cities composite toggle", () => {
     const gs = makeGameState(["Alice", "Bob"], "Alice");
     const html = renderSummary(gs, cardDb, "Alice", ["Alice", "Bob"], "12345");
 
     // Find the Deck section title area
     const deckTitleIdx = html.indexOf(">Deck");
-    const deckTitleArea = html.slice(deckTitleIdx, deckTitleIdx + 500);
+    const deckTitleArea = html.slice(deckTitleIdx, deckTitleIdx + 600);
 
     expect(deckTitleArea).toContain('data-mode="none"');
     expect(deckTitleArea).toContain('data-mode="base"');
+    expect(deckTitleArea).toContain('data-mode="echoes"');
     expect(deckTitleArea).toContain('data-mode="cities"');
     expect(deckTitleArea).toContain(">Hide<");
     expect(deckTitleArea).toContain(">Base<");
+    expect(deckTitleArea).toContain(">Echoes<");
     expect(deckTitleArea).toContain(">Cities<");
   });
 
@@ -287,11 +303,12 @@ describe("renderSummary", () => {
 
     // Find the Cards section title area
     const cardsTitleIdx = html.indexOf(">Cards");
-    const cardsTitleArea = html.slice(cardsTitleIdx, cardsTitleIdx + 800);
+    const cardsTitleArea = html.slice(cardsTitleIdx, cardsTitleIdx + 1000);
 
-    // Composite toggle: Hide/Base/Cities
+    // Composite toggle: Hide/Base/Echoes/Cities
     expect(cardsTitleArea).toContain(">Hide<");
     expect(cardsTitleArea).toContain(">Base<");
+    expect(cardsTitleArea).toContain(">Echoes<");
     expect(cardsTitleArea).toContain(">Cities<");
     // Visibility toggle: All/Unknown (no None — Hide in composite toggle replaces it)
     expect(cardsTitleArea).toContain(">All<");
@@ -381,8 +398,8 @@ describe("renderSummary", () => {
     expect(cardsHtml).toContain("Oars");
     // Should NOT be gray placeholders in the card list
     const baseSetStart = cardsHtml.indexOf('data-set="base"');
-    const citiesSetStart = cardsHtml.indexOf('data-set="cities"');
-    const baseSetHtml = cardsHtml.slice(baseSetStart, citiesSetStart);
+    const echoesSetStart = cardsHtml.indexOf('data-set="echoes"');
+    const baseSetHtml = cardsHtml.slice(baseSetStart, echoesSetStart);
     expect(baseSetHtml).not.toContain("b-gray-base");
   });
 
@@ -394,8 +411,8 @@ describe("renderSummary", () => {
     const cardsStart = html.indexOf('id="cards"');
     const cardsHtml = html.slice(cardsStart);
     const baseSetStart = cardsHtml.indexOf('data-set="base"');
-    const citiesSetStart = cardsHtml.indexOf('data-set="cities"');
-    const baseSetHtml = cardsHtml.slice(baseSetStart, citiesSetStart);
+    const echoesSetStart = cardsHtml.indexOf('data-set="echoes"');
+    const baseSetHtml = cardsHtml.slice(baseSetStart, echoesSetStart);
 
     // Resolved card (Agriculture) should have data-known
     const agricultureIdx = baseSetHtml.indexOf("Agriculture");
@@ -488,8 +505,9 @@ describe("SUMMARY_JS", () => {
     expect(SUMMARY_JS).toContain("mode === 'unknown'");
   });
 
-  it("handles composite modes: base, cities", () => {
+  it("handles composite modes: base, echoes, cities", () => {
     expect(SUMMARY_JS).toContain("mode === 'base'");
+    expect(SUMMARY_JS).toContain("mode === 'echoes'");
     expect(SUMMARY_JS).toContain("mode === 'cities'");
     expect(SUMMARY_JS).toContain("data-set");
   });
@@ -503,6 +521,82 @@ describe("SUMMARY_JS", () => {
 // ---------------------------------------------------------------------------
 // Edge case tests
 // ---------------------------------------------------------------------------
+
+describe("echoes card rendering", () => {
+  function makeEchoesGameState(players: string[], perspective: string): GameState {
+    const gs = new GameState(cardDb, players, perspective);
+    gs.initGame({ echoes: true });
+    return gs;
+  }
+
+  it("renders unknown echoes cards with b-gray-echoes class", () => {
+    const gs = makeEchoesGameState(["Alice", "Bob"], "Alice");
+    const html = renderSummary(gs, cardDb, "Alice", ["Alice", "Bob"], "12345");
+
+    // Echoes-mode deals 1 base + 1 echoes to each player, so hands contain echoes unknowns
+    expect(html).toContain("b-gray-echoes");
+  });
+
+  it("renders known echoes cards with base card layout and card-tip tooltip", () => {
+    const gs = makeEchoesGameState(["Alice", "Bob"], "Alice");
+    // Resolve hand with one echoes card (bangle is an age-1 echoes card)
+    gs.resolveHand("Alice", ["bangle", "agriculture"]);
+    const html = renderSummary(gs, cardDb, "Alice", ["Alice", "Bob"], "12345");
+
+    // Card should use card-base layout (same as base cards)
+    expect(html).toContain("Bangle");
+    // Extract the full card div for Bangle
+    const bangleIdx = html.indexOf("Bangle");
+    const bangleCardStart = html.lastIndexOf('<div class="card ', bangleIdx);
+    // Find the closing </div> for the card-tip (the outermost card div ends after card-tip's closing div)
+    const bangleSnippet = html.slice(bangleCardStart, bangleCardStart + 800);
+    expect(bangleSnippet).toContain("card-base");
+    // Should have card-tip with image tooltip (not card-tip-text like cities)
+    expect(bangleSnippet).toContain("card-tip");
+  });
+
+  it("renders echo icon as SVG image", () => {
+    const gs = makeEchoesGameState(["Alice", "Bob"], "Alice");
+    // Bangle has icons: ["hex", "castle", "echo", "bonus-1"]
+    gs.resolveHand("Alice", ["bangle", "agriculture"]);
+    const html = renderSummary(gs, cardDb, "Alice", ["Alice", "Bob"], "12345");
+
+    expect(html).toContain("echo.svg");
+    expect(html).toContain('alt="echo"');
+  });
+
+  it("renders hexnote icon as hexnote_purple.png image", () => {
+    const gs = makeEchoesGameState(["Alice", "Bob"], "Alice");
+    // Bell has icons: ["castle", "hexnote", "castle", "echo"]
+    gs.resolveHand("Alice", ["bell", "agriculture"]);
+    const html = renderSummary(gs, cardDb, "Alice", ["Alice", "Bob"], "12345");
+
+    expect(html).toContain("hexnote_purple.png");
+    expect(html).toContain('alt="hexnote"');
+  });
+
+  it("renders echoes known cards with correct color classes", () => {
+    const gs = makeEchoesGameState(["Alice", "Bob"], "Alice");
+    // Bangle is red, Bell is purple
+    gs.resolveHand("Alice", ["bangle", "agriculture"]);
+    const html = renderSummary(gs, cardDb, "Alice", ["Alice", "Bob"], "12345");
+
+    const bangleIdx = html.indexOf("Bangle");
+    const bangleCardStart = html.lastIndexOf('<div class="card ', bangleIdx);
+    const bangleSnippet = html.slice(bangleCardStart, bangleIdx);
+    expect(bangleSnippet).toContain("b-red");
+  });
+
+  it("renders echoes card image tooltips with correct sprite index", () => {
+    const gs = makeEchoesGameState(["Alice", "Bob"], "Alice");
+    gs.resolveHand("Alice", ["bangle", "agriculture"]);
+    const html = renderSummary(gs, cardDb, "Alice", ["Alice", "Bob"], "12345");
+
+    // Bangle card should have its card image in tooltip
+    const bangleInfo = cardDb.get("bangle")!;
+    expect(html).toContain(`card_${bangleInfo.spriteIndex}.png`);
+  });
+});
 
 describe("rendering edge cases", () => {
   it("handles game state with no cities cards", () => {

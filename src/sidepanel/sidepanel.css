@@ -40,7 +40,8 @@ body {
 .card.b-purple { background: #3a1a5c; border-color: #bb66ff; color: #dd99ff; }
 .card.b-gray   { background: #333; border-color: #555; color: #888; }
 .card.b-gray-base   { background: #363328; border-color: #6b6545; color: #999078; }
-.card.b-gray-cities { background: #362833; border-color: #6b4565; color: #997088; }
+.card.b-gray-cities { background: #3d2d3a; border-color: #7a5070; color: #a87898; }
+.card.b-gray-echoes { background: #283646; border-color: #456b8a; color: #708ea8; }
 .card img { width: 20px; height: 20px; display: block; }
 
 /* Set 0 (base) — 2x3 CSS grid */
@@ -57,7 +58,7 @@ body {
 .cb-mid  { grid-row: 2; grid-column: 2; display: flex; gap: 1px; justify-self: start; }
 .card-base > .card-age { grid-row: 2; grid-column: 3; align-self: center; justify-self: end; }
 
-/* Set 3 (cities) — 2x2 CSS grid, icons only */
+/* Set 2 (cities) — 2x2 CSS grid, icons only */
 .card-cities {
   display: inline-grid;
   grid-template-columns: 62px 25px;

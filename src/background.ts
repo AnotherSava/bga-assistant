@@ -2,7 +2,7 @@
 
 import { processRawLog, type RawExtractionData, type GameLog } from "./engine/process_log.js";
 import { GameState } from "./engine/game_state.js";
-import { CardDatabase } from "./models/types.js";
+import { CardDatabase, CardSet } from "./models/types.js";
 import cardInfoRaw from "../assets/bga/innovation/card_info.json";
 
 // ---------------------------------------------------------------------------
@@ -60,10 +60,22 @@ chrome.tabs.query({ active: true, currentWindow: true }).then((tabs) => {
  */
 export function runPipeline(rawData: RawExtractionData, database: CardDatabase, tableNumber: string): PipelineResults {
   const gameLog = processRawLog(rawData);
+
+  // Supplement transfer-based detection with myHand detection
+  if (!gameLog.expansions.echoes) {
+    for (const name of gameLog.myHand) {
+      const info = database.get(name.toLowerCase());
+      if (info && info.cardSet === CardSet.ECHOES) {
+        gameLog.expansions.echoes = true;
+        break;
+      }
+    }
+  }
+
   const players = Object.values(gameLog.players);
   const perspective = gameLog.currentPlayerId && gameLog.players[gameLog.currentPlayerId] ? gameLog.players[gameLog.currentPlayerId] : players[0];
   const state = new GameState(database, players, perspective);
-  state.initGame();
+  state.initGame(gameLog.expansions);
   state.processLog(gameLog.log, gameLog.myHand);
   return { tableNumber, rawData, gameLog, gameState: state.toJSON() };
 }

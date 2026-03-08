@@ -33,6 +33,7 @@ describe("SET_MAP", () => {
   it("maps BGA set type ids to labels", () => {
     expect(SET_MAP["0"]).toBe("base");
     expect(SET_MAP["2"]).toBe("cities");
+    expect(SET_MAP["3"]).toBe("echoes");
   });
 });
 
@@ -525,5 +526,46 @@ describe("processRawLog", () => {
     if (result.log[0].type === "log") {
       expect(result.log[0].msg).toBe("Alice draws a [5] card.");
     }
+  });
+
+  it("detects echoes expansion from transfers with type 3", () => {
+    const raw: RawExtractionData = {
+      players: { "1": "Alice" },
+      packets: [
+        makePacket(1, [
+          { type: "transferedCard", args: { name: "Bangle", age: 1, location_from: "deck", location_to: "hand", owner_from: "0", owner_to: "1", meld_keyword: false } },
+          { type: "transferedCard_spectator", args: { type: "3" } },
+        ]),
+      ],
+    };
+    const result = processRawLog(raw);
+    expect(result.expansions.echoes).toBe(true);
+  });
+
+  it("does not detect echoes when only base and cities transfers present", () => {
+    const raw: RawExtractionData = {
+      players: { "1": "Alice" },
+      packets: [
+        makePacket(1, [
+          { type: "transferedCard", args: { name: "Archery", age: 1, location_from: "deck", location_to: "hand", owner_from: "0", owner_to: "1", meld_keyword: false } },
+          { type: "transferedCard_spectator", args: { type: "0" } },
+        ]),
+        makePacket(2, [
+          { type: "transferedCard", args: { name: "Jerusalem", age: 1, location_from: "deck", location_to: "hand", owner_from: "0", owner_to: "1", meld_keyword: false } },
+          { type: "transferedCard_spectator", args: { type: "2" } },
+        ]),
+      ],
+    };
+    const result = processRawLog(raw);
+    expect(result.expansions.echoes).toBe(false);
+  });
+
+  it("returns expansions.echoes false for empty packets", () => {
+    const raw: RawExtractionData = {
+      players: { "1": "Alice" },
+      packets: [],
+    };
+    const result = processRawLog(raw);
+    expect(result.expansions.echoes).toBe(false);
   });
 });

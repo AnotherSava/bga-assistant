@@ -161,33 +161,96 @@ describe("sidepanel UI functions", () => {
       expect(tallEl.style.display).toBe("");
     });
 
-    it("handles composite set toggles (base/cities)", () => {
+    it("handles composite set toggles (base/echoes/cities)", () => {
       document.body.innerHTML = `
         <div class="tri-toggle" data-target="section-comp">
           <span class="tri-opt" data-mode="none">Hide</span>
           <span class="tri-opt active" data-mode="base">Base</span>
+          <span class="tri-opt" data-mode="echoes">Echoes</span>
           <span class="tri-opt" data-mode="cities">Cities</span>
         </div>
         <div id="section-comp">
           <div data-set="base">Base content</div>
+          <div data-set="echoes" style="display:none">Echoes content</div>
           <div data-set="cities" style="display:none">Cities content</div>
         </div>
       `;
 
       setupToggles();
-      const citiesOpt = document.querySelector('[data-mode="cities"]') as HTMLElement;
-      citiesOpt.click();
+
+      // Switch to echoes
+      const echoesOpt = document.querySelector('[data-mode="echoes"]') as HTMLElement;
+      echoesOpt.click();
 
       const baseEl = document.querySelector('[data-set="base"]') as HTMLElement;
+      const echoesEl = document.querySelector('[data-set="echoes"]') as HTMLElement;
       const citiesEl = document.querySelector('[data-set="cities"]') as HTMLElement;
       expect(baseEl.style.display).toBe("none");
+      expect(echoesEl.style.display).toBe("");
+      expect(citiesEl.style.display).toBe("none");
+
+      // Switch to cities
+      const citiesOpt = document.querySelector('[data-mode="cities"]') as HTMLElement;
+      citiesOpt.click();
+      expect(baseEl.style.display).toBe("none");
+      expect(echoesEl.style.display).toBe("none");
       expect(citiesEl.style.display).toBe("");
 
       // Switch back to base
       const baseOpt = document.querySelector('[data-mode="base"]') as HTMLElement;
       baseOpt.click();
       expect(baseEl.style.display).toBe("");
+      expect(echoesEl.style.display).toBe("none");
       expect(citiesEl.style.display).toBe("none");
+    });
+
+    it("persists and restores echoes toggle state", () => {
+      document.body.innerHTML = `
+        <div class="tri-toggle" data-target="section-persist">
+          <span class="tri-opt" data-mode="none">Hide</span>
+          <span class="tri-opt active" data-mode="base">Base</span>
+          <span class="tri-opt" data-mode="echoes">Echoes</span>
+          <span class="tri-opt" data-mode="cities">Cities</span>
+        </div>
+        <div id="section-persist">
+          <div data-set="base">Base content</div>
+          <div data-set="echoes" style="display:none">Echoes content</div>
+          <div data-set="cities" style="display:none">Cities content</div>
+        </div>
+      `;
+
+      setupToggles();
+
+      // Switch to echoes
+      const echoesOpt = document.querySelector('[data-mode="echoes"]') as HTMLElement;
+      echoesOpt.click();
+
+      // Verify state was persisted
+      const stored = JSON.parse(localStorage.getItem("bgaa_toggle_state") ?? "{}");
+      expect(stored["section-persist"]).toContain("echoes");
+
+      // Re-render and restore
+      document.body.innerHTML = `
+        <div class="tri-toggle" data-target="section-persist">
+          <span class="tri-opt" data-mode="none">Hide</span>
+          <span class="tri-opt active" data-mode="base">Base</span>
+          <span class="tri-opt" data-mode="echoes">Echoes</span>
+          <span class="tri-opt" data-mode="cities">Cities</span>
+        </div>
+        <div id="section-persist">
+          <div data-set="base">Base content</div>
+          <div data-set="echoes" style="display:none">Echoes content</div>
+          <div data-set="cities" style="display:none">Cities content</div>
+        </div>
+      `;
+
+      setupToggles();
+
+      // Verify echoes mode was restored
+      const echoesEl = document.querySelector('[data-set="echoes"]') as HTMLElement;
+      expect(echoesEl.style.display).toBe("");
+      const baseEl = document.querySelector('[data-set="base"]') as HTMLElement;
+      expect(baseEl.style.display).toBe("none");
     });
 
     it("secondary toggle does not override primary none state", () => {
@@ -300,7 +363,7 @@ describe("scroll position preservation", () => {
     const results: PipelineResults = {
       tableNumber: "12345",
       rawData: { packets: [] },
-      gameLog: { currentPlayerId: "1", players: { "1": "Alice", "2": "Bob" }, log: [], myHand: [] },
+      gameLog: { currentPlayerId: "1", players: { "1": "Alice", "2": "Bob" }, log: [], myHand: [], expansions: { echoes: false } },
       gameState: { hands: { "Alice": [], "Bob": [] }, scores: { "Alice": [], "Bob": [] }, boards: { "Alice": [], "Bob": [] }, achievements: [], specialAchievements: [], decks: {}, forecast: {} },
     } as any;
 
