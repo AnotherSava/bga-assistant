@@ -22,6 +22,11 @@ export const SET_MAP: Record<string, string> = {
   "2": "cities",
 };
 
+/** Known BGA expansion type ids not yet supported -> display names. */
+const UNSUPPORTED_EXPANSION_NAMES: Record<string, string> = {
+  "3": "Echoes of the Past",
+};
+
 // ---------------------------------------------------------------------------
 // Raw BGA data types
 // ---------------------------------------------------------------------------
@@ -194,7 +199,11 @@ export function processRawLog(rawData: RawExtractionData): GameLog {
 
         const setTypeId = String(notif.args.type);
         const cardSet = SET_MAP[setTypeId];
-        if (cardSet === undefined) throw new Error(`Unknown card set type ID: ${setTypeId}`);
+        if (cardSet === undefined) {
+          const expansionName = UNSUPPORTED_EXPANSION_NAMES[setTypeId];
+          if (expansionName) throw new Error(`This table uses the "${expansionName}" expansion, which is not yet supported.`);
+          throw new Error(`Unknown card set type ID: ${setTypeId}`);
+        }
 
         const entry: TransferEntry = {
           type: "transfer",
