@@ -180,12 +180,17 @@ body {
 #btn-help { font-size: 14px; font-weight: bold; }
 
 /* Game info */
+.game-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-right: auto;
+  pointer-events: none;
+}
 .game-info {
   color: #bbb;
   font-size: 15px;
-  pointer-events: none;
   white-space: nowrap;
-  margin-right: auto;
 }
 
 /* Zoom indicator */
@@ -201,22 +206,15 @@ body {
 }
 .zoom-indicator.visible { opacity: 1; }
 
-/* Live indicator */
-.live-indicator {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  color: #4caf50;
-  font-size: 11px;
-  font-weight: bold;
-  letter-spacing: 1px;
-  pointer-events: none;
-}
+/* Live indicator — status dot */
 .live-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
   background: #4caf50;
+}
+.live-dot.disconnected {
+  background: #d32f2f;
   animation: live-pulse 1.5s ease-in-out infinite;
 }
 @keyframes live-pulse {
