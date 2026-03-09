@@ -23,8 +23,8 @@ export function renderHelp(errorMessage?: string): string {
   <div class="help-section">
     <div class="help-section-title">How to use</div>
     <ol class="help-steps">
-      <li>Open a table for any supported game on <a href="https://boardgamearena.com" target="_blank">Board Game Arena</a>.</li>
-      <li>Click the extension icon in your toolbar to open the side panel with the game summary.</li>
+      <li>Open a supported game table on <a href="https://boardgamearena.com" target="_blank">Board Game Arena</a>.</li>
+      <li>The toolbar icon brightens up to indicate a supported game is detected. Click it to open the side panel with the game summary.</li>
       <li>When you switch to another supported game tab, the side panel updates automatically.</li>
     </ol>
   </div>

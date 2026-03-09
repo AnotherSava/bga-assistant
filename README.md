@@ -6,7 +6,7 @@ A Chrome extension for [Board Game Arena](https://boardgamearena.com) that keeps
 
 ### Innovation
 
-Reads the full game log from [Innovation](https://boardgamegeek.com/boardgame/63888/innovation) tables and reconstructs the game state — deck stack order, hand contents, score piles — displayed as a visual summary in a Chrome side panel. Supports the base game and the Echoes of the Past and Cities of Destiny expansions.
+Reads the full game log from [Innovation](https://boardgamegeek.com/boardgame/63888/innovation) 2-player tables and reconstructs the game state — deck stack order, hand contents, score piles — displayed as a visual summary in a Chrome side panel. Supports the base game and the Echoes of the Past and Cities of Destiny expansions.
 
 - Live tracking: while the side panel is open, the display automatically updates when the game progresses — a green status dot appears in the status bar
 - Auto-update: while the side panel is open, switching to another supported game tab automatically extracts and displays its state
@@ -19,7 +19,7 @@ Reads the full game log from [Innovation](https://boardgamegeek.com/boardgame/63
 - Hover tooltips: card face images with full card details on hover
 - Auto-hide: three-mode toggle controlling side panel behavior — Never (always open), Leaving BGA (closes on non-BGA tabs), Leaving tables (closes when navigating away from supported game tables)
 - Keyboard shortcut: configurable via `chrome://extensions/shortcuts` to toggle the side panel open/closed
-- Lit icon hint: when auto-hide is active and the panel is closed, the toolbar icon glows on supported game pages
+- Lit icon: the toolbar icon glows when the active tab has a supported game table open
 - Persistent settings: all toggle states, section visibility, and pin mode are saved across sessions
 - Download: bundled zip with raw data, game log, game state, and standalone summary
 
@@ -46,7 +46,7 @@ npm run build
 
 ## Usage
 
-1. Navigate to a supported BGA game page in Chrome
+1. Navigate to a supported BGA game page in Chrome — the toolbar icon brightens up to indicate a supported game is detected
 2. Click the BGA Assistant icon in the toolbar (or use a keyboard shortcut if configured)
 3. The side panel opens with a visual summary of the game state
 4. While viewing a game, the side panel automatically updates when the game progresses — a green dot in the status bar indicates active tracking
