@@ -15,9 +15,6 @@ const LIVE_MIN_INTERVAL_MS = 5000;
 const SUPPORTED_GAMES = ["innovation"];
 const BGA_URL_PATTERN = /^https:\/\/([a-z0-9]+\.)?boardgamearena\.com\/\d+\/(\w+).*[?&]table=\d+/;
 const BGA_DOMAIN_PATTERN = /^https:\/\/([a-z0-9]+\.)?boardgamearena\.com\//;
-const ICON_NORMAL = { "16": "assets/extension/icon-16.png", "48": "assets/extension/icon-48.png", "128": "assets/extension/icon-128.png" };
-const ICON_LIT = { "16": "assets/extension/icon-16-lit.png", "48": "assets/extension/icon-48-lit.png", "128": "assets/extension/icon-128-lit.png" };
-
 // ---------------------------------------------------------------------------
 // State
 // ---------------------------------------------------------------------------
@@ -124,16 +121,177 @@ function timeout(ms: number, message: string): Promise<never> {
 // Icon helpers
 // ---------------------------------------------------------------------------
 
-/** Show lit icon when auto-hide is active and a supported game is detected on the tab. */
-function updateIcon(tabId: number, url: string | undefined): void {
-  if (pinMode === "pinned") return;
-  const isGame = classifyNavigation(url, null).action === "extract";
-  chrome.action.setIcon({ tabId, path: isGame ? ICON_LIT : ICON_NORMAL });
+/**
+ * Probe function injected into the page to check if a supported game is active.
+ * Must be self-contained (no closures or external references).
+ * Returns true if gameui is loaded with exactly 2 players.
+ */
+function probeGameTable(): boolean {
+  const gui = (globalThis as any).gameui;
+  if (!gui?.ajaxcall || !gui.gamedatas?.players) return false;
+  return Object.keys(gui.gamedatas.players).length === 2;
 }
 
-/** Reset icon to normal (unlit) state. */
-function resetIcon(tabId: number): void {
-  chrome.action.setIcon({ tabId, path: ICON_NORMAL });
+// Icon frame paths: 0 = normal (dark), 1–8 = intermediate, 9 = fully lit
+const FRAME_PATHS: Record<string, string>[] = Array.from({ length: 10 }, (_, i) => ({
+  "16": `/assets/extension/icon-16-${i}.png`,
+  "48": `/assets/extension/icon-48-${i}.png`,
+  "128": `/assets/extension/icon-128-${i}.png`,
+}));
+
+/** Load a PNG from an extension URL and return its ImageData at the given size. */
+async function loadIconData(path: string, size: number): Promise<ImageData> {
+  const url = chrome.runtime.getURL(path);
+  const resp = await fetch(url);
+  const blob = await resp.blob();
+  const bitmap = await createImageBitmap(blob, { resizeWidth: size, resizeHeight: size });
+  const canvas = new OffscreenCanvas(size, size);
+  const ctx = canvas.getContext("2d")!;
+  ctx.drawImage(bitmap, 0, 0);
+  return ctx.getImageData(0, 0, size, size);
+}
+
+/** Preloaded ImageData for each frame, keyed by size. */
+type IconImageData = Record<string, ImageData>; // { "16": ImageData, "48": ImageData }
+let frameImageData: IconImageData[] | null = null;
+
+/** Preload all icon frames as ImageData so setIcon needs no file I/O during animation. */
+async function ensureFramesLoaded(): Promise<IconImageData[]> {
+  if (frameImageData) return frameImageData;
+  frameImageData = await Promise.all(
+    FRAME_PATHS.map(async (paths) => {
+      const [d16, d48] = await Promise.all([loadIconData(paths["16"], 16), loadIconData(paths["48"], 48)]);
+      return { "16": d16, "48": d48 };
+    })
+  );
+  return frameImageData;
+}
+
+// Icon animation command: [delay ms, transition ms, target frame 0–9]
+type Command = [delay: number, transitionTime: number, targetFrame: number];
+
+// Panel closed: wait, flash up, flash down, flash up
+const FLASH_FULL: Command[] = [
+  [1000, 100, 9],
+  [500,  150, 0],
+  [250,  100, 9],
+];
+
+// Panel open: wait, light up
+const FLASH_SHORT: Command[] = [
+  [1000, 100, 9],
+];
+
+// Hold lit, then fade to normal
+const FADE_OUT: Command[] = [
+  [300, 300, 0],
+];
+
+// Instant reset to normal
+const INSTANT_NORMAL: Command[] = [
+  [0, 0, 0],
+];
+
+// Instant set to lit (for returning to an already-lit tab)
+const INSTANT_LIT: Command[] = [
+  [0, 0, 9],
+];
+
+/**
+ * Queue-based icon animation controller using the global (default) icon.
+ * All chrome.action.setIcon calls go through this — nothing else touches the icon.
+ * Calling run() cancels any in-progress animation and starts the new sequence.
+ *
+ * Uses global icon (no tabId) because Chrome shows one toolbar icon at a time.
+ * Per-tab "target frame" is tracked separately to avoid re-flashing known game tabs.
+ */
+class IconController {
+  private displayFrame = 0;
+  private tabTargets = new Map<number, number>();
+  private generation = 0;
+
+  run(tabId: number, commands: Command[]): void {
+    const gen = ++this.generation;
+    this.processQueue(tabId, [...commands], gen);
+  }
+
+  /** Current displayed frame (what's showing in the toolbar right now). */
+  getFrame(): number {
+    return this.displayFrame;
+  }
+
+  /** What frame a tab was last animated to (used to avoid re-flashing). */
+  getTabFrame(tabId: number): number {
+    return this.tabTargets.get(tabId) ?? 0;
+  }
+
+  private async processQueue(tabId: number, commands: Command[], gen: number): Promise<void> {
+    const frames = await ensureFramesLoaded();
+    for (const [delay, transitionTime, targetFrame] of commands) {
+      if (this.generation !== gen) return;
+      if (this.displayFrame === targetFrame) {
+        this.tabTargets.set(tabId, targetFrame);
+        continue;
+      }
+      if (delay > 0) {
+        await this.wait(delay);
+        if (this.generation !== gen) return;
+      }
+      if (transitionTime > 0) {
+        const from = this.displayFrame;
+        const steps = Math.abs(targetFrame - from);
+        if (steps > 0) {
+          const stepDuration = transitionTime / steps;
+          const direction = targetFrame > from ? 1 : -1;
+          for (let i = 1; i <= steps; i++) {
+            await this.wait(stepDuration);
+            if (this.generation !== gen) return;
+            this.setGlobalFrame(from + direction * i, frames);
+          }
+        }
+      } else {
+        this.setGlobalFrame(targetFrame, frames);
+      }
+    }
+    if (this.generation === gen) {
+      this.tabTargets.set(tabId, this.displayFrame);
+    }
+  }
+
+  private setGlobalFrame(frame: number, frames: IconImageData[]): void {
+    this.displayFrame = frame;
+    chrome.action.setIcon({ imageData: frames[frame] });
+  }
+
+  private wait(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+}
+
+const iconController = new IconController();
+
+/** Show lit icon when the tab has a supported 2-player game table open. */
+async function updateIcon(tabId: number, url: string | undefined): Promise<void> {
+  const nav = classifyNavigation(url, null);
+  if (nav.action !== "extract") {
+    iconController.run(tabId, iconController.getFrame() > 0 ? FADE_OUT : INSTANT_NORMAL);
+    return;
+  }
+  try {
+    const results = await chrome.scripting.executeScript({ target: { tabId }, func: probeGameTable, world: "MAIN" });
+    const isGame = results?.[0]?.result === true;
+    if (isGame) {
+      if (iconController.getTabFrame(tabId) > 0) {
+        iconController.run(tabId, INSTANT_LIT);
+      } else {
+        iconController.run(tabId, sidePanelOpen ? FLASH_SHORT : FLASH_FULL);
+      }
+    } else {
+      iconController.run(tabId, iconController.getFrame() > 0 ? FADE_OUT : INSTANT_NORMAL);
+    }
+  } catch {
+    iconController.run(tabId, INSTANT_NORMAL);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -265,9 +423,6 @@ chrome.runtime.onConnect.addListener((port: chrome.runtime.Port) => {
   if (port.name !== "sidepanel") return;
   console.log("[live] port connected");
   sidePanelOpen = true;
-
-  // Reset icon to normal when panel opens
-  if (activeTabId !== null) resetIcon(activeTabId);
 
   // After service worker restart, state is lost. Re-inject watcher on the active game tab
   // so it can detect DOM changes and trigger extraction on demand (no immediate BGA query).
@@ -421,16 +576,12 @@ async function handleNavigation(initialTabId: number): Promise<void> {
 // React to tab switching
 chrome.tabs.onActivated.addListener(async (activeInfo) => {
   activeTabId = activeInfo.tabId;
-  if (!sidePanelOpen) {
-    // Update lit icon hint when panel is closed and auto-hide is active
-    if (pinMode !== "pinned") {
-      try {
-        const tab = await chrome.tabs.get(activeInfo.tabId);
-        updateIcon(activeInfo.tabId, tab.url);
-      } catch { /* tab may have been closed */ }
-    }
-    return;
-  }
+  // Update lit icon based on whether tab is a supported game
+  try {
+    const tab = await chrome.tabs.get(activeInfo.tabId);
+    updateIcon(activeInfo.tabId, tab.url);
+  } catch { /* tab may have been closed */ }
+  if (!sidePanelOpen) return;
   if (extracting) {
     pendingNavTabId = activeInfo.tabId;
     return;
@@ -442,13 +593,9 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
 chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
   if (tabId !== activeTabId) return;
   if (changeInfo.status !== "complete") return;
-  if (!sidePanelOpen) {
-    // Update lit icon hint when page finishes loading
-    if (pinMode !== "pinned") {
-      chrome.tabs.get(tabId).then((tab) => updateIcon(tabId, tab.url)).catch(() => {});
-    }
-    return;
-  }
+  // Update lit icon based on whether tab is a supported game
+  chrome.tabs.get(tabId).then((tab) => updateIcon(tabId, tab.url)).catch(() => {});
+  if (!sidePanelOpen) return;
   if (extracting) {
     pendingNavTabId = tabId;
     return;

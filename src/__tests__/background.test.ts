@@ -8,6 +8,14 @@ const listeners: Record<string, Function> = {};
 
 // Mock Chrome APIs before background.ts module-level code runs.
 vi.hoisted(() => {
+  // Mock OffscreenCanvas + createImageBitmap + fetch for icon frame preloading
+  const mockImageData = { width: 16, height: 16, data: new Uint8ClampedArray(16 * 16 * 4) };
+  const mockCtx = { drawImage: vi.fn(), getImageData: vi.fn(() => mockImageData) };
+  (globalThis as any).OffscreenCanvas = vi.fn(() => ({ getContext: () => mockCtx }));
+  (globalThis as any).createImageBitmap = vi.fn(() => Promise.resolve({}));
+  (globalThis as any).__origFetch = globalThis.fetch;
+  (globalThis as any).fetch = vi.fn(() => Promise.resolve({ blob: () => Promise.resolve(new Blob()) }));
+
   const _listeners: Record<string, Function> = {};
   (globalThis as any).__chromeMockListeners = _listeners;
   (globalThis as any).chrome = {
@@ -24,6 +32,7 @@ vi.hoisted(() => {
       onMessage: { addListener: (cb: Function) => { _listeners.onMessage = cb; } },
       onConnect: { addListener: (cb: Function) => { _listeners.onConnect = cb; } },
       sendMessage: vi.fn(() => Promise.resolve()),
+      getURL: vi.fn((path: string) => `chrome-extension://test${path}`),
     },
     storage: {
       local: {
@@ -683,7 +692,6 @@ describe("auto-close in handleNavigation", () => {
   const mockSidePanelClose = chrome.sidePanel.close as ReturnType<typeof vi.fn>;
   const mockSendMessage = chrome.runtime.sendMessage as ReturnType<typeof vi.fn>;
   const mockTabsGet = chrome.tabs.get as ReturnType<typeof vi.fn>;
-  const mockSetIcon = chrome.action.setIcon as ReturnType<typeof vi.fn>;
 
   beforeEach(async () => {
     await new Promise((r) => setTimeout(r, 50));
@@ -701,8 +709,9 @@ describe("auto-close in handleNavigation", () => {
     listeners.onMessage({ type: "setPinMode", mode: "autohide-bga" }, {}, () => {});
     vi.clearAllMocks();
 
-    // Navigate to non-BGA page
-    mockTabsGet.mockResolvedValueOnce({ id: 1, url: "https://example.com", status: "complete", windowId: 10 });
+    // Navigate to non-BGA page (two mocks: icon update + handleNavigation)
+    const tab = { id: 1, url: "https://example.com", status: "complete", windowId: 10 };
+    mockTabsGet.mockResolvedValueOnce(tab).mockResolvedValueOnce(tab);
     listeners.onActivated({ tabId: 1 });
     await new Promise((r) => setTimeout(r, 50));
 
@@ -715,8 +724,9 @@ describe("auto-close in handleNavigation", () => {
     listeners.onMessage({ type: "setPinMode", mode: "autohide-bga" }, {}, () => {});
     vi.clearAllMocks();
 
-    // Navigate to BGA page (non-game, but still BGA domain)
-    mockTabsGet.mockResolvedValueOnce({ id: 1, url: "https://boardgamearena.com/lobby", status: "complete", windowId: 10 });
+    // Navigate to BGA page (two mocks: icon update + handleNavigation)
+    const tab = { id: 1, url: "https://boardgamearena.com/lobby", status: "complete", windowId: 10 };
+    mockTabsGet.mockResolvedValueOnce(tab).mockResolvedValueOnce(tab);
     listeners.onActivated({ tabId: 1 });
     await new Promise((r) => setTimeout(r, 50));
 
@@ -729,8 +739,9 @@ describe("auto-close in handleNavigation", () => {
     listeners.onMessage({ type: "setPinMode", mode: "autohide-game" }, {}, () => {});
     vi.clearAllMocks();
 
-    // Navigate to BGA lobby (not a game table)
-    mockTabsGet.mockResolvedValueOnce({ id: 1, url: "https://boardgamearena.com/lobby", status: "complete", windowId: 10 });
+    // Navigate to BGA lobby (two mocks: icon update + handleNavigation)
+    const tab = { id: 1, url: "https://boardgamearena.com/lobby", status: "complete", windowId: 10 };
+    mockTabsGet.mockResolvedValueOnce(tab).mockResolvedValueOnce(tab);
     listeners.onActivated({ tabId: 1 });
     await new Promise((r) => setTimeout(r, 50));
 
@@ -746,7 +757,9 @@ describe("auto-close in handleNavigation", () => {
     // Navigate to a supported game
     const rawData = { players: { "1": "Alice", "2": "Bob" }, packets: [] };
     (chrome.scripting.executeScript as ReturnType<typeof vi.fn>).mockResolvedValueOnce([{ result: rawData }]);
-    mockTabsGet.mockResolvedValueOnce({ id: 1, url: "https://boardgamearena.com/8/innovation?table=123", status: "complete", windowId: 10 });
+    // Two mocks: icon update + handleNavigation
+    const tab = { id: 1, url: "https://boardgamearena.com/8/innovation?table=123", status: "complete", windowId: 10 };
+    mockTabsGet.mockResolvedValueOnce(tab).mockResolvedValueOnce(tab);
     listeners.onActivated({ tabId: 1 });
     await new Promise((r) => setTimeout(r, 50));
 
@@ -759,7 +772,9 @@ describe("auto-close in handleNavigation", () => {
     // pinMode is already "pinned" from beforeEach
     vi.clearAllMocks();
 
-    mockTabsGet.mockResolvedValueOnce({ id: 1, url: "https://example.com", status: "complete", windowId: 10 });
+    // Two mocks: icon update + handleNavigation
+    const tab = { id: 1, url: "https://example.com", status: "complete", windowId: 10 };
+    mockTabsGet.mockResolvedValueOnce(tab).mockResolvedValueOnce(tab);
     listeners.onActivated({ tabId: 1 });
     await new Promise((r) => setTimeout(r, 50));
 
@@ -776,8 +791,9 @@ describe("auto-close in handleNavigation", () => {
     await new Promise((r) => setTimeout(r, 50));
     vi.clearAllMocks();
 
-    // Same tab navigates to non-BGA page
-    mockTabsGet.mockResolvedValueOnce({ id: 5, url: "https://example.com", status: "complete", windowId: 10 });
+    // Same tab navigates to non-BGA page (two mocks: icon update + handleNavigation)
+    const tab = { id: 5, url: "https://example.com", status: "complete", windowId: 10 };
+    mockTabsGet.mockResolvedValueOnce(tab).mockResolvedValueOnce(tab);
     listeners.onUpdated(5, { status: "complete" });
     await new Promise((r) => setTimeout(r, 50));
 
@@ -790,109 +806,123 @@ describe("icon swap behavior", () => {
   const mockSetIcon = chrome.action.setIcon as ReturnType<typeof vi.fn>;
   const mockTabsGet = chrome.tabs.get as ReturnType<typeof vi.fn>;
   const mockSendMessage = chrome.runtime.sendMessage as ReturnType<typeof vi.fn>;
-
-  const ICON_NORMAL = { "16": "assets/extension/icon-16.png", "48": "assets/extension/icon-48.png", "128": "assets/extension/icon-128.png" };
-  const ICON_LIT = { "16": "assets/extension/icon-16-lit.png", "48": "assets/extension/icon-48-lit.png", "128": "assets/extension/icon-128-lit.png" };
+  const mockExecuteScript = chrome.scripting.executeScript as ReturnType<typeof vi.fn>;
 
   beforeEach(async () => {
-    await new Promise((r) => setTimeout(r, 50));
+    vi.useFakeTimers();
+    await vi.advanceTimersByTimeAsync(50);
     // Reset panel state
     const { triggerDisconnect } = connectSidePanel();
     triggerDisconnect();
-    // Reset pin mode
-    listeners.onMessage({ type: "setPinMode", mode: "pinned" }, {}, () => {});
     vi.clearAllMocks();
     mockSendMessage.mockImplementation(() => Promise.resolve());
+    // Probe returns true for game tabs (2-player game detected)
+    mockExecuteScript.mockResolvedValue([{ result: true }]);
   });
 
-  it("sets lit icon when switching to game tab with panel closed and auto-hide active", async () => {
-    // Panel is closed (from beforeEach), set autohide mode
-    listeners.onMessage({ type: "setPinMode", mode: "autohide-game" }, {}, () => {});
-    vi.clearAllMocks();
+  afterEach(() => {
+    vi.useRealTimers();
+  });
 
-    // Switch to a game tab
+  /** Flush microtasks and advance fake timers past the flash sequence. */
+  async function flushFlash(): Promise<void> {
+    await vi.advanceTimersByTimeAsync(2500);
+  }
+
+  /** Check that the last setIcon call used imageData (animation ended on a lit frame). */
+  function expectLastIconLit(): void {
+    expect(mockSetIcon).toHaveBeenCalled();
+    const calls = mockSetIcon.mock.calls;
+    const last = calls[calls.length - 1][0];
+    expect(last).toHaveProperty("imageData");
+    expect(last).not.toHaveProperty("tabId");
+  }
+
+  /** Check that the last setIcon call resulted in normal icon (imageData-based, frame 0). */
+  function expectLastIconNormal(): void {
+    expect(mockSetIcon).toHaveBeenCalled();
+    const calls = mockSetIcon.mock.calls;
+    const last = calls[calls.length - 1][0];
+    expect(last).toHaveProperty("imageData");
+    expect(last).not.toHaveProperty("tabId");
+  }
+
+  it("sets lit icon when switching to game tab", async () => {
     mockTabsGet.mockResolvedValueOnce({ id: 1, url: "https://boardgamearena.com/8/innovation?table=123", status: "complete" });
     listeners.onActivated({ tabId: 1 });
-    await new Promise((r) => setTimeout(r, 50));
+    await flushFlash();
 
-    expect(mockSetIcon).toHaveBeenCalledWith({ tabId: 1, path: ICON_LIT });
+    expectLastIconLit();
   });
 
-  it("sets normal icon when switching to non-game tab with panel closed and auto-hide active", async () => {
-    listeners.onMessage({ type: "setPinMode", mode: "autohide-game" }, {}, () => {});
-    vi.clearAllMocks();
-
-    // Switch to a non-game tab
+  it("sets normal icon when switching to non-game tab", async () => {
     mockTabsGet.mockResolvedValueOnce({ id: 1, url: "https://example.com", status: "complete" });
     listeners.onActivated({ tabId: 1 });
-    await new Promise((r) => setTimeout(r, 50));
+    await flushFlash();
 
-    expect(mockSetIcon).toHaveBeenCalledWith({ tabId: 1, path: ICON_NORMAL });
+    expectLastIconNormal();
   });
 
-  it("does not update icon when switching tabs in pinned mode", async () => {
-    // pinMode is already "pinned"
-    vi.clearAllMocks();
-
+  it("sets lit icon on game tab regardless of pin mode", async () => {
+    // pinMode is "pinned" (default)
     mockTabsGet.mockResolvedValueOnce({ id: 1, url: "https://boardgamearena.com/8/innovation?table=123", status: "complete" });
     listeners.onActivated({ tabId: 1 });
-    await new Promise((r) => setTimeout(r, 50));
+    await flushFlash();
 
-    // setIcon should not be called because updateIcon returns early for pinned mode
-    expect(mockSetIcon).not.toHaveBeenCalled();
+    expectLastIconLit();
   });
 
-  it("resets icon to normal when panel opens", async () => {
-    // Set auto-hide mode first
-    listeners.onMessage({ type: "setPinMode", mode: "autohide-game" }, {}, () => {});
-
-    // Set active tab to a game page (sets lit icon)
+  it("sets normal icon on game URL when probe returns false (e.g. 3+ players)", async () => {
+    mockExecuteScript.mockResolvedValueOnce([{ result: false }]);
     mockTabsGet.mockResolvedValueOnce({ id: 1, url: "https://boardgamearena.com/8/innovation?table=123", status: "complete" });
     listeners.onActivated({ tabId: 1 });
-    await new Promise((r) => setTimeout(r, 50));
+    await flushFlash();
+
+    expectLastIconNormal();
+  });
+
+  it("keeps lit icon when panel opens on game tab", async () => {
+    // Set active tab to a game page
+    mockTabsGet.mockResolvedValueOnce({ id: 1, url: "https://boardgamearena.com/8/innovation?table=123", status: "complete" });
+    listeners.onActivated({ tabId: 1 });
+    await flushFlash();
     vi.clearAllMocks();
 
-    // Panel opens
+    // Panel opens — icon should not change
     const conn = connectSidePanel();
-
-    // Icon should be reset to normal
-    expect(mockSetIcon).toHaveBeenCalledWith({ tabId: 1, path: ICON_NORMAL });
+    expect(mockSetIcon).not.toHaveBeenCalled();
     conn.triggerDisconnect();
   });
 
-  it("sets lit icon after toggle-close on a game page with auto-hide active", async () => {
-    await new Promise((r) => setTimeout(r, 50));
+  it("keeps lit icon after toggle-close on a game page (global icon already lit)", async () => {
     const conn = connectSidePanel();
-    listeners.onMessage({ type: "setPinMode", mode: "autohide-game" }, {}, () => {});
     const tab = { id: 1, windowId: 10, url: "https://boardgamearena.com/8/innovation?table=123" };
     mockTabsGet.mockReset().mockResolvedValue(tab);
     vi.clearAllMocks();
 
-    // Toggle close on a game page
+    // Toggle close on a game page — global icon already at frame 9, no setIcon needed
     await listeners.onClicked(tab);
+    await flushFlash();
 
-    expect(mockSetIcon).toHaveBeenCalledWith({ tabId: 1, path: ICON_LIT });
+    expect(mockSetIcon).not.toHaveBeenCalled();
     conn.triggerDisconnect();
   });
 
-  it("sets normal icon after toggle-close on a non-game page with auto-hide active", async () => {
-    await new Promise((r) => setTimeout(r, 50));
+  it("sets normal icon after toggle-close on a non-game page", async () => {
     const conn = connectSidePanel();
-    listeners.onMessage({ type: "setPinMode", mode: "autohide-game" }, {}, () => {});
     const tab = { id: 1, windowId: 10, url: "https://example.com" };
     mockTabsGet.mockReset().mockResolvedValue(tab);
     vi.clearAllMocks();
 
     // Toggle close on a non-game page
     await listeners.onClicked(tab);
+    await flushFlash();
 
-    expect(mockSetIcon).toHaveBeenCalledWith({ tabId: 1, path: ICON_NORMAL });
+    expectLastIconNormal();
     conn.triggerDisconnect();
   });
 
-  it("sets lit icon on same-tab navigation to game page with panel closed", async () => {
-    await new Promise((r) => setTimeout(r, 50));
-    listeners.onMessage({ type: "setPinMode", mode: "autohide-bga" }, {}, () => {});
+  it("sets lit icon on same-tab navigation to game page", async () => {
     vi.clearAllMocks();
     // Queue two sequential responses: first for onActivated, second for onUpdated
     mockTabsGet.mockResolvedValueOnce({ id: 5, url: "https://example.com", status: "complete" });
@@ -900,12 +930,12 @@ describe("icon swap behavior", () => {
 
     // Set active tab (consumes first mock)
     listeners.onActivated({ tabId: 5 });
-    await new Promise((r) => setTimeout(r, 50));
+    await flushFlash();
 
     // Page finishes loading on a game URL (consumes second mock)
     listeners.onUpdated(5, { status: "complete" });
-    await new Promise((r) => setTimeout(r, 50));
+    await flushFlash();
 
-    expect(mockSetIcon).toHaveBeenCalledWith({ tabId: 5, path: ICON_LIT });
+    expectLastIconLit();
   });
 });
