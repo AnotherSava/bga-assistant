@@ -59,11 +59,13 @@ Squash all commits on the current feature branch into a single Conventional Comm
    git diff main...HEAD
    ```
 
-6. Find the latest completed plan doc — look in `docs/plans/completed/` for the most recently created file whose name relates to the current branch or the work described in the commits.
+6. Read the project README.md (at the repo root) and check if any references to changed paths, APIs, or behavior are stale. Also check comments and docstrings in source files that reference changed behavior, not just the modified files themselves. Fix any stale references before proceeding.
 
-7. Find the matching progress log in `.ralphex/progress/`.
+7. Find the latest completed plan doc — look in `docs/plans/completed/` for the most recently created file whose name relates to the current branch or the work described in the commits.
 
-8. Read the plan and progress log to understand the scope and intent of the changes.
+8. Find the matching progress log in `.ralphex/progress/`.
+
+9. Read the plan and progress log to understand the scope and intent of the changes.
 
 ### Step 2: Draft commit message
 
@@ -100,9 +102,9 @@ Display the full drafted commit message and ask the user to approve or revise it
    git add -A
    ```
 
-3. Create the single commit using a heredoc:
+3. Create the single GPG-signed commit using a heredoc:
    ```
-   git commit -F - <<'EOF'
+   git commit -S -F - <<'EOF'
    <approved commit message>
    EOF
    ```
