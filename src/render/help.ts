@@ -1,7 +1,7 @@
 // Help page content for the side panel.
 
 import { escapeHtml } from "./summary.js";
-import { ICON_ZOOM_OUT, ICON_ZOOM_IN, ICON_EYE, ICON_DOWNLOAD, ICON_DOT_GREEN, ICON_DOT_RED } from "./icons.js";
+import { ICON_ZOOM_OUT, ICON_ZOOM_IN, ICON_EYE, ICON_DOWNLOAD, ICON_DOT_GREEN, ICON_DOT_RED, ICON_PANEL, ICON_PANEL_1, ICON_PANEL_2 } from "./icons.js";
 
 export function renderHelp(errorMessage?: string): string {
   const errorNote = errorMessage
@@ -35,6 +35,7 @@ export function renderHelp(errorMessage?: string): string {
       <div class="help-grid-item"><span class="help-grid-label"><span class="help-btn help-btn-text">#</span> ${ICON_DOT_GREEN}<span style="color:#888;margin:0 1px">/</span>${ICON_DOT_RED}</span><span> Table number, connection status (green\u00a0=\u00a0connected, red\u00a0=\u00a0connection lost), and timestamp of the last game log action</span></div>
       <div class="help-grid-item"><span class="help-grid-label"><span class="help-btn">${ICON_ZOOM_OUT}</span> <span class="help-btn">${ICON_ZOOM_IN}</span></span><span> Zoom out / in (also <b>Ctrl</b>+<b>\u2212</b> / <b>Ctrl</b>+<b>=</b>)</span></div>
       <div class="help-grid-item"><span class="help-grid-label"><span class="help-btn">${ICON_EYE}</span></span><span> Toggle visible sections (settings persist across sessions)</span></div>
+      <div class="help-grid-item"><span class="help-grid-label"><span class="help-btn">${ICON_PANEL}</span><span style="color:#888;margin:0 1px">/</span><span class="help-btn">${ICON_PANEL_1}</span><span style="color:#888;margin:0 1px">/</span><span class="help-btn">${ICON_PANEL_2}</span></span><span> Auto-hide side bar: never/when leaving BGA/leaving supported game tables</span></div>
       <div class="help-grid-item"><span class="help-grid-label"><span class="help-btn">${ICON_DOWNLOAD}</span></span><span> Download a ZIP archive with raw packets, the game log, game state, and summary page</span></div>
       <div class="help-grid-item"><span class="help-grid-label"><span class="help-btn help-btn-text">?</span></span><span> This help page</span></div>
     </div>
@@ -43,11 +44,11 @@ export function renderHelp(errorMessage?: string): string {
   <div class="help-section">
     <div class="help-section-title">Sections</div>
     <div class="help-sections-grid">
-      <div class="help-grid-item"><span class="help-grid-label">Hands</span> Your cards and what your opponent knows about them, and vice versa</div>
-      <div class="help-grid-item"><span class="help-grid-label">Scores</span> Same for the score piles</div>
-      <div class="help-grid-item"><span class="help-grid-label">Deck</span> Cards remaining in each deck, shown in draw order</div>
-      <div class="help-grid-item"><span class="help-grid-label">Cards</span> All cards from each set, with an option to show <i>unknown</i> cards only</div>
-      <div class="help-grid-item"><span class="help-grid-label">Achievements</span> Cards sidelined as standard achievements for Ages 1–9</div>
+      <div class="help-grid-item"><span class="help-grid-label">Hands</span><span> Your cards and what your opponent knows about them, and vice versa</span></div>
+      <div class="help-grid-item"><span class="help-grid-label">Scores</span><span> Same for the score piles</span></div>
+      <div class="help-grid-item"><span class="help-grid-label">Deck</span><span> Cards remaining in each deck, shown in draw order</span></div>
+      <div class="help-grid-item"><span class="help-grid-label">Cards</span><span> All cards from each set, with an option to show <i>unknown</i> cards only</span></div>
+      <div class="help-grid-item"><span class="help-grid-label">Achievements</span><span> Cards sidelined as standard achievements for Ages 1–9</span></div>
     </div>
   </div>
 
@@ -65,7 +66,7 @@ export function renderHelp(errorMessage?: string): string {
   <div class="help-section">
     <div class="help-section-title">Card tooltips</div>
     <div class="help-sections-grid">
-      <div class="help-grid-item">Hover over any known Base card to see its full image. Cities cards display their names only.</div>
+      <div class="help-grid-item">Hover over any known Base or Echoes card to see its full image. Cities cards display their names only.</div>
     </div>
   </div>
 </div>`;

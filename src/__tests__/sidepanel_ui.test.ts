@@ -15,6 +15,7 @@ vi.hoisted(() => {
     scripting: { executeScript: () => Promise.resolve([]) },
     sidePanel: { open: () => Promise.resolve() },
     tabs: { create: vi.fn(() => Promise.resolve()) },
+    commands: { getAll: vi.fn((cb: any) => cb([{ name: "toggle-sidepanel", shortcut: "" }])) },
     runtime: {
       onMessage: { addListener: (fn: any) => { (globalThis as any).__sidepanelMessageListeners.push(fn); } },
       sendMessage: vi.fn(() => Promise.resolve(null)),
@@ -380,10 +381,8 @@ describe("pin button & dropdown", () => {
   beforeEach(() => {
     document.body.innerHTML = `
       <div class="top-buttons">
-        <div id="pin-container">
-          <button id="btn-pin"></button>
-          <div id="pin-dropdown" style="display:none"></div>
-        </div>
+        <button id="btn-pin"></button>
+        <div id="pin-dropdown" style="display:none"></div>
       </div>
     `;
     // Reset to pinned mode and re-attach event listeners
@@ -401,13 +400,18 @@ describe("pin button & dropdown", () => {
     expect(dropdown.querySelectorAll(".pin-option").length).toBe(3);
   });
 
-  it("dropdown shows current mode as first item", () => {
+  it("dropdown always shows fixed order with active item having active class", () => {
     selectPinMode("autohide-bga");
     openPinDropdown();
     const dropdown = document.getElementById("pin-dropdown")!;
     const options = dropdown.querySelectorAll(".pin-option");
-    expect(options[0].getAttribute("data-mode")).toBe("autohide-bga");
-    expect(options[0].classList.contains("active")).toBe(true);
+    // Fixed order: pinned, autohide-bga, autohide-game
+    expect(options[0].getAttribute("data-mode")).toBe("pinned");
+    expect(options[1].getAttribute("data-mode")).toBe("autohide-bga");
+    expect(options[2].getAttribute("data-mode")).toBe("autohide-game");
+    // Active item is autohide-bga
+    expect(options[1].classList.contains("active")).toBe(true);
+    expect(options[0].classList.contains("active")).toBe(false);
   });
 
   it("mouseup on different mode selects it and closes dropdown", () => {
@@ -444,13 +448,14 @@ describe("pin button & dropdown", () => {
   it("mode selection updates button icon", () => {
     const btn = document.getElementById("btn-pin")!;
     updatePinButtonIcon();
-    // JSDOM normalizes self-closing SVG tags, so check for SVG content presence
+    // Pinned icon: vertical bar only (rect, no path)
     expect(btn.querySelector("svg")).not.toBeNull();
-    expect(btn.querySelector("path")).not.toBeNull();
+    expect(btn.querySelector("rect")).not.toBeNull();
+    expect(btn.querySelectorAll("path").length).toBe(0);
 
     selectPinMode("autohide-game");
-    // autohide-game has a <line> element for the cross
-    expect(btn.querySelector("line")).not.toBeNull();
+    // autohide-game has two chevron paths (bar + two arrows)
+    expect(btn.querySelectorAll("path").length).toBe(2);
   });
 
   it("mode selection sends setPinMode message to background", () => {
@@ -469,12 +474,20 @@ describe("pin button & dropdown", () => {
     expect(options[0].classList.contains("highlight")).toBe(false);
   });
 
-  it("dropdown contains customize shortcut link", () => {
+  it("dropdown shows 'Set' when no shortcut bound", () => {
     openPinDropdown();
     const dropdown = document.getElementById("pin-dropdown")!;
     const link = dropdown.querySelector(".pin-shortcut-link") as HTMLElement;
     expect(link).not.toBeNull();
-    expect(link.textContent).toBe("Customize shortcut");
+    expect(link.textContent).toBe("Set hide/show shortcut");
+  });
+
+  it("dropdown shows 'Change' with shortcut when bound", () => {
+    (chrome.commands.getAll as any).mockImplementation((cb: any) => cb([{ name: "toggle-sidepanel", shortcut: "Ctrl+Shift+X" }]));
+    openPinDropdown();
+    const dropdown = document.getElementById("pin-dropdown")!;
+    const link = dropdown.querySelector(".pin-shortcut-link") as HTMLElement;
+    expect(link.textContent).toBe("Change hide/show shortcut (Ctrl+Shift+X)");
   });
 
   it("clicking customize shortcut opens chrome shortcuts page", () => {
@@ -484,6 +497,26 @@ describe("pin button & dropdown", () => {
     link.dispatchEvent(new MouseEvent("mouseup", { bubbles: true }));
     expect(chrome.tabs.create).toHaveBeenCalledWith({ url: "chrome://extensions/shortcuts" });
     expect(dropdown.style.display).toBe("none");
+  });
+
+  it("dropdown has header", () => {
+    openPinDropdown();
+    const dropdown = document.getElementById("pin-dropdown")!;
+    const header = dropdown.querySelector(".dropdown-header") as HTMLElement;
+    expect(header).not.toBeNull();
+    expect(header.textContent).toBe("When side bar hides:");
+  });
+
+  it("mouseout on non-active option removes highlight", () => {
+    openPinDropdown();
+    const dropdown = document.getElementById("pin-dropdown")!;
+    const options = dropdown.querySelectorAll(".pin-option");
+    // Find a non-active option
+    const nonActive = Array.from(options).find((o) => !o.classList.contains("active")) as HTMLElement;
+    nonActive.dispatchEvent(new MouseEvent("mouseover", { bubbles: true }));
+    expect(nonActive.classList.contains("highlight")).toBe(true);
+    nonActive.dispatchEvent(new MouseEvent("mouseout", { bubbles: true }));
+    expect(nonActive.classList.contains("highlight")).toBe(false);
   });
 
   it("second mousedown on button closes dropdown", () => {

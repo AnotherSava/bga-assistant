@@ -19,10 +19,7 @@
     "128": "assets/extension/icon-128.png"
   },
   "commands": {
-    "_execute_action": {
-      "suggested_key": {
-        "default": "Alt+Shift+B"
-      },
+    "toggle-sidepanel": {
       "description": "Toggle side panel"
     }
   },

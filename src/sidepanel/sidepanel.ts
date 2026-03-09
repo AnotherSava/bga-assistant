@@ -364,6 +364,12 @@ function buildSectionSelector(): void {
   const state = loadSectionVisibility();
   panel.innerHTML = "";
 
+  // Header
+  const header = document.createElement("div");
+  header.className = "dropdown-header";
+  header.textContent = "Display sections:";
+  panel.appendChild(header);
+
   for (const id of SECTION_IDS) {
     const checked = state[id] !== false;
     const label = document.createElement("label");
@@ -417,20 +423,20 @@ document.addEventListener("click", (e) => {
 });
 
 // ---------------------------------------------------------------------------
-// Pin mode button & dropdown
+// Auto-hide button & dropdown
 // ---------------------------------------------------------------------------
 
 
 const PIN_ICONS: Record<PinMode, string> = {
-  "pinned": '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M16 12V4h1V2H7v2h1v8l-2 2v2h5v6l1 1 1-1v-6h5v-2z"/></svg>',
-  "autohide-bga": '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M16 12V4h1V2H7v2h1v8l-2 2v2h5v6l1 1 1-1v-6h5v-2z" opacity="0.5"/><circle cx="18" cy="6" r="4" fill="currentColor" opacity="0.8"/></svg>',
-  "autohide-game": '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M16 12V4h1V2H7v2h1v8l-2 2v2h5v6l1 1 1-1v-6h5v-2z" opacity="0.35"/><line x1="4" y1="4" x2="20" y2="20" stroke="currentColor" stroke-width="2"/></svg>',
+  "pinned": '<svg viewBox="0 0 28 24"><rect x="2" y="3" width="24" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="2"/></svg>',
+  "autohide-bga": '<svg viewBox="0 0 28 24"><rect x="2" y="3" width="24" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 8l4 4-4 4" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  "autohide-game": '<svg viewBox="0 0 28 24"><rect x="2" y="3" width="24" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M9 8l4 4-4 4" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M15 8l4 4-4 4" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>',
 };
 
 const PIN_LABELS: Record<PinMode, string> = {
-  "pinned": "Always open",
-  "autohide-bga": "Auto-hide (BGA)",
-  "autohide-game": "Auto-hide (Game)",
+  "pinned": "Never",
+  "autohide-bga": "Leaving BGA",
+  "autohide-game": "Leaving tables",
 };
 
 const PIN_ORDER: PinMode[] = ["pinned", "autohide-bga", "autohide-game"];
@@ -448,14 +454,19 @@ function buildPinDropdown(): void {
   const dropdown = document.getElementById("pin-dropdown");
   if (!dropdown) return;
 
-  // Build ordered list: current mode first, then others in fixed order
-  const otherModes = PIN_ORDER.filter((m) => m !== currentPinMode);
-  const ordered = [currentPinMode, ...otherModes];
-
   dropdown.innerHTML = "";
-  for (const mode of ordered) {
+
+  // Header
+  const header = document.createElement("div");
+  header.className = "dropdown-header";
+  header.textContent = "When side bar hides:";
+  dropdown.appendChild(header);
+
+  // Always show in fixed order
+  for (const mode of PIN_ORDER) {
+    const isActive = mode === currentPinMode;
     const option = document.createElement("div");
-    option.className = "pin-option" + (mode === currentPinMode ? " active" : "");
+    option.className = "pin-option" + (isActive ? " active" : "");
     option.dataset.mode = mode;
     option.innerHTML = PIN_ICONS[mode] + '<span>' + PIN_LABELS[mode] + '</span>';
     dropdown.appendChild(option);
@@ -464,10 +475,13 @@ function buildPinDropdown(): void {
       dropdown.querySelectorAll(".pin-option").forEach((el) => el.classList.remove("highlight"));
       option.classList.add("highlight");
     });
+    option.addEventListener("mouseout", () => {
+      option.classList.remove("highlight");
+    });
 
     option.addEventListener("mouseup", (e: MouseEvent) => {
       e.stopPropagation();
-      if (mode === currentPinMode) {
+      if (isActive) {
         closePinDropdown();
         return;
       }
@@ -482,7 +496,18 @@ function buildPinDropdown(): void {
 
   const link = document.createElement("span");
   link.className = "pin-shortcut-link";
-  link.textContent = "Customize shortcut";
+  link.textContent = "Set hide/show shortcut";
+
+  // Query real shortcut binding and show it
+  if (typeof chrome !== "undefined" && chrome.commands?.getAll) {
+    chrome.commands.getAll((commands: chrome.commands.Command[]) => {
+      const cmd = commands.find((c) => c.name === "toggle-sidepanel");
+      if (cmd?.shortcut) {
+        link.textContent = `Change hide/show shortcut (${cmd.shortcut})`;
+      }
+    });
+  }
+
   link.addEventListener("mouseup", (e: MouseEvent) => {
     e.stopPropagation();
     // chrome://extensions/shortcuts can't be opened via window.open; use Chrome tabs API

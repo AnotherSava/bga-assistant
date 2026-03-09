@@ -17,8 +17,8 @@ Reads the full game log from [Innovation](https://boardgamegeek.com/boardgame/63
 - Layout toggle: Wide (one row per age) / Tall (color columns)
 - Section selector: eye button to show/hide entire sections
 - Hover tooltips: card face images with full card details on hover
-- Pin mode: three-mode toggle controlling side panel behavior — Pinned (always open), Auto-hide BGA (closes on non-BGA tabs), Auto-hide Game (closes on non-game tabs)
-- Keyboard shortcut: `Alt+Shift+B` toggles the side panel open/closed (customizable via `chrome://extensions/shortcuts`)
+- Auto-hide: three-mode toggle controlling side panel behavior — Never (always open), Leaving BGA (closes on non-BGA tabs), Leaving tables (closes when navigating away from supported game tables)
+- Keyboard shortcut: configurable via `chrome://extensions/shortcuts` to toggle the side panel open/closed
 - Lit icon hint: when auto-hide is active and the panel is closed, the toolbar icon glows on supported game pages
 - Persistent settings: all toggle states, section visibility, and pin mode are saved across sessions
 - Download: bundled zip with raw data, game log, game state, and standalone summary
@@ -47,11 +47,11 @@ npm run build
 ## Usage
 
 1. Navigate to a supported BGA game page in Chrome
-2. Click the BGA Assistant icon in the toolbar (or press `Alt+Shift+B`)
+2. Click the BGA Assistant icon in the toolbar (or use a keyboard shortcut if configured)
 3. The side panel opens with a visual summary of the game state
 4. While viewing a game, the side panel automatically updates when the game progresses — a green dot in the status bar indicates active tracking
 5. Switching to another supported game tab automatically updates the display
-6. Use the pin button in the side panel to choose auto-hide behavior — the panel can automatically close when you navigate away from BGA or game pages
+6. Use the auto-hide button in the side panel to choose when the panel closes — never, when leaving BGA, or when leaving game tables
 7. Use the download button to save a zip with game data and a standalone summary
 
 ## Development

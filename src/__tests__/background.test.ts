@@ -16,6 +16,7 @@ vi.hoisted(() => {
       setBadgeText: vi.fn(),
       setBadgeBackgroundColor: vi.fn(),
       setIcon: vi.fn(),
+      setTitle: vi.fn(),
     },
     scripting: { executeScript: vi.fn(() => Promise.resolve([])) },
     sidePanel: { open: vi.fn(() => Promise.resolve()), close: vi.fn(() => Promise.resolve()) },
@@ -29,6 +30,10 @@ vi.hoisted(() => {
         get: vi.fn(() => Promise.resolve({})),
         set: vi.fn(() => Promise.resolve()),
       },
+    },
+    commands: {
+      onCommand: { addListener: vi.fn() },
+      getAll: vi.fn((cb: any) => cb([{ name: "toggle-sidepanel", shortcut: "" }])),
     },
     tabs: {
       onActivated: { addListener: (cb: Function) => { _listeners.onActivated = cb; } },
@@ -480,6 +485,7 @@ describe("toggle panel on action click", () => {
   it("closes panel when sidePanelOpen is true", async () => {
     const { triggerDisconnect } = connectSidePanel();
     const tab = { id: 1, windowId: 10, url: "https://example.com" };
+    (chrome.tabs.get as ReturnType<typeof vi.fn>).mockResolvedValueOnce(tab);
     await listeners.onClicked(tab);
     expect(mockSidePanelClose).toHaveBeenCalledWith({ windowId: 10 });
     expect(mockSidePanelOpen).not.toHaveBeenCalled();
@@ -488,6 +494,7 @@ describe("toggle panel on action click", () => {
 
   it("opens panel when sidePanelOpen is false", async () => {
     const tab = { id: 1, windowId: 10, url: "https://example.com" };
+    (chrome.tabs.get as ReturnType<typeof vi.fn>).mockResolvedValueOnce(tab);
     await listeners.onClicked(tab);
     expect(mockSidePanelOpen).toHaveBeenCalled();
     expect(mockSidePanelClose).not.toHaveBeenCalled();
@@ -517,6 +524,7 @@ describe("live tracking", () => {
       return Promise.resolve();
     });
     const tab = { id: tabId, url: "https://boardgamearena.com/8/innovation?table=123", windowId: 1 };
+    (chrome.tabs.get as ReturnType<typeof vi.fn>).mockResolvedValueOnce(tab);
     await listeners.onClicked(tab);
     return conn;
   }
@@ -853,12 +861,14 @@ describe("icon swap behavior", () => {
   });
 
   it("sets lit icon after toggle-close on a game page with auto-hide active", async () => {
+    await new Promise((r) => setTimeout(r, 50));
     const conn = connectSidePanel();
     listeners.onMessage({ type: "setPinMode", mode: "autohide-game" }, {}, () => {});
+    const tab = { id: 1, windowId: 10, url: "https://boardgamearena.com/8/innovation?table=123" };
+    mockTabsGet.mockReset().mockResolvedValue(tab);
     vi.clearAllMocks();
 
     // Toggle close on a game page
-    const tab = { id: 1, windowId: 10, url: "https://boardgamearena.com/8/innovation?table=123" };
     await listeners.onClicked(tab);
 
     expect(mockSetIcon).toHaveBeenCalledWith({ tabId: 1, path: ICON_LIT });
@@ -866,12 +876,14 @@ describe("icon swap behavior", () => {
   });
 
   it("sets normal icon after toggle-close on a non-game page with auto-hide active", async () => {
+    await new Promise((r) => setTimeout(r, 50));
     const conn = connectSidePanel();
     listeners.onMessage({ type: "setPinMode", mode: "autohide-game" }, {}, () => {});
+    const tab = { id: 1, windowId: 10, url: "https://example.com" };
+    mockTabsGet.mockReset().mockResolvedValue(tab);
     vi.clearAllMocks();
 
     // Toggle close on a non-game page
-    const tab = { id: 1, windowId: 10, url: "https://example.com" };
     await listeners.onClicked(tab);
 
     expect(mockSetIcon).toHaveBeenCalledWith({ tabId: 1, path: ICON_NORMAL });
@@ -879,10 +891,10 @@ describe("icon swap behavior", () => {
   });
 
   it("sets lit icon on same-tab navigation to game page with panel closed", async () => {
+    await new Promise((r) => setTimeout(r, 50));
     listeners.onMessage({ type: "setPinMode", mode: "autohide-bga" }, {}, () => {});
     vi.clearAllMocks();
-
-    // Queue both mock responses: first for onActivated, second for onUpdated
+    // Queue two sequential responses: first for onActivated, second for onUpdated
     mockTabsGet.mockResolvedValueOnce({ id: 5, url: "https://example.com", status: "complete" });
     mockTabsGet.mockResolvedValueOnce({ id: 5, url: "https://boardgamearena.com/8/innovation?table=123", status: "complete" });
 

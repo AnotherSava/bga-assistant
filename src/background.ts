@@ -63,6 +63,14 @@ chrome.storage.local.get("pinMode").then((result) => {
   if (result.pinMode && VALID_PIN_MODES.has(result.pinMode)) pinMode = result.pinMode as PinMode;
 });
 
+// Show keyboard shortcut in the extension icon tooltip
+chrome.commands.getAll((commands) => {
+  const cmd = commands.find((c) => c.name === "toggle-sidepanel");
+  if (cmd?.shortcut) {
+    chrome.action.setTitle({ title: `BGA Assistant (${cmd.shortcut})` });
+  }
+});
+
 // ---------------------------------------------------------------------------
 // Pipeline
 // ---------------------------------------------------------------------------
@@ -281,65 +289,76 @@ chrome.runtime.onConnect.addListener((port: chrome.runtime.Port) => {
   });
 });
 
-chrome.action.onClicked.addListener(async (tab: chrome.tabs.Tab) => {
-  if (!tab.id) return;
-
+async function togglePanel(tabId: number): Promise<void> {
   // Toggle: close panel if already open
   if (sidePanelOpen) {
     try {
+      const tab = await chrome.tabs.get(tabId);
       await chrome.sidePanel.close({ windowId: tab.windowId });
+      updateIcon(tabId, tab.url);
     } catch (err) {
       console.warn("Could not close side panel:", err);
     }
-    updateIcon(tab.id!, tab.url);
     return;
   }
 
   if (extracting) return;
 
-  // Non-game or unsupported game: open side panel with help message
+  // Open side panel immediately while user gesture context is valid
+  try {
+    await chrome.sidePanel.open({ tabId });
+  } catch (err) {
+    console.warn("Could not open side panel:", err);
+    return;
+  }
+
+  // Fetch tab details for classification and extraction
+  let tab: chrome.tabs.Tab;
+  try {
+    tab = await chrome.tabs.get(tabId);
+  } catch { return; }
+
+  // Non-game or unsupported game: show help
   const clickNav = classifyNavigation(tab.url, null);
   if (clickNav.action === "showHelp") {
     lastResults = null;
     stopLiveTracking("click: not a game");
-    try {
-      await chrome.sidePanel.open({ tabId: tab.id });
-      chrome.runtime.sendMessage({ type: "notAGame" }).catch(() => {});
-    } catch (err) {
-      console.warn("Could not open side panel:", err);
-    }
+    chrome.runtime.sendMessage({ type: "notAGame" }).catch(() => {});
     return;
   }
 
-  setBadge(tab.id, "...", "#1976D2");
+  setBadge(tabId, "...", "#1976D2");
   extracting = true;
 
-  // Open side panel immediately while user gesture context is valid
   try {
-    await chrome.sidePanel.open({ tabId: tab.id });
-  } catch (err) {
-    console.warn("Could not open side panel:", err);
-  }
-
-  try {
-    await extractFromTab(tab.id, tab.url ?? "");
-    setBadge(tab.id, "\u2713", "#388E3C");
+    await extractFromTab(tabId, tab.url ?? "");
+    setBadge(tabId, "\u2713", "#388E3C");
   } catch (err) {
     console.error("BGA Assistant error:", err);
-    setBadge(tab.id, "ERR", "#D32F2F");
+    setBadge(tabId, "ERR", "#D32F2F");
     lastResults = null;
     stopLiveTracking("click: extraction error");
     const errorMsg = err instanceof Error ? err.message : String(err);
     chrome.runtime.sendMessage({ type: "gameError", error: errorMsg }).catch(() => {});
   } finally {
     extracting = false;
-    clearBadgeLater(tab.id);
+    clearBadgeLater(tabId);
     const pending = pendingNavTabId;
     pendingNavTabId = null;
     if (sidePanelOpen && pending !== null) {
       handleNavigation(pending);
     }
   }
+}
+
+chrome.action.onClicked.addListener(async (tab) => {
+  if (tab.id) await togglePanel(tab.id);
+});
+
+// Toggle side panel via keyboard shortcut (named command)
+chrome.commands.onCommand.addListener((command) => {
+  if (command !== "toggle-sidepanel") return;
+  if (activeTabId !== null) togglePanel(activeTabId);
 });
 
 // ---------------------------------------------------------------------------
@@ -461,9 +480,11 @@ chrome.runtime.onMessage.addListener(
       if (sender.tab?.id !== liveTabId) { console.log("[live] ignored: sender tab", sender.tab?.id, "!= liveTabId", liveTabId); return; }
       if (extracting || !sidePanelOpen || liveTabId === null) { console.log("[live] ignored: extracting=", extracting, "sidePanelOpen=", sidePanelOpen, "liveTabId=", liveTabId); return; }
       if (Date.now() - lastExtractionTime < LIVE_MIN_INTERVAL_MS) return;
+      const liveTableNumber = lastResults?.tableNumber;
+      if (!liveTableNumber) { console.log("[live] ignored: no table number"); return; }
       const previousPacketCount = lastResults?.rawData?.packets?.length ?? 0;
       extracting = true;
-      extractFromTab(liveTabId, "", lastResults?.tableNumber ?? undefined, true)
+      extractFromTab(liveTabId, "", liveTableNumber, true)
         .then(() => {
           const newPacketCount = lastResults?.rawData?.packets?.length ?? 0;
           if (newPacketCount !== previousPacketCount) {

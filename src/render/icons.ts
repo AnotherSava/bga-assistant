@@ -15,3 +15,16 @@ export const ICON_EYE = svg24(EYE_PATH, 16);
 export const ICON_DOWNLOAD = svg24(DOWNLOAD_PATH, 16);
 export const ICON_DOT_GREEN = '<svg width="8" height="8" viewBox="0 0 8 8" style="vertical-align:middle"><circle cx="4" cy="4" r="4" fill="#4caf50"/></svg>';
 export const ICON_DOT_RED = '<svg width="8" height="8" viewBox="0 0 8 8" style="vertical-align:middle"><circle cx="4" cy="4" r="4" fill="#d32f2f"/></svg>';
+
+const PANEL_RECT = '<rect x="2" y="3" width="24" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>';
+const CHEVRON_1 = '<path d="M12 8l4 4-4 4" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>';
+const CHEVRON_2A = '<path d="M9 8l4 4-4 4" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>';
+const CHEVRON_2B = '<path d="M15 8l4 4-4 4" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>';
+
+function svgPanel(inner: string): string {
+  return `<svg viewBox="0 0 28 24" width="16" height="14">${PANEL_RECT}${inner}</svg>`;
+}
+
+export const ICON_PANEL = svgPanel("");
+export const ICON_PANEL_1 = svgPanel(CHEVRON_1);
+export const ICON_PANEL_2 = svgPanel(CHEVRON_2A + CHEVRON_2B);
