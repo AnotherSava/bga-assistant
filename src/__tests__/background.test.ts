@@ -15,13 +15,20 @@ vi.hoisted(() => {
       onClicked: { addListener: (cb: Function) => { _listeners.onClicked = cb; } },
       setBadgeText: vi.fn(),
       setBadgeBackgroundColor: vi.fn(),
+      setIcon: vi.fn(),
     },
     scripting: { executeScript: vi.fn(() => Promise.resolve([])) },
-    sidePanel: { open: vi.fn(() => Promise.resolve()) },
+    sidePanel: { open: vi.fn(() => Promise.resolve()), close: vi.fn(() => Promise.resolve()) },
     runtime: {
       onMessage: { addListener: (cb: Function) => { _listeners.onMessage = cb; } },
       onConnect: { addListener: (cb: Function) => { _listeners.onConnect = cb; } },
       sendMessage: vi.fn(() => Promise.resolve()),
+    },
+    storage: {
+      local: {
+        get: vi.fn(() => Promise.resolve({})),
+        set: vi.fn(() => Promise.resolve()),
+      },
     },
     tabs: {
       onActivated: { addListener: (cb: Function) => { _listeners.onActivated = cb; } },
@@ -37,7 +44,7 @@ const copyListeners = () => {
   Object.assign(listeners, (globalThis as any).__chromeMockListeners);
 };
 
-import { runPipeline, classifyNavigation, watcherFunction, type PipelineResults, type NavigationAction } from "../background";
+import { runPipeline, classifyNavigation, shouldAutoClose, watcherFunction, type PipelineResults, type NavigationAction, type PinMode } from "../background";
 import { CardDatabase } from "../models/types";
 import type { RawExtractionData } from "../engine/process_log";
 
@@ -49,6 +56,19 @@ const thisDir = dirname(fileURLToPath(import.meta.url));
 function loadCardDb(): CardDatabase {
   const raw = JSON.parse(readFileSync(resolve(thisDir, "../../assets/bga/innovation/card_info.json"), "utf-8"));
   return new CardDatabase(raw);
+}
+
+// Helper: simulate port connect + set side panel open (shared across describe blocks)
+function connectSidePanel(): { triggerDisconnect: () => void } {
+  const disconnectListeners: Function[] = [];
+  const port = {
+    name: "sidepanel",
+    onDisconnect: { addListener: (cb: Function) => { disconnectListeners.push(cb); } },
+  };
+  listeners.onConnect(port);
+  return {
+    triggerDisconnect: () => disconnectListeners.forEach((cb) => cb()),
+  };
 }
 
 // Helper to build minimal raw extraction data with the given notification packets.
@@ -383,6 +403,97 @@ describe("classifyNavigation", () => {
   });
 });
 
+describe("shouldAutoClose", () => {
+  it("returns false for pinned mode regardless of URL", () => {
+    expect(shouldAutoClose("https://example.com", "pinned")).toBe(false);
+    expect(shouldAutoClose("https://boardgamearena.com/lobby", "pinned")).toBe(false);
+    expect(shouldAutoClose("https://boardgamearena.com/8/innovation?table=123", "pinned")).toBe(false);
+    expect(shouldAutoClose(undefined, "pinned")).toBe(false);
+  });
+
+  it("returns true for autohide-bga mode on non-BGA URLs", () => {
+    expect(shouldAutoClose("https://example.com", "autohide-bga")).toBe(true);
+    expect(shouldAutoClose("https://google.com/search?q=bga", "autohide-bga")).toBe(true);
+    expect(shouldAutoClose(undefined, "autohide-bga")).toBe(true);
+  });
+
+  it("returns false for autohide-bga mode on BGA URLs", () => {
+    expect(shouldAutoClose("https://boardgamearena.com/lobby", "autohide-bga")).toBe(false);
+    expect(shouldAutoClose("https://boardgamearena.com/8/innovation?table=123", "autohide-bga")).toBe(false);
+    expect(shouldAutoClose("https://en.boardgamearena.com/8/innovation?table=123", "autohide-bga")).toBe(false);
+    expect(shouldAutoClose("https://boardgamearena.com/1/thecrewdeepsea?table=123", "autohide-bga")).toBe(false);
+  });
+
+  it("returns true for autohide-game mode on non-game URLs", () => {
+    expect(shouldAutoClose("https://example.com", "autohide-game")).toBe(true);
+    expect(shouldAutoClose("https://boardgamearena.com/lobby", "autohide-game")).toBe(true);
+    expect(shouldAutoClose("https://boardgamearena.com/1/thecrewdeepsea?table=123", "autohide-game")).toBe(true);
+    expect(shouldAutoClose(undefined, "autohide-game")).toBe(true);
+  });
+
+  it("returns false for autohide-game mode on supported game URLs", () => {
+    expect(shouldAutoClose("https://boardgamearena.com/8/innovation?table=123", "autohide-game")).toBe(false);
+    expect(shouldAutoClose("https://en.boardgamearena.com/8/innovation?table=456", "autohide-game")).toBe(false);
+  });
+});
+
+describe("pin mode message handlers", () => {
+  const mockStorageSet = chrome.storage.local.set as ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    // Reset pin mode to default
+    listeners.onMessage({ type: "setPinMode", mode: "pinned" }, {}, () => {});
+    vi.clearAllMocks();
+  });
+
+  it("getPinMode returns pinned by default", () => {
+    const sendResponse = vi.fn();
+    listeners.onMessage({ type: "getPinMode" }, {}, sendResponse);
+    expect(sendResponse).toHaveBeenCalledWith("pinned");
+  });
+
+  it("setPinMode updates mode and persists to storage", () => {
+    const sendResponse = vi.fn();
+    listeners.onMessage({ type: "setPinMode", mode: "autohide-bga" }, {}, sendResponse);
+    expect(sendResponse).toHaveBeenCalledWith(true);
+    expect(mockStorageSet).toHaveBeenCalledWith({ pinMode: "autohide-bga" });
+  });
+
+  it("getPinMode returns updated mode after setPinMode", () => {
+    listeners.onMessage({ type: "setPinMode", mode: "autohide-game" }, {}, () => {});
+    const sendResponse = vi.fn();
+    listeners.onMessage({ type: "getPinMode" }, {}, sendResponse);
+    expect(sendResponse).toHaveBeenCalledWith("autohide-game");
+  });
+});
+
+describe("toggle panel on action click", () => {
+  const mockSidePanelClose = chrome.sidePanel.close as ReturnType<typeof vi.fn>;
+  const mockSidePanelOpen = chrome.sidePanel.open as ReturnType<typeof vi.fn>;
+
+  beforeEach(async () => {
+    await new Promise((r) => setTimeout(r, 50));
+    vi.clearAllMocks();
+  });
+
+  it("closes panel when sidePanelOpen is true", async () => {
+    const { triggerDisconnect } = connectSidePanel();
+    const tab = { id: 1, windowId: 10, url: "https://example.com" };
+    await listeners.onClicked(tab);
+    expect(mockSidePanelClose).toHaveBeenCalledWith({ windowId: 10 });
+    expect(mockSidePanelOpen).not.toHaveBeenCalled();
+    triggerDisconnect();
+  });
+
+  it("opens panel when sidePanelOpen is false", async () => {
+    const tab = { id: 1, windowId: 10, url: "https://example.com" };
+    await listeners.onClicked(tab);
+    expect(mockSidePanelOpen).toHaveBeenCalled();
+    expect(mockSidePanelClose).not.toHaveBeenCalled();
+  });
+});
+
 describe("watcherFunction", () => {
   it("is exported and can be serialized by executeScript", () => {
     expect(typeof watcherFunction).toBe("function");
@@ -395,36 +506,32 @@ describe("live tracking", () => {
   const mockSendMessage = chrome.runtime.sendMessage as ReturnType<typeof vi.fn>;
   const cardDb = loadCardDb();
 
-  // Helper: simulate port connect + set side panel open
-  function connectSidePanel(): { triggerDisconnect: () => void } {
-    const disconnectListeners: Function[] = [];
-    const port = {
-      name: "sidepanel",
-      onDisconnect: { addListener: (cb: Function) => { disconnectListeners.push(cb); } },
-    };
-    listeners.onConnect(port);
-    return {
-      triggerDisconnect: () => disconnectListeners.forEach((cb) => cb()),
-    };
-  }
-
-  // Helper: trigger a click on a BGA game tab to set up live tracking
-  async function clickExtract(tabId: number): Promise<void> {
+  // Helper: trigger a click on a BGA game tab to set up live tracking.
+  // Simulates Chrome's real behavior: sidePanel.open triggers panel connection.
+  async function clickExtract(tabId: number): Promise<{ triggerDisconnect: () => void }> {
     const rawData = makeRawData({ "1": "Alice", "2": "Bob" }, []);
     mockExecuteScript.mockResolvedValueOnce([{ result: rawData }]);
-    const tab = { id: tabId, url: "https://boardgamearena.com/8/innovation?table=123" };
+    let conn!: ReturnType<typeof connectSidePanel>;
+    (chrome.sidePanel.open as ReturnType<typeof vi.fn>).mockImplementationOnce(() => {
+      conn = connectSidePanel();
+      return Promise.resolve();
+    });
+    const tab = { id: tabId, url: "https://boardgamearena.com/8/innovation?table=123", windowId: 1 };
     await listeners.onClicked(tab);
+    return conn;
   }
 
   beforeEach(async () => {
     // Flush any pending async operations (e.g. gameLogChanged fire-and-forget chains)
     await new Promise((r) => setTimeout(r, 50));
+    // Reset sidePanelOpen by connecting and immediately disconnecting a port
+    const { triggerDisconnect } = connectSidePanel();
+    triggerDisconnect();
     vi.clearAllMocks();
     mockSendMessage.mockImplementation(() => Promise.resolve());
   });
 
   it("injects watcher after successful extraction", async () => {
-    connectSidePanel();
     await clickExtract(42);
 
     // executeScript called twice: once for extract.js, once for watcher
@@ -437,7 +544,6 @@ describe("live tracking", () => {
   });
 
   it("sends liveStatus active after watcher injection", async () => {
-    connectSidePanel();
     await clickExtract(42);
 
     expect(mockSendMessage).toHaveBeenCalledWith(
@@ -446,7 +552,6 @@ describe("live tracking", () => {
   });
 
   it("gameLogChanged triggers extraction from the live tab", async () => {
-    connectSidePanel();
     await clickExtract(42);
     vi.clearAllMocks();
 
@@ -473,7 +578,6 @@ describe("live tracking", () => {
   });
 
   it("gameLogChanged skipped when extracting", async () => {
-    connectSidePanel();
     await clickExtract(42);
 
     // Now start a second extraction via gameLogChanged that won't resolve yet
@@ -498,7 +602,6 @@ describe("live tracking", () => {
   });
 
   it("gameLogChanged skipped within minimum interval", async () => {
-    connectSidePanel();
     await clickExtract(42);
     vi.clearAllMocks();
 
@@ -511,7 +614,6 @@ describe("live tracking", () => {
   });
 
   it("packet-count guard skips resultsReady when count unchanged", async () => {
-    connectSidePanel();
     await clickExtract(42);
 
     // Wait for extraction to fully complete
@@ -543,7 +645,6 @@ describe("live tracking", () => {
   });
 
   it("gameLogChanged from wrong tab is ignored", async () => {
-    connectSidePanel();
     await clickExtract(42);
     vi.clearAllMocks();
 
@@ -559,8 +660,7 @@ describe("live tracking", () => {
   });
 
   it("stopLiveTracking on panel disconnect", async () => {
-    const { triggerDisconnect } = connectSidePanel();
-    await clickExtract(42);
+    const { triggerDisconnect } = await clickExtract(42);
     vi.clearAllMocks();
 
     triggerDisconnect();
@@ -568,5 +668,232 @@ describe("live tracking", () => {
     expect(mockSendMessage).toHaveBeenCalledWith(
       expect.objectContaining({ type: "liveStatus", active: false }),
     );
+  });
+});
+
+describe("auto-close in handleNavigation", () => {
+  const mockSidePanelClose = chrome.sidePanel.close as ReturnType<typeof vi.fn>;
+  const mockSendMessage = chrome.runtime.sendMessage as ReturnType<typeof vi.fn>;
+  const mockTabsGet = chrome.tabs.get as ReturnType<typeof vi.fn>;
+  const mockSetIcon = chrome.action.setIcon as ReturnType<typeof vi.fn>;
+
+  beforeEach(async () => {
+    await new Promise((r) => setTimeout(r, 50));
+    // Reset panel state
+    const { triggerDisconnect } = connectSidePanel();
+    triggerDisconnect();
+    // Reset pin mode to pinned
+    listeners.onMessage({ type: "setPinMode", mode: "pinned" }, {}, () => {});
+    vi.clearAllMocks();
+    mockSendMessage.mockImplementation(() => Promise.resolve());
+  });
+
+  it("auto-closes panel in autohide-bga mode on non-BGA tab", async () => {
+    const conn = connectSidePanel();
+    listeners.onMessage({ type: "setPinMode", mode: "autohide-bga" }, {}, () => {});
+    vi.clearAllMocks();
+
+    // Navigate to non-BGA page
+    mockTabsGet.mockResolvedValueOnce({ id: 1, url: "https://example.com", status: "complete", windowId: 10 });
+    listeners.onActivated({ tabId: 1 });
+    await new Promise((r) => setTimeout(r, 50));
+
+    expect(mockSidePanelClose).toHaveBeenCalledWith({ windowId: 10 });
+    conn.triggerDisconnect();
+  });
+
+  it("does not auto-close in autohide-bga mode on BGA tab", async () => {
+    const conn = connectSidePanel();
+    listeners.onMessage({ type: "setPinMode", mode: "autohide-bga" }, {}, () => {});
+    vi.clearAllMocks();
+
+    // Navigate to BGA page (non-game, but still BGA domain)
+    mockTabsGet.mockResolvedValueOnce({ id: 1, url: "https://boardgamearena.com/lobby", status: "complete", windowId: 10 });
+    listeners.onActivated({ tabId: 1 });
+    await new Promise((r) => setTimeout(r, 50));
+
+    expect(mockSidePanelClose).not.toHaveBeenCalled();
+    conn.triggerDisconnect();
+  });
+
+  it("auto-closes panel in autohide-game mode on non-game BGA tab", async () => {
+    const conn = connectSidePanel();
+    listeners.onMessage({ type: "setPinMode", mode: "autohide-game" }, {}, () => {});
+    vi.clearAllMocks();
+
+    // Navigate to BGA lobby (not a game table)
+    mockTabsGet.mockResolvedValueOnce({ id: 1, url: "https://boardgamearena.com/lobby", status: "complete", windowId: 10 });
+    listeners.onActivated({ tabId: 1 });
+    await new Promise((r) => setTimeout(r, 50));
+
+    expect(mockSidePanelClose).toHaveBeenCalledWith({ windowId: 10 });
+    conn.triggerDisconnect();
+  });
+
+  it("does not auto-close in autohide-game mode on supported game tab", async () => {
+    const conn = connectSidePanel();
+    listeners.onMessage({ type: "setPinMode", mode: "autohide-game" }, {}, () => {});
+    vi.clearAllMocks();
+
+    // Navigate to a supported game
+    const rawData = { players: { "1": "Alice", "2": "Bob" }, packets: [] };
+    (chrome.scripting.executeScript as ReturnType<typeof vi.fn>).mockResolvedValueOnce([{ result: rawData }]);
+    mockTabsGet.mockResolvedValueOnce({ id: 1, url: "https://boardgamearena.com/8/innovation?table=123", status: "complete", windowId: 10 });
+    listeners.onActivated({ tabId: 1 });
+    await new Promise((r) => setTimeout(r, 50));
+
+    expect(mockSidePanelClose).not.toHaveBeenCalled();
+    conn.triggerDisconnect();
+  });
+
+  it("does not auto-close in pinned mode regardless of URL", async () => {
+    const conn = connectSidePanel();
+    // pinMode is already "pinned" from beforeEach
+    vi.clearAllMocks();
+
+    mockTabsGet.mockResolvedValueOnce({ id: 1, url: "https://example.com", status: "complete", windowId: 10 });
+    listeners.onActivated({ tabId: 1 });
+    await new Promise((r) => setTimeout(r, 50));
+
+    expect(mockSidePanelClose).not.toHaveBeenCalled();
+    conn.triggerDisconnect();
+  });
+
+  it("auto-closes on same-tab navigation via onUpdated", async () => {
+    const conn = connectSidePanel();
+    listeners.onMessage({ type: "setPinMode", mode: "autohide-bga" }, {}, () => {});
+
+    // Set active tab
+    listeners.onActivated({ tabId: 5 });
+    await new Promise((r) => setTimeout(r, 50));
+    vi.clearAllMocks();
+
+    // Same tab navigates to non-BGA page
+    mockTabsGet.mockResolvedValueOnce({ id: 5, url: "https://example.com", status: "complete", windowId: 10 });
+    listeners.onUpdated(5, { status: "complete" });
+    await new Promise((r) => setTimeout(r, 50));
+
+    expect(mockSidePanelClose).toHaveBeenCalledWith({ windowId: 10 });
+    conn.triggerDisconnect();
+  });
+});
+
+describe("icon swap behavior", () => {
+  const mockSetIcon = chrome.action.setIcon as ReturnType<typeof vi.fn>;
+  const mockTabsGet = chrome.tabs.get as ReturnType<typeof vi.fn>;
+  const mockSendMessage = chrome.runtime.sendMessage as ReturnType<typeof vi.fn>;
+
+  const ICON_NORMAL = { "16": "assets/extension/icon-16.png", "48": "assets/extension/icon-48.png", "128": "assets/extension/icon-128.png" };
+  const ICON_LIT = { "16": "assets/extension/icon-16-lit.png", "48": "assets/extension/icon-48-lit.png", "128": "assets/extension/icon-128-lit.png" };
+
+  beforeEach(async () => {
+    await new Promise((r) => setTimeout(r, 50));
+    // Reset panel state
+    const { triggerDisconnect } = connectSidePanel();
+    triggerDisconnect();
+    // Reset pin mode
+    listeners.onMessage({ type: "setPinMode", mode: "pinned" }, {}, () => {});
+    vi.clearAllMocks();
+    mockSendMessage.mockImplementation(() => Promise.resolve());
+  });
+
+  it("sets lit icon when switching to game tab with panel closed and auto-hide active", async () => {
+    // Panel is closed (from beforeEach), set autohide mode
+    listeners.onMessage({ type: "setPinMode", mode: "autohide-game" }, {}, () => {});
+    vi.clearAllMocks();
+
+    // Switch to a game tab
+    mockTabsGet.mockResolvedValueOnce({ id: 1, url: "https://boardgamearena.com/8/innovation?table=123", status: "complete" });
+    listeners.onActivated({ tabId: 1 });
+    await new Promise((r) => setTimeout(r, 50));
+
+    expect(mockSetIcon).toHaveBeenCalledWith({ tabId: 1, path: ICON_LIT });
+  });
+
+  it("sets normal icon when switching to non-game tab with panel closed and auto-hide active", async () => {
+    listeners.onMessage({ type: "setPinMode", mode: "autohide-game" }, {}, () => {});
+    vi.clearAllMocks();
+
+    // Switch to a non-game tab
+    mockTabsGet.mockResolvedValueOnce({ id: 1, url: "https://example.com", status: "complete" });
+    listeners.onActivated({ tabId: 1 });
+    await new Promise((r) => setTimeout(r, 50));
+
+    expect(mockSetIcon).toHaveBeenCalledWith({ tabId: 1, path: ICON_NORMAL });
+  });
+
+  it("does not update icon when switching tabs in pinned mode", async () => {
+    // pinMode is already "pinned"
+    vi.clearAllMocks();
+
+    mockTabsGet.mockResolvedValueOnce({ id: 1, url: "https://boardgamearena.com/8/innovation?table=123", status: "complete" });
+    listeners.onActivated({ tabId: 1 });
+    await new Promise((r) => setTimeout(r, 50));
+
+    // setIcon should not be called because updateIcon returns early for pinned mode
+    expect(mockSetIcon).not.toHaveBeenCalled();
+  });
+
+  it("resets icon to normal when panel opens", async () => {
+    // Set auto-hide mode first
+    listeners.onMessage({ type: "setPinMode", mode: "autohide-game" }, {}, () => {});
+
+    // Set active tab to a game page (sets lit icon)
+    mockTabsGet.mockResolvedValueOnce({ id: 1, url: "https://boardgamearena.com/8/innovation?table=123", status: "complete" });
+    listeners.onActivated({ tabId: 1 });
+    await new Promise((r) => setTimeout(r, 50));
+    vi.clearAllMocks();
+
+    // Panel opens
+    const conn = connectSidePanel();
+
+    // Icon should be reset to normal
+    expect(mockSetIcon).toHaveBeenCalledWith({ tabId: 1, path: ICON_NORMAL });
+    conn.triggerDisconnect();
+  });
+
+  it("sets lit icon after toggle-close on a game page with auto-hide active", async () => {
+    const conn = connectSidePanel();
+    listeners.onMessage({ type: "setPinMode", mode: "autohide-game" }, {}, () => {});
+    vi.clearAllMocks();
+
+    // Toggle close on a game page
+    const tab = { id: 1, windowId: 10, url: "https://boardgamearena.com/8/innovation?table=123" };
+    await listeners.onClicked(tab);
+
+    expect(mockSetIcon).toHaveBeenCalledWith({ tabId: 1, path: ICON_LIT });
+    conn.triggerDisconnect();
+  });
+
+  it("sets normal icon after toggle-close on a non-game page with auto-hide active", async () => {
+    const conn = connectSidePanel();
+    listeners.onMessage({ type: "setPinMode", mode: "autohide-game" }, {}, () => {});
+    vi.clearAllMocks();
+
+    // Toggle close on a non-game page
+    const tab = { id: 1, windowId: 10, url: "https://example.com" };
+    await listeners.onClicked(tab);
+
+    expect(mockSetIcon).toHaveBeenCalledWith({ tabId: 1, path: ICON_NORMAL });
+    conn.triggerDisconnect();
+  });
+
+  it("sets lit icon on same-tab navigation to game page with panel closed", async () => {
+    listeners.onMessage({ type: "setPinMode", mode: "autohide-bga" }, {}, () => {});
+    vi.clearAllMocks();
+
+    // Queue both mock responses: first for onActivated, second for onUpdated
+    mockTabsGet.mockResolvedValueOnce({ id: 5, url: "https://example.com", status: "complete" });
+    mockTabsGet.mockResolvedValueOnce({ id: 5, url: "https://boardgamearena.com/8/innovation?table=123", status: "complete" });
+
+    // Set active tab (consumes first mock)
+    listeners.onActivated({ tabId: 5 });
+    await new Promise((r) => setTimeout(r, 50));
+
+    // Page finishes loading on a game URL (consumes second mock)
+    listeners.onUpdated(5, { status: "complete" });
+    await new Promise((r) => setTimeout(r, 50));
+
+    expect(mockSetIcon).toHaveBeenCalledWith({ tabId: 5, path: ICON_LIT });
   });
 });

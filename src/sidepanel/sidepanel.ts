@@ -6,7 +6,7 @@ import { SECTION_IDS, SECTION_LABELS } from "../render/config.js";
 import { renderHelp } from "../render/help.js";
 import { CardDatabase } from "../models/types.js";
 import { GameState } from "../engine/game_state.js";
-import type { PipelineResults } from "../background.js";
+import type { PipelineResults, PinMode } from "../background.js";
 
 // ---------------------------------------------------------------------------
 // State
@@ -400,6 +400,7 @@ document.getElementById("btn-sections")?.addEventListener("click", (e) => {
   const panel = document.getElementById("section-selector");
   if (!panel) return;
   if (panel.style.display === "none") {
+    closePinDropdown();
     buildSectionSelector();
     panel.style.display = "";
   } else {
@@ -414,6 +415,151 @@ document.addEventListener("click", (e) => {
     panel.style.display = "none";
   }
 });
+
+// ---------------------------------------------------------------------------
+// Pin mode button & dropdown
+// ---------------------------------------------------------------------------
+
+
+const PIN_ICONS: Record<PinMode, string> = {
+  "pinned": '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M16 12V4h1V2H7v2h1v8l-2 2v2h5v6l1 1 1-1v-6h5v-2z"/></svg>',
+  "autohide-bga": '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M16 12V4h1V2H7v2h1v8l-2 2v2h5v6l1 1 1-1v-6h5v-2z" opacity="0.5"/><circle cx="18" cy="6" r="4" fill="currentColor" opacity="0.8"/></svg>',
+  "autohide-game": '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M16 12V4h1V2H7v2h1v8l-2 2v2h5v6l1 1 1-1v-6h5v-2z" opacity="0.35"/><line x1="4" y1="4" x2="20" y2="20" stroke="currentColor" stroke-width="2"/></svg>',
+};
+
+const PIN_LABELS: Record<PinMode, string> = {
+  "pinned": "Always open",
+  "autohide-bga": "Auto-hide (BGA)",
+  "autohide-game": "Auto-hide (Game)",
+};
+
+const PIN_ORDER: PinMode[] = ["pinned", "autohide-bga", "autohide-game"];
+
+let currentPinMode: PinMode = "pinned";
+let pinDropdownOpen = false;
+
+
+function updatePinButtonIcon(): void {
+  const btn = document.getElementById("btn-pin");
+  if (btn) btn.innerHTML = PIN_ICONS[currentPinMode];
+}
+
+function buildPinDropdown(): void {
+  const dropdown = document.getElementById("pin-dropdown");
+  if (!dropdown) return;
+
+  // Build ordered list: current mode first, then others in fixed order
+  const otherModes = PIN_ORDER.filter((m) => m !== currentPinMode);
+  const ordered = [currentPinMode, ...otherModes];
+
+  dropdown.innerHTML = "";
+  for (const mode of ordered) {
+    const option = document.createElement("div");
+    option.className = "pin-option" + (mode === currentPinMode ? " active" : "");
+    option.dataset.mode = mode;
+    option.innerHTML = PIN_ICONS[mode] + '<span>' + PIN_LABELS[mode] + '</span>';
+    dropdown.appendChild(option);
+
+    option.addEventListener("mouseover", () => {
+      dropdown.querySelectorAll(".pin-option").forEach((el) => el.classList.remove("highlight"));
+      option.classList.add("highlight");
+    });
+
+    option.addEventListener("mouseup", (e: MouseEvent) => {
+      e.stopPropagation();
+      if (mode === currentPinMode) {
+        closePinDropdown();
+        return;
+      }
+      selectPinMode(mode);
+    });
+  }
+
+  // Divider + shortcut link
+  const divider = document.createElement("div");
+  divider.className = "pin-divider";
+  dropdown.appendChild(divider);
+
+  const link = document.createElement("span");
+  link.className = "pin-shortcut-link";
+  link.textContent = "Customize shortcut";
+  link.addEventListener("mouseup", (e: MouseEvent) => {
+    e.stopPropagation();
+    // chrome://extensions/shortcuts can't be opened via window.open; use Chrome tabs API
+    if (typeof chrome !== "undefined" && chrome.tabs?.create) {
+      chrome.tabs.create({ url: "chrome://extensions/shortcuts" });
+    }
+    closePinDropdown();
+  });
+  dropdown.appendChild(link);
+}
+
+function openPinDropdown(): void {
+  const dropdown = document.getElementById("pin-dropdown");
+  if (!dropdown) return;
+  // Close section-selector if open
+  const sectionPanel = document.getElementById("section-selector");
+  if (sectionPanel) sectionPanel.style.display = "none";
+  buildPinDropdown();
+  dropdown.style.display = "";
+  pinDropdownOpen = true;
+}
+
+function closePinDropdown(): void {
+  const dropdown = document.getElementById("pin-dropdown");
+  if (!dropdown) return;
+  dropdown.style.display = "none";
+  pinDropdownOpen = false;
+}
+
+function selectPinMode(mode: PinMode): void {
+  currentPinMode = mode;
+  updatePinButtonIcon();
+  closePinDropdown();
+  if (typeof chrome !== "undefined" && chrome.runtime?.sendMessage) {
+    chrome.runtime.sendMessage({ type: "setPinMode", mode }).catch(() => {});
+  }
+}
+
+function initPinButton(): void {
+  const btn = document.getElementById("btn-pin");
+  if (!btn) return;
+
+  // Dual interaction: mousedown opens, mouseup on different item selects
+  // Use onmousedown (not addEventListener) so repeated initPinButton calls replace rather than stack
+  btn.onmousedown = (e: MouseEvent) => {
+    e.preventDefault();
+    if (pinDropdownOpen) {
+      closePinDropdown();
+    } else {
+      openPinDropdown();
+    }
+  };
+
+  updatePinButtonIcon();
+}
+
+// Close on mouseup outside the dropdown
+document.addEventListener("mouseup", (e: MouseEvent) => {
+  if (!pinDropdownOpen) return;
+  const dropdown = document.getElementById("pin-dropdown");
+  const btn = document.getElementById("btn-pin");
+  if (dropdown && !dropdown.contains(e.target as Node) && btn && !btn.contains(e.target as Node)) {
+    closePinDropdown();
+  }
+});
+
+// Load initial pin mode from background
+if (typeof chrome !== "undefined" && chrome.runtime?.sendMessage) {
+  chrome.runtime.sendMessage({ type: "getPinMode" }).then((mode: PinMode | null) => {
+    if (mode) {
+      currentPinMode = mode;
+      updatePinButtonIcon();
+    }
+  }).catch(() => {});
+}
+
+initPinButton();
 
 // ---------------------------------------------------------------------------
 // Help page
@@ -495,5 +641,7 @@ if (typeof chrome !== "undefined" && chrome.runtime?.onMessage) {
   });
 }
 
+function getCurrentPinMode(): PinMode { return currentPinMode; }
+
 // Export for testing
-export { render, showHelp, setupTooltips, setupToggles, applySectionVisibility, downloadBlob, fetchCardDb };
+export { render, showHelp, setupTooltips, setupToggles, applySectionVisibility, downloadBlob, fetchCardDb, initPinButton, openPinDropdown, closePinDropdown, selectPinMode, updatePinButtonIcon, getCurrentPinMode, PIN_ICONS };

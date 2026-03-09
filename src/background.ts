@@ -13,7 +13,10 @@ const BADGE_CLEAR_DELAY_MS = 5000;
 const EXTRACTION_TIMEOUT_MS = 60000;
 const LIVE_MIN_INTERVAL_MS = 5000;
 const SUPPORTED_GAMES = ["innovation"];
-const BGA_URL_PATTERN = /^https:\/\/([a-z0-9]+\.)?boardgamearena\.com\/\d+\/(\w+).*[?&]table=\d/;
+const BGA_URL_PATTERN = /^https:\/\/([a-z0-9]+\.)?boardgamearena\.com\/\d+\/(\w+).*[?&]table=\d+/;
+const BGA_DOMAIN_PATTERN = /^https:\/\/([a-z0-9]+\.)?boardgamearena\.com\//;
+const ICON_NORMAL = { "16": "assets/extension/icon-16.png", "48": "assets/extension/icon-48.png", "128": "assets/extension/icon-128.png" };
+const ICON_LIT = { "16": "assets/extension/icon-16-lit.png", "48": "assets/extension/icon-48-lit.png", "128": "assets/extension/icon-128-lit.png" };
 
 // ---------------------------------------------------------------------------
 // State
@@ -33,11 +36,16 @@ export type NavigationAction =
   | { action: "extract"; tableNumber: string }
   | { action: "showHelp"; url: string };
 
+/** Pin mode controlling auto-hide behavior. */
+export type PinMode = "pinned" | "autohide-bga" | "autohide-game";
+const VALID_PIN_MODES: ReadonlySet<string> = new Set<PinMode>(["pinned", "autohide-bga", "autohide-game"]);
+
 let lastResults: PipelineResults | null = null;
 let extracting = false;
 let sidePanelOpen = false;
 let activeTabId: number | null = null;
 let pendingNavTabId: number | null = null;
+let pinMode: PinMode = "pinned";
 let liveTabId: number | null = null;
 let lastExtractionTime = 0;
 
@@ -48,6 +56,11 @@ const cardDb = new CardDatabase(cardInfoRaw as any[]);
 // Initialize activeTabId on service worker startup
 chrome.tabs.query({ active: true, currentWindow: true }).then((tabs) => {
   if (tabs[0]?.id) activeTabId = tabs[0].id;
+});
+
+// Load pin mode from storage on service worker startup
+chrome.storage.local.get("pinMode").then((result) => {
+  if (result.pinMode && VALID_PIN_MODES.has(result.pinMode)) pinMode = result.pinMode as PinMode;
 });
 
 // ---------------------------------------------------------------------------
@@ -97,6 +110,22 @@ function clearBadgeLater(tabId: number): void {
 
 function timeout(ms: number, message: string): Promise<never> {
   return new Promise((_resolve, reject) => setTimeout(() => reject(new Error(message)), ms));
+}
+
+// ---------------------------------------------------------------------------
+// Icon helpers
+// ---------------------------------------------------------------------------
+
+/** Show lit icon when auto-hide is active and a supported game is detected on the tab. */
+function updateIcon(tabId: number, url: string | undefined): void {
+  if (pinMode === "pinned") return;
+  const isGame = classifyNavigation(url, null).action === "extract";
+  chrome.action.setIcon({ tabId, path: isGame ? ICON_LIT : ICON_NORMAL });
+}
+
+/** Reset icon to normal (unlit) state. */
+function resetIcon(tabId: number): void {
+  chrome.action.setIcon({ tabId, path: ICON_NORMAL });
 }
 
 // ---------------------------------------------------------------------------
@@ -163,6 +192,17 @@ export function classifyNavigation(url: string | undefined, currentTableNumber: 
   return { action: "extract", tableNumber };
 }
 
+/**
+ * Determine whether the side panel should auto-close for a given URL and pin mode.
+ * Pure function — no side effects, easy to test.
+ */
+export function shouldAutoClose(url: string | undefined, mode: PinMode): boolean {
+  if (mode === "pinned") return false;
+  if (mode === "autohide-bga") return !url || !BGA_DOMAIN_PATTERN.test(url);
+  // autohide-game: close when not on a supported game table
+  return classifyNavigation(url, null).action === "showHelp";
+}
+
 // ---------------------------------------------------------------------------
 // Extraction helper
 // ---------------------------------------------------------------------------
@@ -218,6 +258,9 @@ chrome.runtime.onConnect.addListener((port: chrome.runtime.Port) => {
   console.log("[live] port connected");
   sidePanelOpen = true;
 
+  // Reset icon to normal when panel opens
+  if (activeTabId !== null) resetIcon(activeTabId);
+
   // After service worker restart, state is lost. Re-inject watcher on the active game tab
   // so it can detect DOM changes and trigger extraction on demand (no immediate BGA query).
   chrome.tabs.query({ active: true, currentWindow: true }).then((tabs) => {
@@ -239,7 +282,20 @@ chrome.runtime.onConnect.addListener((port: chrome.runtime.Port) => {
 });
 
 chrome.action.onClicked.addListener(async (tab: chrome.tabs.Tab) => {
-  if (extracting || !tab.id) return;
+  if (!tab.id) return;
+
+  // Toggle: close panel if already open
+  if (sidePanelOpen) {
+    try {
+      await chrome.sidePanel.close({ windowId: tab.windowId });
+    } catch (err) {
+      console.warn("Could not close side panel:", err);
+    }
+    updateIcon(tab.id!, tab.url);
+    return;
+  }
+
+  if (extracting) return;
 
   // Non-game or unsupported game: open side panel with help message
   const clickNav = classifyNavigation(tab.url, null);
@@ -297,6 +353,20 @@ async function handleNavigation(initialTabId: number): Promise<void> {
     try {
       const tab = await chrome.tabs.get(tabId);
       if (tab.status !== "complete") break;
+
+      // Auto-close when pin mode requires it
+      if (shouldAutoClose(tab.url, pinMode)) {
+        try {
+          await chrome.sidePanel.close({ windowId: tab.windowId });
+        } catch (err) {
+          console.warn("Could not close side panel:", err);
+        }
+        lastResults = null;
+        stopLiveTracking("auto-close");
+        updateIcon(tabId, tab.url);
+        break;
+      }
+
       const nav = classifyNavigation(tab.url, lastResults?.tableNumber ?? null);
       if (nav.action === "extract") {
         chrome.runtime.sendMessage({ type: "loading" }).catch(() => {});
@@ -330,9 +400,18 @@ async function handleNavigation(initialTabId: number): Promise<void> {
 }
 
 // React to tab switching
-chrome.tabs.onActivated.addListener((activeInfo) => {
+chrome.tabs.onActivated.addListener(async (activeInfo) => {
   activeTabId = activeInfo.tabId;
-  if (!sidePanelOpen) return;
+  if (!sidePanelOpen) {
+    // Update lit icon hint when panel is closed and auto-hide is active
+    if (pinMode !== "pinned") {
+      try {
+        const tab = await chrome.tabs.get(activeInfo.tabId);
+        updateIcon(activeInfo.tabId, tab.url);
+      } catch { /* tab may have been closed */ }
+    }
+    return;
+  }
   if (extracting) {
     pendingNavTabId = activeInfo.tabId;
     return;
@@ -342,8 +421,15 @@ chrome.tabs.onActivated.addListener((activeInfo) => {
 
 // React to same-tab navigation (page load complete)
 chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
-  if (!sidePanelOpen || tabId !== activeTabId) return;
+  if (tabId !== activeTabId) return;
   if (changeInfo.status !== "complete") return;
+  if (!sidePanelOpen) {
+    // Update lit icon hint when page finishes loading
+    if (pinMode !== "pinned") {
+      chrome.tabs.get(tabId).then((tab) => updateIcon(tabId, tab.url)).catch(() => {});
+    }
+    return;
+  }
   if (extracting) {
     pendingNavTabId = tabId;
     return;
@@ -364,6 +450,13 @@ chrome.runtime.onMessage.addListener(
       stopLiveTracking("help page opened");
     } else if (message.type === "resumeLive") {
       if (activeTabId !== null) injectWatcher(activeTabId);
+    } else if (message.type === "getPinMode") {
+      sendResponse(pinMode);
+    } else if (message.type === "setPinMode") {
+      if (typeof message.mode !== "string" || !VALID_PIN_MODES.has(message.mode)) { sendResponse(false); return; }
+      pinMode = message.mode as PinMode;
+      chrome.storage.local.set({ pinMode });
+      sendResponse(true);
     } else if (message.type === "gameLogChanged") {
       if (sender.tab?.id !== liveTabId) { console.log("[live] ignored: sender tab", sender.tab?.id, "!= liveTabId", liveTabId); return; }
       if (extracting || !sidePanelOpen || liveTabId === null) { console.log("[live] ignored: extracting=", extracting, "sidePanelOpen=", sidePanelOpen, "liveTabId=", liveTabId); return; }

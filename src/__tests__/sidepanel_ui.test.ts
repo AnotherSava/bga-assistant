@@ -14,15 +14,16 @@ vi.hoisted(() => {
     },
     scripting: { executeScript: () => Promise.resolve([]) },
     sidePanel: { open: () => Promise.resolve() },
+    tabs: { create: vi.fn(() => Promise.resolve()) },
     runtime: {
       onMessage: { addListener: (fn: any) => { (globalThis as any).__sidepanelMessageListeners.push(fn); } },
-      sendMessage: () => Promise.resolve(null),
+      sendMessage: vi.fn(() => Promise.resolve(null)),
       getURL: (path: string) => `chrome-extension://test/${path}`,
     },
   };
 });
 
-import { downloadBlob, setupTooltips, setupToggles, render, fetchCardDb } from "../sidepanel/sidepanel";
+import { downloadBlob, setupTooltips, setupToggles, render, fetchCardDb, initPinButton, openPinDropdown, closePinDropdown, selectPinMode, updatePinButtonIcon, getCurrentPinMode } from "../sidepanel/sidepanel";
 import type { PipelineResults } from "../background";
 
 describe("sidepanel UI functions", () => {
@@ -372,5 +373,125 @@ describe("scroll position preservation", () => {
     await vi.waitFor(() => {
       expect(scrollTopValue).toBe(150);
     });
+  });
+});
+
+describe("pin button & dropdown", () => {
+  beforeEach(() => {
+    document.body.innerHTML = `
+      <div class="top-buttons">
+        <div id="pin-container">
+          <button id="btn-pin"></button>
+          <div id="pin-dropdown" style="display:none"></div>
+        </div>
+      </div>
+    `;
+    // Reset to pinned mode and re-attach event listeners
+    selectPinMode("pinned");
+    closePinDropdown();
+    initPinButton();
+    vi.clearAllMocks();
+  });
+
+  it("mousedown on pin button opens dropdown", () => {
+    const btn = document.getElementById("btn-pin")!;
+    btn.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+    const dropdown = document.getElementById("pin-dropdown")!;
+    expect(dropdown.style.display).toBe("");
+    expect(dropdown.querySelectorAll(".pin-option").length).toBe(3);
+  });
+
+  it("dropdown shows current mode as first item", () => {
+    selectPinMode("autohide-bga");
+    openPinDropdown();
+    const dropdown = document.getElementById("pin-dropdown")!;
+    const options = dropdown.querySelectorAll(".pin-option");
+    expect(options[0].getAttribute("data-mode")).toBe("autohide-bga");
+    expect(options[0].classList.contains("active")).toBe(true);
+  });
+
+  it("mouseup on different mode selects it and closes dropdown", () => {
+    openPinDropdown();
+    const dropdown = document.getElementById("pin-dropdown")!;
+    const bgaOption = dropdown.querySelector('[data-mode="autohide-bga"]') as HTMLElement;
+    bgaOption.dispatchEvent(new MouseEvent("mouseup", { bubbles: true }));
+    expect(getCurrentPinMode()).toBe("autohide-bga");
+    expect(dropdown.style.display).toBe("none");
+  });
+
+  it("mouseup on current mode closes dropdown without change", () => {
+    selectPinMode("pinned");
+    vi.clearAllMocks();
+    openPinDropdown();
+    const dropdown = document.getElementById("pin-dropdown")!;
+    const pinnedOption = dropdown.querySelector('[data-mode="pinned"]') as HTMLElement;
+    pinnedOption.dispatchEvent(new MouseEvent("mouseup", { bubbles: true }));
+    expect(getCurrentPinMode()).toBe("pinned");
+    expect(dropdown.style.display).toBe("none");
+    // Should not have sent setPinMode since mode didn't change
+    expect((chrome.runtime.sendMessage as any)).not.toHaveBeenCalledWith(expect.objectContaining({ type: "setPinMode" }));
+  });
+
+  it("mouseup outside dropdown closes it", () => {
+    openPinDropdown();
+    const dropdown = document.getElementById("pin-dropdown")!;
+    expect(dropdown.style.display).toBe("");
+    // mouseup on body (outside dropdown and button)
+    document.body.dispatchEvent(new MouseEvent("mouseup", { bubbles: true }));
+    expect(dropdown.style.display).toBe("none");
+  });
+
+  it("mode selection updates button icon", () => {
+    const btn = document.getElementById("btn-pin")!;
+    updatePinButtonIcon();
+    // JSDOM normalizes self-closing SVG tags, so check for SVG content presence
+    expect(btn.querySelector("svg")).not.toBeNull();
+    expect(btn.querySelector("path")).not.toBeNull();
+
+    selectPinMode("autohide-game");
+    // autohide-game has a <line> element for the cross
+    expect(btn.querySelector("line")).not.toBeNull();
+  });
+
+  it("mode selection sends setPinMode message to background", () => {
+    selectPinMode("autohide-bga");
+    expect(chrome.runtime.sendMessage).toHaveBeenCalledWith({ type: "setPinMode", mode: "autohide-bga" });
+  });
+
+  it("hovering over option adds highlight class", () => {
+    openPinDropdown();
+    const dropdown = document.getElementById("pin-dropdown")!;
+    const options = dropdown.querySelectorAll(".pin-option");
+    const secondOption = options[1] as HTMLElement;
+    secondOption.dispatchEvent(new MouseEvent("mouseover", { bubbles: true }));
+    expect(secondOption.classList.contains("highlight")).toBe(true);
+    // Other options should not have highlight
+    expect(options[0].classList.contains("highlight")).toBe(false);
+  });
+
+  it("dropdown contains customize shortcut link", () => {
+    openPinDropdown();
+    const dropdown = document.getElementById("pin-dropdown")!;
+    const link = dropdown.querySelector(".pin-shortcut-link") as HTMLElement;
+    expect(link).not.toBeNull();
+    expect(link.textContent).toBe("Customize shortcut");
+  });
+
+  it("clicking customize shortcut opens chrome shortcuts page", () => {
+    openPinDropdown();
+    const dropdown = document.getElementById("pin-dropdown")!;
+    const link = dropdown.querySelector(".pin-shortcut-link") as HTMLElement;
+    link.dispatchEvent(new MouseEvent("mouseup", { bubbles: true }));
+    expect(chrome.tabs.create).toHaveBeenCalledWith({ url: "chrome://extensions/shortcuts" });
+    expect(dropdown.style.display).toBe("none");
+  });
+
+  it("second mousedown on button closes dropdown", () => {
+    const btn = document.getElementById("btn-pin")!;
+    btn.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+    const dropdown = document.getElementById("pin-dropdown")!;
+    expect(dropdown.style.display).toBe("");
+    btn.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+    expect(dropdown.style.display).toBe("none");
   });
 });

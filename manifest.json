@@ -3,7 +3,7 @@
   "name": "BGA Assistant",
   "version": "1.0",
   "description": "Game assistant for Board Game Arena.",
-  "permissions": ["activeTab", "scripting", "sidePanel", "tabs"],
+  "permissions": ["activeTab", "scripting", "sidePanel", "storage", "tabs"],
   "host_permissions": ["https://boardgamearena.com/*", "https://*.boardgamearena.com/*"],
   "action": {
     "default_icon": {
@@ -18,7 +18,15 @@
     "48": "assets/extension/icon-48.png",
     "128": "assets/extension/icon-128.png"
   },
-  "minimum_chrome_version": "128",
+  "commands": {
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Alt+Shift+B"
+      },
+      "description": "Toggle side panel"
+    }
+  },
+  "minimum_chrome_version": "141",
   "background": {
     "service_worker": "dist/background.js",
     "type": "module"

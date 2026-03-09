@@ -17,7 +17,10 @@ Reads the full game log from [Innovation](https://boardgamegeek.com/boardgame/63
 - Layout toggle: Wide (one row per age) / Tall (color columns)
 - Section selector: eye button to show/hide entire sections
 - Hover tooltips: card face images with full card details on hover
-- Persistent settings: all toggle states and section visibility are saved across sessions
+- Pin mode: three-mode toggle controlling side panel behavior — Pinned (always open), Auto-hide BGA (closes on non-BGA tabs), Auto-hide Game (closes on non-game tabs)
+- Keyboard shortcut: `Alt+Shift+B` toggles the side panel open/closed (customizable via `chrome://extensions/shortcuts`)
+- Lit icon hint: when auto-hide is active and the panel is closed, the toolbar icon glows on supported game pages
+- Persistent settings: all toggle states, section visibility, and pin mode are saved across sessions
 - Download: bundled zip with raw data, game log, game state, and standalone summary
 
 ## Setup
@@ -44,11 +47,12 @@ npm run build
 ## Usage
 
 1. Navigate to a supported BGA game page in Chrome
-2. Click the BGA Assistant icon in the toolbar
+2. Click the BGA Assistant icon in the toolbar (or press `Alt+Shift+B`)
 3. The side panel opens with a visual summary of the game state
 4. While viewing a game, the side panel automatically updates when the game progresses — a green dot in the status bar indicates active tracking
 5. Switching to another supported game tab automatically updates the display
-6. Use the download button to save a zip with game data and a standalone summary
+6. Use the pin button in the side panel to choose auto-hide behavior — the panel can automatically close when you navigate away from BGA or game pages
+7. Use the download button to save a zip with game data and a standalone summary
 
 ## Development
 

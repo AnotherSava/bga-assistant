@@ -320,3 +320,60 @@ body {
   vertical-align: middle;
 }
 .help-btn-text { font-size: 14px; font-weight: bold; }
+
+/* Pin button & dropdown */
+#pin-container { position: relative; }
+#btn-pin {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1px solid #555;
+  background: rgba(51, 51, 51, 0.8);
+  color: #aaa;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#btn-pin:hover { background: #444; color: #fff; }
+#btn-pin svg { width: 16px; height: 16px; }
+
+#pin-dropdown {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  z-index: 30;
+  background: #2a2a2a;
+  border: 1px solid #555;
+  border-radius: 6px;
+  padding: 2px 0;
+  min-width: 170px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+}
+.pin-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  cursor: pointer;
+  color: #bbb;
+  font-size: 12px;
+  white-space: nowrap;
+  user-select: none;
+}
+.pin-option:first-child { border-radius: 4px 4px 0 0; }
+.pin-option:hover, .pin-option.highlight { background: #3a3a3a; color: #fff; }
+.pin-option.active { color: #fff; }
+.pin-option svg { width: 16px; height: 16px; flex-shrink: 0; }
+.pin-divider { height: 1px; background: #444; margin: 2px 0; }
+.pin-shortcut-link {
+  display: block;
+  padding: 5px 10px;
+  font-size: 11px;
+  color: #777;
+  text-decoration: none;
+  cursor: pointer;
+  user-select: none;
+}
+.pin-shortcut-link:hover { color: #aaa; }
