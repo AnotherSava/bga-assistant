@@ -1,8 +1,10 @@
 // Service worker: orchestrates extraction pipeline, opens side panel, handles messaging.
 
-import { processRawLog, type RawExtractionData, type GameLog } from "./engine/process_log.js";
-import { GameState } from "./engine/game_state.js";
-import { CardDatabase, CardSet } from "./models/types.js";
+import { processRawLog } from "./innovation/process_log.js";
+import { GameState } from "./innovation/game_state.js";
+import { processAzulLog } from "./azul/process_log.js";
+import { processLog as processAzulState, toJSON as azulToJSON } from "./azul/game_state.js";
+import { CardDatabase, CardSet, type GameName, type RawExtractionData } from "./models/types.js";
 import cardInfoRaw from "../assets/bga/innovation/card_info.json";
 
 // ---------------------------------------------------------------------------
@@ -12,7 +14,7 @@ import cardInfoRaw from "../assets/bga/innovation/card_info.json";
 const BADGE_CLEAR_DELAY_MS = 5000;
 const EXTRACTION_TIMEOUT_MS = 60000;
 const LIVE_MIN_INTERVAL_MS = 5000;
-const SUPPORTED_GAMES = ["innovation"];
+const SUPPORTED_GAMES: GameName[] = ["innovation", "azul"];
 const BGA_URL_PATTERN = /^https:\/\/([a-z0-9]+\.)?boardgamearena\.com\/\d+\/(\w+).*[?&]table=\d+/;
 const BGA_DOMAIN_PATTERN = /^https:\/\/([a-z0-9]+\.)?boardgamearena\.com\//;
 // ---------------------------------------------------------------------------
@@ -21,18 +23,31 @@ const BGA_DOMAIN_PATTERN = /^https:\/\/([a-z0-9]+\.)?boardgamearena\.com\//;
 
 /** Serialized pipeline results for side panel consumption. */
 export interface PipelineResults {
+  gameName: GameName;
   tableNumber: string;
   rawData: RawExtractionData;
-  gameLog: GameLog;
-  gameState: ReturnType<GameState["toJSON"]>;
+  // Game-specific payloads — consumers cast based on gameName
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  gameLog: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  gameState: any;
 }
 
 /** What to do in response to a tab navigation event. */
 export type NavigationAction =
   | { action: "skip" }
-  | { action: "extract"; tableNumber: string }
+  | { action: "extract"; tableNumber: string; gameName: GameName }
   | { action: "showHelp"; url: string }
   | { action: "unsupportedGame"; tableNumber: string };
+
+/**
+ * Check if a player count is valid for a given game.
+ * Innovation requires exactly 2 players; Azul accepts 2-4.
+ */
+export function isValidPlayerCount(gameName: GameName, playerCount: number): boolean {
+  if (gameName === "azul") return playerCount >= 2 && playerCount <= 4;
+  return playerCount === 2;
+}
 
 /** Pin mode controlling auto-hide behavior. */
 export type PinMode = "pinned" | "autohide-bga" | "autohide-game";
@@ -78,7 +93,17 @@ chrome.commands.getAll((commands) => {
  * Run the full analysis pipeline on raw extraction data.
  * Exported for testing.
  */
-export function runPipeline(rawData: RawExtractionData, database: CardDatabase, tableNumber: string): PipelineResults {
+export function runPipeline(rawData: RawExtractionData, database: CardDatabase, tableNumber: string, gameName: GameName): PipelineResults {
+  if (gameName === "azul") {
+    const azulLog = processAzulLog(rawData);
+    const azulState = processAzulState(azulLog.log);
+    return { gameName, tableNumber, rawData, gameLog: azulLog, gameState: azulToJSON(azulState) };
+  }
+
+  if (gameName !== "innovation") {
+    throw new Error(`Pipeline not implemented for game: ${gameName}`);
+  }
+
   const gameLog = processRawLog(rawData);
 
   // Supplement transfer-based detection with myHand detection
@@ -97,7 +122,7 @@ export function runPipeline(rawData: RawExtractionData, database: CardDatabase, 
   const state = new GameState(database, players, perspective);
   state.initGame(gameLog.expansions);
   state.processLog(gameLog.log, gameLog.myHand);
-  return { tableNumber, rawData, gameLog, gameState: state.toJSON() };
+  return { gameName, tableNumber, rawData, gameLog, gameState: state.toJSON() };
 }
 
 // ---------------------------------------------------------------------------
@@ -124,14 +149,14 @@ function timeout(ms: number, message: string): Promise<never> {
 // ---------------------------------------------------------------------------
 
 /**
- * Probe function injected into the page to check if a supported game is active.
+ * Probe function injected into the page to check if a game table is active.
  * Must be self-contained (no closures or external references).
- * Returns true if gameui is loaded with exactly 2 players.
+ * Returns the number of players if gameui is loaded, 0 otherwise.
  */
-function probeGameTable(): boolean {
+function probeGameTable(): number {
   const gui = (globalThis as any).gameui;
-  if (!gui?.ajaxcall || !gui.gamedatas?.players) return false;
-  return Object.keys(gui.gamedatas.players).length === 2;
+  if (!gui?.ajaxcall || !gui.gamedatas?.players) return 0;
+  return Object.keys(gui.gamedatas.players).length;
 }
 
 // Icon frame paths: 0 = normal (dark), 1–8 = intermediate, 9 = fully lit
@@ -272,7 +297,7 @@ class IconController {
 
 const iconController = new IconController();
 
-/** Show lit icon when the tab has a supported 2-player game table open. */
+/** Show lit icon when the tab has a supported game table open with a valid player count. */
 async function updateIcon(tabId: number, url: string | undefined): Promise<void> {
   const nav = classifyNavigation(url, null);
   if (nav.action !== "extract") {
@@ -281,7 +306,8 @@ async function updateIcon(tabId: number, url: string | undefined): Promise<void>
   }
   try {
     const results = await chrome.scripting.executeScript({ target: { tabId }, func: probeGameTable, world: "MAIN" });
-    const isGame = results?.[0]?.result === true;
+    const playerCount = (results?.[0]?.result as number) ?? 0;
+    const isGame = isValidPlayerCount(nav.gameName, playerCount);
     if (isGame) {
       if (iconController.getTabFrame(tabId) > 0) {
         iconController.run(tabId, INSTANT_LIT);
@@ -351,13 +377,13 @@ export function classifyNavigation(url: string | undefined, currentTableNumber: 
   }
   const gameName = match[2];
   const tableNumber = url!.match(/table=(\d+)/)?.[1] ?? "";
-  if (!SUPPORTED_GAMES.includes(gameName)) {
+  if (!(SUPPORTED_GAMES as readonly string[]).includes(gameName)) {
     return { action: "unsupportedGame", tableNumber };
   }
   if (tableNumber === currentTableNumber) {
     return { action: "skip" };
   }
-  return { action: "extract", tableNumber };
+  return { action: "extract", tableNumber, gameName: gameName as GameName };
 }
 
 /**
@@ -380,7 +406,7 @@ export function shouldAutoClose(url: string | undefined, mode: PinMode): boolean
  * Inject extract.js, run the pipeline, and notify the side panel.
  * Shared by click handler and navigation listeners.
  */
-async function extractFromTab(tabId: number, url: string, tableNumber?: string, skipNotify = false): Promise<void> {
+async function extractFromTab(tabId: number, url: string, gameName: GameName, tableNumber?: string, skipNotify = false): Promise<void> {
   const extractionPromise = chrome.scripting.executeScript({
     target: { tabId },
     files: ["dist/extract.js"],
@@ -401,7 +427,7 @@ async function extractFromTab(tabId: number, url: string, tableNumber?: string, 
   }
 
   const tblNum = tableNumber ?? url.match(/table=(\d+)/)?.[1] ?? "unknown";
-  lastResults = runPipeline(extractResult as RawExtractionData, cardDb, tblNum);
+  lastResults = runPipeline(extractResult as RawExtractionData, cardDb, tblNum, gameName);
   console.log("Pipeline complete:", Object.keys(lastResults));
 
   lastExtractionTime = Date.now();
@@ -513,11 +539,13 @@ async function togglePanel(tabId: number): Promise<void> {
     return;
   }
 
+  if (clickNav.action !== "extract") return;
+
   setBadge(tabId, "...", "#1976D2");
   extracting = true;
 
   try {
-    await extractFromTab(tabId, tab.url ?? "");
+    await extractFromTab(tabId, tab.url ?? "", clickNav.gameName);
     setBadge(tabId, "\u2713", "#388E3C");
   } catch (err) {
     console.error("BGA Assistant error:", err);
@@ -576,7 +604,7 @@ async function handleNavigation(initialTabId: number): Promise<void> {
       if (nav.action === "extract") {
         chrome.runtime.sendMessage({ type: "loading" }).catch(() => {});
         try {
-          await extractFromTab(tabId, tab.url ?? "", nav.tableNumber);
+          await extractFromTab(tabId, tab.url ?? "", nav.gameName, nav.tableNumber);
         } catch (err) {
           console.error("Extraction error:", err);
           lastResults = null;
@@ -683,7 +711,7 @@ chrome.runtime.onMessage.addListener(
       if (!liveTableNumber) { console.log("[live] ignored: no table number"); return; }
       const previousPacketCount = lastResults?.rawData?.packets?.length ?? 0;
       extracting = true;
-      extractFromTab(liveTabId, "", liveTableNumber, true)
+      extractFromTab(liveTabId, "", lastResults!.gameName, liveTableNumber, true)
         .then(() => {
           const newPacketCount = lastResults?.rawData?.packets?.length ?? 0;
           if (newPacketCount !== previousPacketCount) {

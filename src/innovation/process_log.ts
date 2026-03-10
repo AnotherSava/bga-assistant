@@ -1,6 +1,6 @@
 // Raw BGA packets -> structured game log
 
-import type { TransferEntry, MessageEntry, GameLogEntry } from "../models/types.js";
+import type { TransferEntry, MessageEntry, GameLogEntry, RawNotification, RawPacket, RawExtractionData } from "../models/types.js";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -27,34 +27,6 @@ export const SET_MAP: Record<string, string> = {
 const UNSUPPORTED_EXPANSION_NAMES: Record<string, string> = {
   "1": "Figures",
 };
-
-// ---------------------------------------------------------------------------
-// Raw BGA data types
-// ---------------------------------------------------------------------------
-
-/** A single BGA notification inside a packet. */
-export interface RawNotification {
-  type: string;
-  args: Record<string, unknown>;
-}
-
-/** A BGA notification packet (one move can span multiple packets). */
-export interface RawPacket {
-  move_id: number | null;
-  time: number;
-  data: RawNotification[];
-}
-
-/** Shape of the raw extraction data sent from the content script. */
-export interface RawExtractionData {
-  players: Record<string, string>;
-  packets: RawPacket[];
-  currentPlayerId?: string;
-  gamedatas?: {
-    my_hand?: Array<{ id: number | string }>;
-    cards?: Record<string, { name?: string }>;
-  };
-}
 
 /** Structured game log output from processRawLog. */
 export interface GameLog {

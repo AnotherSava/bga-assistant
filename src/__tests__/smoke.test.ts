@@ -11,23 +11,23 @@ describe("smoke tests", () => {
     expect(module).toBeDefined();
   });
 
-  it("imports from engine/process_log without errors", async () => {
-    const module = await import("../engine/process_log");
+  it("imports from innovation/process_log without errors", async () => {
+    const module = await import("../innovation/process_log");
     expect(module).toBeDefined();
   });
 
-  it("imports from engine/game_state without errors", async () => {
-    const module = await import("../engine/game_state");
+  it("imports from innovation/game_state without errors", async () => {
+    const module = await import("../innovation/game_state");
     expect(module).toBeDefined();
   });
 
-  it("imports from render/summary without errors", async () => {
-    const module = await import("../render/summary");
+  it("imports from innovation/render without errors", async () => {
+    const module = await import("../innovation/render");
     expect(module).toBeDefined();
   });
 
-  it("imports from render/config without errors", async () => {
-    const module = await import("../render/config");
+  it("imports from innovation/config without errors", async () => {
+    const module = await import("../innovation/config");
     expect(module).toBeDefined();
   });
 

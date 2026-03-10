@@ -1,5 +1,5 @@
-// SVG icon strings shared across renderers.
-// Path data matches the inline SVGs in sidepanel.html.
+// Shared render utilities used across game-specific renderers.
+// SVG path data matches the inline SVGs in sidepanel.html.
 
 const SEARCH_PATH = "M15.5 14h-.79l-.28-.27A6.47 6.47 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z";
 const EYE_PATH = "M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zm0 12.5c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z";
@@ -28,3 +28,11 @@ function svgPanel(inner: string): string {
 export const ICON_PANEL = svgPanel("");
 export const ICON_PANEL_1 = svgPanel(CHEVRON_1);
 export const ICON_PANEL_2 = svgPanel(CHEVRON_2A + CHEVRON_2B);
+
+// ---------------------------------------------------------------------------
+// HTML helpers
+// ---------------------------------------------------------------------------
+
+export function escapeHtml(text: string): string {
+  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}

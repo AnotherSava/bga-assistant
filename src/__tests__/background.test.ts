@@ -58,9 +58,9 @@ const copyListeners = () => {
   Object.assign(listeners, (globalThis as any).__chromeMockListeners);
 };
 
-import { runPipeline, classifyNavigation, shouldAutoClose, watcherFunction, type PipelineResults, type NavigationAction, type PinMode } from "../background";
+import { runPipeline, classifyNavigation, shouldAutoClose, watcherFunction, isValidPlayerCount, type PipelineResults, type NavigationAction, type PinMode } from "../background";
 import { CardDatabase } from "../models/types";
-import type { RawExtractionData } from "../engine/process_log";
+import type { RawExtractionData } from "../models/types";
 
 // Initialize listeners after module import so all addListener calls have fired.
 copyListeners();
@@ -119,7 +119,7 @@ describe("runPipeline", () => {
 
   it("processes empty extraction data without errors", () => {
     const rawData = makeRawData({ "1": "Alice", "2": "Bob" }, []);
-    const result = runPipeline(rawData, cardDb, "12345");
+    const result = runPipeline(rawData, cardDb, "12345", "innovation");
     expect(result.gameLog).toBeDefined();
     expect(result.gameState).toBeDefined();
     expect(result.gameLog.players).toEqual({ "1": "Alice", "2": "Bob" });
@@ -128,7 +128,7 @@ describe("runPipeline", () => {
 
   it("initializes game state with correct deck structure", () => {
     const rawData = makeRawData({ "1": "Alice", "2": "Bob" }, []);
-    const result = runPipeline(rawData, cardDb, "12345");
+    const result = runPipeline(rawData, cardDb, "12345", "innovation");
 
     // Decks should exist for each age/set combo
     expect(Object.keys(result.gameState.decks).length).toBeGreaterThan(0);
@@ -142,7 +142,7 @@ describe("runPipeline", () => {
 
   it("initializes achievements from base ages 1-9", () => {
     const rawData = makeRawData({ "1": "Alice", "2": "Bob" }, []);
-    const result = runPipeline(rawData, cardDb, "12345");
+    const result = runPipeline(rawData, cardDb, "12345", "innovation");
     expect(result.gameState.achievements.length).toBe(9);
   });
 
@@ -158,7 +158,7 @@ describe("runPipeline", () => {
       packets,
       { my_hand: [], cards: {} },
     );
-    const result = runPipeline(rawData, cardDb, "12345");
+    const result = runPipeline(rawData, cardDb, "12345", "innovation");
 
     // Alice should have 3 cards in hand (2 initial + 1 drawn)
     expect(result.gameState.hands["Alice"].length).toBe(3);
@@ -181,7 +181,7 @@ describe("runPipeline", () => {
       packets,
       { my_hand: [{ id: 1 }], cards: { "1": { name: "Pottery" } } },
     );
-    const result = runPipeline(rawData, cardDb, "12345");
+    const result = runPipeline(rawData, cardDb, "12345", "innovation");
 
     // Alice should have 1 card on board
     expect(result.gameState.boards["Alice"].length).toBe(1);
@@ -199,7 +199,7 @@ describe("runPipeline", () => {
         cards: { "10": { name: "Pottery" }, "20": { name: "Tools" } },
       },
     );
-    const result = runPipeline(rawData, cardDb, "12345");
+    const result = runPipeline(rawData, cardDb, "12345", "innovation");
 
     // Alice (first player = perspective) should have her hand resolved
     const hand = result.gameState.hands["Alice"];
@@ -229,7 +229,7 @@ describe("runPipeline", () => {
       packets,
       { my_hand: [], cards: {} },
     );
-    const result = runPipeline(rawData, cardDb, "12345");
+    const result = runPipeline(rawData, cardDb, "12345", "innovation");
 
     // Metalworking should be on Alice's board
     expect(result.gameState.boards["Alice"].length).toBe(1);
@@ -250,7 +250,7 @@ describe("runPipeline", () => {
       packets,
       { my_hand: [{ id: 1 }], cards: { "1": { name: "Pottery" } } },
     );
-    const result = runPipeline(rawData, cardDb, "12345");
+    const result = runPipeline(rawData, cardDb, "12345", "innovation");
 
     expect(result.gameState.scores["Alice"].length).toBe(1);
     expect(result.gameState.scores["Alice"][0].resolved).toBe("pottery");
@@ -258,7 +258,7 @@ describe("runPipeline", () => {
 
   it("returns serializable game state", () => {
     const rawData = makeRawData({ "1": "Alice", "2": "Bob" }, []);
-    const result = runPipeline(rawData, cardDb, "12345");
+    const result = runPipeline(rawData, cardDb, "12345", "innovation");
 
     // The result should be JSON-serializable (no Sets, Maps, class instances)
     const json = JSON.stringify(result.gameState);
@@ -282,7 +282,7 @@ describe("runPipeline", () => {
       { "1": "Alice", "2": "Bob" },
       packets,
     );
-    const result = runPipeline(rawData, cardDb, "12345");
+    const result = runPipeline(rawData, cardDb, "12345", "innovation");
 
     expect(result.gameLog.log.length).toBe(1);
     const entry = result.gameLog.log[0];
@@ -313,15 +313,16 @@ describe("runPipeline", () => {
       { "1": "Alice", "2": "Bob" },
       packets,
     );
-    const result = runPipeline(rawData, cardDb, "12345");
+    const result = runPipeline(rawData, cardDb, "12345", "innovation");
 
     // Bob should have 3 cards in hand (2 initial + 1 drawn)
     expect(result.gameState.hands["Bob"].length).toBe(3);
   });
 
-  it("pipeline results contain both gameLog and gameState", () => {
+  it("pipeline results contain gameName, gameLog, and gameState", () => {
     const rawData = makeRawData({ "1": "Alice", "2": "Bob" }, []);
-    const result: PipelineResults = runPipeline(rawData, cardDb, "12345");
+    const result: PipelineResults = runPipeline(rawData, cardDb, "12345", "innovation");
+    expect(result.gameName).toBe("innovation");
     expect(result).toHaveProperty("gameLog");
     expect(result).toHaveProperty("gameState");
     expect(result.gameLog).toHaveProperty("players");
@@ -338,7 +339,7 @@ describe("runPipeline", () => {
         cards: { "1": { name: "Pottery" }, "2": { name: "Bangle" } },
       },
     );
-    const result = runPipeline(rawData, cardDb, "12345");
+    const result = runPipeline(rawData, cardDb, "12345", "innovation");
     expect(result.gameLog.expansions.echoes).toBe(true);
     // With echoes active, each player gets 1 base + 1 echoes
     const hand = result.gameState.hands["Alice"];
@@ -354,7 +355,7 @@ describe("runPipeline", () => {
         cards: { "1": { name: "Pottery" }, "2": { name: "Tools" } },
       },
     );
-    const result = runPipeline(rawData, cardDb, "12345");
+    const result = runPipeline(rawData, cardDb, "12345", "innovation");
     expect(result.gameLog.expansions.echoes).toBe(false);
   });
 
@@ -365,8 +366,60 @@ describe("runPipeline", () => {
       { name: "Bangle", age: 1, location_from: "deck", location_to: "hand", owner_from: "0", owner_to: "1", meld_keyword: false },
     );
     const rawData = makeRawData({ "1": "Alice", "2": "Bob" }, packets);
-    const result = runPipeline(rawData, cardDb, "12345");
+    const result = runPipeline(rawData, cardDb, "12345", "innovation");
     expect(result.gameLog.expansions.echoes).toBe(true);
+  });
+
+  it("throws for unsupported game name", () => {
+    const rawData = makeRawData({ "1": "Alice", "2": "Bob" }, []);
+    expect(() => runPipeline(rawData, cardDb, "12345", "unknowngame" as any)).toThrow("Pipeline not implemented for game: unknowngame");
+  });
+});
+
+describe("runPipeline (azul)", () => {
+  const cardDb = loadCardDb();
+
+  it("processes empty Azul extraction data", () => {
+    const rawData = makeRawData({ "1": "Alice", "2": "Bob", "3": "Carol" }, []);
+    const result = runPipeline(rawData, cardDb, "99999", "azul");
+    expect(result.gameName).toBe("azul");
+    expect(result.tableNumber).toBe("99999");
+    expect(result.gameState.bag).toEqual([0, 20, 20, 20, 20, 20]);
+    expect(result.gameState.discard).toEqual([0, 0, 0, 0, 0, 0]);
+    expect(result.gameState.wall).toEqual([0, 0, 0, 0, 0, 0]);
+    expect(result.gameState.refillRounds).toEqual([]);
+  });
+
+  it("processes Azul fixture data end-to-end", () => {
+    const raw = JSON.parse(readFileSync(resolve(thisDir, "../../data/bgaa_816402832/raw_data.json"), "utf-8"));
+    const result = runPipeline(raw, cardDb, "816402832", "azul");
+
+    expect(result.gameName).toBe("azul");
+    expect(result.tableNumber).toBe("816402832");
+
+    // After 4 rounds, bag should have tiles remaining
+    const { bag, discard, wall } = result.gameState;
+    const bagTotal = bag[1] + bag[2] + bag[3] + bag[4] + bag[5];
+    expect(bagTotal).toBeGreaterThanOrEqual(0);
+
+    // Total tiles across bag + discard + wall should be <= 100
+    const discardTotal = discard[1] + discard[2] + discard[3] + discard[4] + discard[5];
+    const wallTotal = wall[1] + wall[2] + wall[3] + wall[4] + wall[5];
+    expect(bagTotal + discardTotal + wallTotal).toBeLessThanOrEqual(100);
+
+    // Game log should have entries
+    expect(result.gameLog.players).toBeDefined();
+    expect(result.gameLog.log.length).toBeGreaterThan(0);
+  });
+
+  it("Azul pipeline result is JSON-serializable", () => {
+    const rawData = makeRawData({ "1": "Alice", "2": "Bob" }, []);
+    const result = runPipeline(rawData, cardDb, "12345", "azul");
+    const json = JSON.stringify(result);
+    expect(json).toBeDefined();
+    const parsed = JSON.parse(json);
+    expect(parsed.gameName).toBe("azul");
+    expect(parsed.gameState.bag).toEqual([0, 20, 20, 20, 20, 20]);
   });
 });
 
@@ -378,12 +431,12 @@ describe("classifyNavigation", () => {
 
   it("returns extract when URL is a different BGA table", () => {
     const result = classifyNavigation("https://boardgamearena.com/8/innovation?table=888", "999");
-    expect(result).toEqual({ action: "extract", tableNumber: "888" });
+    expect(result).toEqual({ action: "extract", tableNumber: "888", gameName: "innovation" });
   });
 
   it("returns extract when no current table is tracked", () => {
     const result = classifyNavigation("https://boardgamearena.com/8/innovation?table=555", null);
-    expect(result).toEqual({ action: "extract", tableNumber: "555" });
+    expect(result).toEqual({ action: "extract", tableNumber: "555", gameName: "innovation" });
   });
 
   it("returns showHelp for a non-BGA URL", () => {
@@ -408,12 +461,17 @@ describe("classifyNavigation", () => {
 
   it("handles BGA subdomain URLs with table param", () => {
     const result = classifyNavigation("https://en.boardgamearena.com/8/innovation?table=123", null);
-    expect(result).toEqual({ action: "extract", tableNumber: "123" });
+    expect(result).toEqual({ action: "extract", tableNumber: "123", gameName: "innovation" });
   });
 
   it("handles table param embedded in longer query string", () => {
     const result = classifyNavigation("https://boardgamearena.com/8/innovation?table=456&other=1", null);
-    expect(result).toEqual({ action: "extract", tableNumber: "456" });
+    expect(result).toEqual({ action: "extract", tableNumber: "456", gameName: "innovation" });
+  });
+
+  it("returns extract for an azul table URL", () => {
+    const result = classifyNavigation("https://boardgamearena.com/1/azul?table=789", null);
+    expect(result).toEqual({ action: "extract", tableNumber: "789", gameName: "azul" });
   });
 });
 
@@ -448,6 +506,26 @@ describe("shouldAutoClose", () => {
   it("returns false for autohide-game mode on supported game URLs", () => {
     expect(shouldAutoClose("https://boardgamearena.com/8/innovation?table=123", "autohide-game")).toBe(false);
     expect(shouldAutoClose("https://en.boardgamearena.com/8/innovation?table=456", "autohide-game")).toBe(false);
+    expect(shouldAutoClose("https://boardgamearena.com/1/azul?table=789", "autohide-game")).toBe(false);
+  });
+});
+
+describe("isValidPlayerCount", () => {
+  it("innovation requires exactly 2 players", () => {
+    expect(isValidPlayerCount("innovation", 0)).toBe(false);
+    expect(isValidPlayerCount("innovation", 1)).toBe(false);
+    expect(isValidPlayerCount("innovation", 2)).toBe(true);
+    expect(isValidPlayerCount("innovation", 3)).toBe(false);
+    expect(isValidPlayerCount("innovation", 4)).toBe(false);
+  });
+
+  it("azul accepts 2-4 players", () => {
+    expect(isValidPlayerCount("azul", 0)).toBe(false);
+    expect(isValidPlayerCount("azul", 1)).toBe(false);
+    expect(isValidPlayerCount("azul", 2)).toBe(true);
+    expect(isValidPlayerCount("azul", 3)).toBe(true);
+    expect(isValidPlayerCount("azul", 4)).toBe(true);
+    expect(isValidPlayerCount("azul", 5)).toBe(false);
   });
 });
 
@@ -816,8 +894,8 @@ describe("icon swap behavior", () => {
     triggerDisconnect();
     vi.clearAllMocks();
     mockSendMessage.mockImplementation(() => Promise.resolve());
-    // Probe returns true for game tabs (2-player game detected)
-    mockExecuteScript.mockResolvedValue([{ result: true }]);
+    // Probe returns 2 for game tabs (2-player game detected)
+    mockExecuteScript.mockResolvedValue([{ result: 2 }]);
   });
 
   afterEach(() => {
@@ -872,8 +950,8 @@ describe("icon swap behavior", () => {
     expectLastIconLit();
   });
 
-  it("sets normal icon on game URL when probe returns false (e.g. 3+ players)", async () => {
-    mockExecuteScript.mockResolvedValueOnce([{ result: false }]);
+  it("sets normal icon on game URL when probe returns invalid player count", async () => {
+    mockExecuteScript.mockResolvedValueOnce([{ result: 3 }]);
     mockTabsGet.mockResolvedValueOnce({ id: 1, url: "https://boardgamearena.com/8/innovation?table=123", status: "complete" });
     listeners.onActivated({ tabId: 1 });
     await flushFlash();
