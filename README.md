@@ -1,4 +1,5 @@
 # BGA Assistant
+<!-- test: verify GitHub rebase-merge signing -->
 
 A Chrome extension for [Board Game Arena](https://boardgamearena.com) that keeps track of the game state so you don't have to. Turn-based games on BGA can stretch across days or weeks — by the time it's your turn, you may have forgotten what was drawn, returned, transferred, or scored several moves ago. BGA Assistant reads the game log and reconstructs the complete picture for you.
 
