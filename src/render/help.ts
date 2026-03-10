@@ -1,9 +1,9 @@
 // Help page content for the side panel.
 
-import { escapeHtml } from "./summary.js";
-import { ICON_ZOOM_OUT, ICON_ZOOM_IN, ICON_EYE, ICON_DOWNLOAD, ICON_DOT_GREEN, ICON_DOT_RED, ICON_PANEL, ICON_PANEL_1, ICON_PANEL_2 } from "./icons.js";
+import { escapeHtml, ICON_ZOOM_OUT, ICON_ZOOM_IN, ICON_EYE, ICON_DOWNLOAD, ICON_DOT_GREEN, ICON_DOT_RED, ICON_PANEL, ICON_PANEL_1, ICON_PANEL_2 } from "./icons.js";
+import type { GameName } from "../models/types.js";
 
-export function renderHelp(errorMessage?: string): string {
+export function renderHelp(errorMessage?: string, gameName?: GameName): string {
   const errorNote = errorMessage
     ? `<div class="help-note"><span class="help-note-icon">&#x26A0;</span> Failed to process game log for this table.<br><span class="help-note-hint">${escapeHtml(errorMessage)}</span></div>`
     : "";
@@ -17,7 +17,7 @@ export function renderHelp(errorMessage?: string): string {
 
   <p>Turn-based games on BGA can last for days or even weeks. By the time it's your turn,
   you might have forgotten what was drawn, returned, transferred, or scored several moves ago.</p>
-  <p>BGA Assistant reads the game log and reconstructs the full game state — including deck stack order, hand contents, score piles — so you can focus
+  <p>BGA Assistant reads the game log and reconstructs the full game state so you can focus
   on strategy instead of trying to remember what happened.</p>
 
   <div class="help-section">
@@ -36,11 +36,20 @@ export function renderHelp(errorMessage?: string): string {
       <div class="help-grid-item"><span class="help-grid-label"><span class="help-btn">${ICON_ZOOM_OUT}</span> <span class="help-btn">${ICON_ZOOM_IN}</span></span><span> Zoom out / in (also <b>Ctrl</b>+<b>\u2212</b> / <b>Ctrl</b>+<b>=</b>)</span></div>
       <div class="help-grid-item"><span class="help-grid-label"><span class="help-btn">${ICON_EYE}</span></span><span> Toggle visible sections (settings persist across sessions)</span></div>
       <div class="help-grid-item"><span class="help-grid-label"><span class="help-btn">${ICON_PANEL}</span><span style="color:#888;margin:0 1px">/</span><span class="help-btn">${ICON_PANEL_1}</span><span style="color:#888;margin:0 1px">/</span><span class="help-btn">${ICON_PANEL_2}</span></span><span> Auto-hide side bar: never/when leaving BGA/leaving supported game tables</span></div>
-      <div class="help-grid-item"><span class="help-grid-label"><span class="help-btn">${ICON_DOWNLOAD}</span></span><span> Download a ZIP archive with raw packets, the game log, game state, and summary page</span></div>
+      <div class="help-grid-item"><span class="help-grid-label"><span class="help-btn">${ICON_DOWNLOAD}</span></span><span> Download a ZIP archive with raw packets, game log, and game state</span></div>
       <div class="help-grid-item"><span class="help-grid-label"><span class="help-btn help-btn-text">?</span></span><span> This help page</span></div>
     </div>
   </div>
 
+${gameName === "azul" ? `
+  <div class="help-section">
+    <div class="help-section-title">Tile tracking</div>
+    <div class="help-sections-grid">
+      <div class="help-grid-item"><span class="help-grid-label">Bag</span><span> Estimated tiles remaining in the bag by color</span></div>
+      <div class="help-grid-item"><span class="help-grid-label">Box lid</span><span> Tiles discarded to the box lid (returned to bag on refill)</span></div>
+      <div class="help-grid-item"><span class="help-grid-label">Wall</span><span> Tiles placed on player walls</span></div>
+    </div>
+  </div>` : `
   <div class="help-section">
     <div class="help-section-title">Sections</div>
     <div class="help-sections-grid">
@@ -68,7 +77,7 @@ export function renderHelp(errorMessage?: string): string {
     <div class="help-sections-grid">
       <div class="help-grid-item">Hover over any known Base or Echoes card to see its full image. Cities cards display their names only.</div>
     </div>
-  </div>
+  </div>`}
 </div>`;
 }
 

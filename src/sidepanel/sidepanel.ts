@@ -1,11 +1,13 @@
 // Side panel: receives data from background, renders summary, handles downloads.
 
 import JSZip from "jszip";
-import { renderSummary, renderFullPage, setAssetResolver } from "../render/summary.js";
-import { SECTION_IDS, SECTION_LABELS } from "../render/config.js";
+import { renderSummary, renderFullPage, setAssetResolver } from "../innovation/render.js";
+import { SECTION_IDS, SECTION_LABELS } from "../innovation/config.js";
 import { renderHelp } from "../render/help.js";
 import { CardDatabase } from "../models/types.js";
-import { GameState } from "../engine/game_state.js";
+import { GameState } from "../innovation/game_state.js";
+import { renderAzulSummary, setAssetResolver as setAzulAssetResolver } from "../azul/render.js";
+import { fromJSON as azulFromJSON, type SerializedAzulGameState } from "../azul/game_state.js";
 import type { PipelineResults, PinMode } from "../background.js";
 
 // ---------------------------------------------------------------------------
@@ -23,6 +25,7 @@ let disconnectTimer: number | undefined;
 
 if (typeof chrome !== "undefined" && chrome.runtime?.getURL) {
   setAssetResolver((path: string) => chrome.runtime.getURL(path));
+  setAzulAssetResolver((path: string) => chrome.runtime.getURL(path));
 }
 
 // Establish a port to the background script so it can track side panel open/close.
@@ -192,6 +195,54 @@ function setupToggles(): void {
 function render(results: PipelineResults): void {
   const contentEl = document.getElementById("content")!;
   const savedScroll = contentEl.scrollTop;
+
+  if (results.gameName === "azul") {
+    const azulState = azulFromJSON(results.gameState as SerializedAzulGameState);
+    contentEl.innerHTML = renderAzulSummary(azulState);
+
+    // Hide section selector (Innovation-only feature)
+    const btnSections = document.getElementById("btn-sections");
+    if (btnSections) btnSections.style.display = "none";
+
+    // Populate game info bar
+    const tableEl = document.getElementById("game-info-table");
+    if (tableEl) tableEl.textContent = `# ${results.tableNumber}`;
+    const timeEl = document.getElementById("game-info-time");
+    if (timeEl) {
+      const packets = results.rawData.packets;
+      const lastTime = packets.length > 0 ? packets[packets.length - 1].time : 0;
+      timeEl.textContent = lastTime ? new Date(lastTime * 1000).toLocaleDateString("en-US", { month: "short", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false }) : "";
+    }
+
+    // Show download button for Azul
+    const btnDownload = document.getElementById("btn-download");
+    if (btnDownload) {
+      btnDownload.style.display = "";
+      btnDownload.onclick = async () => {
+        const zip = new JSZip();
+        zip.file("raw_data.json", JSON.stringify(results.rawData, null, 2));
+        zip.file("game_log.json", JSON.stringify(results.gameLog, null, 2));
+        zip.file("game_state.json", JSON.stringify(results.gameState, null, 2));
+        const blob = await zip.generateAsync({ type: "blob" });
+        downloadBlob(blob, `bgaa_${results.tableNumber}.zip`);
+      };
+    }
+
+    // Show live indicator
+    const indicator = document.getElementById("live-indicator");
+    if (indicator) indicator.style.display = "";
+
+    contentEl.scrollTop = savedScroll;
+    return;
+  }
+
+  if (results.gameName !== "innovation") {
+    return;
+  }
+
+  // Restore section selector (may have been hidden by Azul render)
+  const btnSections = document.getElementById("btn-sections");
+  if (btnSections) btnSections.style.display = "";
 
   const cardInfoUrl = typeof chrome !== "undefined" && chrome.runtime?.getURL
     ? chrome.runtime.getURL("assets/bga/innovation/card_info.json")
@@ -593,7 +644,7 @@ initPinButton();
 function showHelp(errorMessage?: string): void {
   const contentEl = document.getElementById("content");
   if (!contentEl) return;
-  contentEl.innerHTML = renderHelp(errorMessage);
+  contentEl.innerHTML = renderHelp(errorMessage, currentResults?.gameName);
   const tableEl = document.getElementById("game-info-table");
   if (tableEl) tableEl.textContent = "";
   const timeEl = document.getElementById("game-info-time");

@@ -33,7 +33,7 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["assets/bga/innovation/*"],
+      "resources": ["assets/bga/innovation/*", "assets/bga/azul/*"],
       "matches": ["https://boardgamearena.com/*", "https://*.boardgamearena.com/*"]
     }
   ]

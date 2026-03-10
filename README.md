@@ -23,12 +23,21 @@ Reads the full game log from [Innovation](https://boardgamegeek.com/boardgame/63
 - Persistent settings: all toggle states, section visibility, and pin mode are saved across sessions
 - Download: bundled zip with raw data, game log, game state, and standalone summary
 
+### Azul
+
+Tracks the tile bag and discard pile (box lid) for [Azul](https://boardgamegeek.com/boardgame/230802/azul) tables with 2-4 players. Displays remaining tile counts per color in a compact table so you always know what's left to draw.
+
+- Bag and box tracking: shows how many tiles of each color remain in the bag and the box lid (discard pile)
+- Refill detection: annotates when the bag was refilled from the box mid-round
+- Live tracking: counts update automatically as moves are made
+- All standard features: auto-hide, lit icon, auto-update on tab switch
+
 ## Setup
 
 ### Prerequisites
 
 - Node.js 18+
-- Chrome 128+
+- Chrome 141+
 
 ### Install
 
@@ -76,28 +85,36 @@ src/
     sidepanel.css            Dark theme, card grids, tooltips
   models/
     types.ts                 Type definitions: Card, CardInfo, GameState, Action, enums
-  engine/
-    process_log.ts           Raw BGA packets -> structured game log
-    game_state.ts            State tracking + constraint propagation
-  render/
-    summary.ts               GameState -> HTML string via template literals
+  innovation/
+    process_log.ts           Raw BGA packets -> structured Innovation game log
+    game_state.ts            Innovation state tracking + constraint propagation
+    render.ts                GameState -> HTML string via template literals
     config.ts                Section layout config, visibility/layout defaults
+  azul/
+    process_log.ts           Raw BGA packets -> structured Azul game log
+    game_state.ts            Azul bag/discard/wall tracking
+    render.ts                AzulGameState -> HTML tile count table
+  render/
     help.ts                  Help page content
+    icons.ts                 Shared icon utilities
 assets/
-  bga/innovation/
-    card_info.json           Card database (315 cards: 105 base + 105 echoes + 105 cities)
-    icons/                   Resource and hex icon PNGs
-    cards/                   Full card face images (for tooltips)
-    sprites/                 Card sprite sheets (gitignored)
+  bga/
+    innovation/
+      card_info.json         Card database (315 cards: 105 base + 105 echoes + 105 cities)
+      icons/                 Resource and hex icon PNGs
+      cards/                 Full card face images (for tooltips)
+      sprites/               Card sprite sheets (gitignored)
+    azul/
+      tiles/                 Tile color PNGs (5 colors)
   extension/                 Extension toolbar icons
 ```
 
 ### Data flow
 1. User clicks extension icon on a BGA game page
 2. extract.ts (MAIN world) fetches game data from BGA internals
-3. background.ts receives data, runs pipeline (processRawLog -> GameState)
+3. background.ts receives data, identifies the game, and runs the appropriate pipeline (Innovation or Azul)
 4. background.ts opens side panel, sends results via chrome.runtime messaging
-5. sidepanel.ts renders summary with download button
+5. sidepanel.ts dispatches to the game-specific renderer and displays the summary
 6. A MutationObserver watcher is injected to monitor the game log DOM for changes
 7. When new log entries appear, the watcher notifies the background (debounced + throttled)
 8. The background re-runs the extraction pipeline and pushes updated results to the side panel
@@ -113,4 +130,4 @@ npx vitest run --coverage       # Run with coverage report
 
 ## Acknowledgments
 
-Card icons and images are from [bga-innovation](https://github.com/micahstairs/bga-innovation), Micah Stairs' BGA implementation of [Innovation](https://boardgamegeek.com/boardgame/63888/innovation) (Carl Chudyk, Asmadi Games).
+Card icons and images are from [bga-innovation](https://github.com/micahstairs/bga-innovation), Micah Stairs' BGA implementation of [Innovation](https://boardgamegeek.com/boardgame/63888/innovation) (Carl Chudyk, Asmadi Games). Tile sprites are from BGA's implementation of [Azul](https://boardgamegeek.com/boardgame/230802/azul) (Michael Kiesling, Plan B Games).

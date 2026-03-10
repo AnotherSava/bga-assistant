@@ -16,7 +16,7 @@ import {
   type MessageEntry,
   type GameLogEntry,
 } from "../models/types";
-import { GameState } from "../engine/game_state";
+import { GameState } from "../innovation/game_state";
 
 const thisDir = dirname(fileURLToPath(import.meta.url));
 

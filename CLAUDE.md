@@ -26,14 +26,20 @@ Run `npm run build` after each batch of changes so the extension can be reloaded
 
 ## Project Structure
 
-- `src/models/types.ts` — core types (Card, CardInfo, CardDatabase, enums)
-- `src/engine/process_log.ts` — BGA packet processing
-- `src/engine/game_state.ts` — unified game state engine
-- `src/render/summary.ts` — HTML summary renderer
-- `src/render/config.ts` — section layout configuration
+- `src/models/types.ts` — core types (Card, CardInfo, CardDatabase, GameName, enums)
+- `src/innovation/process_log.ts` — Innovation BGA packet processing
+- `src/innovation/game_state.ts` — Innovation state engine
+- `src/innovation/render.ts` — Innovation HTML summary renderer
+- `src/innovation/config.ts` — Innovation section layout configuration
+- `src/azul/process_log.ts` — Azul BGA packet processing
+- `src/azul/game_state.ts` — Azul bag/discard/wall tracking
+- `src/azul/render.ts` — Azul tile count table renderer
+- `src/render/help.ts` — help page content (shared)
+- `src/render/icons.ts` — shared icon utilities
 - `src/extract.ts` — content script (MAIN world)
-- `src/background.ts` — service worker
+- `src/background.ts` — service worker (multi-game pipeline)
 - `sidepanel.html` — side panel HTML entry point (project root, Vite input)
-- `src/sidepanel/` — side panel UI
-- `assets/bga/innovation/` — game data (card_info.json, cards/, icons/, sprites/)
+- `src/sidepanel/` — side panel UI (game-type-aware rendering dispatch)
+- `assets/bga/innovation/` — Innovation game data (card_info.json, cards/, icons/, sprites/)
+- `assets/bga/azul/tiles/` — Azul tile color PNGs
 - `assets/extension/` — extension icons

@@ -1,6 +1,13 @@
 // All type definitions: Card, CardInfo, GameState, Action, enums
 
 // ---------------------------------------------------------------------------
+// Game name
+// ---------------------------------------------------------------------------
+
+/** Supported game names for BGA tracking. */
+export type GameName = "innovation" | "azul";
+
+// ---------------------------------------------------------------------------
 // Enums
 // ---------------------------------------------------------------------------
 
@@ -304,3 +311,31 @@ export interface MessageEntry {
 }
 
 export type GameLogEntry = TransferEntry | MessageEntry;
+
+// ---------------------------------------------------------------------------
+// Raw BGA data types (shared across all games)
+// ---------------------------------------------------------------------------
+
+/** A single BGA notification inside a packet. */
+export interface RawNotification {
+  type: string;
+  args: Record<string, unknown>;
+}
+
+/** A BGA notification packet (one move can span multiple packets). */
+export interface RawPacket {
+  move_id: number | null;
+  time: number;
+  data: RawNotification[];
+}
+
+/** Shape of the raw extraction data sent from the content script. */
+export interface RawExtractionData {
+  players: Record<string, string>;
+  packets: RawPacket[];
+  currentPlayerId?: string;
+  gamedatas?: {
+    my_hand?: Array<{ id: number | string }>;
+    cards?: Record<string, { name?: string }>;
+  };
+}

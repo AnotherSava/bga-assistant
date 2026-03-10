@@ -2,7 +2,8 @@
 // Replaces Jinja2 templates + DTO layer (TemplateCard/Row/Section).
 
 import { type CardInfo, type Card, CardSet, Color, CardDatabase, colorLabel, cardSetLabel, ageSetKey } from "../models/types.js";
-import { GameState } from "../engine/game_state.js";
+import { escapeHtml } from "../render/icons.js";
+import { GameState } from "./game_state.js";
 import { type SectionId, type SectionConfig, type Toggle, DEFAULT_SECTION_CONFIG, SECTION_IDS, TALL_COLUMNS, visibilityToggle, layoutToggle, compositeToggle } from "./config.js";
 
 // ---------------------------------------------------------------------------
@@ -58,10 +59,6 @@ function iconImg(iconName: string, color: string, spriteIndex: number): string {
 // ---------------------------------------------------------------------------
 // Card rendering
 // ---------------------------------------------------------------------------
-
-export function escapeHtml(text: string): string {
-  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
-}
 
 function renderKnownCard(info: CardInfo, markResolved: boolean): string {
   const color = colorLabel(info.color);
