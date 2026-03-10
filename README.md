@@ -20,6 +20,7 @@ Reads the full game log from [Innovation](https://boardgamegeek.com/boardgame/63
 - Auto-hide: three-mode toggle controlling side panel behavior — Never (always open), Leaving BGA (closes on non-BGA tabs), Leaving tables (closes when navigating away from supported game tables)
 - Keyboard shortcut: configurable via `chrome://extensions/shortcuts` to toggle the side panel open/closed
 - Lit icon: the toolbar icon glows when the active tab has a supported game table open
+- Per-game zoom: zoom level is saved independently for each game and the help page; the top bar stays at native size
 - Persistent settings: all toggle states, section visibility, and pin mode are saved across sessions
 - Download: bundled zip with raw data, game log, game state, and standalone summary
 

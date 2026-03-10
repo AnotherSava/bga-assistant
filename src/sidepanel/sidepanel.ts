@@ -4,7 +4,7 @@ import JSZip from "jszip";
 import { renderSummary, renderFullPage, setAssetResolver } from "../innovation/render.js";
 import { SECTION_IDS, SECTION_LABELS } from "../innovation/config.js";
 import { renderHelp } from "../render/help.js";
-import { CardDatabase } from "../models/types.js";
+import { CardDatabase, type GameName } from "../models/types.js";
 import { GameState } from "../innovation/game_state.js";
 import { renderAzulSummary, setAssetResolver as setAzulAssetResolver } from "../azul/render.js";
 import { fromJSON as azulFromJSON, type SerializedAzulGameState } from "../azul/game_state.js";
@@ -94,6 +94,7 @@ function setupTooltips(): void {
 // Toggle handlers (visibility + layout) with persistence
 // ---------------------------------------------------------------------------
 
+const STORAGE_KEY_HELP_TAB = "bgaa_help_tab";
 const STORAGE_KEY_TOGGLES = "bgaa_toggle_state";
 
 function loadToggleState(): Record<string, string[]> {
@@ -194,6 +195,7 @@ function setupToggles(): void {
 
 function render(results: PipelineResults): void {
   const contentEl = document.getElementById("content")!;
+  switchZoomContext(results.gameName);
   const savedScroll = contentEl.scrollTop;
 
   if (results.gameName === "azul") {
@@ -217,7 +219,7 @@ function render(results: PipelineResults): void {
     // Show download button for Azul
     const btnDownload = document.getElementById("btn-download");
     if (btnDownload) {
-      btnDownload.style.display = "";
+      btnDownload.classList.remove("disabled");
       btnDownload.onclick = async () => {
         const zip = new JSZip();
         zip.file("raw_data.json", JSON.stringify(results.rawData, null, 2));
@@ -297,7 +299,7 @@ function renderWithDb(cardDb: CardDatabase, results: PipelineResults, contentEl:
   // Show and wire download button (use onclick to replace any previous handler on re-render)
   const btnDownload = document.getElementById("btn-download");
   if (btnDownload) {
-    btnDownload.style.display = "";
+    btnDownload.classList.remove("disabled");
     btnDownload.onclick = async () => {
       const css = currentCss ?? "";
       setAssetResolver((path: string) => path);
@@ -350,9 +352,34 @@ const ZOOM_MIN = 0.5;
 const ZOOM_MAX = 2.0;
 let zoomLevel = 1.0;
 let zoomFadeTimeout: ReturnType<typeof setTimeout> | undefined;
+let currentZoomContext = "help";
+
+function zoomStorageKey(): string {
+  return `bgaa_zoom_${currentZoomContext}`;
+}
+
+function switchZoomContext(context: string): void {
+  currentZoomContext = context;
+  let level = 1.0;
+  try {
+    const stored = localStorage.getItem(zoomStorageKey());
+    if (stored) {
+      const parsed = parseFloat(stored);
+      if (parsed >= ZOOM_MIN && parsed <= ZOOM_MAX) level = parsed;
+    }
+  } catch { /* ignore */ }
+  zoomLevel = level;
+  const contentEl = document.getElementById("content");
+  if (contentEl) contentEl.style.zoom = String(zoomLevel);
+}
+
+// Remove legacy single-zoom key
+try { localStorage.removeItem("bgaa_zoom"); } catch { /* ignore */ }
 
 function applyZoom(): void {
-  document.body.style.zoom = String(zoomLevel);
+  const contentEl = document.getElementById("content");
+  if (contentEl) contentEl.style.zoom = String(zoomLevel);
+  try { localStorage.setItem(zoomStorageKey(), String(zoomLevel)); } catch { /* ignore */ }
   const indicator = document.getElementById("zoom-indicator");
   if (indicator) {
     indicator.textContent = `${Math.round(zoomLevel * 100)}%`;
@@ -641,10 +668,26 @@ initPinButton();
 // Help page
 // ---------------------------------------------------------------------------
 
-function showHelp(errorMessage?: string): void {
+function showHelp(errorMessage?: string, forceGameTab?: GameName): void {
   const contentEl = document.getElementById("content");
   if (!contentEl) return;
-  contentEl.innerHTML = renderHelp(errorMessage, currentResults?.gameName);
+  switchZoomContext("help");
+
+  // Resolve effective tab: forceGameTab > localStorage > "innovation"
+  let effectiveTab: GameName = "innovation";
+  if (forceGameTab) {
+    effectiveTab = forceGameTab;
+  } else {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY_HELP_TAB);
+      if (stored === "azul" || stored === "innovation") effectiveTab = stored;
+    } catch { /* ignore */ }
+  }
+  try { localStorage.setItem(STORAGE_KEY_HELP_TAB, effectiveTab); } catch { /* ignore */ }
+
+  contentEl.innerHTML = renderHelp(errorMessage, effectiveTab);
+  setupHelpTabs();
+
   const tableEl = document.getElementById("game-info-table");
   if (tableEl) tableEl.textContent = "";
   const timeEl = document.getElementById("game-info-time");
@@ -652,13 +695,13 @@ function showHelp(errorMessage?: string): void {
   const indicator = document.getElementById("live-indicator");
   if (indicator) indicator.style.display = "none";
   const btnDownload = document.getElementById("btn-download");
-  if (btnDownload) btnDownload.style.display = "none";
+  if (btnDownload) { btnDownload.classList.add("disabled"); btnDownload.onclick = null; }
   chrome.runtime.sendMessage({ type: "pauseLive" }).catch(() => {});
 
-  // Show download button if raw data is available (e.g. unsupported game)
+  // Enable download button if raw data is available (e.g. unsupported game)
   chrome.runtime.sendMessage({ type: "getRawData" }).then((rawData: { rawData: unknown; tableNumber: string } | null) => {
     if (!rawData || !btnDownload) return;
-    btnDownload.style.display = "";
+    btnDownload.classList.remove("disabled");
     btnDownload.onclick = async () => {
       const zip = new JSZip();
       zip.file("raw_data.json", JSON.stringify(rawData.rawData, null, 2));
@@ -668,13 +711,29 @@ function showHelp(errorMessage?: string): void {
   }).catch(() => {});
 }
 
+function setupHelpTabs(): void {
+  document.querySelectorAll<HTMLElement>(".help-tab").forEach((tab) => {
+    tab.addEventListener("click", () => {
+      const tabName = tab.getAttribute("data-help-tab");
+      if (!tabName) return;
+
+      // Toggle active class on buttons
+      document.querySelectorAll<HTMLElement>(".help-tab").forEach((t) => t.classList.toggle("active", t.getAttribute("data-help-tab") === tabName));
+      // Toggle active class on panels
+      document.querySelectorAll<HTMLElement>(".help-tab-content").forEach((p) => p.classList.toggle("active", p.getAttribute("data-help-panel") === tabName));
+
+      try { localStorage.setItem(STORAGE_KEY_HELP_TAB, tabName); } catch { /* ignore */ }
+    });
+  });
+}
+
 // Wire help button — toggles between help and summary
 document.getElementById("btn-help")?.addEventListener("click", () => {
   if (currentResults && document.getElementById("content")?.querySelector(".help")) {
     render(currentResults);
     chrome.runtime.sendMessage({ type: "resumeLive" }).catch(() => {});
   } else {
-    showHelp();
+    showHelp(undefined, currentResults?.gameName);
   }
 });
 
@@ -732,4 +791,4 @@ if (typeof chrome !== "undefined" && chrome.runtime?.onMessage) {
 function getCurrentPinMode(): PinMode { return currentPinMode; }
 
 // Export for testing
-export { render, showHelp, setupTooltips, setupToggles, applySectionVisibility, downloadBlob, fetchCardDb, initPinButton, openPinDropdown, closePinDropdown, selectPinMode, updatePinButtonIcon, getCurrentPinMode, PIN_ICONS };
+export { render, showHelp, setupTooltips, setupToggles, applySectionVisibility, downloadBlob, fetchCardDb, initPinButton, openPinDropdown, closePinDropdown, selectPinMode, updatePinButtonIcon, getCurrentPinMode, setupHelpTabs, switchZoomContext, PIN_ICONS };

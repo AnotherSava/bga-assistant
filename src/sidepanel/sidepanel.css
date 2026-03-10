@@ -180,6 +180,7 @@ body {
   justify-content: center;
 }
 .top-buttons button:hover { background: #444; color: #fff; }
+.top-buttons button.disabled { opacity: 0.3; pointer-events: none; }
 #btn-help { font-size: 14px; font-weight: bold; }
 
 /* Game info */
@@ -320,6 +321,14 @@ body {
   vertical-align: middle;
 }
 .help-btn-text { font-size: 14px; font-weight: bold; }
+
+/* Help page game tabs */
+.help-tabs { display: flex; border-bottom: 1px solid #444; margin: 8px 0 14px; }
+.help-tab { flex: 1; background: none; border: none; border-bottom: 2px solid transparent; color: #777; font-size: 13px; font-family: inherit; padding: 8px 0; cursor: pointer; text-align: center; transition: color 0.15s, border-color 0.15s; }
+.help-tab:hover { color: #bbb; }
+.help-tab.active { color: #ddd; border-bottom-color: #7db8f0; }
+.help-tab-content { display: none; }
+.help-tab-content.active { display: block; }
 
 /* Shared dropdown header */
 .dropdown-header {
