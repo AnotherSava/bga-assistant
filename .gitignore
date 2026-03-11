@@ -16,3 +16,4 @@ assets/bga/innovation/sprites/
 coverage/
 docs/plans/*
 !docs/plans/completed/
+!docs/plans/draft/
