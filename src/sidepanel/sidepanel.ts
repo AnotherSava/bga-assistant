@@ -820,8 +820,10 @@ if (typeof chrome !== "undefined" && chrome.runtime?.onMessage) {
       const timeEl = document.getElementById("game-info-time");
       if (timeEl) timeEl.textContent = "";
     } else if (message.type === "notAGame") {
+      currentResults = null;
       showHelp();
     } else if (message.type === "gameError") {
+      currentResults = null;
       showHelp(message.error);
     }
     return undefined;
