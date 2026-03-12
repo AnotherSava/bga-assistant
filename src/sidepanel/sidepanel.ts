@@ -758,7 +758,11 @@ if (typeof chrome !== "undefined" && chrome.runtime?.onMessage) {
     } else if (message.type === "resultsReady") {
       const response = message.results ?? null;
       if (response) {
+        // Skip re-render if we already have identical results (same table, same packet count).
+        // This prevents unnecessary refreshes when the service worker restarts and re-pushes cached data.
+        const same = currentResults && currentResults.tableNumber === response.tableNumber && currentResults.rawData.packets.length === response.rawData.packets.length;
         currentResults = response;
+        if (same) return;
         if (response.gameState) {
           render(response);
         } else {
@@ -766,6 +770,7 @@ if (typeof chrome !== "undefined" && chrome.runtime?.onMessage) {
         }
       }
     } else if (message.type === "loading") {
+      currentResults = null;
       document.getElementById("content")!.innerHTML = '<div class="status">Loading game data...</div>';
       const tableEl = document.getElementById("game-info-table");
       if (tableEl) tableEl.textContent = "";

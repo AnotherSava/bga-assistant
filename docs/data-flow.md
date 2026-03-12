@@ -220,7 +220,8 @@ Triggers:
 
 1. If cached `lastResults` exists: push `"resultsReady"` with the cached `PipelineResults` payload
 2. If `lastResults` is `null` (e.g. after service worker restart): query the active tab
-   and run `background.resolveContent()` to extract fresh results
+   and run `background.resolveContent()` to extract fresh results — the `"loading"` message
+   is suppressed for reconnect extractions to avoid flashing over existing content
 
 ```
 ⇩   "resultsReady" message with PipelineResults payload (if available)
@@ -228,9 +229,11 @@ Triggers:
 
 ***Side Panel***
 
-1. If results received with `gameState`: render game page
-2. If results received without `gameState`: show help page with download enabled
-3. If no results: remain on help page until a Full Extraction completes
+1. Compare incoming results against `currentResults` (by `tableNumber` and packet count) —
+   skip render if identical (see [Service worker shutdown cycle](#service-worker-shutdown-cycle))
+2. If results received with `gameState`: render game page
+3. If results received without `gameState`: show help page with download enabled
+4. If no results: remain on help page until a Full Extraction completes
 
 ## Data Flow: ZIP Download
 
@@ -291,9 +294,32 @@ On port connect, the *Background Service Worker* immediately pushes any cached r
 (e.g. after a service worker restart), it queries the active tab and triggers extraction
 so the side panel receives fresh data without needing to request it.
 
-If the service worker restarts (Chrome may terminate idle workers), the port disconnects.
-The *Side Panel* retries connection every 1 second and shows a "disconnected" indicator
-after 3 seconds.
+### Service worker shutdown cycle
+
+Chrome terminates idle service workers after ~30 seconds of inactivity. When this
+happens while the *Side Panel* is open, a reconnect cycle occurs:
+
+1. Service worker shuts down — the port disconnects
+2. *Side Panel* schedules a "disconnected" indicator after 3 seconds
+3. *Side Panel* retries `chrome.runtime.connect()` after 1 second
+4. Reconnection wakes the service worker — `onConnect` fires
+5. *Background Service Worker* pushes cached `lastResults` via `"resultsReady"`
+
+This cycle repeats every ~30 seconds during idle periods. Two mechanisms prevent
+unnecessary re-renders and loading flicker:
+
+**Suppressed `"loading"` on reconnect:** when `background.resolveContent()` is called
+with source `"reconnect"`, the `"loading"` message is skipped. This prevents flashing
+"Loading game data..." over existing content while re-extraction runs silently.
+
+**Deduplication guard:** the *Side Panel* compares incoming `"resultsReady"` against
+`currentResults` by `tableNumber` and `rawData.packets.length`. If both match, the
+render is skipped. This is the same comparison the *Background Service Worker* uses
+in Live Tracking to decide whether to push updates (only when packet count increases).
+
+The `"loading"` message clears `currentResults`, ensuring that intentional re-extractions
+(e.g. page reload) always render even if the data hasn't changed — the dedup guard only
+suppresses redundant renders from the idle shutdown cycle.
 
 ## Asset Resolution
 

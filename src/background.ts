@@ -521,7 +521,7 @@ async function resolveContent(tabId: number, tabUrl: string, source: string): Pr
   const nav = classifyNavigation(tabUrl);
 
   if (nav.action === "extract") {
-    chrome.runtime.sendMessage({ type: "loading" }).catch(() => {});
+    if (source !== "reconnect") chrome.runtime.sendMessage({ type: "loading" }).catch(() => {});
     await extractFromTab(tabId, tabUrl, nav.gameName, nav.tableNumber);
     return;
   }
