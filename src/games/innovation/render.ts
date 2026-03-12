@@ -5,7 +5,7 @@ import { type CardInfo, type Card, CardSet, Color, CardDatabase, colorLabel, car
 import { escapeHtml } from "../../render/icons.js";
 import { positionTooltip, applyToggleMode } from "../../render/toggle.js";
 import { GameState } from "./game_state.js";
-import { type SectionId, type SectionConfig, type Toggle, DEFAULT_SECTION_CONFIG, SECTION_IDS, TALL_COLUMNS, visibilityToggle, layoutToggle, compositeToggle } from "./config.js";
+import { type SectionId, type SectionConfig, type Toggle, DEFAULT_SECTION_CONFIG, SECTION_IDS, ECHOES_ONLY_SECTIONS, TALL_COLUMNS, visibilityToggle, layoutToggle, compositeToggle } from "./config.js";
 
 // ---------------------------------------------------------------------------
 // Asset URL resolution
@@ -264,6 +264,8 @@ export interface RenderOptions {
   sectionConfig?: Record<SectionId, SectionConfig>;
   /** Use text-only tooltips for all cards (no card face images). */
   textTooltips?: boolean;
+  /** Active expansions — determines which sections are rendered (e.g. forecast requires echoes). */
+  expansions?: { echoes: boolean };
 }
 
 /** Sort key for a card: (age, isUnknown, color, name). */
@@ -398,6 +400,7 @@ export function renderSummary(gameState: GameState, cardDb: CardDatabase, perspe
   const prevTextTooltips = useTextTooltips;
   useTextTooltips = options?.textTooltips ?? false;
   const config = options?.sectionConfig ?? DEFAULT_SECTION_CONFIG;
+  const hasEchoes = options?.expansions?.echoes ?? false;
   const opponent = players.find(p => p !== perspective) ?? players[0];
 
   const opponentHand = prepareCards(gameState.hands.get(opponent) ?? [], cardDb, "", true, false);
@@ -409,6 +412,8 @@ export function renderSummary(gameState: GameState, cardDb: CardDatabase, perspe
     "hand-me": () => makeSection("hand-me", "Hand &mdash; me", prepareMyCards(gameState.hands.get(perspective) ?? [], gameState, cardDb), config["hand-me"], {}),
     "score-opponent": () => makeSection("score-opponent", "Score &mdash; opponent", [opponentScore], config["score-opponent"], {}),
     "score-me": () => makeSection("score-me", "Score &mdash; me", prepareMyCards(gameState.scores.get(perspective) ?? [], gameState, cardDb), config["score-me"], {}),
+    "forecast-opponent": () => makeSection("forecast-opponent", "Forecast &mdash; opponent", [prepareCards(gameState.forecast.get(opponent) ?? [], cardDb, "", true, false)], config["forecast-opponent"], {}),
+    "forecast-me": () => makeSection("forecast-me", "Forecast &mdash; me", prepareMyCards(gameState.forecast.get(perspective) ?? [], gameState, cardDb), config["forecast-me"], {}),
     "achievements": () => makeSection("achievements", "Achievements", [achievements], config["achievements"], { columnCount: TALL_COLUMNS, arrangeByColumns: false }),
     "deck": () => makeCompositeSection("deck", "Deck", prepareDeck(gameState, CardSet.BASE, cardDb), prepareDeck(gameState, CardSet.ECHOES, cardDb), prepareDeck(gameState, CardSet.CITIES, cardDb), config["deck"], {}),
     "cards": () => { const resolved = collectResolvedNames(gameState); return makeCompositeSection("cards", "Cards", prepareAllCards(gameState, CardSet.BASE, cardDb, resolved), prepareAllCards(gameState, CardSet.ECHOES, cardDb, resolved), prepareAllCards(gameState, CardSet.CITIES, cardDb, resolved), config["cards"], { hasUnknown: true, columnCount: TALL_COLUMNS }); },
@@ -416,6 +421,7 @@ export function renderSummary(gameState: GameState, cardDb: CardDatabase, perspe
 
   let html = "";
   for (const id of SECTION_IDS) {
+    if (ECHOES_ONLY_SECTIONS.has(id) && !hasEchoes) continue;
     html += renderSection(sectionBuilders[id]());
   }
   useTextTooltips = prevTextTooltips;

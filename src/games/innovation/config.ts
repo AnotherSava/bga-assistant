@@ -16,6 +16,8 @@ export const SECTION_IDS = [
   "hand-me",
   "score-opponent",
   "score-me",
+  "forecast-opponent",
+  "forecast-me",
   "deck",
   "cards",
   "achievements",
@@ -29,6 +31,8 @@ export const SECTION_LABELS: Record<SectionId, string> = {
   "hand-me": "Hand \u2014 me",
   "score-opponent": "Score \u2014 opponent",
   "score-me": "Score \u2014 me",
+  "forecast-opponent": "Forecast \u2014 opponent",
+  "forecast-me": "Forecast \u2014 me",
   "deck": "Deck",
   "cards": "Cards",
   "achievements": "Achievements",
@@ -38,9 +42,11 @@ export const SECTION_LABELS: Record<SectionId, string> = {
 export const DEFAULT_SECTION_CONFIG: Record<SectionId, SectionConfig> = {
   "hand-opponent":  { defaultVisibility: "show" },
   "hand-me":        { defaultVisibility: "show" },
-  "score-opponent": { defaultVisibility: "none" },
-  "score-me":       { defaultVisibility: "none" },
-  "deck":           { defaultVisibility: "base" },
+  "score-opponent":    { defaultVisibility: "none" },
+  "score-me":          { defaultVisibility: "none" },
+  "forecast-opponent": { defaultVisibility: "show" },
+  "forecast-me":       { defaultVisibility: "show" },
+  "deck":              { defaultVisibility: "base" },
   "cards":          { defaultVisibility: "base", defaultFilter: "unknown", defaultLayout: "wide" },
   "achievements":   { defaultVisibility: "none", defaultLayout: "wide" },
 };
@@ -103,6 +109,9 @@ export function compositeToggle(sectionId: SectionId, defaultVisibility: Visibil
     ],
   };
 }
+
+/** Sections that require the Echoes expansion. */
+export const ECHOES_ONLY_SECTIONS: ReadonlySet<SectionId> = new Set(["forecast-opponent", "forecast-me"]);
 
 /** Number of columns in tall layout (one per color). */
 export const TALL_COLUMNS = 5;

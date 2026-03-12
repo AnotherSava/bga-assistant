@@ -45,8 +45,8 @@ function makeGameState(players: string[], perspective: string): GameState {
 // ---------------------------------------------------------------------------
 
 describe("Section Config", () => {
-  it("has all 7 section IDs with configs", () => {
-    expect(SECTION_IDS).toHaveLength(7);
+  it("has all 9 section IDs with configs", () => {
+    expect(SECTION_IDS).toHaveLength(9);
     for (const id of SECTION_IDS) {
       expect(DEFAULT_SECTION_CONFIG[id]).toBeDefined();
     }
@@ -55,6 +55,7 @@ describe("Section Config", () => {
   it("section order follows SECTION_IDS array", () => {
     expect(SECTION_IDS).toEqual([
       "hand-opponent", "hand-me", "score-opponent", "score-me",
+      "forecast-opponent", "forecast-me",
       "deck", "cards", "achievements",
     ]);
   });

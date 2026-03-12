@@ -2,7 +2,7 @@
 
 import JSZip from "jszip";
 import { renderSummary, renderFullPage, setAssetResolver } from "../games/innovation/render.js";
-import { SECTION_IDS, SECTION_LABELS } from "../games/innovation/config.js";
+import { SECTION_IDS, SECTION_LABELS, ECHOES_ONLY_SECTIONS } from "../games/innovation/config.js";
 import { renderHelp } from "../render/help.js";
 import { positionTooltip, applyToggleMode } from "../render/toggle.js";
 import { CardDatabase, type GameName } from "../models/types.js";
@@ -19,6 +19,7 @@ let currentResults: PipelineResults | null = null;
 let currentCss: string | null = null;
 let cachedCardDb: CardDatabase | null = null;
 let disconnectTimer: number | undefined;
+let currentExpansions: { echoes: boolean } = { echoes: false };
 
 // ---------------------------------------------------------------------------
 // Asset URL resolution for Chrome extension context
@@ -268,7 +269,8 @@ function renderWithDb(cardDb: CardDatabase, results: PipelineResults, contentEl:
   const tableId = "game";
 
   // Render summary HTML
-  const summaryHtml = renderSummary(gameState, cardDb, perspective, players, tableId);
+  currentExpansions = gameLog.expansions;
+  const summaryHtml = renderSummary(gameState, cardDb, perspective, players, tableId, { expansions: gameLog.expansions });
   contentEl.innerHTML = summaryHtml;
 
   // Populate game info bar
@@ -296,7 +298,7 @@ function renderWithDb(cardDb: CardDatabase, results: PipelineResults, contentEl:
     btnDownload.onclick = async () => {
       const css = currentCss ?? "";
       setAssetResolver((path: string) => path);
-      const rawHtml = renderFullPage(gameState, cardDb, perspective, players, tableId, css, { textTooltips: true });
+      const rawHtml = renderFullPage(gameState, cardDb, perspective, players, tableId, css, { textTooltips: true, expansions: gameLog.expansions });
       if (typeof chrome !== "undefined" && chrome.runtime?.getURL) setAssetResolver((path: string) => chrome.runtime.getURL(path));
       const summaryHtmlFile = await inlineAssets(rawHtml);
       const zip = new JSZip();
@@ -437,14 +439,18 @@ function buildSectionSelector(): void {
   panel.appendChild(header);
 
   for (const id of SECTION_IDS) {
-    const checked = state[id] !== false;
+    const isEchoesOnly = ECHOES_ONLY_SECTIONS.has(id);
+    const disabled = isEchoesOnly && !currentExpansions.echoes;
+    const checked = !disabled && state[id] !== false;
     const label = document.createElement("label");
     const checkbox = document.createElement("input");
     checkbox.type = "checkbox";
     checkbox.checked = checked;
+    checkbox.disabled = disabled;
     checkbox.dataset.sectionId = id;
     label.appendChild(checkbox);
     label.appendChild(document.createTextNode(SECTION_LABELS[id]));
+    if (disabled) label.style.opacity = "0.4";
     panel.appendChild(label);
 
     checkbox.addEventListener("change", () => {
