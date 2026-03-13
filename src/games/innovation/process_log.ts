@@ -1,6 +1,6 @@
 // Raw BGA packets -> structured game log
 
-import type { TransferEntry, MessageEntry, GameLogEntry, RawNotification, RawPacket, RawExtractionData } from "./types.js";
+import type { TransferEntry, MessageEntry, TurnMarkerEntry, GameLogEntry, RawNotification, RawPacket, RawExtractionData } from "./types.js";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -209,6 +209,23 @@ export function processRawLog(rawData: RawExtractionData): GameLog {
           msg: logMsg,
         };
         log.push(entry);
+      }
+
+      if (notifType === "gameStateChange") {
+        const stateArgs = notif.args;
+        if (String(stateArgs.id) === "4" && stateArgs.args && typeof stateArgs.args === "object") {
+          const innerArgs = stateArgs.args as Record<string, unknown>;
+          if (innerArgs.action_number !== undefined) {
+            const playerId = String(stateArgs.active_player);
+            const entry: TurnMarkerEntry = {
+              type: "turnMarker",
+              move: moveId,
+              player: playerNames[playerId] ?? playerId,
+              actionNumber: Number(innerArgs.action_number),
+            };
+            log.push(entry);
+          }
+        }
       }
     }
   }

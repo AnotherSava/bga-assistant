@@ -567,4 +567,96 @@ describe("processRawLog", () => {
     const result = processRawLog(raw);
     expect(result.expansions.echoes).toBe(false);
   });
+
+  it("emits TurnMarkerEntry for gameStateChange with state id 4", () => {
+    const raw: RawExtractionData = {
+      players: { "100": "Alice", "200": "Bob" },
+      packets: [
+        makePacket(10, [
+          { type: "gameStateChange", args: { id: 4, active_player: "100", args: { action_number: 1, qualified_action: "a first action" } } },
+        ]),
+      ],
+    };
+    const result = processRawLog(raw);
+    expect(result.log).toHaveLength(1);
+    expect(result.log[0]).toEqual({
+      type: "turnMarker",
+      move: 10,
+      player: "Alice",
+      actionNumber: 1,
+    });
+  });
+
+  it("emits TurnMarkerEntry with action_number 2", () => {
+    const raw: RawExtractionData = {
+      players: { "100": "Alice" },
+      packets: [
+        makePacket(15, [
+          { type: "gameStateChange", args: { id: 4, active_player: "100", args: { action_number: 2 } } },
+        ]),
+      ],
+    };
+    const result = processRawLog(raw);
+    expect(result.log).toHaveLength(1);
+    expect(result.log[0]).toMatchObject({ type: "turnMarker", actionNumber: 2 });
+  });
+
+  it("ignores gameStateChange with non-4 state id", () => {
+    const raw: RawExtractionData = {
+      players: { "100": "Alice" },
+      packets: [
+        makePacket(10, [
+          { type: "gameStateChange", args: { id: 2, active_player: "100", args: { action_number: 1 } } },
+        ]),
+      ],
+    };
+    const result = processRawLog(raw);
+    expect(result.log).toHaveLength(0);
+  });
+
+  it("ignores gameStateChange state 4 without action_number", () => {
+    const raw: RawExtractionData = {
+      players: { "100": "Alice" },
+      packets: [
+        makePacket(10, [
+          { type: "gameStateChange", args: { id: 4, active_player: "100", args: {} } },
+        ]),
+      ],
+    };
+    const result = processRawLog(raw);
+    expect(result.log).toHaveLength(0);
+  });
+
+  it("uses player ID as fallback when player name not found", () => {
+    const raw: RawExtractionData = {
+      players: {},
+      packets: [
+        makePacket(10, [
+          { type: "gameStateChange", args: { id: 4, active_player: "999", args: { action_number: 1 } } },
+        ]),
+      ],
+    };
+    const result = processRawLog(raw);
+    expect(result.log).toHaveLength(1);
+    expect(result.log[0]).toMatchObject({ type: "turnMarker", player: "999" });
+  });
+
+  it("interleaves TurnMarkerEntry with transfers and messages", () => {
+    const raw: RawExtractionData = {
+      players: { "100": "Alice" },
+      packets: [
+        makePacket(20, [
+          { type: "gameStateChange", args: { id: 4, active_player: "100", args: { action_number: 1 } } },
+          { type: "transferedCard", args: { name: "Archery", age: 1, location_from: "hand", location_to: "board", owner_from: "100", owner_to: "100", meld_keyword: true } },
+          { type: "transferedCard_spectator", args: { type: "0" } },
+          { type: "log_spectator", args: { log: "Alice melded Archery." } },
+        ]),
+      ],
+    };
+    const result = processRawLog(raw);
+    expect(result.log).toHaveLength(3);
+    expect(result.log[0].type).toBe("turnMarker");
+    expect(result.log[1].type).toBe("transfer");
+    expect(result.log[2].type).toBe("log");
+  });
 });

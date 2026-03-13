@@ -15,7 +15,8 @@ Reads the full game log from [Innovation](https://boardgamegeek.com/boardgame/63
 - Set toggle: switch between Base, Echoes, and Cities card sets for deck and card list
 - Filter toggle: All / Unknown (show only unaccounted cards)
 - Layout toggle: Wide (one row per age) / Tall (color columns)
-- Section selector: eye button to show/hide entire sections
+- Turn history: compact display of recent actions (meld, draw, dogma, endorse, achieve) with card name tooltips, newest first
+- Section selector: eye button to show/hide entire sections (including turn history visibility)
 - Hover tooltips: card face images with full card details on hover
 - Auto-hide: three-mode toggle controlling side panel behavior — Never (always open), Leaving BGA (closes on non-BGA tabs), Leaving tables (closes when navigating away from supported game tables)
 - Keyboard shortcut: configurable via `chrome://extensions/shortcuts` to toggle the side panel open/closed
@@ -91,6 +92,7 @@ src/
       types.ts               Innovation types: Card, CardInfo, CardDatabase, enums, actions
       process_log.ts         Raw BGA packets -> structured Innovation game log
       game_state.ts          Innovation state tracking + constraint propagation
+      turn_history.ts         Action classification and recent turn history extraction
       render.ts              GameState -> HTML string via template literals
       config.ts              Section layout config, visibility/layout defaults
     azul/

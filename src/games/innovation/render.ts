@@ -1,8 +1,9 @@
 // GameState -> HTML string via template literals.
 // Replaces Jinja2 templates + DTO layer (TemplateCard/Row/Section).
 
-import { type CardInfo, type Card, CardSet, Color, CardDatabase, colorLabel, cardSetLabel, ageSetKey } from "./types.js";
+import { type CardInfo, type Card, CardSet, Color, CardDatabase, colorLabel, cardSetLabel, ageSetKey, cardIndex } from "./types.js";
 import { escapeHtml } from "../../render/icons.js";
+import type { TurnAction } from "./turn_history.js";
 import { positionTooltip, applyToggleMode } from "../../render/toggle.js";
 import { GameState } from "./game_state.js";
 import { type SectionId, type SectionConfig, type Toggle, DEFAULT_SECTION_CONFIG, SECTION_IDS, ECHOES_ONLY_SECTIONS, TALL_COLUMNS, visibilityToggle, layoutToggle, compositeToggle } from "./config.js";
@@ -253,6 +254,56 @@ function renderSection(section: SectionData): string {
   }
 
   html += "</div>";
+  return html;
+}
+
+// ---------------------------------------------------------------------------
+// Turn history renderer
+// ---------------------------------------------------------------------------
+
+/** Wrap a card name in a tooltip span if the card exists in the database. */
+function cardTooltipSpan(cardName: string, cardDb: CardDatabase): string {
+  const info = cardDb.get(cardIndex(cardName));
+  if (!info) return escapeHtml(cardName);
+  const tip = useTextTooltips
+    ? `<div class="card-tip-text">${escapeHtml(info.name)}</div>`
+    : `<div class="card-tip"><img src="${resolveAssetUrl(`assets/bga/innovation/cards/card_${info.spriteIndex}.png`)}"></div>`;
+  return `<span class="th-card">${escapeHtml(info.name)}${tip}</span>`;
+}
+
+/** Format the action detail text (action type + card/age). */
+function formatActionDetail(action: TurnAction, cardDb: CardDatabase): string {
+  if (action.actionType === "pending") return "";
+  if (action.actionType === "achieve") return `achieve [${action.cardAge}]`;
+  if (action.actionType === "draw") {
+    if (action.cardName) return `draw ${cardTooltipSpan(action.cardName, cardDb)}`;
+    const setLabel = action.cardSet && action.cardSet !== "base" ? ` ${action.cardSet}` : "";
+    return `draw [${action.cardAge}]${setLabel}`;
+  }
+  const verb = action.actionType;
+  if (action.cardName) return `${verb} ${cardTooltipSpan(action.cardName, cardDb)}`;
+  return verb;
+}
+
+/** Render turn history HTML from a list of recent actions (newest half-turn first). */
+export function renderTurnHistory(actions: TurnAction[], cardDb: CardDatabase): string {
+  if (actions.length === 0) return "";
+
+  let html = "";
+  let currentPlayer: string | null = null;
+
+  for (const action of actions) {
+    if (action.player !== currentPlayer && currentPlayer !== null) {
+      html += '<div class="turn-group-sep"></div>';
+    }
+    currentPlayer = action.player;
+
+    const pendingCls = action.actionType === "pending" ? " pending" : "";
+    const detail = formatActionDetail(action, cardDb);
+    const suffix = detail ? ` ${detail}` : "";
+    html += `<div class="turn-action${pendingCls}">${escapeHtml(action.player)}:${suffix}</div>`;
+  }
+
   return html;
 }
 

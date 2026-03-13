@@ -1,8 +1,9 @@
 // Side panel: receives data from background, renders summary, handles downloads.
 
 import JSZip from "jszip";
-import { renderSummary, renderFullPage, setAssetResolver } from "../games/innovation/render.js";
+import { renderSummary, renderFullPage, renderTurnHistory, setAssetResolver } from "../games/innovation/render.js";
 import { SECTION_IDS, SECTION_LABELS, ECHOES_ONLY_SECTIONS } from "../games/innovation/config.js";
+import { buildTurnHistory, recentTurns } from "../games/innovation/turn_history.js";
 import { renderHelp } from "../render/help.js";
 import { positionTooltip, applyToggleMode } from "../render/toggle.js";
 import { CardDatabase, type GameName } from "../models/types.js";
@@ -111,7 +112,7 @@ function setupTooltips(): void {
   if (tooltipsInitialized) return;
   tooltipsInitialized = true;
   document.addEventListener("mousemove", (e: MouseEvent) => {
-    const tips = document.querySelectorAll<HTMLElement>(".card:hover > .card-tip, .card:hover > .card-tip-text");
+    const tips = document.querySelectorAll<HTMLElement>(".card:hover > .card-tip, .card:hover > .card-tip-text, .th-card:hover > .card-tip, .th-card:hover > .card-tip-text");
     tips.forEach((tip) => positionTooltip(tip, e.clientX, e.clientY));
   });
 }
@@ -187,9 +188,11 @@ function render(results: PipelineResults): void {
     const azulState = azulFromJSON(results.gameState as SerializedAzulGameState);
     contentEl.innerHTML = renderAzulSummary(azulState);
 
-    // Hide section selector (Innovation-only feature)
+    // Hide Innovation-only features
     const btnSections = document.getElementById("btn-sections");
     if (btnSections) btnSections.style.display = "none";
+    const turnHistoryEl = document.getElementById("turn-history");
+    if (turnHistoryEl) turnHistoryEl.innerHTML = "";
 
     // Populate game info bar
     const tableEl = document.getElementById("game-info-table");
@@ -287,6 +290,15 @@ function renderWithDb(cardDb: CardDatabase, results: PipelineResults, contentEl:
   setupTooltips();
   setupToggles();
   applySectionVisibility();
+
+  // Render turn history
+  const turnHistoryEl = document.getElementById("turn-history");
+  if (turnHistoryEl) {
+    const actions = buildTurnHistory(gameLog.log);
+    const recent = recentTurns(actions, 3);
+    turnHistoryEl.innerHTML = renderTurnHistory(recent, cardDb);
+    applyTurnHistoryVisibility();
+  }
 
   // Cache CSS for downloads
   loadCss();
@@ -438,6 +450,26 @@ function buildSectionSelector(): void {
   header.textContent = "Display sections:";
   panel.appendChild(header);
 
+  // Turn history toggle (not a card section, separate element)
+  {
+    const checked = state["turn-history"] !== false;
+    const label = document.createElement("label");
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.checked = checked;
+    checkbox.dataset.sectionId = "turn-history";
+    label.appendChild(checkbox);
+    label.appendChild(document.createTextNode(SECTION_LABELS["turn-history"]));
+    panel.appendChild(label);
+
+    checkbox.addEventListener("change", () => {
+      const current = loadSectionVisibility();
+      current["turn-history"] = checkbox.checked;
+      saveSectionVisibility(current);
+      applyTurnHistoryVisibility();
+    });
+  }
+
   for (const id of SECTION_IDS) {
     const isEchoesOnly = ECHOES_ONLY_SECTIONS.has(id);
     const disabled = isEchoesOnly && !currentExpansions.echoes;
@@ -460,6 +492,13 @@ function buildSectionSelector(): void {
       applySectionVisibility();
     });
   }
+}
+
+function applyTurnHistoryVisibility(): void {
+  const state = loadSectionVisibility();
+  const visible = state["turn-history"] !== false;
+  const el = document.getElementById("turn-history");
+  if (el) el.style.display = visible ? "" : "none";
 }
 
 function applySectionVisibility(): void {
@@ -690,6 +729,8 @@ function showHelp(errorMessage?: string, forceGameTab?: GameName): void {
   if (indicator) indicator.style.display = "none";
   const btnDownload = document.getElementById("btn-download");
   if (btnDownload) { btnDownload.classList.add("disabled"); btnDownload.onclick = null; }
+  const turnHistoryEl = document.getElementById("turn-history");
+  if (turnHistoryEl) turnHistoryEl.innerHTML = "";
   chrome.runtime.sendMessage({ type: "pauseLive" }).catch(() => {});
 }
 
@@ -790,4 +831,4 @@ if (typeof chrome !== "undefined" && chrome.runtime?.onMessage) {
 function getCurrentPinMode(): PinMode { return currentPinMode; }
 
 // Export for testing
-export { render, showHelp, showHelpWithRawData, setupTooltips, setupToggles, applySectionVisibility, downloadBlob, fetchCardDb, initPinButton, openPinDropdown, closePinDropdown, selectPinMode, updatePinButtonIcon, getCurrentPinMode, setupHelpTabs, switchZoomContext, PIN_ICONS };
+export { render, showHelp, showHelpWithRawData, setupTooltips, setupToggles, applySectionVisibility, applyTurnHistoryVisibility, downloadBlob, fetchCardDb, initPinButton, openPinDropdown, closePinDropdown, selectPinMode, updatePinButtonIcon, getCurrentPinMode, setupHelpTabs, switchZoomContext, PIN_ICONS };

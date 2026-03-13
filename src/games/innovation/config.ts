@@ -26,7 +26,8 @@ export const SECTION_IDS = [
 export type SectionId = (typeof SECTION_IDS)[number];
 
 /** Display labels for sections (matching rendered titles). */
-export const SECTION_LABELS: Record<SectionId, string> = {
+export const SECTION_LABELS: Record<SectionId | "turn-history", string> = {
+  "turn-history": "Turn history",
   "hand-opponent": "Hand \u2014 opponent",
   "hand-me": "Hand \u2014 me",
   "score-opponent": "Score \u2014 opponent",

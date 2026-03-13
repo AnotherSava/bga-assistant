@@ -15,6 +15,8 @@ Do not break long single-expression lines (template literals, chained calls, etc
 
 Avoid cryptic abbreviations in variable and attribute names. Use descriptive names (`playerPattern` not `pp`, `cardIndex` not `ci`).
 
+Do not add defensive fallbacks that mask invalid data (e.g. `?? "?"`, `?? 0`). Trust that inputs are correct and let invalid values surface naturally — a visible `null` in output or a runtime error is better than silently producing plausible-looking wrong output.
+
 ## Workflow
 
 Run `npm run build` after each batch of changes so the extension can be reloaded and tested in the browser.
@@ -34,6 +36,7 @@ Keep `README.md` in the project root up to date when code changes affect project
 - `src/games/innovation/types.ts` — Innovation types (Card, CardInfo, CardDatabase, enums, actions, log entries)
 - `src/games/innovation/process_log.ts` — Innovation BGA packet processing
 - `src/games/innovation/game_state.ts` — Innovation state engine
+- `src/games/innovation/turn_history.ts` — Innovation action classification and turn history extraction
 - `src/games/innovation/render.ts` — Innovation HTML summary renderer
 - `src/games/innovation/config.ts` — Innovation section layout configuration
 - `src/games/azul/process_log.ts` — Azul BGA packet processing

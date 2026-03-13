@@ -24,7 +24,7 @@ vi.hoisted(() => {
   };
 });
 
-import { downloadBlob, setupTooltips, setupToggles, render, fetchCardDb, initPinButton, openPinDropdown, closePinDropdown, selectPinMode, updatePinButtonIcon, getCurrentPinMode } from "../sidepanel/sidepanel";
+import { downloadBlob, setupTooltips, setupToggles, render, fetchCardDb, initPinButton, openPinDropdown, closePinDropdown, selectPinMode, updatePinButtonIcon, getCurrentPinMode, applyTurnHistoryVisibility } from "../sidepanel/sidepanel";
 import { positionTooltip } from "../render/toggle";
 import type { PipelineResults } from "../background";
 
@@ -525,5 +525,64 @@ describe("pin button & dropdown", () => {
     expect(dropdown.style.display).toBe("");
     btn.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
     expect(dropdown.style.display).toBe("none");
+  });
+});
+
+describe("turn history integration", () => {
+  beforeEach(() => {
+    document.body.innerHTML = "";
+    localStorage.clear();
+  });
+
+  it("populates turn-history element during render", async () => {
+    const { readFileSync } = await import("fs");
+    const { resolve, dirname } = await import("path");
+    const { fileURLToPath } = await import("url");
+    const thisDir = dirname(fileURLToPath(import.meta.url));
+    const cardData = readFileSync(resolve(thisDir, "../../assets/bga/innovation/card_info.json"), "utf-8");
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(cardData));
+    await fetchCardDb("chrome-extension://test/assets/bga/innovation/card_info.json");
+    fetchSpy.mockRestore();
+
+    document.body.innerHTML = '<div id="content"></div><div id="turn-history"></div>';
+
+    const results: PipelineResults = {
+      tableNumber: "99",
+      gameName: "innovation",
+      rawData: { packets: [] },
+      gameLog: {
+        currentPlayerId: "1",
+        players: { "1": "Alice", "2": "Bob" },
+        log: [
+          { type: "turnMarker", move: 1, player: "Alice", actionNumber: 1 },
+          { type: "transfer", move: 1, source: "deck", dest: "hand", cardName: null, cardAge: 1, cardSet: "base", meldKeyword: false, player: "Alice", cardIndex: null },
+        ],
+        myHand: [],
+        expansions: { echoes: false },
+      },
+      gameState: { hands: { "Alice": [], "Bob": [] }, scores: { "Alice": [], "Bob": [] }, boards: { "Alice": [], "Bob": [] }, achievements: [], specialAchievements: [], decks: {}, forecast: {} },
+    } as any;
+
+    render(results);
+    await vi.waitFor(() => {
+      const el = document.getElementById("turn-history")!;
+      expect(el.innerHTML).toContain("Alice");
+      expect(el.innerHTML).toContain("draw");
+    });
+  });
+
+  it("hides turn-history when toggled off via localStorage", () => {
+    document.body.innerHTML = '<div id="turn-history">some content</div>';
+    localStorage.setItem("bgaa_section_visibility", JSON.stringify({ "turn-history": false }));
+    applyTurnHistoryVisibility();
+    const el = document.getElementById("turn-history")!;
+    expect(el.style.display).toBe("none");
+  });
+
+  it("shows turn-history by default", () => {
+    document.body.innerHTML = '<div id="turn-history">some content</div>';
+    applyTurnHistoryVisibility();
+    const el = document.getElementById("turn-history")!;
+    expect(el.style.display).toBe("");
   });
 });

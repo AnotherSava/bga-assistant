@@ -393,6 +393,38 @@ body {
 }
 .pin-shortcut-link:hover { color: #aaa; }
 
+/* Turn history */
+#turn-history {
+  position: fixed;
+  top: 38px;
+  right: 8px;
+  z-index: 10;
+  font-size: 12px;
+  line-height: 1.5;
+  text-align: right;
+  pointer-events: auto;
+  background: rgba(30, 30, 30, 0.85);
+  padding: 4px 6px;
+  border-radius: 4px;
+}
+#turn-history:empty { display: none; }
+.turn-action {
+  color: #ccc;
+  white-space: nowrap;
+}
+.turn-action.pending { color: #666; }
+.turn-group-sep { height: 4px; }
+.th-card {
+  position: relative;
+  cursor: default;
+  text-decoration: underline;
+  text-decoration-color: #555;
+}
+.th-card > .card-tip,
+.th-card > .card-tip-text { display: none; }
+.th-card:hover > .card-tip,
+.th-card:hover > .card-tip-text { display: block; }
+
 /* Azul summary table */
 .azul-summary { margin-top: 4px; }
 .azul-table { border-collapse: collapse; }

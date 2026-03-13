@@ -412,7 +412,7 @@ describe("GameLogEntry types", () => {
     for (const entry of entries) {
       if (entry.type === "transfer") {
         expect(entry.cardSet).toBe("base");
-      } else {
+      } else if (entry.type === "log" || entry.type === "logWithCardTooltips") {
         expect(entry.msg).toBe("A message");
       }
     }

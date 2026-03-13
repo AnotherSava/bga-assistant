@@ -8,6 +8,7 @@ import path from "path";
 import {
   DEFAULT_SECTION_CONFIG,
   SECTION_IDS,
+  SECTION_LABELS,
   TALL_COLUMNS,
   visibilityToggle,
   layoutToggle,
@@ -15,6 +16,7 @@ import {
   type SectionId,
 } from "../games/innovation/config.js";
 import { renderSummary, renderFullPage, setAssetResolver, SUMMARY_JS } from "../games/innovation/render.js";
+import { buildTurnHistory, recentTurns } from "../games/innovation/turn_history.js";
 import { CardDatabase, CardSet, Card, ageSetKey } from "../models/types.js";
 import { GameState } from "../games/innovation/game_state.js";
 
@@ -81,6 +83,14 @@ describe("Section Config", () => {
 
   it("TALL_COLUMNS is 5 (one per color)", () => {
     expect(TALL_COLUMNS).toBe(5);
+  });
+
+  it("SECTION_LABELS includes turn-history", () => {
+    expect(SECTION_LABELS["turn-history"]).toBe("Turn history");
+  });
+
+  it("turn-history is NOT in SECTION_IDS", () => {
+    expect((SECTION_IDS as readonly string[]).includes("turn-history")).toBe(false);
   });
 });
 
