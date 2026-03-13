@@ -508,7 +508,7 @@ const PIN_ICONS: Record<PinMode, string> = {
 const PIN_LABELS: Record<PinMode, string> = {
   "pinned": "Never",
   "autohide-bga": "Leaving BGA",
-  "autohide-game": "Leaving tables",
+  "autohide-game": "Unsupported games",
 };
 
 const PIN_ORDER: PinMode[] = ["pinned", "autohide-bga", "autohide-game"];

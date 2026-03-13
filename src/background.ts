@@ -445,9 +445,11 @@ export function classifyNavigation(url: string | undefined): NavigationAction {
 export function shouldAutoClose(url: string | undefined, mode: PinMode): boolean {
   if (mode === "pinned") return false;
   if (mode === "autohide-bga") return !url || !BGA_DOMAIN_PATTERN.test(url);
-  // autohide-game: close when not on a supported game table
+  // autohide-game: close on unsupported game tables or when leaving BGA
   const nav = classifyNavigation(url);
-  return nav.action !== "extract";
+  if (nav.action === "extract") return false;
+  if (nav.action === "unsupportedGame") return true;
+  return !url || !BGA_DOMAIN_PATTERN.test(url);
 }
 
 // ---------------------------------------------------------------------------

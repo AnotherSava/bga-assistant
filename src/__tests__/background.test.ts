@@ -576,11 +576,15 @@ describe("shouldAutoClose", () => {
     expect(shouldAutoClose("https://boardgamearena.com/1/thecrewdeepsea?table=123", "autohide-bga")).toBe(false);
   });
 
-  it("returns true for autohide-game mode on non-game URLs", () => {
+  it("returns true for autohide-game mode on unsupported game tables and non-BGA URLs", () => {
     expect(shouldAutoClose("https://example.com", "autohide-game")).toBe(true);
-    expect(shouldAutoClose("https://boardgamearena.com/lobby", "autohide-game")).toBe(true);
     expect(shouldAutoClose("https://boardgamearena.com/1/thecrewdeepsea?table=123", "autohide-game")).toBe(true);
     expect(shouldAutoClose(undefined, "autohide-game")).toBe(true);
+  });
+
+  it("returns false for autohide-game mode on non-table BGA pages", () => {
+    expect(shouldAutoClose("https://boardgamearena.com/lobby", "autohide-game")).toBe(false);
+    expect(shouldAutoClose("https://boardgamearena.com/player?id=123", "autohide-game")).toBe(false);
   });
 
   it("returns false for autohide-game mode on supported game URLs", () => {
@@ -988,7 +992,7 @@ describe("auto-close in handleNavigation", () => {
     conn.triggerDisconnect();
   });
 
-  it("auto-closes panel in autohide-game mode on non-game BGA tab", async () => {
+  it("does not auto-close in autohide-game mode on non-game BGA tab", async () => {
     const conn = connectSidePanel();
     listeners.onMessage({ type: "setPinMode", mode: "autohide-game" }, {}, () => {});
     vi.clearAllMocks();
@@ -999,7 +1003,7 @@ describe("auto-close in handleNavigation", () => {
     listeners.onActivated({ tabId: 1 });
     await new Promise((r) => setTimeout(r, 50));
 
-    expect(mockSidePanelClose).toHaveBeenCalledWith({ windowId: 10 });
+    expect(mockSidePanelClose).not.toHaveBeenCalled();
     conn.triggerDisconnect();
   });
 
