@@ -1,7 +1,7 @@
 // Raw BGA packets -> structured game log
 
 import type { TransferEntry, MessageEntry, GameLogEntry, RawExtractionData } from "./types.js";
-import type { TurnAction } from "./turn_history.js";
+import type { TurnAction, ActionDetail } from "./turn_history.js";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -116,28 +116,28 @@ interface PendingAction {
 }
 
 /** Try to classify a pending action from a transfer entry. Returns null if the transfer is not an action. */
-function classifyTransfer(pending: PendingAction, entry: TransferEntry): TurnAction | null {
+function classifyTransfer(entry: TransferEntry): ActionDetail | null {
   if (entry.source === "achievements" && entry.dest === "achievements") {
-    return { player: pending.player, actionNumber: pending.actionNumber, actionType: "achieve", cardName: null, cardAge: entry.cardAge, cardSet: null, time: pending.time };
+    return { actionType: "achieve", cardName: null, cardAge: entry.cardAge, cardSet: null };
   }
   if (entry.meldKeyword && entry.source === "hand" && entry.dest === "board") {
-    return { player: pending.player, actionNumber: pending.actionNumber, actionType: "meld", cardName: entry.cardName, cardAge: entry.cardAge, cardSet: entry.cardSet, time: pending.time };
+    return { actionType: "meld", cardName: entry.cardName, cardAge: entry.cardAge, cardSet: entry.cardSet };
   }
   if (entry.source === "deck") {
-    return { player: pending.player, actionNumber: pending.actionNumber, actionType: "draw", cardName: entry.cardName, cardAge: entry.cardAge, cardSet: entry.cardSet, time: pending.time };
+    return { actionType: "draw", cardName: entry.cardName, cardAge: entry.cardAge, cardSet: entry.cardSet };
   }
   return null;
 }
 
 /** Try to classify a pending action from a logWithCardTooltips message. Returns null if not a dogma/endorse. */
-function classifyMessage(pending: PendingAction, entry: MessageEntry): TurnAction | null {
+function classifyMessage(entry: MessageEntry): ActionDetail | null {
   const dogmaMatch = entry.msg.match(/activates the dogma of (\d+) (.+?) with/);
   if (dogmaMatch) {
-    return { player: pending.player, actionNumber: pending.actionNumber, actionType: "dogma", cardName: dogmaMatch[2].trim(), cardAge: null, cardSet: null, time: pending.time };
+    return { actionType: "dogma", cardName: dogmaMatch[2].trim(), cardAge: null, cardSet: null };
   }
   const endorseMatch = entry.msg.match(/endorses the dogma of (\d+) (.+?) with/);
   if (endorseMatch) {
-    return { player: pending.player, actionNumber: pending.actionNumber, actionType: "endorse", cardName: endorseMatch[2].trim(), cardAge: null, cardSet: null, time: pending.time };
+    return { actionType: "endorse", cardName: endorseMatch[2].trim(), cardAge: null, cardSet: null };
   }
   return null;
 }
@@ -201,6 +201,7 @@ export function processRawLog(rawData: RawExtractionData): GameLog {
   const actions: TurnAction[] = [];
   let pendingAction: PendingAction | null = null;
   let lastPending: { player: string; actionNumber: number; move: number } | null = null;
+  let currentAction: TurnAction | null = null;
 
   for (const packet of packets) {
     const moveId = packet.move_id!;
@@ -247,11 +248,15 @@ export function processRawLog(rawData: RawExtractionData): GameLog {
 
         // Classify pending action from first transfer after marker
         if (pendingAction) {
-          const action = classifyTransfer(pendingAction, entry);
-          if (action) {
-            actions.push(action);
+          const detail = classifyTransfer(entry);
+          if (detail) {
+            const turnAction: TurnAction = { player: pendingAction.player, actionNumber: pendingAction.actionNumber, time: pendingAction.time, actions: [detail] };
+            actions.push(turnAction);
+            currentAction = turnAction;
             pendingAction = null;
           }
+        } else if (currentAction && entry.source === "forecast" && entry.dest === "board" && entry.meldKeyword) {
+          currentAction.actions.push({ actionType: "promote", cardName: entry.cardName, cardAge: entry.cardAge, cardSet: entry.cardSet });
         }
         continue;
       }
@@ -270,10 +275,17 @@ export function processRawLog(rawData: RawExtractionData): GameLog {
 
         // Classify pending action from first dogma/endorse message after marker
         if (pendingAction && entry.type === "logWithCardTooltips") {
-          const action = classifyMessage(pendingAction, entry);
-          if (action) {
-            actions.push(action);
+          const detail = classifyMessage(entry);
+          if (detail) {
+            const turnAction: TurnAction = { player: pendingAction.player, actionNumber: pendingAction.actionNumber, time: pendingAction.time, actions: [detail] };
+            actions.push(turnAction);
+            currentAction = turnAction;
             pendingAction = null;
+          }
+        } else if (currentAction && entry.type === "logWithCardTooltips") {
+          const detail = classifyMessage(entry);
+          if (detail && detail.actionType === "dogma" && currentAction.actions.some((a) => a.actionType === "promote")) {
+            currentAction.actions.push(detail);
           }
         }
       }
@@ -288,9 +300,11 @@ export function processRawLog(rawData: RawExtractionData): GameLog {
             const actionNumber = Number(innerArgs.action_number);
             // Deduplicate: gameStateChange fires in both player and spectator channels
             if (lastPending && lastPending.move === moveId && lastPending.player === playerName && lastPending.actionNumber === actionNumber) continue;
+            // New action marker ends sub-action scanning for the previous action
+            currentAction = null;
             // If previous action was never classified, it stays pending
             if (pendingAction) {
-              actions.push({ player: pendingAction.player, actionNumber: pendingAction.actionNumber, actionType: "pending", cardName: null, cardAge: null, cardSet: null, time: pendingAction.time });
+              actions.push({ player: pendingAction.player, actionNumber: pendingAction.actionNumber, time: pendingAction.time, actions: [{ actionType: "pending", cardName: null, cardAge: null, cardSet: null }] });
             }
             pendingAction = { player: playerName, actionNumber, time: packet.time ?? null };
             lastPending = { player: playerName, actionNumber, move: moveId };
@@ -302,7 +316,7 @@ export function processRawLog(rawData: RawExtractionData): GameLog {
 
   // Flush: if the last action was never classified, emit as pending
   if (pendingAction) {
-    actions.push({ player: pendingAction.player, actionNumber: pendingAction.actionNumber, actionType: "pending", cardName: null, cardAge: null, cardSet: null, time: pendingAction.time });
+    actions.push({ player: pendingAction.player, actionNumber: pendingAction.actionNumber, time: pendingAction.time, actions: [{ actionType: "pending", cardName: null, cardAge: null, cardSet: null }] });
   }
 
   return { players: playerNames, currentPlayerId: rawData.currentPlayerId ?? "", myHand, log, actions, expansions: { echoes: hasEchoesTransfer } };

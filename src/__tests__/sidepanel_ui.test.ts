@@ -557,7 +557,7 @@ describe("turn history integration", () => {
           { type: "transfer", move: 1, source: "deck", dest: "hand", cardName: null, cardAge: 1, cardSet: "base", meldKeyword: false, player: "Alice", cardIndex: null },
         ],
         actions: [
-          { player: "Alice", actionNumber: 1, actionType: "draw", cardName: null, cardAge: 1, cardSet: "base", time: null },
+          { player: "Alice", actionNumber: 1, time: null, actions: [{ actionType: "draw", cardName: null, cardAge: 1, cardSet: "base" }] },
         ],
         myHand: [],
         expansions: { echoes: false },

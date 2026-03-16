@@ -3,7 +3,7 @@
 
 import { type CardInfo, type Card, CardSet, Color, CardDatabase, colorLabel, cardSetLabel, ageSetKey, cardIndex } from "./types.js";
 import { escapeHtml } from "../../render/icons.js";
-import type { TurnAction } from "./turn_history.js";
+import type { TurnAction, ActionDetail } from "./turn_history.js";
 import { positionTooltip, applyToggleMode } from "../../render/toggle.js";
 import { GameState } from "./game_state.js";
 import { type SectionId, type SectionConfig, type Toggle, DEFAULT_SECTION_CONFIG, SECTION_IDS, ECHOES_ONLY_SECTIONS, TALL_COLUMNS, visibilityToggle, layoutToggle, compositeToggle } from "./config.js";
@@ -272,16 +272,16 @@ function cardTooltipSpan(cardName: string, cardDb: CardDatabase): string {
 }
 
 /** Format the action detail text (action type + card/age). */
-function formatActionDetail(action: TurnAction, cardDb: CardDatabase): string {
-  if (action.actionType === "pending") return "";
-  if (action.actionType === "achieve") return `achieve [${action.cardAge}]`;
-  if (action.actionType === "draw") {
-    if (action.cardName) return `draw ${cardTooltipSpan(action.cardName, cardDb)}`;
-    const setLabel = action.cardSet && action.cardSet !== "base" ? ` ${action.cardSet}` : "";
-    return `draw [${action.cardAge}]${setLabel}`;
+function formatActionDetail(detail: ActionDetail, cardDb: CardDatabase): string {
+  if (detail.actionType === "pending") return "";
+  if (detail.actionType === "achieve") return `achieve [${detail.cardAge}]`;
+  if (detail.actionType === "draw") {
+    if (detail.cardName) return `draw ${cardTooltipSpan(detail.cardName, cardDb)}`;
+    const setLabel = detail.cardSet && detail.cardSet !== "base" ? ` ${detail.cardSet}` : "";
+    return `draw [${detail.cardAge}]${setLabel}`;
   }
-  const verb = action.actionType;
-  if (action.cardName) return `${verb} ${cardTooltipSpan(action.cardName, cardDb)}`;
+  const verb = detail.actionType;
+  if (detail.cardName) return `${verb} ${cardTooltipSpan(detail.cardName, cardDb)}`;
   return verb;
 }
 
@@ -291,7 +291,7 @@ function formatTime(time: number | null): string {
   return new Date(time * 1000).toLocaleDateString("en-US", { month: "short", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false });
 }
 
-/** Render turn history HTML from a list of recent actions (newest half-turn first). */
+/** Render turn history HTML from a list of recent actions (chronological order). */
 export function renderTurnHistory(actions: TurnAction[], cardDb: CardDatabase, perspective: string): string {
   if (actions.length === 0) return "";
 
@@ -309,9 +309,15 @@ export function renderTurnHistory(actions: TurnAction[], cardDb: CardDatabase, p
     const playerCls = isMe ? " th-me" : " th-opp";
     const timeStr = formatTime(action.time);
     const timePrefix = timeStr ? `<span class="th-time">${timeStr}</span> ` : "";
-    const detail = formatActionDetail(action, cardDb);
+    const detail = formatActionDetail(action.actions[0], cardDb);
     const suffix = detail ? ` ${detail}` : "";
     html += `<div class="turn-action${playerCls}">${timePrefix}${label}:${suffix}</div>`;
+
+    // Render sub-actions (promote, dogma after promote, etc.)
+    for (let i = 1; i < action.actions.length; i++) {
+      const subDetail = formatActionDetail(action.actions[i], cardDb);
+      html += `<div class="turn-action th-sub${playerCls}">  \u2192 ${subDetail}</div>`;
+    }
   }
 
   return html;

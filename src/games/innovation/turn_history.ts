@@ -4,16 +4,20 @@
 // Types
 // ---------------------------------------------------------------------------
 
-export type ActionType = "meld" | "draw" | "dogma" | "endorse" | "achieve" | "pending";
+export type ActionType = "meld" | "draw" | "dogma" | "endorse" | "achieve" | "promote" | "pending";
 
-export interface TurnAction {
-  player: string;
-  actionNumber: number;
+export interface ActionDetail {
   actionType: ActionType;
   cardName: string | null;
   cardAge: number | null;
   cardSet: string | null;
+}
+
+export interface TurnAction {
+  player: string;
+  actionNumber: number;
   time: number | null;
+  actions: ActionDetail[];  // [0] = primary, [1..] = sub-actions
 }
 
 // ---------------------------------------------------------------------------
@@ -21,7 +25,8 @@ export interface TurnAction {
 // ---------------------------------------------------------------------------
 
 /**
- * Return actions from the last `count` half-turns, in reverse order (newest first).
+ * Return actions from the last `count` half-turns, in chronological order
+ * (oldest half-turn first, oldest action first within each group).
  * A half-turn is a consecutive group of actions by the same player.
  */
 export function recentTurns(actions: TurnAction[], count: number): TurnAction[] {
@@ -47,5 +52,8 @@ export function recentTurns(actions: TurnAction[], count: number): TurnAction[] 
   }
 
   // halfTurns is newest-first groups, each group is newest-action-first
+  // Reverse both levels to get chronological order
+  halfTurns.reverse();
+  for (const group of halfTurns) group.reverse();
   return halfTurns.flat();
 }

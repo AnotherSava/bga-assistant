@@ -580,7 +580,7 @@ describe("processRawLog", () => {
     };
     const result = processRawLog(raw);
     expect(result.actions).toHaveLength(1);
-    expect(result.actions[0]).toMatchObject({ player: "Alice", actionNumber: 1, actionType: "pending" });
+    expect(result.actions[0]).toMatchObject({ player: "Alice", actionNumber: 1, actions: [{ actionType: "pending" }] });
   });
 
   it("emits action with action_number 2", () => {
@@ -595,7 +595,7 @@ describe("processRawLog", () => {
     };
     const result = processRawLog(raw);
     expect(result.actions).toHaveLength(1);
-    expect(result.actions[0]).toMatchObject({ actionNumber: 2, actionType: "pending" });
+    expect(result.actions[0]).toMatchObject({ actionNumber: 2, actions: [{ actionType: "pending" }] });
   });
 
   it("ignores gameStateChange with non-4 state id", () => {
@@ -637,7 +637,7 @@ describe("processRawLog", () => {
     };
     const result = processRawLog(raw);
     expect(result.actions).toHaveLength(1);
-    expect(result.actions[0]).toMatchObject({ player: "999" });
+    expect(result.actions[0]).toMatchObject({ player: "999", actions: [{ actionType: "pending" }] });
   });
 
   it("classifies meld from transfer after gameStateChange", () => {
@@ -654,7 +654,153 @@ describe("processRawLog", () => {
     };
     const result = processRawLog(raw);
     expect(result.actions).toHaveLength(1);
-    expect(result.actions[0]).toMatchObject({ player: "Alice", actionType: "meld", cardName: "Archery" });
+    expect(result.actions[0]).toMatchObject({ player: "Alice", actions: [{ actionType: "meld", cardName: "Archery" }] });
+  });
+
+  it("appends promote sub-action when forecast→board meld follows primary meld", () => {
+    const raw: RawExtractionData = {
+      players: { "100": "Alice" },
+      packets: [
+        makePacket(20, [
+          { type: "gameStateChange", args: { id: 4, active_player: "100", args: { action_number: 1 } } },
+          // Primary meld: hand→board
+          { type: "transferedCard", args: { name: "Archery", age: 1, location_from: "hand", location_to: "board", owner_from: "100", owner_to: "100", meld_keyword: true } },
+          { type: "transferedCard_spectator", args: { type: "0" } },
+          { type: "log_spectator", args: { log: "Alice melded Archery." } },
+          // Promote: forecast→board
+          { type: "transferedCard", args: { name: "Feudalism", age: 4, location_from: "forecast", location_to: "board", owner_from: "100", owner_to: "100", meld_keyword: true } },
+          { type: "transferedCard_spectator", args: { type: "0" } },
+        ]),
+      ],
+    };
+    const result = processRawLog(raw);
+    expect(result.actions).toHaveLength(1);
+    expect(result.actions[0].actions).toHaveLength(2);
+    expect(result.actions[0].actions[0]).toMatchObject({ actionType: "meld", cardName: "Archery" });
+    expect(result.actions[0].actions[1]).toMatchObject({ actionType: "promote", cardName: "Feudalism", cardAge: 4, cardSet: "base" });
+  });
+
+  it("appends dogma sub-action after promote when dogma message follows", () => {
+    const raw: RawExtractionData = {
+      players: { "100": "Alice" },
+      packets: [
+        makePacket(20, [
+          { type: "gameStateChange", args: { id: 4, active_player: "100", args: { action_number: 1 } } },
+          // Primary meld
+          { type: "transferedCard", args: { name: "Archery", age: 1, location_from: "hand", location_to: "board", owner_from: "100", owner_to: "100", meld_keyword: true } },
+          { type: "transferedCard_spectator", args: { type: "0" } },
+          // Promote
+          { type: "transferedCard", args: { name: "Feudalism", age: 4, location_from: "forecast", location_to: "board", owner_from: "100", owner_to: "100", meld_keyword: true } },
+          { type: "transferedCard_spectator", args: { type: "0" } },
+          // "chooses to dogma" log (plain log, not logWithCardTooltips)
+          { type: "log_spectator", args: { log: "Alice chooses to dogma his promoted card." } },
+          // Dogma activation message (logWithCardTooltips)
+          { type: "logWithCardTooltips_spectator", args: { log: "Alice activates the dogma of 4 Feudalism with [castle][castle][castle]." } },
+        ]),
+      ],
+    };
+    const result = processRawLog(raw);
+    expect(result.actions).toHaveLength(1);
+    expect(result.actions[0].actions).toHaveLength(3);
+    expect(result.actions[0].actions[0]).toMatchObject({ actionType: "meld", cardName: "Archery" });
+    expect(result.actions[0].actions[1]).toMatchObject({ actionType: "promote", cardName: "Feudalism" });
+    expect(result.actions[0].actions[2]).toMatchObject({ actionType: "dogma", cardName: "Feudalism" });
+  });
+
+  it("does not append sub-actions when player chooses not to promote", () => {
+    const raw: RawExtractionData = {
+      players: { "100": "Alice" },
+      packets: [
+        makePacket(20, [
+          { type: "gameStateChange", args: { id: 4, active_player: "100", args: { action_number: 1 } } },
+          // Primary meld
+          { type: "transferedCard", args: { name: "Archery", age: 1, location_from: "hand", location_to: "board", owner_from: "100", owner_to: "100", meld_keyword: true } },
+          { type: "transferedCard_spectator", args: { type: "0" } },
+          // "chooses not to promote" log — ignored
+          { type: "log_spectator", args: { log: "Alice chooses not to promote a card from his forecast." } },
+        ]),
+      ],
+    };
+    const result = processRawLog(raw);
+    expect(result.actions).toHaveLength(1);
+    expect(result.actions[0].actions).toHaveLength(1);
+    expect(result.actions[0].actions[0]).toMatchObject({ actionType: "meld", cardName: "Archery" });
+  });
+
+  it("does not pick up spurious sub-actions from non-promote transfers", () => {
+    const raw: RawExtractionData = {
+      players: { "100": "Alice" },
+      packets: [
+        makePacket(20, [
+          { type: "gameStateChange", args: { id: 4, active_player: "100", args: { action_number: 1 } } },
+          // Primary draw
+          { type: "transferedCard", args: { name: "Pottery", age: 1, location_from: "deck", location_to: "hand", owner_from: "0", owner_to: "100", meld_keyword: false } },
+          { type: "transferedCard_spectator", args: { type: "0" } },
+          // Regular hand→score transfer — not forecast→board, should NOT become a sub-action
+          { type: "transferedCard", args: { name: "Archery", age: 1, location_from: "hand", location_to: "score", owner_from: "100", owner_to: "100", meld_keyword: false } },
+          { type: "transferedCard_spectator", args: { type: "0" } },
+        ]),
+      ],
+    };
+    const result = processRawLog(raw);
+    expect(result.actions).toHaveLength(1);
+    expect(result.actions[0].actions).toHaveLength(1);
+    expect(result.actions[0].actions[0]).toMatchObject({ actionType: "draw", cardName: "Pottery" });
+  });
+
+  it("clears sub-action scanning when next gameStateChange arrives", () => {
+    const raw: RawExtractionData = {
+      players: { "100": "Alice" },
+      packets: [
+        makePacket(20, [
+          { type: "log_spectator", args: { log: "test" } },
+          { type: "gameStateChange", args: { id: 4, active_player: "100", args: { action_number: 1 } } },
+          // Primary meld
+          { type: "transferedCard", args: { name: "Archery", age: 1, location_from: "hand", location_to: "board", owner_from: "100", owner_to: "100", meld_keyword: true } },
+          { type: "transferedCard_spectator", args: { type: "0" } },
+        ]),
+        makePacket(21, [
+          { type: "log_spectator", args: { log: "test" } },
+          // Next action marker — clears currentAction
+          { type: "gameStateChange", args: { id: 4, active_player: "100", args: { action_number: 2 } } },
+          // This forecast→board should NOT attach to action 1
+          { type: "transferedCard", args: { name: "Feudalism", age: 4, location_from: "forecast", location_to: "board", owner_from: "100", owner_to: "100", meld_keyword: true } },
+          { type: "transferedCard_spectator", args: { type: "0" } },
+        ]),
+      ],
+    };
+    const result = processRawLog(raw);
+    expect(result.actions).toHaveLength(2);
+    expect(result.actions[0].actions).toHaveLength(1);
+    expect(result.actions[0].actions[0]).toMatchObject({ actionType: "meld", cardName: "Archery" });
+    // Second action: the forecast→board transfer is not a standard primary classification (classifyTransfer
+    // checks hand→board for meld, deck→* for draw, achievements→achievements for achieve), so it stays pending
+    // Actually wait - forecast→board with meldKeyword=true: classifyTransfer checks source=hand for meld.
+    // forecast is not hand, so it won't match meld. Not from deck, so not draw. Not achievements. Returns null.
+    // So pendingAction stays, and gets flushed as pending at the end. But the forecast→board won't be picked up
+    // as a sub-action either because currentAction was cleared. Good.
+    expect(result.actions[1].actions).toHaveLength(1);
+    expect(result.actions[1].actions[0]).toMatchObject({ actionType: "pending" });
+  });
+
+  it("does not append dogma sub-action without preceding promote", () => {
+    const raw: RawExtractionData = {
+      players: { "100": "Alice" },
+      packets: [
+        makePacket(20, [
+          { type: "gameStateChange", args: { id: 4, active_player: "100", args: { action_number: 1 } } },
+          // Primary meld (no promote follows)
+          { type: "transferedCard", args: { name: "Archery", age: 1, location_from: "hand", location_to: "board", owner_from: "100", owner_to: "100", meld_keyword: true } },
+          { type: "transferedCard_spectator", args: { type: "0" } },
+          // Dogma message without a promote sub-action — should NOT be appended
+          { type: "logWithCardTooltips_spectator", args: { log: "Alice activates the dogma of 1 Archery with [crown][crown]." } },
+        ]),
+      ],
+    };
+    const result = processRawLog(raw);
+    expect(result.actions).toHaveLength(1);
+    expect(result.actions[0].actions).toHaveLength(1);
+    expect(result.actions[0].actions[0]).toMatchObject({ actionType: "meld", cardName: "Archery" });
   });
 
   it("deduplicates gameStateChange from player and spectator channels", () => {

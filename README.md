@@ -15,7 +15,7 @@ Reads the full game log from [Innovation](https://boardgamegeek.com/boardgame/63
 - Set toggle: switch between Base, Echoes, and Cities card sets for deck and card list
 - Filter toggle: All / Unknown (show only unaccounted cards)
 - Layout toggle: Wide (one row per age) / Tall (color columns)
-- Turn history: compact display of recent actions (meld, draw, dogma, endorse, achieve) with card name tooltips, newest first
+- Turn history: compact chronological display of recent actions (meld, draw, dogma, endorse, achieve, promote) with card name tooltips; compound actions (e.g. meld → promote → dogma) render as indented sub-action lines
 - Section selector: eye button to show/hide entire sections (including turn history visibility)
 - Hover tooltips: card face images with full card details on hover
 - Auto-hide: three-mode toggle controlling side panel behavior — Never (always open), Leaving BGA (closes on non-BGA tabs), Leaving tables (closes when navigating away from supported game tables)
