@@ -91,7 +91,9 @@ src/
     innovation/
       types.ts               Innovation types: Card, CardInfo, CardDatabase, enums, actions
       process_log.ts         Raw BGA packets -> structured Innovation game log
-      game_state.ts          GameState interface (zone data) + GameEngine class (constraint propagation)
+      game_state.ts          GameState interface (zone data), createGameState(), cardsAt()
+      game_engine.ts         GameEngine class: state tracking + constraint propagation
+      serialization.ts       toJSON/fromJSON serialization for side panel transport
       turn_history.ts         Turn action types and recent-turns grouping
       render.ts              GameState + GameEngine -> HTML string via template literals
       config.ts              Section layout config, visibility/layout defaults
@@ -129,7 +131,7 @@ For unsupported BGA games, the same flow runs but skips pipeline processing — 
 
 ## Testing
 
-Tests use vitest and cover the full pipeline: types, log processing, game state engine, rendering, and extension entry points.
+Tests use vitest and cover the full pipeline: types, log processing, game engine, serialization, rendering, and extension entry points.
 
 ```
 npm test                        # Run all tests

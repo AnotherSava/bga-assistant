@@ -35,7 +35,9 @@ Keep `README.md` in the project root up to date when code changes affect project
 - `src/models/types.ts` — shared BGA types (GameName, RawPacket, RawExtractionData, cardIndex) + re-exports Innovation types
 - `src/games/innovation/types.ts` — Innovation types (Card, CardInfo, CardDatabase, enums, actions, log entries)
 - `src/games/innovation/process_log.ts` — Innovation BGA packet processing
-- `src/games/innovation/game_state.ts` — GameState interface (zone data), GameEngine class (state tracking + constraint propagation), standalone toJSON/fromJSON serialization
+- `src/games/innovation/game_state.ts` — GameState interface (zone data), createGameState(), cardsAt()
+- `src/games/innovation/game_engine.ts` — GameEngine class (state tracking + constraint propagation), extractSuspects(), combinations()
+- `src/games/innovation/serialization.ts` — toJSON/fromJSON serialization, SerializedGameState type
 - `src/games/innovation/turn_history.ts` — Turn action types (TurnAction, ActionDetail, ActionType) and recent-turns grouping
 - `src/games/innovation/render.ts` — Innovation HTML summary renderer
 - `src/games/innovation/config.ts` — Innovation section layout configuration

@@ -5,7 +5,8 @@ import { type CardInfo, type Card, CardSet, Color, CardDatabase, colorLabel, car
 import { escapeHtml } from "../../render/icons.js";
 import type { TurnAction, ActionDetail } from "./turn_history.js";
 import { positionTooltip, applyToggleMode } from "../../render/toggle.js";
-import { type GameState, GameEngine } from "./game_state.js";
+import type { GameState } from "./game_state.js";
+import { GameEngine } from "./game_engine.js";
 import { type SectionId, type SectionConfig, type Toggle, DEFAULT_SECTION_CONFIG, SECTION_IDS, ECHOES_ONLY_SECTIONS, TALL_COLUMNS, visibilityToggle, layoutToggle, compositeToggle } from "./config.js";
 
 // ---------------------------------------------------------------------------

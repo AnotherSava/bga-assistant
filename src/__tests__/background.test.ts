@@ -71,7 +71,8 @@ const copyListeners = () => {
 import { runPipeline, classifyNavigation, shouldAutoClose, shouldShowLoading, watcherFunction, isValidPlayerCount, type PipelineResults, type NavigationAction, type PinMode } from "../background";
 import { CardDatabase } from "../models/types";
 import type { RawExtractionData } from "../models/types";
-import { type GameState, GameEngine, createGameState, cardsAt } from "../games/innovation/game_state";
+import { type GameState, createGameState, cardsAt } from "../games/innovation/game_state";
+import { GameEngine } from "../games/innovation/game_engine";
 
 // Initialize listeners after module import so all addListener calls have fired.
 copyListeners();

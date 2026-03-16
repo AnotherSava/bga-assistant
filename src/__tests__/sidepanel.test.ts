@@ -18,7 +18,8 @@ import {
 import { renderSummary, renderFullPage, setAssetResolver, SUMMARY_JS } from "../games/innovation/render.js";
 import { recentTurns } from "../games/innovation/turn_history.js";
 import { CardDatabase, CardSet, Card, ageSetKey } from "../models/types.js";
-import { type GameState, GameEngine, createGameState } from "../games/innovation/game_state.js";
+import { type GameState, createGameState } from "../games/innovation/game_state.js";
+import { GameEngine } from "../games/innovation/game_engine.js";
 
 // ---------------------------------------------------------------------------
 // Helpers

@@ -3,7 +3,8 @@ import { readFileSync } from "fs";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
 import { Card, CardDatabase, cardIndex } from "../types";
-import { type GameState, GameEngine, createGameState } from "../game_state";
+import { type GameState, createGameState } from "../game_state";
+import { GameEngine } from "../game_engine";
 import { renderSummary, renderTurnHistory } from "../render";
 import type { TurnAction } from "../turn_history";
 

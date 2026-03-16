@@ -16,7 +16,9 @@ import {
   type MessageEntry,
   type GameLogEntry,
 } from "../types";
-import { type GameState, GameEngine, createGameState as newGameState, cardsAt, toJSON, fromJSON } from "../game_state";
+import { type GameState, createGameState as newGameState, cardsAt } from "../game_state";
+import { GameEngine } from "../game_engine";
+import { toJSON, fromJSON } from "../serialization";
 
 const thisDir = dirname(fileURLToPath(import.meta.url));
 
