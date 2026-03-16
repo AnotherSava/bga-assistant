@@ -1,6 +1,7 @@
 // Raw BGA packets -> structured game log
 
-import type { TransferEntry, MessageEntry, TurnMarkerEntry, GameLogEntry, RawNotification, RawPacket, RawExtractionData } from "./types.js";
+import type { TransferEntry, MessageEntry, GameLogEntry, RawExtractionData } from "./types.js";
+import type { TurnAction } from "./turn_history.js";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -34,6 +35,7 @@ export interface GameLog {
   currentPlayerId: string;
   myHand: string[];
   log: GameLogEntry[];
+  actions: TurnAction[];
   expansions: { echoes: boolean };
 }
 
@@ -104,6 +106,43 @@ export function normalizeName(text: string): string {
 }
 
 // ---------------------------------------------------------------------------
+// Action classification helpers
+// ---------------------------------------------------------------------------
+
+interface PendingAction {
+  player: string;
+  actionNumber: number;
+  time: number | null;
+}
+
+/** Try to classify a pending action from a transfer entry. Returns null if the transfer is not an action. */
+function classifyTransfer(pending: PendingAction, entry: TransferEntry): TurnAction | null {
+  if (entry.source === "achievements" && entry.dest === "achievements") {
+    return { player: pending.player, actionNumber: pending.actionNumber, actionType: "achieve", cardName: null, cardAge: entry.cardAge, cardSet: null, time: pending.time };
+  }
+  if (entry.meldKeyword && entry.source === "hand" && entry.dest === "board") {
+    return { player: pending.player, actionNumber: pending.actionNumber, actionType: "meld", cardName: entry.cardName, cardAge: entry.cardAge, cardSet: entry.cardSet, time: pending.time };
+  }
+  if (entry.source === "deck") {
+    return { player: pending.player, actionNumber: pending.actionNumber, actionType: "draw", cardName: entry.cardName, cardAge: entry.cardAge, cardSet: entry.cardSet, time: pending.time };
+  }
+  return null;
+}
+
+/** Try to classify a pending action from a logWithCardTooltips message. Returns null if not a dogma/endorse. */
+function classifyMessage(pending: PendingAction, entry: MessageEntry): TurnAction | null {
+  const dogmaMatch = entry.msg.match(/activates the dogma of (\d+) (.+?) with/);
+  if (dogmaMatch) {
+    return { player: pending.player, actionNumber: pending.actionNumber, actionType: "dogma", cardName: dogmaMatch[2].trim(), cardAge: null, cardSet: null, time: pending.time };
+  }
+  const endorseMatch = entry.msg.match(/endorses the dogma of (\d+) (.+?) with/);
+  if (endorseMatch) {
+    return { player: pending.player, actionNumber: pending.actionNumber, actionType: "endorse", cardName: endorseMatch[2].trim(), cardAge: null, cardSet: null, time: pending.time };
+  }
+  return null;
+}
+
+// ---------------------------------------------------------------------------
 // Raw log processing
 // ---------------------------------------------------------------------------
 
@@ -155,9 +194,19 @@ export function processRawLog(rawData: RawExtractionData): GameLog {
   }
 
   // Pass 2: iterate spectator notifications (the canonical ordering).
+  // Track pending player action: gameStateChange fires before the action's
+  // entries arrive, so we classify the action from the first relevant entry
+  // after the marker, then push the completed TurnAction.
   let hasEchoesTransfer = false;
+  const actions: TurnAction[] = [];
+  let pendingAction: PendingAction | null = null;
+  let lastPending: { player: string; actionNumber: number; move: number } | null = null;
+
   for (const packet of packets) {
     const moveId = packet.move_id!;
+    // gameStateChange has no _spectator suffix but appears in both channels.
+    // Only process it from spectator-channel packets to preserve ordering with transfers/logs.
+    const isSpectatorPacket = packet.data.some((n: { type: string }) => n.type.endsWith("_spectator"));
 
     for (const notif of packet.data) {
       const notifType = notif.type;
@@ -195,6 +244,15 @@ export function processRawLog(rawData: RawExtractionData): GameLog {
           meldKeyword: Boolean(playerArgs.meld_keyword),
         };
         log.push(entry);
+
+        // Classify pending action from first transfer after marker
+        if (pendingAction) {
+          const action = classifyTransfer(pendingAction, entry);
+          if (action) {
+            actions.push(action);
+            pendingAction = null;
+          }
+        }
         continue;
       }
 
@@ -209,26 +267,43 @@ export function processRawLog(rawData: RawExtractionData): GameLog {
           msg: logMsg,
         };
         log.push(entry);
+
+        // Classify pending action from first dogma/endorse message after marker
+        if (pendingAction && entry.type === "logWithCardTooltips") {
+          const action = classifyMessage(pendingAction, entry);
+          if (action) {
+            actions.push(action);
+            pendingAction = null;
+          }
+        }
       }
 
-      if (notifType === "gameStateChange") {
+      if (notifType === "gameStateChange" && isSpectatorPacket) {
         const stateArgs = notif.args;
         if (String(stateArgs.id) === "4" && stateArgs.args && typeof stateArgs.args === "object") {
           const innerArgs = stateArgs.args as Record<string, unknown>;
           if (innerArgs.action_number !== undefined) {
             const playerId = String(stateArgs.active_player);
-            const entry: TurnMarkerEntry = {
-              type: "turnMarker",
-              move: moveId,
-              player: playerNames[playerId] ?? playerId,
-              actionNumber: Number(innerArgs.action_number),
-            };
-            log.push(entry);
+            const playerName = playerNames[playerId] ?? playerId;
+            const actionNumber = Number(innerArgs.action_number);
+            // Deduplicate: gameStateChange fires in both player and spectator channels
+            if (lastPending && lastPending.move === moveId && lastPending.player === playerName && lastPending.actionNumber === actionNumber) continue;
+            // If previous action was never classified, it stays pending
+            if (pendingAction) {
+              actions.push({ player: pendingAction.player, actionNumber: pendingAction.actionNumber, actionType: "pending", cardName: null, cardAge: null, cardSet: null, time: pendingAction.time });
+            }
+            pendingAction = { player: playerName, actionNumber, time: packet.time ?? null };
+            lastPending = { player: playerName, actionNumber, move: moveId };
           }
         }
       }
     }
   }
 
-  return { players: playerNames, currentPlayerId: rawData.currentPlayerId ?? "", myHand, log, expansions: { echoes: hasEchoesTransfer } };
+  // Flush: if the last action was never classified, emit as pending
+  if (pendingAction) {
+    actions.push({ player: pendingAction.player, actionNumber: pendingAction.actionNumber, actionType: "pending", cardName: null, cardAge: null, cardSet: null, time: pendingAction.time });
+  }
+
+  return { players: playerNames, currentPlayerId: rawData.currentPlayerId ?? "", myHand, log, actions, expansions: { echoes: hasEchoesTransfer } };
 }

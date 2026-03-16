@@ -30,15 +30,15 @@ beforeEach(() => {
 
 describe("renderTurnHistory", () => {
   it("returns empty string for empty actions", () => {
-    expect(renderTurnHistory([], cardDb)).toBe("");
+    expect(renderTurnHistory([], cardDb, PERSPECTIVE)).toBe("");
   });
 
   it("renders meld action with card tooltip", () => {
     const actions: TurnAction[] = [
-      { player: "Alice", actionNumber: 1, actionType: "meld", cardName: "Agriculture", cardAge: 1, cardSet: "base" },
+      { player: "Alice", actionNumber: 1, actionType: "meld", cardName: "Agriculture", cardAge: 1, cardSet: "base", time: null },
     ];
-    const html = renderTurnHistory(actions, cardDb);
-    expect(html).toContain("Alice:");
+    const html = renderTurnHistory(actions, cardDb, PERSPECTIVE);
+    expect(html).toContain("you:");
     expect(html).toContain("meld");
     expect(html).toContain("Agriculture");
     // Card exists in DB, so should have tooltip span
@@ -48,10 +48,10 @@ describe("renderTurnHistory", () => {
 
   it("renders dogma action with card tooltip", () => {
     const actions: TurnAction[] = [
-      { player: "Bob", actionNumber: 2, actionType: "dogma", cardName: "Philosophy", cardAge: null, cardSet: null },
+      { player: "Bob", actionNumber: 2, actionType: "dogma", cardName: "Philosophy", cardAge: null, cardSet: null, time: null },
     ];
-    const html = renderTurnHistory(actions, cardDb);
-    expect(html).toContain("Bob:");
+    const html = renderTurnHistory(actions, cardDb, PERSPECTIVE);
+    expect(html).toContain("opp:");
     expect(html).toContain("dogma");
     expect(html).toContain("Philosophy");
     expect(html).toContain('class="th-card"');
@@ -59,18 +59,18 @@ describe("renderTurnHistory", () => {
 
   it("renders endorse action", () => {
     const actions: TurnAction[] = [
-      { player: "Alice", actionNumber: 1, actionType: "endorse", cardName: "Compass", cardAge: null, cardSet: null },
+      { player: "Alice", actionNumber: 1, actionType: "endorse", cardName: "Compass", cardAge: null, cardSet: null, time: null },
     ];
-    const html = renderTurnHistory(actions, cardDb);
+    const html = renderTurnHistory(actions, cardDb, PERSPECTIVE);
     expect(html).toContain("endorse");
     expect(html).toContain("Compass");
   });
 
   it("renders draw with known card name", () => {
     const actions: TurnAction[] = [
-      { player: "Bob", actionNumber: 1, actionType: "draw", cardName: "Construction", cardAge: 4, cardSet: "base" },
+      { player: "Bob", actionNumber: 1, actionType: "draw", cardName: "Construction", cardAge: 4, cardSet: "base", time: null },
     ];
-    const html = renderTurnHistory(actions, cardDb);
+    const html = renderTurnHistory(actions, cardDb, PERSPECTIVE);
     expect(html).toContain("draw");
     expect(html).toContain("Construction");
     expect(html).toContain('class="th-card"');
@@ -78,9 +78,9 @@ describe("renderTurnHistory", () => {
 
   it("renders draw with unknown card (age only, base set)", () => {
     const actions: TurnAction[] = [
-      { player: "Alice", actionNumber: 2, actionType: "draw", cardName: null, cardAge: 2, cardSet: "base" },
+      { player: "Alice", actionNumber: 2, actionType: "draw", cardName: null, cardAge: 2, cardSet: "base", time: null },
     ];
-    const html = renderTurnHistory(actions, cardDb);
+    const html = renderTurnHistory(actions, cardDb, PERSPECTIVE);
     expect(html).toContain("draw [2]");
     // Should not include "base" set label
     expect(html).not.toContain("base");
@@ -88,38 +88,48 @@ describe("renderTurnHistory", () => {
 
   it("renders draw with unknown card (non-base set)", () => {
     const actions: TurnAction[] = [
-      { player: "Bob", actionNumber: 1, actionType: "draw", cardName: null, cardAge: 3, cardSet: "echoes" },
+      { player: "Bob", actionNumber: 1, actionType: "draw", cardName: null, cardAge: 3, cardSet: "echoes", time: null },
     ];
-    const html = renderTurnHistory(actions, cardDb);
+    const html = renderTurnHistory(actions, cardDb, PERSPECTIVE);
     expect(html).toContain("draw [3] echoes");
   });
 
   it("renders achieve action", () => {
     const actions: TurnAction[] = [
-      { player: "Alice", actionNumber: 1, actionType: "achieve", cardName: null, cardAge: 3, cardSet: null },
+      { player: "Alice", actionNumber: 1, actionType: "achieve", cardName: null, cardAge: 3, cardSet: null, time: null },
     ];
-    const html = renderTurnHistory(actions, cardDb);
+    const html = renderTurnHistory(actions, cardDb, PERSPECTIVE);
     expect(html).toContain("achieve [3]");
   });
 
-  it("renders pending action with pending class", () => {
+  it("renders pending action without action text", () => {
     const actions: TurnAction[] = [
-      { player: "Bob", actionNumber: 1, actionType: "pending", cardName: null, cardAge: null, cardSet: null },
+      { player: "Bob", actionNumber: 1, actionType: "pending", cardName: null, cardAge: null, cardSet: null, time: null },
     ];
-    const html = renderTurnHistory(actions, cardDb);
-    expect(html).toContain('class="turn-action pending"');
-    expect(html).toContain("Bob:");
+    const html = renderTurnHistory(actions, cardDb, PERSPECTIVE);
+    expect(html).toContain("th-opp");
+    expect(html).toContain("opp:");
     // Pending should not have action text after the colon
-    expect(html).not.toMatch(/Bob:.*\b(meld|draw|dogma|endorse|achieve)\b/);
+    expect(html).not.toMatch(/opp:.*\b(meld|draw|dogma|endorse|achieve)\b/);
+  });
+
+  it("uses th-me class for perspective player and th-opp for opponent", () => {
+    const actions: TurnAction[] = [
+      { player: "Alice", actionNumber: 1, actionType: "meld", cardName: "Agriculture", cardAge: 1, cardSet: "base", time: null },
+      { player: "Bob", actionNumber: 1, actionType: "draw", cardName: null, cardAge: 1, cardSet: "base", time: null },
+    ];
+    const html = renderTurnHistory(actions, cardDb, PERSPECTIVE);
+    expect(html).toContain("th-me");
+    expect(html).toContain("th-opp");
   });
 
   it("adds group separator between different players", () => {
     const actions: TurnAction[] = [
-      { player: "Alice", actionNumber: 1, actionType: "dogma", cardName: "Philosophy", cardAge: null, cardSet: null },
-      { player: "Alice", actionNumber: 2, actionType: "draw", cardName: null, cardAge: 2, cardSet: "base" },
-      { player: "Bob", actionNumber: 1, actionType: "meld", cardName: "Tools", cardAge: 1, cardSet: "base" },
+      { player: "Alice", actionNumber: 1, actionType: "dogma", cardName: "Philosophy", cardAge: null, cardSet: null, time: null },
+      { player: "Alice", actionNumber: 2, actionType: "draw", cardName: null, cardAge: 2, cardSet: "base", time: null },
+      { player: "Bob", actionNumber: 1, actionType: "meld", cardName: "Tools", cardAge: 1, cardSet: "base", time: null },
     ];
-    const html = renderTurnHistory(actions, cardDb);
+    const html = renderTurnHistory(actions, cardDb, PERSPECTIVE);
     expect(html).toContain('class="turn-group-sep"');
     // Should have exactly one separator (between Alice and Bob)
     const sepCount = (html.match(/turn-group-sep/g) || []).length;
@@ -128,20 +138,27 @@ describe("renderTurnHistory", () => {
 
   it("does not add separator within same player group", () => {
     const actions: TurnAction[] = [
-      { player: "Alice", actionNumber: 1, actionType: "meld", cardName: "Agriculture", cardAge: 1, cardSet: "base" },
-      { player: "Alice", actionNumber: 2, actionType: "draw", cardName: null, cardAge: 1, cardSet: "base" },
+      { player: "Alice", actionNumber: 1, actionType: "meld", cardName: "Agriculture", cardAge: 1, cardSet: "base", time: null },
+      { player: "Alice", actionNumber: 2, actionType: "draw", cardName: null, cardAge: 1, cardSet: "base", time: null },
     ];
-    const html = renderTurnHistory(actions, cardDb);
+    const html = renderTurnHistory(actions, cardDb, PERSPECTIVE);
     expect(html).not.toContain("turn-group-sep");
   });
 
-  it("escapes player names in HTML", () => {
+  it("renders timestamp when time is present", () => {
     const actions: TurnAction[] = [
-      { player: "<script>alert</script>", actionNumber: 1, actionType: "pending", cardName: null, cardAge: null, cardSet: null },
+      { player: "Alice", actionNumber: 1, actionType: "meld", cardName: "Agriculture", cardAge: 1, cardSet: "base", time: 1710000000 },
     ];
-    const html = renderTurnHistory(actions, cardDb);
-    expect(html).not.toContain("<script>");
-    expect(html).toContain("&lt;script&gt;");
+    const html = renderTurnHistory(actions, cardDb, PERSPECTIVE);
+    expect(html).toContain('class="th-time"');
+  });
+
+  it("omits timestamp when time is null", () => {
+    const actions: TurnAction[] = [
+      { player: "Alice", actionNumber: 1, actionType: "meld", cardName: "Agriculture", cardAge: 1, cardSet: "base", time: null },
+    ];
+    const html = renderTurnHistory(actions, cardDb, PERSPECTIVE);
+    expect(html).not.toContain("th-time");
   });
 });
 

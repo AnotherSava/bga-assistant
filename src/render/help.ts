@@ -32,7 +32,7 @@ export function renderHelp(errorMessage?: string, gameName?: GameName): string {
   <div class="help-section">
     <div class="help-section-title">Top bar</div>
     <div class="help-sections-grid">
-      <div class="help-grid-item"><span class="help-grid-label"><span class="help-btn help-btn-text">#</span> ${ICON_DOT_GREEN}<span style="color:#888;margin:0 1px">/</span>${ICON_DOT_RED}</span><span> Table number, connection status (green\u00a0=\u00a0connected, red\u00a0=\u00a0connection lost), and timestamp of the last game log action</span></div>
+      <div class="help-grid-item"><span class="help-grid-label"><span class="help-btn help-btn-text">#</span> ${ICON_DOT_GREEN}<span style="color:#888;margin:0 1px">/</span>${ICON_DOT_RED}</span><span> Table number and connection status (green\u00a0=\u00a0connected, red\u00a0=\u00a0connection lost)</span></div>
       <div class="help-grid-item"><span class="help-grid-label"><span class="help-btn">${ICON_ZOOM_OUT}</span> <span class="help-btn">${ICON_ZOOM_IN}</span></span><span> Zoom out / in (also <b>Ctrl</b>+<b>\u2212</b> / <b>Ctrl</b>+<b>=</b>)<br>Zoom level is saved per game and for the help page independently</span></div>
       <div class="help-grid-item"><span class="help-grid-label"><span class="help-btn">${ICON_EYE}</span></span><span> Toggle visible sections (settings persist across sessions)</span></div>
       <div class="help-grid-item"><span class="help-grid-label"><span class="help-btn">${ICON_PANEL}</span><span style="color:#888;margin:0 1px">/</span><span class="help-btn">${ICON_PANEL_1}</span><span style="color:#888;margin:0 1px">/</span><span class="help-btn">${ICON_PANEL_2}</span></span><span> Auto-hide side bar: never/when leaving BGA/leaving supported game tables</span></div>
@@ -73,6 +73,13 @@ export function renderHelp(errorMessage?: string, gameName?: GameName): string {
     <div class="help-section-title">Card tooltips</div>
     <div class="help-sections-grid">
       <div class="help-grid-item">Hover over any known Base or Echoes card to see its full image. Cities cards display their names only.</div>
+    </div>
+  </div>
+
+  <div class="help-section">
+    <div class="help-section-title">Action history</div>
+    <div class="help-sections-grid">
+      <div class="help-grid-item"><span>Recent player actions (meld, draw, dogma, endorse, achieve) are shown in the top-right corner, newest first. <span style="color:#f4b8b8">Your</span> actions are pink, <span style="color:#c0c0f0">opponent\u2019s</span> are blue. Each action includes a timestamp. Toggle visibility via the ${ICON_EYE} menu.</span></div>
     </div>
   </div>
   </div>

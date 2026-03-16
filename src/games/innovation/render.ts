@@ -285,8 +285,14 @@ function formatActionDetail(action: TurnAction, cardDb: CardDatabase): string {
   return verb;
 }
 
+/** Format a unix timestamp using the same locale format as the old top-bar clock. */
+function formatTime(time: number | null): string {
+  if (time === null) return "";
+  return new Date(time * 1000).toLocaleDateString("en-US", { month: "short", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false });
+}
+
 /** Render turn history HTML from a list of recent actions (newest half-turn first). */
-export function renderTurnHistory(actions: TurnAction[], cardDb: CardDatabase): string {
+export function renderTurnHistory(actions: TurnAction[], cardDb: CardDatabase, perspective: string): string {
   if (actions.length === 0) return "";
 
   let html = "";
@@ -298,10 +304,14 @@ export function renderTurnHistory(actions: TurnAction[], cardDb: CardDatabase): 
     }
     currentPlayer = action.player;
 
-    const pendingCls = action.actionType === "pending" ? " pending" : "";
+    const isMe = action.player === perspective;
+    const label = isMe ? "you" : "opp";
+    const playerCls = isMe ? " th-me" : " th-opp";
+    const timeStr = formatTime(action.time);
+    const timePrefix = timeStr ? `<span class="th-time">${timeStr}</span> ` : "";
     const detail = formatActionDetail(action, cardDb);
     const suffix = detail ? ` ${detail}` : "";
-    html += `<div class="turn-action${pendingCls}">${escapeHtml(action.player)}:${suffix}</div>`;
+    html += `<div class="turn-action${playerCls}">${timePrefix}${label}:${suffix}</div>`;
   }
 
   return html;

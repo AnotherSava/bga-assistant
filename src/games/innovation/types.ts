@@ -303,11 +303,4 @@ export interface MessageEntry {
   msg: string;
 }
 
-export interface TurnMarkerEntry {
-  type: "turnMarker";
-  move: number;
-  player: string;
-  actionNumber: number;
-}
-
-export type GameLogEntry = TransferEntry | MessageEntry | TurnMarkerEntry;
+export type GameLogEntry = TransferEntry | MessageEntry;

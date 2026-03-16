@@ -1,168 +1,132 @@
 import { describe, it, expect } from "vitest";
-import { buildTurnHistory, recentTurns } from "../turn_history.js";
-import type { GameLogEntry, TurnMarkerEntry, TransferEntry, MessageEntry } from "../types.js";
+import { recentTurns, type TurnAction } from "../turn_history.js";
+import { processRawLog } from "../process_log.js";
 
 // ---------------------------------------------------------------------------
-// Helpers
+// Helpers — build raw BGA packets for processRawLog
 // ---------------------------------------------------------------------------
 
-function marker(move: number, player: string, actionNumber: number): TurnMarkerEntry {
-  return { type: "turnMarker", move, player, actionNumber };
+/** Create a pair of player+spectator packets for a single move. */
+function makePackets(moveId: number, playerNotifs: any[], spectatorNotifs: any[]) {
+  return [
+    { move_id: moveId, time: moveId, data: playerNotifs },
+    { move_id: moveId, time: moveId, data: spectatorNotifs },
+  ];
 }
 
-function transfer(move: number, overrides: Partial<TransferEntry> = {}): TransferEntry {
-  return {
-    type: "transfer",
-    move,
-    cardSet: "base",
-    source: "deck",
-    dest: "hand",
-    cardName: null,
-    cardAge: null,
-    sourceOwner: null,
-    destOwner: null,
-    meldKeyword: false,
-    ...overrides,
-  };
+/** gameStateChange notification signaling a player action. */
+function stateChange(playerId: string, actionNumber: number) {
+  return { type: "gameStateChange", args: { id: 4, active_player: playerId, args: { action_number: actionNumber } } };
 }
 
-function msg(move: number, message: string, type: "log" | "logWithCardTooltips" = "logWithCardTooltips"): MessageEntry {
-  return { type, move, msg: message };
+/** Player-channel transferedCard notification with full card info. */
+function playerTransfer(overrides: Record<string, unknown> = {}) {
+  return { type: "transferedCard", args: { name: null, age: null, location_from: "deck", location_to: "hand", owner_from: "100", owner_to: "100", meld_keyword: false, type: "0", ...overrides } };
+}
+
+/** Spectator-channel transferedCard notification (minimal). */
+function spectatorTransfer(setType = "0") {
+  return { type: "transferedCard_spectator", args: { type: setType } };
+}
+
+/** Spectator-channel logWithCardTooltips notification. */
+function spectatorLog(msg: string) {
+  return { type: "logWithCardTooltips_spectator", args: { log: msg } };
+}
+
+const PLAYERS = { "100": "Alice", "200": "Bob" };
+
+function extractActions(packets: any[]): TurnAction[] {
+  return processRawLog({ players: PLAYERS, packets: packets.flat() }).actions;
 }
 
 // ---------------------------------------------------------------------------
-// buildTurnHistory
+// Action classification (via processRawLog)
 // ---------------------------------------------------------------------------
 
-describe("buildTurnHistory", () => {
-  it("returns empty array for empty log", () => {
-    expect(buildTurnHistory([])).toEqual([]);
-  });
-
-  it("returns empty array for log with no turnMarkers", () => {
-    const log: GameLogEntry[] = [
-      transfer(1, { source: "deck", dest: "hand" }),
-      msg(1, "some log message"),
-    ];
-    expect(buildTurnHistory(log)).toEqual([]);
+describe("action classification", () => {
+  it("returns empty for no gameStateChange", () => {
+    const packets = makePackets(1, [playerTransfer()], [spectatorTransfer()]);
+    expect(extractActions([packets])).toEqual([]);
   });
 
   it("classifies meld action", () => {
-    const log: GameLogEntry[] = [
-      marker(10, "Alice", 1),
-      transfer(10, { source: "hand", dest: "board", meldKeyword: true, cardName: "Agriculture", cardAge: 1, cardSet: "base" }),
-    ];
-    const actions = buildTurnHistory(log);
-    expect(actions).toHaveLength(1);
-    expect(actions[0]).toEqual({
-      player: "Alice",
-      actionNumber: 1,
-      actionType: "meld",
-      cardName: "Agriculture",
-      cardAge: 1,
-      cardSet: "base",
-    });
+    const actions = extractActions([
+      makePackets(10, [stateChange("100", 1)], [{ type: "log_spectator", args: { log: "<!--empty-->" } }, stateChange("100", 1)]),
+      makePackets(11, [playerTransfer({ name: "Agriculture", age: 1, location_from: "hand", location_to: "board", meld_keyword: true })], [spectatorTransfer(), stateChange("200", 1)]),
+    ]);
+    expect(actions[0]).toMatchObject({ player: "Alice", actionNumber: 1, actionType: "meld", cardName: "Agriculture", cardAge: 1, cardSet: "base" });
   });
 
   it("classifies draw action", () => {
-    const log: GameLogEntry[] = [
-      marker(20, "Bob", 2),
-      transfer(20, { source: "deck", dest: "hand", cardName: "Construction", cardAge: 4, cardSet: "base" }),
-    ];
-    const actions = buildTurnHistory(log);
-    expect(actions).toHaveLength(1);
-    expect(actions[0]).toEqual({
-      player: "Bob",
-      actionNumber: 2,
-      actionType: "draw",
-      cardName: "Construction",
-      cardAge: 4,
-      cardSet: "base",
-    });
+    const actions = extractActions([
+      makePackets(10, [stateChange("200", 2)], [{ type: "log_spectator", args: { log: "<!--empty-->" } }, stateChange("200", 2)]),
+      makePackets(11, [playerTransfer({ name: "Construction", age: 4, location_from: "deck", location_to: "hand" })], [spectatorTransfer(), stateChange("100", 1)]),
+    ]);
+    expect(actions[0]).toMatchObject({ player: "Bob", actionNumber: 2, actionType: "draw", cardName: "Construction", cardAge: 4, cardSet: "base" });
   });
 
-  it("classifies draw with unknown card (no name)", () => {
-    const log: GameLogEntry[] = [
-      marker(20, "Bob", 1),
-      transfer(20, { source: "deck", dest: "hand", cardName: null, cardAge: 2, cardSet: "echoes" }),
-    ];
-    const actions = buildTurnHistory(log);
-    expect(actions[0].actionType).toBe("draw");
-    expect(actions[0].cardName).toBeNull();
-    expect(actions[0].cardAge).toBe(2);
-    expect(actions[0].cardSet).toBe("echoes");
+  it("classifies draw with unknown card", () => {
+    const actions = extractActions([
+      makePackets(10, [stateChange("200", 1)], [{ type: "log_spectator", args: { log: "<!--empty-->" } }, stateChange("200", 1)]),
+      makePackets(11, [playerTransfer({ age: 2, type: "3" })], [spectatorTransfer("3"), stateChange("100", 1)]),
+    ]);
+    expect(actions[0]).toMatchObject({ player: "Bob", actionType: "draw", cardName: null, cardAge: 2, cardSet: "echoes" });
   });
 
   it("classifies dogma action", () => {
-    const log: GameLogEntry[] = [
-      marker(30, "Alice", 2),
-      msg(30, "Alice activates the dogma of 1 Agriculture with [crown]"),
-    ];
-    const actions = buildTurnHistory(log);
-    expect(actions).toHaveLength(1);
-    expect(actions[0].actionType).toBe("dogma");
-    expect(actions[0].cardName).toBe("Agriculture");
+    const actions = extractActions([
+      makePackets(10, [stateChange("100", 2)], [{ type: "log_spectator", args: { log: "<!--empty-->" } }, stateChange("100", 2)]),
+      makePackets(11, [], [spectatorLog("Alice activates the dogma of 1 Agriculture with [crown]"), stateChange("200", 1)]),
+    ]);
+    expect(actions[0]).toMatchObject({ player: "Alice", actionNumber: 2, actionType: "dogma", cardName: "Agriculture" });
   });
 
   it("classifies endorse action", () => {
-    const log: GameLogEntry[] = [
-      marker(35, "Bob", 1),
-      msg(35, "Bob endorses the dogma of 3 Compass with [crown]"),
-    ];
-    const actions = buildTurnHistory(log);
-    expect(actions).toHaveLength(1);
-    expect(actions[0].actionType).toBe("endorse");
-    expect(actions[0].cardName).toBe("Compass");
+    const actions = extractActions([
+      makePackets(10, [stateChange("200", 1)], [{ type: "log_spectator", args: { log: "<!--empty-->" } }, stateChange("200", 1)]),
+      makePackets(11, [], [spectatorLog("Bob endorses the dogma of 3 Compass with [crown]"), stateChange("100", 1)]),
+    ]);
+    expect(actions[0]).toMatchObject({ player: "Bob", actionNumber: 1, actionType: "endorse", cardName: "Compass" });
   });
 
   it("classifies achieve action", () => {
-    const log: GameLogEntry[] = [
-      marker(40, "Alice", 1),
-      transfer(40, { source: "achievements", dest: "achievements", cardAge: 3 }),
-    ];
-    const actions = buildTurnHistory(log);
-    expect(actions).toHaveLength(1);
-    expect(actions[0].actionType).toBe("achieve");
-    expect(actions[0].cardAge).toBe(3);
+    const actions = extractActions([
+      makePackets(10, [stateChange("100", 1)], [{ type: "log_spectator", args: { log: "<!--empty-->" } }, stateChange("100", 1)]),
+      makePackets(11, [playerTransfer({ age: 3, location_from: "achievements", location_to: "achievements" })], [spectatorTransfer(), stateChange("200", 1)]),
+    ]);
+    expect(actions[0]).toMatchObject({ player: "Alice", actionNumber: 1, actionType: "achieve", cardAge: 3 });
   });
 
   it("classifies pending action (no subsequent entries)", () => {
-    const log: GameLogEntry[] = [
-      marker(50, "Bob", 1),
-    ];
-    const actions = buildTurnHistory(log);
+    const actions = extractActions([
+      makePackets(10, [stateChange("200", 1)], [{ type: "log_spectator", args: { log: "<!--empty-->" } }, stateChange("200", 1)]),
+    ]);
     expect(actions).toHaveLength(1);
-    expect(actions[0].actionType).toBe("pending");
-    expect(actions[0].player).toBe("Bob");
-  });
-
-  it("classifies pending when subsequent entries are in different move", () => {
-    const log: GameLogEntry[] = [
-      marker(50, "Bob", 1),
-      transfer(99, { source: "deck", dest: "hand" }),
-    ];
-    const actions = buildTurnHistory(log);
-    expect(actions).toHaveLength(1);
-    expect(actions[0].actionType).toBe("pending");
+    expect(actions[0]).toMatchObject({ player: "Bob", actionNumber: 1, actionType: "pending" });
   });
 
   it("handles multiple turns in sequence", () => {
-    const log: GameLogEntry[] = [
-      // Alice action 1: meld
-      marker(10, "Alice", 1),
-      transfer(10, { source: "hand", dest: "board", meldKeyword: true, cardName: "Pottery", cardAge: 1 }),
-      // Alice action 2: draw
-      marker(11, "Alice", 2),
-      transfer(11, { source: "deck", dest: "hand", cardAge: 1 }),
-      // Bob action 1: dogma
-      marker(12, "Bob", 1),
-      msg(12, "Bob activates the dogma of 1 Agriculture with [leaf]"),
-      transfer(12, { source: "deck", dest: "hand", cardAge: 1 }), // effect of dogma
-      // Bob action 2: meld
-      marker(13, "Bob", 2),
-      transfer(13, { source: "hand", dest: "board", meldKeyword: true, cardName: "Tools", cardAge: 1 }),
-    ];
-    const actions = buildTurnHistory(log);
+    const actions = extractActions([
+      // Alice action 1: marker
+      makePackets(10, [stateChange("100", 1)], [{ type: "log_spectator", args: { log: "<!--empty-->" } }, stateChange("100", 1)]),
+      // Alice action 1: meld Pottery, then marker for action 2
+      makePackets(11,
+        [playerTransfer({ name: "Pottery", age: 1, location_from: "hand", location_to: "board", meld_keyword: true }), stateChange("100", 2)],
+        [spectatorTransfer(), stateChange("100", 2)]),
+      // Alice action 2: draw, then marker for Bob action 1
+      makePackets(12,
+        [playerTransfer({ name: null, age: 1 }), stateChange("200", 1)],
+        [spectatorTransfer(), stateChange("200", 1)]),
+      // Bob action 1: dogma, then marker for Bob action 2
+      makePackets(13,
+        [stateChange("200", 2)],
+        [spectatorLog("Bob activates the dogma of 1 Agriculture with [leaf]"), stateChange("200", 2)]),
+      // Bob action 2: meld Tools
+      makePackets(14,
+        [playerTransfer({ name: "Tools", age: 1, location_from: "hand", location_to: "board", meld_keyword: true })],
+        [spectatorTransfer()]),
+    ]);
     expect(actions).toHaveLength(4);
     expect(actions[0]).toMatchObject({ player: "Alice", actionNumber: 1, actionType: "meld", cardName: "Pottery" });
     expect(actions[1]).toMatchObject({ player: "Alice", actionNumber: 2, actionType: "draw" });
@@ -170,33 +134,21 @@ describe("buildTurnHistory", () => {
     expect(actions[3]).toMatchObject({ player: "Bob", actionNumber: 2, actionType: "meld", cardName: "Tools" });
   });
 
-  it("first turn: single action produces 1-action result", () => {
-    const log: GameLogEntry[] = [
-      marker(1, "Alice", 1),
-      transfer(1, { source: "hand", dest: "board", meldKeyword: true, cardName: "Archery", cardAge: 1 }),
-      // Bob gets 2 actions
-      marker(2, "Bob", 1),
-      transfer(2, { source: "hand", dest: "board", meldKeyword: true, cardName: "Oars", cardAge: 1 }),
-      marker(3, "Bob", 2),
-      transfer(3, { source: "deck", dest: "hand", cardAge: 1 }),
-    ];
-    const actions = buildTurnHistory(log);
+  it("deduplicates gameStateChange across player and spectator channels", () => {
+    const actions = extractActions([
+      // Player channel has gameStateChange, spectator channel also has it
+      makePackets(10, [stateChange("100", 1)], [{ type: "log_spectator", args: { log: "<!--empty-->" } }, stateChange("100", 1)]),
+      makePackets(11,
+        [playerTransfer({ name: "Pottery", age: 1, location_from: "hand", location_to: "board", meld_keyword: true }), stateChange("100", 2)],
+        [spectatorTransfer(), stateChange("100", 2)]),
+      makePackets(12,
+        [playerTransfer({ name: "Tools", age: 1, location_from: "hand", location_to: "board", meld_keyword: true }), stateChange("200", 1)],
+        [spectatorTransfer(), stateChange("200", 1)]),
+    ]);
     expect(actions).toHaveLength(3);
-    // Alice only has 1 action
-    const aliceActions = actions.filter((a) => a.player === "Alice");
-    expect(aliceActions).toHaveLength(1);
-    expect(aliceActions[0].actionNumber).toBe(1);
-  });
-
-  it("ignores entries from different moves when classifying", () => {
-    const log: GameLogEntry[] = [
-      marker(10, "Alice", 1),
-      // These belong to a different move — should not affect Alice's classification
-      transfer(99, { source: "hand", dest: "board", meldKeyword: true, cardName: "X" }),
-      msg(99, "Alice activates the dogma of 1 Something with [crown]"),
-    ];
-    const actions = buildTurnHistory(log);
-    expect(actions[0].actionType).toBe("pending");
+    expect(actions[0]).toMatchObject({ player: "Alice", actionType: "meld", cardName: "Pottery" });
+    expect(actions[1]).toMatchObject({ player: "Alice", actionType: "meld", cardName: "Tools" });
+    expect(actions[2]).toMatchObject({ player: "Bob", actionType: "pending" });
   });
 });
 
@@ -205,13 +157,13 @@ describe("buildTurnHistory", () => {
 // ---------------------------------------------------------------------------
 
 describe("recentTurns", () => {
-  const sampleActions: ReturnType<typeof buildTurnHistory> = [
-    { player: "Alice", actionNumber: 1, actionType: "meld", cardName: "Pottery", cardAge: 1, cardSet: "base" },
-    { player: "Alice", actionNumber: 2, actionType: "draw", cardName: null, cardAge: 1, cardSet: "base" },
-    { player: "Bob", actionNumber: 1, actionType: "dogma", cardName: "Agriculture", cardAge: null, cardSet: null },
-    { player: "Bob", actionNumber: 2, actionType: "meld", cardName: "Tools", cardAge: 1, cardSet: "base" },
-    { player: "Alice", actionNumber: 1, actionType: "dogma", cardName: "Philosophy", cardAge: null, cardSet: null },
-    { player: "Alice", actionNumber: 2, actionType: "draw", cardName: null, cardAge: 2, cardSet: "base" },
+  const sampleActions: TurnAction[] = [
+    { player: "Alice", actionNumber: 1, actionType: "meld", cardName: "Pottery", cardAge: 1, cardSet: "base", time: null },
+    { player: "Alice", actionNumber: 2, actionType: "draw", cardName: null, cardAge: 1, cardSet: "base", time: null },
+    { player: "Bob", actionNumber: 1, actionType: "dogma", cardName: "Agriculture", cardAge: null, cardSet: null, time: null },
+    { player: "Bob", actionNumber: 2, actionType: "meld", cardName: "Tools", cardAge: 1, cardSet: "base", time: null },
+    { player: "Alice", actionNumber: 1, actionType: "dogma", cardName: "Philosophy", cardAge: null, cardSet: null, time: null },
+    { player: "Alice", actionNumber: 2, actionType: "draw", cardName: null, cardAge: 2, cardSet: "base", time: null },
   ];
 
   it("returns empty for count=0", () => {
@@ -222,40 +174,40 @@ describe("recentTurns", () => {
     expect(recentTurns([], 3)).toEqual([]);
   });
 
-  it("returns last half-turn for count=1", () => {
+  it("returns last half-turn for count=1, newest action first", () => {
     const result = recentTurns(sampleActions, 1);
     expect(result).toHaveLength(2);
     expect(result[0].player).toBe("Alice");
-    expect(result[0].actionType).toBe("dogma");
+    expect(result[0].actionType).toBe("draw");
     expect(result[1].player).toBe("Alice");
-    expect(result[1].actionType).toBe("draw");
+    expect(result[1].actionType).toBe("dogma");
   });
 
-  it("returns last 2 half-turns for count=2", () => {
+  it("returns last 2 half-turns for count=2, newest action first", () => {
     const result = recentTurns(sampleActions, 2);
     expect(result).toHaveLength(4);
-    // Newest half-turn first (Alice's second turn)
+    // Newest half-turn first (Alice's second turn), newest action first within
     expect(result[0].player).toBe("Alice");
-    expect(result[0].actionType).toBe("dogma");
+    expect(result[0].actionType).toBe("draw");
     expect(result[1].player).toBe("Alice");
-    expect(result[1].actionType).toBe("draw");
-    // Then Bob's turn
+    expect(result[1].actionType).toBe("dogma");
+    // Then Bob's turn, newest action first within
     expect(result[2].player).toBe("Bob");
-    expect(result[2].actionType).toBe("dogma");
+    expect(result[2].actionType).toBe("meld");
     expect(result[3].player).toBe("Bob");
-    expect(result[3].actionType).toBe("meld");
+    expect(result[3].actionType).toBe("dogma");
   });
 
-  it("returns last 3 half-turns for count=3", () => {
+  it("returns last 3 half-turns for count=3, newest action first", () => {
     const result = recentTurns(sampleActions, 3);
     expect(result).toHaveLength(6);
-    // All 3 half-turns, newest first
-    expect(result[0].player).toBe("Alice");
-    expect(result[1].player).toBe("Alice");
-    expect(result[2].player).toBe("Bob");
-    expect(result[3].player).toBe("Bob");
-    expect(result[4].player).toBe("Alice");
-    expect(result[5].player).toBe("Alice");
+    // All 3 half-turns, newest first, newest action first within each
+    expect(result[0]).toMatchObject({ player: "Alice", actionType: "draw" });
+    expect(result[1]).toMatchObject({ player: "Alice", actionType: "dogma" });
+    expect(result[2]).toMatchObject({ player: "Bob", actionType: "meld" });
+    expect(result[3]).toMatchObject({ player: "Bob", actionType: "dogma" });
+    expect(result[4]).toMatchObject({ player: "Alice", actionType: "draw" });
+    expect(result[5]).toMatchObject({ player: "Alice", actionType: "meld" });
   });
 
   it("handles count larger than available half-turns", () => {
@@ -264,17 +216,17 @@ describe("recentTurns", () => {
   });
 
   it("first turn (single action) is one half-turn", () => {
-    const actions = [
-      { player: "Alice", actionNumber: 1, actionType: "meld" as const, cardName: "Archery", cardAge: 1, cardSet: "base" },
-      { player: "Bob", actionNumber: 1, actionType: "meld" as const, cardName: "Oars", cardAge: 1, cardSet: "base" },
-      { player: "Bob", actionNumber: 2, actionType: "draw" as const, cardName: null, cardAge: 1, cardSet: "base" },
+    const actions: TurnAction[] = [
+      { player: "Alice", actionNumber: 1, actionType: "meld", cardName: "Archery", cardAge: 1, cardSet: "base", time: null },
+      { player: "Bob", actionNumber: 1, actionType: "meld", cardName: "Oars", cardAge: 1, cardSet: "base", time: null },
+      { player: "Bob", actionNumber: 2, actionType: "draw", cardName: null, cardAge: 1, cardSet: "base", time: null },
     ];
     const result = recentTurns(actions, 2);
     expect(result).toHaveLength(3);
-    // Bob's turn first (newest)
-    expect(result[0].player).toBe("Bob");
-    expect(result[1].player).toBe("Bob");
+    // Bob's turn first (newest), newest action first
+    expect(result[0]).toMatchObject({ player: "Bob", actionType: "draw" });
+    expect(result[1]).toMatchObject({ player: "Bob", actionType: "meld" });
     // Alice's single action
-    expect(result[2].player).toBe("Alice");
+    expect(result[2]).toMatchObject({ player: "Alice", actionType: "meld" });
   });
 });

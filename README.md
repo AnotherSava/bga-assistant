@@ -10,7 +10,7 @@ Reads the full game log from [Innovation](https://boardgamegeek.com/boardgame/63
 
 - Live tracking: while the side panel is open, the display automatically updates when the game progresses — a green status dot appears in the status bar
 - Auto-update: while the side panel is open, switching to another supported game tab automatically extracts and displays its state
-- Status bar: shows the table number and timestamp of the last game log action
+- Status bar: shows the table number and live tracking indicator
 - Card grids: hands, scores, deck, full card list, achievements
 - Set toggle: switch between Base, Echoes, and Cities card sets for deck and card list
 - Filter toggle: All / Unknown (show only unaccounted cards)
@@ -92,7 +92,7 @@ src/
       types.ts               Innovation types: Card, CardInfo, CardDatabase, enums, actions
       process_log.ts         Raw BGA packets -> structured Innovation game log
       game_state.ts          Innovation state tracking + constraint propagation
-      turn_history.ts         Action classification and recent turn history extraction
+      turn_history.ts         Turn action types and recent-turns grouping
       render.ts              GameState -> HTML string via template literals
       config.ts              Section layout config, visibility/layout defaults
     azul/

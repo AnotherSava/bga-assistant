@@ -36,7 +36,7 @@ Keep `README.md` in the project root up to date when code changes affect project
 - `src/games/innovation/types.ts` — Innovation types (Card, CardInfo, CardDatabase, enums, actions, log entries)
 - `src/games/innovation/process_log.ts` — Innovation BGA packet processing
 - `src/games/innovation/game_state.ts` — Innovation state engine
-- `src/games/innovation/turn_history.ts` — Innovation action classification and turn history extraction
+- `src/games/innovation/turn_history.ts` — Turn action types (TurnAction, ActionType) and recent-turns grouping
 - `src/games/innovation/render.ts` — Innovation HTML summary renderer
 - `src/games/innovation/config.ts` — Innovation section layout configuration
 - `src/games/azul/process_log.ts` — Azul BGA packet processing

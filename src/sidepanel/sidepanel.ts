@@ -3,7 +3,7 @@
 import JSZip from "jszip";
 import { renderSummary, renderFullPage, renderTurnHistory, setAssetResolver } from "../games/innovation/render.js";
 import { SECTION_IDS, SECTION_LABELS, ECHOES_ONLY_SECTIONS } from "../games/innovation/config.js";
-import { buildTurnHistory, recentTurns } from "../games/innovation/turn_history.js";
+import { recentTurns } from "../games/innovation/turn_history.js";
 import { renderHelp } from "../render/help.js";
 import { positionTooltip, applyToggleMode } from "../render/toggle.js";
 import { CardDatabase, type GameName } from "../models/types.js";
@@ -190,19 +190,13 @@ function render(results: PipelineResults): void {
 
     // Hide Innovation-only features
     const btnSections = document.getElementById("btn-sections");
-    if (btnSections) btnSections.style.display = "none";
+    if (btnSections) btnSections.classList.add("disabled");
     const turnHistoryEl = document.getElementById("turn-history");
     if (turnHistoryEl) turnHistoryEl.innerHTML = "";
 
     // Populate game info bar
     const tableEl = document.getElementById("game-info-table");
     if (tableEl) tableEl.textContent = `# ${results.tableNumber}`;
-    const timeEl = document.getElementById("game-info-time");
-    if (timeEl) {
-      const packets = results.rawData.packets;
-      const lastTime = packets.length > 0 ? packets[packets.length - 1].time : 0;
-      timeEl.textContent = lastTime ? new Date(lastTime * 1000).toLocaleDateString("en-US", { month: "short", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false }) : "";
-    }
 
     // Cache CSS for downloads
     loadCss();
@@ -241,7 +235,7 @@ function render(results: PipelineResults): void {
 
   // Restore section selector (may have been hidden by Azul render)
   const btnSections = document.getElementById("btn-sections");
-  if (btnSections) btnSections.style.display = "";
+  if (btnSections) btnSections.classList.remove("disabled");
 
   const cardInfoUrl = typeof chrome !== "undefined" && chrome.runtime?.getURL
     ? chrome.runtime.getURL("assets/bga/innovation/card_info.json")
@@ -279,12 +273,6 @@ function renderWithDb(cardDb: CardDatabase, results: PipelineResults, contentEl:
   // Populate game info bar
   const tableEl = document.getElementById("game-info-table");
   if (tableEl) tableEl.textContent = `# ${results.tableNumber}`;
-  const timeEl = document.getElementById("game-info-time");
-  if (timeEl) {
-    const packets = results.rawData.packets;
-    const lastTime = packets.length > 0 ? packets[packets.length - 1].time : 0;
-    timeEl.textContent = lastTime ? new Date(lastTime * 1000).toLocaleDateString("en-US", { month: "short", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false }) : "";
-  }
 
   // Set up interactivity
   setupTooltips();
@@ -294,9 +282,8 @@ function renderWithDb(cardDb: CardDatabase, results: PipelineResults, contentEl:
   // Render turn history
   const turnHistoryEl = document.getElementById("turn-history");
   if (turnHistoryEl) {
-    const actions = buildTurnHistory(gameLog.log);
-    const recent = recentTurns(actions, 3);
-    turnHistoryEl.innerHTML = renderTurnHistory(recent, cardDb);
+    const recent = recentTurns(gameLog.actions, 3);
+    turnHistoryEl.innerHTML = renderTurnHistory(recent, cardDb, perspective);
     applyTurnHistoryVisibility();
   }
 
@@ -533,6 +520,13 @@ document.addEventListener("click", (e) => {
   }
 });
 
+/** Close both the section-selector and pin dropdown menus. */
+function closeMenus(): void {
+  const sectionPanel = document.getElementById("section-selector");
+  if (sectionPanel) sectionPanel.style.display = "none";
+  closePinDropdown();
+}
+
 // ---------------------------------------------------------------------------
 // Auto-hide button & dropdown
 // ---------------------------------------------------------------------------
@@ -720,11 +714,12 @@ function showHelp(errorMessage?: string, forceGameTab?: GameName): void {
 
   contentEl.innerHTML = renderHelp(errorMessage, effectiveTab);
   setupHelpTabs();
+  closeMenus();
 
+  const btnSections = document.getElementById("btn-sections");
+  if (btnSections) btnSections.classList.add("disabled");
   const tableEl = document.getElementById("game-info-table");
   if (tableEl) tableEl.textContent = "";
-  const timeEl = document.getElementById("game-info-time");
-  if (timeEl) timeEl.textContent = "";
   const indicator = document.getElementById("live-indicator");
   if (indicator) indicator.style.display = "none";
   const btnDownload = document.getElementById("btn-download");
@@ -802,8 +797,10 @@ if (typeof chrome !== "undefined" && chrome.runtime?.onMessage) {
         // Skip re-render if we already have identical results (same table, same packet count).
         // This prevents unnecessary refreshes when the service worker restarts and re-pushes cached data.
         const same = currentResults && currentResults.tableNumber === response.tableNumber && currentResults.rawData.packets.length === response.rawData.packets.length;
+        const sameTable = currentResults && currentResults.tableNumber === response.tableNumber;
         currentResults = response;
         if (same) return;
+        if (!sameTable) closeMenus();
         if (response.gameState) {
           render(response);
         } else {
@@ -812,11 +809,14 @@ if (typeof chrome !== "undefined" && chrome.runtime?.onMessage) {
       }
     } else if (message.type === "loading") {
       currentResults = null;
+      closeMenus();
+      const btnSections = document.getElementById("btn-sections");
+      if (btnSections) btnSections.classList.add("disabled");
       document.getElementById("content")!.innerHTML = '<div class="status">Loading game data...</div>';
       const tableEl = document.getElementById("game-info-table");
       if (tableEl) tableEl.textContent = "";
-      const timeEl = document.getElementById("game-info-time");
-      if (timeEl) timeEl.textContent = "";
+      const turnHistoryEl = document.getElementById("turn-history");
+      if (turnHistoryEl) turnHistoryEl.innerHTML = "";
     } else if (message.type === "notAGame") {
       currentResults = null;
       showHelp();

@@ -16,7 +16,7 @@ import {
   type SectionId,
 } from "../games/innovation/config.js";
 import { renderSummary, renderFullPage, setAssetResolver, SUMMARY_JS } from "../games/innovation/render.js";
-import { buildTurnHistory, recentTurns } from "../games/innovation/turn_history.js";
+import { recentTurns } from "../games/innovation/turn_history.js";
 import { CardDatabase, CardSet, Card, ageSetKey } from "../models/types.js";
 import { GameState } from "../games/innovation/game_state.js";
 

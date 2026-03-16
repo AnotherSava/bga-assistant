@@ -554,8 +554,10 @@ describe("turn history integration", () => {
         currentPlayerId: "1",
         players: { "1": "Alice", "2": "Bob" },
         log: [
-          { type: "turnMarker", move: 1, player: "Alice", actionNumber: 1 },
           { type: "transfer", move: 1, source: "deck", dest: "hand", cardName: null, cardAge: 1, cardSet: "base", meldKeyword: false, player: "Alice", cardIndex: null },
+        ],
+        actions: [
+          { player: "Alice", actionNumber: 1, actionType: "draw", cardName: null, cardAge: 1, cardSet: "base", time: null },
         ],
         myHand: [],
         expansions: { echoes: false },
@@ -566,7 +568,7 @@ describe("turn history integration", () => {
     render(results);
     await vi.waitFor(() => {
       const el = document.getElementById("turn-history")!;
-      expect(el.innerHTML).toContain("Alice");
+      expect(el.innerHTML).toContain("you:");
       expect(el.innerHTML).toContain("draw");
     });
   });

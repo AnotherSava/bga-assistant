@@ -1,6 +1,4 @@
-// Turn history: classify player actions from game log entries.
-
-import type { GameLogEntry, TurnMarkerEntry } from "./types.js";
+// Turn history: action types and recent-turns grouping.
 
 // ---------------------------------------------------------------------------
 // Types
@@ -15,99 +13,7 @@ export interface TurnAction {
   cardName: string | null;
   cardAge: number | null;
   cardSet: string | null;
-}
-
-// ---------------------------------------------------------------------------
-// Action classification
-// ---------------------------------------------------------------------------
-
-/** Classify the action for a turnMarker by inspecting subsequent entries in the same move. */
-function classifyAction(marker: TurnMarkerEntry, entries: GameLogEntry[]): TurnAction {
-  const base: TurnAction = {
-    player: marker.player,
-    actionNumber: marker.actionNumber,
-    actionType: "pending",
-    cardName: null,
-    cardAge: null,
-    cardSet: null,
-  };
-
-  for (const entry of entries) {
-    if (entry.move !== marker.move) continue;
-
-    // Dogma: logWithCardTooltips with "activates the dogma of"
-    if (entry.type === "logWithCardTooltips") {
-      const dogmaMatch = entry.msg.match(/activates the dogma of (\d+) (.+?) with/);
-      if (dogmaMatch) {
-        base.actionType = "dogma";
-        base.cardName = dogmaMatch[2].trim();
-        return base;
-      }
-      const endorseMatch = entry.msg.match(/endorses the dogma of (\d+) (.+?) with/);
-      if (endorseMatch) {
-        base.actionType = "endorse";
-        base.cardName = endorseMatch[2].trim();
-        return base;
-      }
-    }
-
-    if (entry.type === "transfer") {
-      // Achieve: source=achievements, dest=achievements
-      if (entry.source === "achievements" && entry.dest === "achievements") {
-        base.actionType = "achieve";
-        base.cardAge = entry.cardAge;
-        return base;
-      }
-
-      // Meld: meldKeyword, hand -> board
-      if (entry.meldKeyword && entry.source === "hand" && entry.dest === "board") {
-        base.actionType = "meld";
-        base.cardName = entry.cardName;
-        base.cardAge = entry.cardAge;
-        base.cardSet = entry.cardSet;
-        return base;
-      }
-
-      // Draw: source=deck
-      if (entry.source === "deck") {
-        base.actionType = "draw";
-        base.cardName = entry.cardName;
-        base.cardAge = entry.cardAge;
-        base.cardSet = entry.cardSet;
-        return base;
-      }
-    }
-  }
-
-  return base;
-}
-
-// ---------------------------------------------------------------------------
-// Build turn history
-// ---------------------------------------------------------------------------
-
-/**
- * Walk the game log and classify each turnMarker's action.
- * Returns actions in log order (oldest first).
- */
-export function buildTurnHistory(log: GameLogEntry[]): TurnAction[] {
-  const actions: TurnAction[] = [];
-
-  for (let i = 0; i < log.length; i++) {
-    const entry = log[i];
-    if (entry.type !== "turnMarker") continue;
-
-    // Collect subsequent entries in the same move (after this marker, before the next marker)
-    const subsequent: GameLogEntry[] = [];
-    for (let j = i + 1; j < log.length; j++) {
-      if (log[j].type === "turnMarker") break;
-      subsequent.push(log[j]);
-    }
-
-    actions.push(classifyAction(entry, subsequent));
-  }
-
-  return actions;
+  time: number | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -134,13 +40,12 @@ export function recentTurns(actions: TurnAction[], count: number): TurnAction[] 
       if (halfTurns.length >= count) break;
     }
     currentPlayer = action.player;
-    currentGroup.unshift(action);
+    currentGroup.push(action);
   }
   if (currentGroup.length > 0 && halfTurns.length < count) {
     halfTurns.push(currentGroup);
   }
 
-  // halfTurns is already newest-first groups, each group is in chronological order
-  // Flatten: newest half-turn first, within each half-turn oldest action first
+  // halfTurns is newest-first groups, each group is newest-action-first
   return halfTurns.flat();
 }

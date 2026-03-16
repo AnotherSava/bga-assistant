@@ -568,37 +568,34 @@ describe("processRawLog", () => {
     expect(result.expansions.echoes).toBe(false);
   });
 
-  it("emits TurnMarkerEntry for gameStateChange with state id 4", () => {
+  it("emits pending action for gameStateChange with state id 4", () => {
     const raw: RawExtractionData = {
       players: { "100": "Alice", "200": "Bob" },
       packets: [
         makePacket(10, [
+          { type: "log_spectator", args: { log: "test" } },
           { type: "gameStateChange", args: { id: 4, active_player: "100", args: { action_number: 1, qualified_action: "a first action" } } },
         ]),
       ],
     };
     const result = processRawLog(raw);
-    expect(result.log).toHaveLength(1);
-    expect(result.log[0]).toEqual({
-      type: "turnMarker",
-      move: 10,
-      player: "Alice",
-      actionNumber: 1,
-    });
+    expect(result.actions).toHaveLength(1);
+    expect(result.actions[0]).toMatchObject({ player: "Alice", actionNumber: 1, actionType: "pending" });
   });
 
-  it("emits TurnMarkerEntry with action_number 2", () => {
+  it("emits action with action_number 2", () => {
     const raw: RawExtractionData = {
       players: { "100": "Alice" },
       packets: [
         makePacket(15, [
+          { type: "log_spectator", args: { log: "test" } },
           { type: "gameStateChange", args: { id: 4, active_player: "100", args: { action_number: 2 } } },
         ]),
       ],
     };
     const result = processRawLog(raw);
-    expect(result.log).toHaveLength(1);
-    expect(result.log[0]).toMatchObject({ type: "turnMarker", actionNumber: 2 });
+    expect(result.actions).toHaveLength(1);
+    expect(result.actions[0]).toMatchObject({ actionNumber: 2, actionType: "pending" });
   });
 
   it("ignores gameStateChange with non-4 state id", () => {
@@ -611,7 +608,7 @@ describe("processRawLog", () => {
       ],
     };
     const result = processRawLog(raw);
-    expect(result.log).toHaveLength(0);
+    expect(result.actions).toHaveLength(0);
   });
 
   it("ignores gameStateChange state 4 without action_number", () => {
@@ -619,12 +616,13 @@ describe("processRawLog", () => {
       players: { "100": "Alice" },
       packets: [
         makePacket(10, [
+          { type: "log_spectator", args: { log: "test" } },
           { type: "gameStateChange", args: { id: 4, active_player: "100", args: {} } },
         ]),
       ],
     };
     const result = processRawLog(raw);
-    expect(result.log).toHaveLength(0);
+    expect(result.actions).toHaveLength(0);
   });
 
   it("uses player ID as fallback when player name not found", () => {
@@ -632,16 +630,17 @@ describe("processRawLog", () => {
       players: {},
       packets: [
         makePacket(10, [
+          { type: "log_spectator", args: { log: "test" } },
           { type: "gameStateChange", args: { id: 4, active_player: "999", args: { action_number: 1 } } },
         ]),
       ],
     };
     const result = processRawLog(raw);
-    expect(result.log).toHaveLength(1);
-    expect(result.log[0]).toMatchObject({ type: "turnMarker", player: "999" });
+    expect(result.actions).toHaveLength(1);
+    expect(result.actions[0]).toMatchObject({ player: "999" });
   });
 
-  it("interleaves TurnMarkerEntry with transfers and messages", () => {
+  it("classifies meld from transfer after gameStateChange", () => {
     const raw: RawExtractionData = {
       players: { "100": "Alice" },
       packets: [
@@ -654,9 +653,26 @@ describe("processRawLog", () => {
       ],
     };
     const result = processRawLog(raw);
-    expect(result.log).toHaveLength(3);
-    expect(result.log[0].type).toBe("turnMarker");
-    expect(result.log[1].type).toBe("transfer");
-    expect(result.log[2].type).toBe("log");
+    expect(result.actions).toHaveLength(1);
+    expect(result.actions[0]).toMatchObject({ player: "Alice", actionType: "meld", cardName: "Archery" });
+  });
+
+  it("deduplicates gameStateChange from player and spectator channels", () => {
+    const raw: RawExtractionData = {
+      players: { "100": "Alice" },
+      packets: [
+        // Player channel packet (no _spectator types) — gameStateChange skipped
+        makePacket(10, [
+          { type: "gameStateChange", args: { id: 4, active_player: "100", args: { action_number: 1 } } },
+        ]),
+        // Spectator channel packet — gameStateChange processed
+        makePacket(10, [
+          { type: "log_spectator", args: { log: "test" } },
+          { type: "gameStateChange", args: { id: 4, active_player: "100", args: { action_number: 1 } } },
+        ]),
+      ],
+    };
+    const result = processRawLog(raw);
+    expect(result.actions).toHaveLength(1);
   });
 });
