@@ -16,7 +16,7 @@ import {
   type MessageEntry,
   type GameLogEntry,
 } from "../types";
-import { GameState } from "../game_state";
+import { type GameState, GameEngine, createGameState as newGameState, cardsAt, toJSON, fromJSON } from "../game_state";
 
 const thisDir = dirname(fileURLToPath(import.meta.url));
 
@@ -39,14 +39,16 @@ beforeEach(() => {
 // Helpers
 // ---------------------------------------------------------------------------
 
-function createGameState(): GameState {
-  return new GameState(cardDb, PLAYERS, PERSPECTIVE);
+function createGS(): { state: GameState; engine: GameEngine } {
+  const engine = new GameEngine(cardDb);
+  const state = newGameState(PLAYERS, PERSPECTIVE);
+  return { state, engine };
 }
 
-function createInitializedGameState(expansions?: { echoes: boolean }): GameState {
-  const gs = createGameState();
-  gs.initGame(expansions);
-  return gs;
+function createInitializedGS(expansions?: { echoes: boolean }): { state: GameState; engine: GameEngine } {
+  const { state, engine } = createGS();
+  engine.initGame(state, expansions);
+  return { state, engine };
 }
 
 function namedAction(overrides: Partial<NamedAction> & { cardName: string }): NamedAction {
@@ -79,28 +81,28 @@ function groupedAction(overrides: Partial<GroupedAction> & { age: number; cardSe
 
 describe("initGame", () => {
   it("creates decks for all card groups", () => {
-    const gs = createInitializedGameState();
+    const { state, engine } = createInitializedGS();
     const age1Key = ageSetKey(1, CardSet.BASE);
-    const age1Deck = gs.decks.get(age1Key)!;
+    const age1Deck = state.decks.get(age1Key)!;
     const groupSize = cardDb.groups().get(age1Key)!.size;
     // groupSize - 1 achievement - 2 per player (2 players)
     expect(age1Deck.length).toBe(groupSize - 1 - 2 * PLAYERS.length);
   });
 
   it("creates 9 achievements from base ages 1-9", () => {
-    const gs = createInitializedGameState();
-    expect(gs.achievements.length).toBe(9);
+    const { state, engine } = createInitializedGS();
+    expect(state.achievements.length).toBe(9);
     for (let i = 0; i < 9; i++) {
-      expect(gs.achievements[i].cardSet).toBe(CardSet.BASE);
-      expect(gs.achievements[i].age).toBe(i + 1);
+      expect(state.achievements[i].cardSet).toBe(CardSet.BASE);
+      expect(state.achievements[i].age).toBe(i + 1);
     }
   });
 
   it("deals 2 cards to each player's hand", () => {
-    const gs = createInitializedGameState();
+    const { state, engine } = createInitializedGS();
     for (const player of PLAYERS) {
-      expect(gs.hands.get(player)!.length).toBe(2);
-      for (const card of gs.hands.get(player)!) {
+      expect(state.hands.get(player)!.length).toBe(2);
+      for (const card of state.hands.get(player)!) {
         expect(card.age).toBe(1);
         expect(card.cardSet).toBe(CardSet.BASE);
       }
@@ -108,19 +110,19 @@ describe("initGame", () => {
   });
 
   it("all cards start unresolved with full group candidates", () => {
-    const gs = createInitializedGameState();
+    const { state, engine } = createInitializedGS();
     const age1Key = ageSetKey(1, CardSet.BASE);
     const groupNames = cardDb.groups().get(age1Key)!;
-    for (const card of gs.decks.get(age1Key)!) {
+    for (const card of state.decks.get(age1Key)!) {
       expect(card.isResolved).toBe(false);
       expect(card.candidates).toEqual(groupNames);
     }
   });
 
   it("creates city decks", () => {
-    const gs = createInitializedGameState();
+    const { state, engine } = createInitializedGS();
     const cities1Key = ageSetKey(1, CardSet.CITIES);
-    const citiesDeck = gs.decks.get(cities1Key);
+    const citiesDeck = state.decks.get(cities1Key);
     if (citiesDeck) {
       const cityGroupNames = cardDb.groups().get(cities1Key)!;
       expect(citiesDeck.length).toBe(cityGroupNames.size);
@@ -134,9 +136,9 @@ describe("initGame", () => {
 
 describe("resolveHand", () => {
   it("resolves initial hand cards by name", () => {
-    const gs = createInitializedGameState();
-    gs.resolveHand("Alice", ["agriculture", "archery"]);
-    const hand = gs.hands.get("Alice")!;
+    const { state, engine } = createInitializedGS();
+    engine.resolveHand(state, "Alice", ["agriculture", "archery"]);
+    const hand = state.hands.get("Alice")!;
     expect(hand[0].isResolved).toBe(true);
     expect(hand[0].resolvedName).toBe("agriculture");
     expect(hand[1].isResolved).toBe(true);
@@ -144,10 +146,10 @@ describe("resolveHand", () => {
   });
 
   it("propagates constraints after resolution", () => {
-    const gs = createInitializedGameState();
-    gs.resolveHand("Alice", ["agriculture", "archery"]);
+    const { state, engine } = createInitializedGS();
+    engine.resolveHand(state, "Alice", ["agriculture", "archery"]);
     const age1Key = ageSetKey(1, CardSet.BASE);
-    for (const card of gs.decks.get(age1Key)!) {
+    for (const card of state.decks.get(age1Key)!) {
       expect(card.candidates.has("agriculture")).toBe(false);
       expect(card.candidates.has("archery")).toBe(false);
     }
@@ -160,24 +162,24 @@ describe("resolveHand", () => {
 
 describe("cardsAt", () => {
   it("returns deck cards by group key", () => {
-    const gs = createInitializedGameState();
+    const { state, engine } = createInitializedGS();
     const age1Key = ageSetKey(1, CardSet.BASE);
-    const cards = gs.cardsAt("deck", null, age1Key);
+    const cards = cardsAt(state, "deck", null, age1Key);
     const groupSize = cardDb.groups().get(age1Key)!.size;
     expect(cards.length).toBe(groupSize - 1 - 2 * PLAYERS.length);
   });
 
   it("returns hand cards by player", () => {
-    const gs = createInitializedGameState();
-    const cards = gs.cardsAt("hand", "Alice");
+    const { state, engine } = createInitializedGS();
+    const cards = cardsAt(state, "hand", "Alice");
     expect(cards.length).toBe(2);
   });
 
   it("returns empty array for empty zones", () => {
-    const gs = createInitializedGameState();
-    expect(gs.cardsAt("board", "Alice").length).toBe(0);
-    expect(gs.cardsAt("score", "Alice").length).toBe(0);
-    expect(gs.cardsAt("revealed", "Alice").length).toBe(0);
+    const { state, engine } = createInitializedGS();
+    expect(cardsAt(state, "board", "Alice").length).toBe(0);
+    expect(cardsAt(state, "score", "Alice").length).toBe(0);
+    expect(cardsAt(state, "revealed", "Alice").length).toBe(0);
   });
 });
 
@@ -187,11 +189,11 @@ describe("cardsAt", () => {
 
 describe("move", () => {
   it("moves a named card from deck to hand", () => {
-    const gs = createInitializedGameState();
-    gs.resolveHand("Alice", ["agriculture", "archery"]);
-    gs.resolveHand("Bob", ["clothing", "city states"]);
+    const { state, engine } = createInitializedGS();
+    engine.resolveHand(state, "Alice", ["agriculture", "archery"]);
+    engine.resolveHand(state, "Bob", ["clothing", "city states"]);
 
-    const card = gs.move(namedAction({
+    const card = engine.move(state, namedAction({
       cardName: "metalworking",
       source: "deck",
       dest: "hand",
@@ -200,15 +202,15 @@ describe("move", () => {
 
     expect(card.isResolved).toBe(true);
     expect(card.resolvedName).toBe("metalworking");
-    expect(gs.hands.get("Alice")!.length).toBe(3);
-    expect(gs.hands.get("Alice")!).toContain(card);
+    expect(state.hands.get("Alice")!.length).toBe(3);
+    expect(state.hands.get("Alice")!).toContain(card);
   });
 
   it("moves a grouped card from deck (hidden draw)", () => {
-    const gs = createInitializedGameState();
-    gs.resolveHand("Alice", ["agriculture", "archery"]);
+    const { state, engine } = createInitializedGS();
+    engine.resolveHand(state, "Alice", ["agriculture", "archery"]);
 
-    const card = gs.move(groupedAction({
+    const card = engine.move(state, groupedAction({
       age: 1,
       cardSet: CardSet.BASE,
       source: "deck",
@@ -218,14 +220,14 @@ describe("move", () => {
 
     expect(card.age).toBe(1);
     expect(card.cardSet).toBe(CardSet.BASE);
-    expect(gs.hands.get("Bob")!).toContain(card);
+    expect(state.hands.get("Bob")!).toContain(card);
   });
 
   it("moves a named card from hand to board (meld)", () => {
-    const gs = createInitializedGameState();
-    gs.resolveHand("Alice", ["agriculture", "archery"]);
+    const { state, engine } = createInitializedGS();
+    engine.resolveHand(state, "Alice", ["agriculture", "archery"]);
 
-    const card = gs.move(namedAction({
+    const card = engine.move(state, namedAction({
       cardName: "agriculture",
       source: "hand",
       dest: "board",
@@ -235,15 +237,15 @@ describe("move", () => {
     }));
 
     expect(card.resolvedName).toBe("agriculture");
-    expect(gs.boards.get("Alice")!).toContain(card);
-    expect(gs.hands.get("Alice")!.length).toBe(1);
+    expect(state.boards.get("Alice")!).toContain(card);
+    expect(state.hands.get("Alice")!.length).toBe(1);
   });
 
   it("moves a card from board to score", () => {
-    const gs = createInitializedGameState();
-    gs.resolveHand("Alice", ["agriculture", "archery"]);
+    const { state, engine } = createInitializedGS();
+    engine.resolveHand(state, "Alice", ["agriculture", "archery"]);
 
-    gs.move(namedAction({
+    engine.move(state, namedAction({
       cardName: "agriculture",
       source: "hand",
       dest: "board",
@@ -251,7 +253,7 @@ describe("move", () => {
       destPlayer: "Alice",
     }));
 
-    const card = gs.move(namedAction({
+    const card = engine.move(state, namedAction({
       cardName: "agriculture",
       source: "board",
       dest: "score",
@@ -260,15 +262,15 @@ describe("move", () => {
     }));
 
     expect(card.resolvedName).toBe("agriculture");
-    expect(gs.scores.get("Alice")!).toContain(card);
-    expect(gs.boards.get("Alice")!.length).toBe(0);
+    expect(state.scores.get("Alice")!).toContain(card);
+    expect(state.boards.get("Alice")!.length).toBe(0);
   });
 
   it("marks cards public when moved to board", () => {
-    const gs = createInitializedGameState();
-    gs.resolveHand("Alice", ["agriculture", "archery"]);
+    const { state, engine } = createInitializedGS();
+    engine.resolveHand(state, "Alice", ["agriculture", "archery"]);
 
-    const card = gs.move(namedAction({
+    const card = engine.move(state, namedAction({
       cardName: "agriculture",
       source: "hand",
       dest: "board",
@@ -283,10 +285,10 @@ describe("move", () => {
   });
 
   it("marks cards public when transferred between players", () => {
-    const gs = createInitializedGameState();
-    gs.resolveHand("Alice", ["agriculture", "archery"]);
+    const { state, engine } = createInitializedGS();
+    engine.resolveHand(state, "Alice", ["agriculture", "archery"]);
 
-    const card = gs.move(namedAction({
+    const card = engine.move(state, namedAction({
       cardName: "agriculture",
       source: "hand",
       dest: "score",
@@ -298,10 +300,10 @@ describe("move", () => {
   });
 
   it("sets exact opponent knowledge when card goes to opponent's private zone", () => {
-    const gs = createInitializedGameState();
-    gs.resolveHand("Alice", ["agriculture", "archery"]);
+    const { state, engine } = createInitializedGS();
+    engine.resolveHand(state, "Alice", ["agriculture", "archery"]);
 
-    const card = gs.move(namedAction({
+    const card = engine.move(state, namedAction({
       cardName: "metalworking",
       source: "deck",
       dest: "hand",
@@ -315,10 +317,10 @@ describe("move", () => {
   });
 
   it("does not update opponent knowledge for own private zone draw", () => {
-    const gs = createInitializedGameState();
-    gs.resolveHand("Alice", ["agriculture", "archery"]);
+    const { state, engine } = createInitializedGS();
+    engine.resolveHand(state, "Alice", ["agriculture", "archery"]);
 
-    const card = gs.move(namedAction({
+    const card = engine.move(state, namedAction({
       cardName: "metalworking",
       source: "deck",
       dest: "hand",
@@ -335,10 +337,10 @@ describe("move", () => {
 
 describe("candidate merging", () => {
   it("merges candidates when hidden card leaves hand", () => {
-    const gs = createInitializedGameState();
-    gs.resolveHand("Alice", ["agriculture", "archery"]);
+    const { state, engine } = createInitializedGS();
+    engine.resolveHand(state, "Alice", ["agriculture", "archery"]);
 
-    const card = gs.move(groupedAction({
+    const card = engine.move(state, groupedAction({
       age: 1,
       cardSet: CardSet.BASE,
       source: "hand",
@@ -346,18 +348,18 @@ describe("candidate merging", () => {
       sourcePlayer: "Bob",
     }));
 
-    expect(gs.hands.get("Bob")!.length).toBe(1);
+    expect(state.hands.get("Bob")!.length).toBe(1);
     // Both the moved card and remaining card should share candidates
-    const remaining = gs.hands.get("Bob")![0];
+    const remaining = state.hands.get("Bob")![0];
     expect(remaining.candidates).toEqual(card.candidates);
   });
 
   it("does not merge for named moves", () => {
-    const gs = createInitializedGameState();
-    gs.resolveHand("Alice", ["agriculture", "archery"]);
-    gs.resolveHand("Bob", ["clothing", "city states"]);
+    const { state, engine } = createInitializedGS();
+    engine.resolveHand(state, "Alice", ["agriculture", "archery"]);
+    engine.resolveHand(state, "Bob", ["clothing", "city states"]);
 
-    const card = gs.move(namedAction({
+    const card = engine.move(state, namedAction({
       cardName: "clothing",
       source: "hand",
       dest: "board",
@@ -367,8 +369,8 @@ describe("candidate merging", () => {
 
     expect(card.isResolved).toBe(true);
     expect(card.resolvedName).toBe("clothing");
-    expect(gs.hands.get("Bob")![0].isResolved).toBe(true);
-    expect(gs.hands.get("Bob")![0].resolvedName).toBe("city states");
+    expect(state.hands.get("Bob")![0].isResolved).toBe(true);
+    expect(state.hands.get("Bob")![0].resolvedName).toBe("city states");
   });
 });
 
@@ -378,30 +380,30 @@ describe("candidate merging", () => {
 
 describe("singleton propagation", () => {
   it("removes resolved name from other candidates in same group", () => {
-    const gs = createInitializedGameState();
-    gs.resolveHand("Alice", ["agriculture", "archery"]);
+    const { state, engine } = createInitializedGS();
+    engine.resolveHand(state, "Alice", ["agriculture", "archery"]);
 
     const age1Key = ageSetKey(1, CardSet.BASE);
-    for (const card of gs.decks.get(age1Key)!) {
+    for (const card of state.decks.get(age1Key)!) {
       expect(card.candidates.has("agriculture")).toBe(false);
       expect(card.candidates.has("archery")).toBe(false);
     }
   });
 
   it("cascade resolves when only one candidate remains", () => {
-    const gs = createInitializedGameState();
+    const { state, engine } = createInitializedGS();
     const age1Key = ageSetKey(1, CardSet.BASE);
     const groupNames = [...cardDb.groups().get(age1Key)!];
 
     // Resolve Alice's hand (2 cards)
-    gs.resolveHand("Alice", [groupNames[0], groupNames[1]]);
+    engine.resolveHand(state, "Alice", [groupNames[0], groupNames[1]]);
     // Resolve Bob's hand (2 cards)
-    gs.resolveHand("Bob", [groupNames[2], groupNames[3]]);
+    engine.resolveHand(state, "Bob", [groupNames[2], groupNames[3]]);
 
     // Draw named cards from deck, leaving 1 unresolved (the achievement)
-    const deckSize = gs.decks.get(age1Key)!.length;
+    const deckSize = state.decks.get(age1Key)!.length;
     for (let i = 0; i < deckSize; i++) {
-      gs.move(namedAction({
+      engine.move(state, namedAction({
         cardName: groupNames[4 + i],
         source: "deck",
         dest: "hand",
@@ -411,10 +413,10 @@ describe("singleton propagation", () => {
 
     // After resolving all but 1, the achievement card should auto-resolve
     const allAge1Cards = [
-      ...gs.decks.get(age1Key) ?? [],
-      ...gs.hands.get("Alice")!.filter(c => c.groupKey === age1Key),
-      ...gs.hands.get("Bob")!.filter(c => c.groupKey === age1Key),
-      ...gs.achievements.filter(c => c.groupKey === age1Key),
+      ...state.decks.get(age1Key) ?? [],
+      ...state.hands.get("Alice")!.filter(c => ageSetKey(c.age, c.cardSet) === age1Key),
+      ...state.hands.get("Bob")!.filter(c => ageSetKey(c.age, c.cardSet) === age1Key),
+      ...state.achievements.filter(c => ageSetKey(c.age, c.cardSet) === age1Key),
     ];
     const resolvedCount = allAge1Cards.filter(c => c.isResolved).length;
     expect(resolvedCount).toBe(groupNames.length);
@@ -427,18 +429,18 @@ describe("singleton propagation", () => {
 
 describe("hidden singles", () => {
   it("resolves a card when its name appears in only one unresolved card", () => {
-    const gs = createInitializedGameState();
+    const { state, engine } = createInitializedGS();
     const age1Key = ageSetKey(1, CardSet.BASE);
     const groupNames = [...cardDb.groups().get(age1Key)!];
 
     // Resolve both hands
-    gs.resolveHand("Alice", [groupNames[0], groupNames[1]]);
-    gs.resolveHand("Bob", [groupNames[2], groupNames[3]]);
+    engine.resolveHand(state, "Alice", [groupNames[0], groupNames[1]]);
+    engine.resolveHand(state, "Bob", [groupNames[2], groupNames[3]]);
 
     // Draw all but 2 from deck, leaving 2 unresolved deck cards + 1 achievement = 3 unresolved
-    const deckSize = gs.decks.get(age1Key)!.length;
+    const deckSize = state.decks.get(age1Key)!.length;
     for (let i = 0; i < deckSize - 2; i++) {
-      gs.move(namedAction({
+      engine.move(state, namedAction({
         cardName: groupNames[4 + i],
         source: "deck",
         dest: "hand",
@@ -450,11 +452,11 @@ describe("hidden singles", () => {
     // Hidden singles: if one name uniquely identifies one card position
     // With 3 identical candidate sets, hidden singles alone can't resolve
     // But with 2 more draws resolving 2 of the 3, the last cascades
-    const remaining = gs.decks.get(age1Key)!;
+    const remaining = state.decks.get(age1Key)!;
     expect(remaining.length).toBe(2);
 
     // Resolve one more to trigger cascade
-    gs.move(namedAction({
+    engine.move(state, namedAction({
       cardName: groupNames[4 + deckSize - 2],
       source: "deck",
       dest: "hand",
@@ -464,7 +466,7 @@ describe("hidden singles", () => {
     // Now 1 deck card + 1 achievement = 2 unresolved with 2 candidates each
     // They have the same candidates, so hidden singles can't help
     // But resolving 1 more triggers singleton cascade
-    gs.move(namedAction({
+    engine.move(state, namedAction({
       cardName: groupNames[4 + deckSize - 1],
       source: "deck",
       dest: "hand",
@@ -472,7 +474,7 @@ describe("hidden singles", () => {
     }));
 
     // Achievement should now be resolved via cascade
-    const achievement = gs.achievements.find(c => c.groupKey === age1Key)!;
+    const achievement = state.achievements.find(c => ageSetKey(c.age, c.cardSet) === age1Key)!;
     expect(achievement.isResolved).toBe(true);
     expect(groupNames).toContain(achievement.resolvedName);
   });
@@ -484,27 +486,51 @@ describe("hidden singles", () => {
 
 describe("naked subsets", () => {
   it("removes naked pair candidates from other cards", () => {
-    const gs = createGameState();
-    gs.initGame();
+    const { state, engine } = createGS();
+    engine.initGame(state);
 
     const age1Key = ageSetKey(1, CardSet.BASE);
     const groupNames = [...cardDb.groups().get(age1Key)!];
 
-    gs.resolveHand("Alice", [groupNames[0], groupNames[1]]);
-    gs.resolveHand("Bob", [groupNames[2], groupNames[3]]);
+    engine.resolveHand(state, "Alice", [groupNames[0], groupNames[1]]);
+    engine.resolveHand(state, "Bob", [groupNames[2], groupNames[3]]);
 
-    // Draw some named cards to reduce the unresolved pool
-    const deckSize = gs.decks.get(age1Key)!.length;
-    // Leave enough unresolved for naked subsets to apply (need > 3 unresolved)
-    const drawCount = Math.max(0, deckSize - 5);
+    // Draw named cards from deck to reduce the pool, leaving enough for naked subsets (>3 unresolved)
+    const deck = state.decks.get(age1Key)!;
+    const drawCount = Math.max(0, deck.length - 6);
     for (let i = 0; i < drawCount; i++) {
-      gs.move(namedAction({ cardName: groupNames[4 + i], source: "deck", dest: "hand", destPlayer: "Alice" }));
+      engine.move(state, namedAction({ cardName: groupNames[4 + i], source: "deck", dest: "hand", destPlayer: "Alice" }));
     }
 
-    // Verify remaining cards still have valid candidate sets
-    const remaining = gs.decks.get(age1Key)!;
-    for (const card of remaining) {
-      expect(card.candidates.size).toBeGreaterThan(0);
+    // All remaining deck cards should share the same unresolved candidate set
+    const remaining = state.decks.get(age1Key)!;
+    const unresolvedCards = remaining.filter(c => !c.isResolved);
+    expect(unresolvedCards.length).toBeGreaterThan(4);
+
+    // Force a naked pair on the LAST two deck cards (not first, since takeFromSource grabs deck[0])
+    const lastIdx = unresolvedCards.length - 1;
+    const pairCard0 = unresolvedCards[lastIdx - 1];
+    const pairCard1 = unresolvedCards[lastIdx];
+    const pairNames = [...pairCard0.candidates].slice(0, 2);
+    pairCard0.candidates = new Set(pairNames);
+    pairCard1.candidates = new Set(pairNames);
+
+    // Confirm other unresolved cards currently have the pair names
+    for (const card of unresolvedCards.slice(0, lastIdx - 1)) {
+      expect(card.candidates.has(pairNames[0]) || card.candidates.has(pairNames[1])).toBe(true);
+    }
+
+    // Trigger propagation by drawing a named card from the deck (draws deck[0], not a pair card)
+    const drawName = [...unresolvedCards[0].candidates].find(n => !pairNames.includes(n))!;
+    engine.move(state, namedAction({ cardName: drawName, source: "deck", dest: "hand", destPlayer: "Alice" }));
+
+    // Verify: the pair names must be removed from other unresolved cards in the group
+    const afterDeck = state.decks.get(age1Key)!;
+    for (const card of afterDeck.filter(c => !c.isResolved)) {
+      if (card === pairCard0 || card === pairCard1) continue;
+      for (const name of pairNames) {
+        expect(card.candidates.has(name)).toBe(false);
+      }
     }
   });
 });
@@ -515,16 +541,16 @@ describe("naked subsets", () => {
 
 describe("suspect propagation", () => {
   it("removes public card name from other cards' suspect lists on next propagation", () => {
-    const gs = createInitializedGameState();
-    gs.resolveHand("Alice", ["agriculture", "archery"]);
+    const { state, engine } = createInitializedGS();
+    engine.resolveHand(state, "Alice", ["agriculture", "archery"]);
 
     // Set up partial knowledge on Bob's hand cards
-    const bobHand = gs.hands.get("Bob")!;
+    const bobHand = state.hands.get("Bob")!;
     bobHand[0].opponentKnowledge = { kind: "partial", suspects: new Set(["agriculture", "clothing"]), closed: true };
     bobHand[1].opponentKnowledge = { kind: "partial", suspects: new Set(["agriculture", "metalworking"]), closed: false };
 
     // Move agriculture to board (marks it public)
-    gs.move(namedAction({
+    engine.move(state, namedAction({
       cardName: "agriculture",
       source: "hand",
       dest: "board",
@@ -535,7 +561,7 @@ describe("suspect propagation", () => {
     // Suspect propagation runs during propagate(), which is called during takeFromSource
     // But markPublic happens AFTER takeFromSource. So we need another move in the same
     // group to trigger propagation again.
-    gs.move(namedAction({
+    engine.move(state, namedAction({
       cardName: "metalworking",
       source: "deck",
       dest: "hand",
@@ -564,14 +590,14 @@ describe("suspect propagation", () => {
 
 describe("suspect merging", () => {
   it("merges suspect lists when hidden card leaves our hand", () => {
-    const gs = createInitializedGameState();
-    gs.resolveHand("Alice", ["agriculture", "archery"]);
+    const { state, engine } = createInitializedGS();
+    engine.resolveHand(state, "Alice", ["agriculture", "archery"]);
 
-    const aliceHand = gs.hands.get("Alice")!;
+    const aliceHand = state.hands.get("Alice")!;
     aliceHand[0].opponentKnowledge = { kind: "partial", suspects: new Set(["agriculture"]), closed: true };
     aliceHand[1].opponentKnowledge = { kind: "partial", suspects: new Set(["archery"]), closed: true };
 
-    gs.move(groupedAction({
+    engine.move(state, groupedAction({
       age: 1,
       cardSet: CardSet.BASE,
       source: "hand",
@@ -588,15 +614,15 @@ describe("suspect merging", () => {
   });
 
   it("does not merge suspects for opponent's moves", () => {
-    const gs = createInitializedGameState();
-    gs.resolveHand("Alice", ["agriculture", "archery"]);
+    const { state, engine } = createInitializedGS();
+    engine.resolveHand(state, "Alice", ["agriculture", "archery"]);
 
     // Set knowledge on BOTH of Bob's cards so whichever remains, we can verify
-    const bobHand = gs.hands.get("Bob")!;
+    const bobHand = state.hands.get("Bob")!;
     bobHand[0].opponentKnowledge = { kind: "partial", suspects: new Set(["clothing"]), closed: true };
     bobHand[1].opponentKnowledge = { kind: "partial", suspects: new Set(["metalworking"]), closed: true };
 
-    gs.move(groupedAction({
+    engine.move(state, groupedAction({
       age: 1,
       cardSet: CardSet.BASE,
       source: "hand",
@@ -606,7 +632,7 @@ describe("suspect merging", () => {
 
     // Bob's remaining card knowledge should not have been merged
     // (merge only happens for our perspective's private zones)
-    const remaining = gs.hands.get("Bob")![0];
+    const remaining = state.hands.get("Bob")![0];
     expect(remaining.opponentKnowledge.kind).toBe("partial");
     if (remaining.opponentKnowledge.kind === "partial") {
       // Should have only ONE suspect, not a merged union
@@ -620,12 +646,16 @@ describe("suspect merging", () => {
 // ---------------------------------------------------------------------------
 
 describe("meld filtering", () => {
-  it("tracks meld icon and discards", () => {
-    const gs = createInitializedGameState();
-    gs.resolveHand("Alice", ["agriculture", "archery"]);
+  it("confirmMeldFilter with no prior meld does not interfere with subsequent moves", () => {
+    const { state, engine } = createInitializedGS();
+    engine.resolveHand(state, "Alice", ["agriculture", "archery"]);
 
-    gs.confirmMeldFilter("crown");
-    // After confirm with no discards, should not throw
+    engine.confirmMeldFilter("crown");
+
+    // A subsequent hand->deck grouped move should work normally (not intercepted by return logic)
+    const aliceHandBefore = state.hands.get("Alice")!.length;
+    engine.move(state, groupedAction({ age: 1, cardSet: CardSet.BASE, source: "hand", dest: "deck", sourcePlayer: "Alice" }));
+    expect(state.hands.get("Alice")!.length).toBe(aliceHandBefore - 1);
   });
 
   it("does not corrupt later revealed->deck cards when meld filter returns go through hand (bug #816652225)", () => {
@@ -635,38 +665,38 @@ describe("meld filtering", () => {
     // confirmMeldFilter sets remainingReturns = 2.
     // Returns go hand->deck (NOT revealed->deck).
     // Later, unrelated Colonialism/Navigation go revealed->deck and must NOT be corrupted.
-    const gs = createInitializedGameState();
-    gs.resolveHand("Alice", ["agriculture", "archery"]);
-    gs.resolveHand("Bob", ["clothing", "city states"]);
+    const { state, engine } = createInitializedGS();
+    engine.resolveHand(state, "Alice", ["agriculture", "archery"]);
+    engine.resolveHand(state, "Bob", ["clothing", "city states"]);
 
     // Draw Jakarta from cities deck, then meld it (meldKeyword triggers filter)
-    gs.move(namedAction({ cardName: "jakarta", source: "deck", dest: "hand", destPlayer: "Alice" }));
-    gs.move(namedAction({ cardName: "jakarta", source: "hand", dest: "board", sourcePlayer: "Alice", destPlayer: "Alice", meldKeyword: true }));
+    engine.move(state, namedAction({ cardName: "jakarta", source: "deck", dest: "hand", destPlayer: "Alice" }));
+    engine.move(state, namedAction({ cardName: "jakarta", source: "hand", dest: "board", sourcePlayer: "Alice", destPlayer: "Alice", meldKeyword: true }));
 
     // Draw phase: deck->revealed->hand for Education, Engineering, Alchemy
-    gs.move(namedAction({ cardName: "education", source: "deck", dest: "revealed", destPlayer: "Alice" }));
-    gs.move(namedAction({ cardName: "education", source: "revealed", dest: "hand", sourcePlayer: "Alice", destPlayer: "Alice" }));
-    gs.move(namedAction({ cardName: "engineering", source: "deck", dest: "revealed", destPlayer: "Alice" }));
-    gs.move(namedAction({ cardName: "engineering", source: "revealed", dest: "hand", sourcePlayer: "Alice", destPlayer: "Alice" }));
-    gs.move(namedAction({ cardName: "alchemy", source: "deck", dest: "revealed", destPlayer: "Alice" }));
-    gs.move(namedAction({ cardName: "alchemy", source: "revealed", dest: "hand", sourcePlayer: "Alice", destPlayer: "Alice" }));
+    engine.move(state, namedAction({ cardName: "education", source: "deck", dest: "revealed", destPlayer: "Alice" }));
+    engine.move(state, namedAction({ cardName: "education", source: "revealed", dest: "hand", sourcePlayer: "Alice", destPlayer: "Alice" }));
+    engine.move(state, namedAction({ cardName: "engineering", source: "deck", dest: "revealed", destPlayer: "Alice" }));
+    engine.move(state, namedAction({ cardName: "engineering", source: "revealed", dest: "hand", sourcePlayer: "Alice", destPlayer: "Alice" }));
+    engine.move(state, namedAction({ cardName: "alchemy", source: "deck", dest: "revealed", destPlayer: "Alice" }));
+    engine.move(state, namedAction({ cardName: "alchemy", source: "revealed", dest: "hand", sourcePlayer: "Alice", destPlayer: "Alice" }));
 
     // Confirm meld filter
-    gs.confirmMeldFilter("leaf");
+    engine.confirmMeldFilter("leaf");
 
     // Returns go hand->deck (the actual BGA flow)
-    gs.move(namedAction({ cardName: "education", source: "hand", dest: "deck", sourcePlayer: "Alice" }));
-    gs.move(namedAction({ cardName: "engineering", source: "hand", dest: "deck", sourcePlayer: "Alice" }));
+    engine.move(state, namedAction({ cardName: "education", source: "hand", dest: "deck", sourcePlayer: "Alice" }));
+    engine.move(state, namedAction({ cardName: "engineering", source: "hand", dest: "deck", sourcePlayer: "Alice" }));
 
     // Later: unrelated deck->revealed->deck for age 4 base cards
-    gs.move(namedAction({ cardName: "colonialism", source: "deck", dest: "revealed", destPlayer: "Alice" }));
-    gs.move(namedAction({ cardName: "navigation", source: "deck", dest: "revealed", destPlayer: "Alice" }));
+    engine.move(state, namedAction({ cardName: "colonialism", source: "deck", dest: "revealed", destPlayer: "Alice" }));
+    engine.move(state, namedAction({ cardName: "navigation", source: "deck", dest: "revealed", destPlayer: "Alice" }));
     // Return them to deck
-    gs.move(namedAction({ cardName: "navigation", source: "revealed", dest: "deck", sourcePlayer: "Alice" }));
-    gs.move(namedAction({ cardName: "colonialism", source: "revealed", dest: "deck", sourcePlayer: "Alice" }));
+    engine.move(state, namedAction({ cardName: "navigation", source: "revealed", dest: "deck", sourcePlayer: "Alice" }));
+    engine.move(state, namedAction({ cardName: "colonialism", source: "revealed", dest: "deck", sourcePlayer: "Alice" }));
 
     // Colonialism and Navigation must still be themselves, not corrupted to education/engineering
-    const age4Deck = gs.decks.get(ageSetKey(4, CardSet.BASE))!;
+    const age4Deck = state.decks.get(ageSetKey(4, CardSet.BASE))!;
     const resolvedNames = age4Deck.filter(c => c.isResolved).map(c => c.resolvedName).sort();
     expect(resolvedNames).toContain("colonialism");
     expect(resolvedNames).toContain("navigation");
@@ -681,12 +711,12 @@ describe("meld filtering", () => {
 
 describe("revealHand", () => {
   it("resolves and marks cards public", () => {
-    const gs = createInitializedGameState();
-    gs.resolveHand("Alice", ["agriculture", "archery"]);
+    const { state, engine } = createInitializedGS();
+    engine.resolveHand(state, "Alice", ["agriculture", "archery"]);
 
-    gs.revealHand("Bob", ["clothing", "city states"]);
+    engine.revealHand(state, "Bob", ["clothing", "city states"]);
 
-    const bobHand = gs.hands.get("Bob")!;
+    const bobHand = state.hands.get("Bob")!;
     expect(bobHand.length).toBe(2);
 
     const clothing = bobHand.find(c => c.resolvedName === "clothing");
@@ -704,59 +734,59 @@ describe("revealHand", () => {
 
 describe("deduceInitialHand", () => {
   it("returns initial hand from current hand with no transfers", () => {
-    const gs = createGameState();
-    gs.initGame();
+    const { state, engine } = createGS();
+    engine.initGame(state, );
 
-    const result = gs.deduceInitialHand([], ["Agriculture", "Archery"]);
+    const result = engine.deduceInitialHand(state, [], ["Agriculture", "Archery"]);
     expect(result.sort()).toEqual(["agriculture", "archery"]);
   });
 
   it("undoes incoming transfers", () => {
-    const gs = createGameState();
-    gs.initGame();
+    const { state, engine } = createGS();
+    engine.initGame(state, );
 
     const log: GameLogEntry[] = [
       { type: "transfer", move: 1, cardSet: "base", source: "deck", dest: "hand", cardName: "Metalworking", cardAge: 1, sourceOwner: null, destOwner: "Alice", meldKeyword: false },
     ];
 
-    const result = gs.deduceInitialHand(log, ["Agriculture", "Archery", "Metalworking"]);
+    const result = engine.deduceInitialHand(state, log, ["Agriculture", "Archery", "Metalworking"]);
     expect(result.sort()).toEqual(["agriculture", "archery"]);
   });
 
   it("undoes outgoing transfers", () => {
-    const gs = createGameState();
-    gs.initGame();
+    const { state, engine } = createGS();
+    engine.initGame(state, );
 
     const log: GameLogEntry[] = [
       { type: "transfer", move: 1, cardSet: "base", source: "hand", dest: "board", cardName: "Agriculture", cardAge: 1, sourceOwner: "Alice", destOwner: "Alice", meldKeyword: true },
     ];
 
-    const result = gs.deduceInitialHand(log, ["Archery"]);
+    const result = engine.deduceInitialHand(state, log, ["Archery"]);
     expect(result.sort()).toEqual(["agriculture", "archery"]);
   });
 
   it("handles multiple transfers", () => {
-    const gs = createGameState();
-    gs.initGame();
+    const { state, engine } = createGS();
+    engine.initGame(state, );
 
     const log: GameLogEntry[] = [
       { type: "transfer", move: 1, cardSet: "base", source: "hand", dest: "board", cardName: "Agriculture", cardAge: 1, sourceOwner: "Alice", destOwner: "Alice", meldKeyword: true },
       { type: "transfer", move: 2, cardSet: "base", source: "deck", dest: "hand", cardName: "Metalworking", cardAge: 1, sourceOwner: null, destOwner: "Alice", meldKeyword: false },
     ];
 
-    const result = gs.deduceInitialHand(log, ["Archery", "Metalworking"]);
+    const result = engine.deduceInitialHand(state, log, ["Archery", "Metalworking"]);
     expect(result.sort()).toEqual(["agriculture", "archery"]);
   });
 
   it("ignores transfers for other players", () => {
-    const gs = createGameState();
-    gs.initGame();
+    const { state, engine } = createGS();
+    engine.initGame(state, );
 
     const log: GameLogEntry[] = [
       { type: "transfer", move: 1, cardSet: "base", source: "deck", dest: "hand", cardName: "Clothing", cardAge: 1, sourceOwner: null, destOwner: "Bob", meldKeyword: false },
     ];
 
-    const result = gs.deduceInitialHand(log, ["Agriculture", "Archery"]);
+    const result = engine.deduceInitialHand(state, log, ["Agriculture", "Archery"]);
     expect(result.sort()).toEqual(["agriculture", "archery"]);
   });
 });
@@ -767,7 +797,7 @@ describe("deduceInitialHand", () => {
 
 describe("processLog", () => {
   it("processes a simple game log", () => {
-    const gs = createInitializedGameState();
+    const { state, engine } = createInitializedGS();
 
     const log: GameLogEntry[] = [
       { type: "transfer", move: 1, cardSet: "base", source: "hand", dest: "board", cardName: "Agriculture", cardAge: 1, sourceOwner: "Alice", destOwner: "Alice", meldKeyword: true },
@@ -775,46 +805,46 @@ describe("processLog", () => {
     ];
     const myHand = ["Archery", "Metalworking"];
 
-    gs.processLog(log, myHand);
+    engine.processLog(state, log, myHand);
 
-    const board = gs.boards.get("Alice")!;
+    const board = state.boards.get("Alice")!;
     expect(board.some(c => c.resolvedName === "agriculture")).toBe(true);
 
-    const hand = gs.hands.get("Alice")!;
+    const hand = state.hands.get("Alice")!;
     expect(hand.length).toBe(2);
     const handNames = hand.map(c => c.resolvedName).sort();
     expect(handNames).toEqual(["archery", "metalworking"]);
   });
 
   it("processes reveal hand messages", () => {
-    const gs = createInitializedGameState();
+    const { state, engine } = createInitializedGS();
 
     const log: GameLogEntry[] = [
       { type: "logWithCardTooltips", move: 1, msg: "Bob reveals his hand: [1] Clothing, [1] City States." },
     ];
     const myHand = ["Agriculture", "Archery"];
 
-    gs.processLog(log, myHand);
+    engine.processLog(state, log, myHand);
 
-    const bobHand = gs.hands.get("Bob")!;
+    const bobHand = state.hands.get("Bob")!;
     const clothing = bobHand.find(c => c.resolvedName === "clothing");
     expect(clothing).toBeDefined();
     expect(clothing!.opponentKnowledge.kind).toBe("exact");
   });
 
   it("processes meld filter messages", () => {
-    const gs = createInitializedGameState();
+    const { state, engine } = createInitializedGS();
 
     const log: GameLogEntry[] = [
       { type: "log", move: 1, msg: "The revealed cards with a [crown] will be kept" },
     ];
     const myHand = ["Agriculture", "Archery"];
 
-    gs.processLog(log, myHand);
+    engine.processLog(state, log, myHand);
   });
 
   it("keeps resolved cards after grouped discard from meld filter (bgaa_818433588)", () => {
-    const gs = createInitializedGameState();
+    const { state, engine } = createInitializedGS();
 
     // Opponent melds Hoi An (cities age 5, icon[5]=crown), triggering meld filter.
     // Draws 5 named age-5 base cards through revealed → hand, then returns 1 unnamed (Coal, no crown).
@@ -836,10 +866,10 @@ describe("processLog", () => {
     ];
     const myHand = ["Agriculture", "Archery"];
 
-    gs.processLog(log, myHand);
+    engine.processLog(state, log, myHand);
 
     // The 4 kept cards in Bob's hand should still be resolved
-    const bobHand = gs.hands.get("Bob")!;
+    const bobHand = state.hands.get("Bob")!;
     const age5Cards = bobHand.filter(c => c.age === 5 && c.cardSet === CardSet.BASE);
     expect(age5Cards.length).toBe(4);
     const resolvedNames = age5Cards.filter(c => c.isResolved).map(c => c.resolvedName).sort();
@@ -847,7 +877,7 @@ describe("processLog", () => {
   });
 
   it("decrements meld filter counter for named returns from perspective player (bgaa_818433588)", () => {
-    const gs = createInitializedGameState();
+    const { state, engine } = createInitializedGS();
 
     // Perspective player (Alice) melds Nanjing (cities age 2, icon[5]=castle), draws 2 cards
     // without castle, then returns both as named transfers. After that, Philosophy should be
@@ -869,21 +899,21 @@ describe("processLog", () => {
     const myHand = ["Agriculture", "Archery"];
 
     // Should not throw "Card 'philosophy' not found in revealed"
-    gs.processLog(log, myHand);
+    engine.processLog(state, log, myHand);
 
-    const bobHand = gs.hands.get("Bob")!;
+    const bobHand = state.hands.get("Bob")!;
     expect(bobHand.some(c => c.resolvedName === "philosophy")).toBe(true);
   });
 
   it("skips achievement transfers", () => {
-    const gs = createInitializedGameState();
+    const { state, engine } = createInitializedGS();
 
     const log: GameLogEntry[] = [
       { type: "transfer", move: 1, cardSet: "base", source: "board", dest: "achievements", cardName: "Agriculture", cardAge: 1, sourceOwner: "Alice", destOwner: "Alice", meldKeyword: false },
     ];
     const myHand = ["Agriculture", "Archery"];
 
-    gs.processLog(log, myHand);
+    engine.processLog(state, log, myHand);
   });
 });
 
@@ -893,12 +923,13 @@ describe("processLog", () => {
 
 describe("serialization", () => {
   it("round-trips an initial game state", () => {
-    const gs = createInitializedGameState();
-    gs.resolveHand("Alice", ["agriculture", "archery"]);
-    gs.resolveHand("Bob", ["clothing", "city states"]);
+    const { state, engine } = createInitializedGS();
+    engine.resolveHand(state, "Alice", ["agriculture", "archery"]);
+    engine.resolveHand(state, "Bob", ["clothing", "city states"]);
 
-    const json = gs.toJSON();
-    const gs2 = GameState.fromJSON(json, cardDb, PLAYERS, PERSPECTIVE);
+    const json = toJSON(state);
+    const gs2 = fromJSON(json, PLAYERS, PERSPECTIVE);
+    engine.buildGroups(gs2);
 
     const aliceHand = gs2.hands.get("Alice")!;
     expect(aliceHand.length).toBe(2);
@@ -911,12 +942,12 @@ describe("serialization", () => {
     expect(bobHand[1].resolvedName).toBe("city states");
   });
 
-  it("round-trips unresolved cards with exclusions", () => {
-    const gs = createInitializedGameState();
-    gs.resolveHand("Alice", ["agriculture", "archery"]);
+  it("round-trips unresolved cards with full candidates", () => {
+    const { state, engine } = createInitializedGS();
+    engine.resolveHand(state, "Alice", ["agriculture", "archery"]);
 
-    const json = gs.toJSON();
-    const gs2 = GameState.fromJSON(json, cardDb, PLAYERS, PERSPECTIVE);
+    const json = toJSON(state);
+    const gs2 = fromJSON(json, PLAYERS, PERSPECTIVE);
 
     const age1Key = ageSetKey(1, CardSet.BASE);
     const deckCards = gs2.decks.get(age1Key)!;
@@ -927,15 +958,15 @@ describe("serialization", () => {
   });
 
   it("round-trips opponent knowledge", () => {
-    const gs = createInitializedGameState();
-    gs.resolveHand("Alice", ["agriculture", "archery"]);
+    const { state, engine } = createInitializedGS();
+    engine.resolveHand(state, "Alice", ["agriculture", "archery"]);
 
-    const aliceHand = gs.hands.get("Alice")!;
+    const aliceHand = state.hands.get("Alice")!;
     aliceHand[0].opponentKnowledge = { kind: "exact", name: "agriculture" };
     aliceHand[1].opponentKnowledge = { kind: "partial", suspects: new Set(["archery", "clothing"]), closed: true };
 
-    const json = gs.toJSON();
-    const gs2 = GameState.fromJSON(json, cardDb, PLAYERS, PERSPECTIVE);
+    const json = toJSON(state);
+    const gs2 = fromJSON(json, PLAYERS, PERSPECTIVE);
 
     const hand2 = gs2.hands.get("Alice")!;
     expect(hand2[0].opponentKnowledge).toEqual({ kind: "exact", name: "agriculture" });
@@ -947,11 +978,11 @@ describe("serialization", () => {
   });
 
   it("round-trips achievements", () => {
-    const gs = createInitializedGameState();
-    gs.resolveHand("Alice", ["agriculture", "archery"]);
+    const { state, engine } = createInitializedGS();
+    engine.resolveHand(state, "Alice", ["agriculture", "archery"]);
 
-    const json = gs.toJSON();
-    const gs2 = GameState.fromJSON(json, cardDb, PLAYERS, PERSPECTIVE);
+    const json = toJSON(state);
+    const gs2 = fromJSON(json, PLAYERS, PERSPECTIVE);
 
     expect(gs2.achievements.length).toBe(9);
     for (let i = 0; i < 9; i++) {
@@ -959,41 +990,71 @@ describe("serialization", () => {
     }
   });
 
-  it("serializes resolved cards compactly", () => {
-    const gs = createInitializedGameState();
-    gs.resolveHand("Alice", ["agriculture", "archery"]);
+  it("serializes resolved cards with age and cardSet", () => {
+    const { state, engine } = createInitializedGS();
+    engine.resolveHand(state, "Alice", ["agriculture", "archery"]);
 
-    const json = gs.toJSON();
+    const json = toJSON(state);
     const aliceHand = json.hands["Alice"];
     expect(aliceHand[0].resolved).toBe("agriculture");
-    expect(aliceHand[0].age).toBeUndefined();
-    expect(aliceHand[0].cardSet).toBeUndefined();
+    expect(aliceHand[0].age).toBe(1);
+    expect(aliceHand[0].cardSet).toBe(CardSet.BASE);
+    expect(aliceHand[0].candidates).toBeUndefined();
   });
 
-  it("serializes unresolved cards with exclusions", () => {
-    const gs = createInitializedGameState();
-    gs.resolveHand("Alice", ["agriculture", "archery"]);
+  it("serializes unresolved cards with full candidates", () => {
+    const { state, engine } = createInitializedGS();
+    engine.resolveHand(state, "Alice", ["agriculture", "archery"]);
 
-    const json = gs.toJSON();
+    const json = toJSON(state);
     const deckKey = "1/base";
     const deckCards = json.decks[deckKey];
     for (const card of deckCards) {
       expect(card.age).toBe(1);
       expect(card.cardSet).toBe(CardSet.BASE);
-      expect(card.excluded).toBeDefined();
-      expect(card.excluded).toContain("agriculture");
-      expect(card.excluded).toContain("archery");
+      expect(card.candidates).toBeDefined();
+      expect(card.candidates).not.toContain("agriculture");
+      expect(card.candidates).not.toContain("archery");
     }
   });
 
   it("omits opponent knowledge when none", () => {
-    const gs = createInitializedGameState();
-    gs.resolveHand("Alice", ["agriculture", "archery"]);
+    const { state, engine } = createInitializedGS();
+    engine.resolveHand(state, "Alice", ["agriculture", "archery"]);
 
-    const json = gs.toJSON();
+    const json = toJSON(state);
     const aliceHand = json.hands["Alice"];
     expect(aliceHand[0].opponent).toBeUndefined();
     expect(aliceHand[1].opponent).toBeUndefined();
+  });
+
+  it("fromJSON does not require CardDatabase", () => {
+    const { state, engine } = createInitializedGS();
+    engine.resolveHand(state, "Alice", ["agriculture", "archery"]);
+
+    const json = toJSON(state);
+    // fromJSON is a standalone function — no engine/cardDb needed
+    const gs2 = fromJSON(json, PLAYERS, PERSPECTIVE);
+
+    const aliceHand = gs2.hands.get("Alice")!;
+    expect(aliceHand[0].resolvedName).toBe("agriculture");
+    expect(aliceHand[0].age).toBe(1);
+    expect(aliceHand[0].cardSet).toBe(CardSet.BASE);
+  });
+
+  it("buildGroups populates engine groups from deserialized state", () => {
+    const { state, engine } = createInitializedGS();
+    engine.resolveHand(state, "Alice", ["agriculture", "archery"]);
+
+    const json = toJSON(state);
+    const gs2 = fromJSON(json, PLAYERS, PERSPECTIVE);
+
+    const engine2 = new GameEngine(cardDb);
+    engine2.buildGroups(gs2);
+
+    // Engine should be able to query opponent knowledge after buildGroups
+    const bobHand = gs2.hands.get("Bob")!;
+    expect(engine2.opponentKnowsNothing(bobHand[0])).toBe(true);
   });
 });
 
@@ -1003,34 +1064,34 @@ describe("serialization", () => {
 
 describe("opponent knowledge queries", () => {
   it("opponentKnowsNothing for fresh cards", () => {
-    const gs = createInitializedGameState();
-    const aliceHand = gs.hands.get("Alice")!;
-    expect(gs.opponentKnowsNothing(aliceHand[0])).toBe(true);
+    const { state, engine } = createInitializedGS();
+    const aliceHand = state.hands.get("Alice")!;
+    expect(engine.opponentKnowsNothing(aliceHand[0])).toBe(true);
   });
 
   it("opponentKnowsNothing false for exact knowledge", () => {
-    const gs = createInitializedGameState();
-    gs.resolveHand("Alice", ["agriculture", "archery"]);
-    const aliceHand = gs.hands.get("Alice")!;
+    const { state, engine } = createInitializedGS();
+    engine.resolveHand(state, "Alice", ["agriculture", "archery"]);
+    const aliceHand = state.hands.get("Alice")!;
     aliceHand[0].opponentKnowledge = { kind: "exact", name: "agriculture" };
-    expect(gs.opponentKnowsNothing(aliceHand[0])).toBe(false);
+    expect(engine.opponentKnowsNothing(aliceHand[0])).toBe(false);
   });
 
   it("opponentHasPartialInformation for partial knowledge", () => {
-    const gs = createInitializedGameState();
-    gs.resolveHand("Alice", ["agriculture", "archery"]);
-    const aliceHand = gs.hands.get("Alice")!;
+    const { state, engine } = createInitializedGS();
+    engine.resolveHand(state, "Alice", ["agriculture", "archery"]);
+    const aliceHand = state.hands.get("Alice")!;
 
     aliceHand[0].opponentKnowledge = { kind: "partial", suspects: new Set(["agriculture"]), closed: false };
-    expect(gs.opponentHasPartialInformation(aliceHand[0])).toBe(true);
+    expect(engine.opponentHasPartialInformation(aliceHand[0])).toBe(true);
   });
 
   it("opponentHasPartialInformation false for exact knowledge", () => {
-    const gs = createInitializedGameState();
-    gs.resolveHand("Alice", ["agriculture", "archery"]);
-    const aliceHand = gs.hands.get("Alice")!;
+    const { state, engine } = createInitializedGS();
+    engine.resolveHand(state, "Alice", ["agriculture", "archery"]);
+    const aliceHand = state.hands.get("Alice")!;
     aliceHand[0].opponentKnowledge = { kind: "exact", name: "agriculture" };
-    expect(gs.opponentHasPartialInformation(aliceHand[0])).toBe(false);
+    expect(engine.opponentHasPartialInformation(aliceHand[0])).toBe(false);
   });
 });
 
@@ -1040,7 +1101,7 @@ describe("opponent knowledge queries", () => {
 
 describe("full game sequence", () => {
   it("handles a multi-turn game sequence", () => {
-    const gs = createInitializedGameState();
+    const { state, engine } = createInitializedGS();
 
     const log: GameLogEntry[] = [
       { type: "transfer", move: 1, cardSet: "base", source: "hand", dest: "board", cardName: "Agriculture", cardAge: 1, sourceOwner: "Alice", destOwner: "Alice", meldKeyword: true },
@@ -1052,25 +1113,25 @@ describe("full game sequence", () => {
     ];
     const myHand = ["Metalworking", "Calendar"];
 
-    gs.processLog(log, myHand);
+    engine.processLog(state, log, myHand);
 
-    const aliceBoard = gs.boards.get("Alice")!;
+    const aliceBoard = state.boards.get("Alice")!;
     expect(aliceBoard.some(c => c.resolvedName === "agriculture")).toBe(true);
 
-    const aliceScore = gs.scores.get("Alice")!;
+    const aliceScore = state.scores.get("Alice")!;
     expect(aliceScore.some(c => c.resolvedName === "archery")).toBe(true);
 
-    const aliceHand = gs.hands.get("Alice")!;
+    const aliceHand = state.hands.get("Alice")!;
     expect(aliceHand.length).toBe(2);
     const handNames = aliceHand.map(c => c.resolvedName).sort();
     expect(handNames).toEqual(["calendar", "metalworking"]);
 
-    expect(gs.hands.get("Bob")!.length).toBe(2);
-    expect(gs.boards.get("Bob")!.length).toBe(1);
+    expect(state.hands.get("Bob")!.length).toBe(2);
+    expect(state.boards.get("Bob")!.length).toBe(1);
   });
 
   it("handles game with revealed hand", () => {
-    const gs = createInitializedGameState();
+    const { state, engine } = createInitializedGS();
 
     const log: GameLogEntry[] = [
       { type: "transfer", move: 1, cardSet: "base", source: "hand", dest: "board", cardName: "Agriculture", cardAge: 1, sourceOwner: "Alice", destOwner: "Alice", meldKeyword: true },
@@ -1079,9 +1140,9 @@ describe("full game sequence", () => {
     ];
     const myHand = ["Archery", "Metalworking"];
 
-    gs.processLog(log, myHand);
+    engine.processLog(state, log, myHand);
 
-    const bobHand = gs.hands.get("Bob")!;
+    const bobHand = state.hands.get("Bob")!;
     expect(bobHand.find(c => c.resolvedName === "clothing")).toBeDefined();
     expect(bobHand.find(c => c.resolvedName === "city states")).toBeDefined();
 
@@ -1097,25 +1158,25 @@ describe("full game sequence", () => {
 
 describe("propagation with many resolved cards", () => {
   it("handles resolving most cards in a group", () => {
-    const gs = createInitializedGameState();
+    const { state, engine } = createInitializedGS();
     const age1Key = ageSetKey(1, CardSet.BASE);
     const groupNames = [...cardDb.groups().get(age1Key)!];
 
-    gs.resolveHand("Alice", [groupNames[0], groupNames[1]]);
-    gs.resolveHand("Bob", [groupNames[2], groupNames[3]]);
+    engine.resolveHand(state, "Alice", [groupNames[0], groupNames[1]]);
+    engine.resolveHand(state, "Bob", [groupNames[2], groupNames[3]]);
 
     // Draw and resolve many cards
-    const deckSize = gs.decks.get(age1Key)!.length;
+    const deckSize = state.decks.get(age1Key)!.length;
     for (let i = 0; i < deckSize; i++) {
-      gs.move(namedAction({ cardName: groupNames[4 + i], source: "deck", dest: "hand", destPlayer: "Alice" }));
+      engine.move(state, namedAction({ cardName: groupNames[4 + i], source: "deck", dest: "hand", destPlayer: "Alice" }));
     }
 
     // All cards in the group should be resolved (including the achievement)
     const allCards = [
-      ...gs.decks.get(age1Key) ?? [],
-      ...gs.hands.get("Alice")!.filter(c => c.groupKey === age1Key),
-      ...gs.hands.get("Bob")!.filter(c => c.groupKey === age1Key),
-      ...gs.achievements.filter(c => c.groupKey === age1Key),
+      ...state.decks.get(age1Key) ?? [],
+      ...state.hands.get("Alice")!.filter(c => ageSetKey(c.age, c.cardSet) === age1Key),
+      ...state.hands.get("Bob")!.filter(c => ageSetKey(c.age, c.cardSet) === age1Key),
+      ...state.achievements.filter(c => ageSetKey(c.age, c.cardSet) === age1Key),
     ];
     const resolved = allCards.filter(c => c.isResolved);
     expect(resolved.length).toBe(groupNames.length);
@@ -1128,9 +1189,9 @@ describe("propagation with many resolved cards", () => {
 
 describe("echoes expansion initGame", () => {
   it("deals 1 base + 1 echoes age-1 card per player when echoes active", () => {
-    const gs = createInitializedGameState({ echoes: true });
+    const { state, engine } = createInitializedGS({ echoes: true });
     for (const player of PLAYERS) {
-      const hand = gs.hands.get(player)!;
+      const hand = state.hands.get(player)!;
       expect(hand.length).toBe(2);
       const sets = hand.map(c => c.cardSet);
       expect(sets).toContain(CardSet.BASE);
@@ -1139,37 +1200,37 @@ describe("echoes expansion initGame", () => {
   });
 
   it("removes 1 card from base age-1 deck per player when echoes active", () => {
-    const gs = createInitializedGameState({ echoes: true });
+    const { state, engine } = createInitializedGS({ echoes: true });
     const baseAge1Key = ageSetKey(1, CardSet.BASE);
     const baseGroupSize = cardDb.groups().get(baseAge1Key)!.size;
-    const baseDeck = gs.decks.get(baseAge1Key)!;
+    const baseDeck = state.decks.get(baseAge1Key)!;
     // base age-1 deck: groupSize - 1 achievement - 1 per player (not 2)
     expect(baseDeck.length).toBe(baseGroupSize - 1 - PLAYERS.length);
   });
 
   it("removes 1 card from echoes age-1 deck per player when echoes active", () => {
-    const gs = createInitializedGameState({ echoes: true });
+    const { state, engine } = createInitializedGS({ echoes: true });
     const echoesAge1Key = ageSetKey(1, CardSet.ECHOES);
     const echoesGroupSize = cardDb.groups().get(echoesAge1Key)!.size;
-    const echoesDeck = gs.decks.get(echoesAge1Key)!;
+    const echoesDeck = state.decks.get(echoesAge1Key)!;
     // echoes age-1 deck: groupSize - 1 per player (no achievements from echoes)
     expect(echoesDeck.length).toBe(echoesGroupSize - PLAYERS.length);
   });
 
   it("creates echoes decks for all ages", () => {
-    const gs = createInitializedGameState({ echoes: true });
+    const { state, engine } = createInitializedGS({ echoes: true });
     for (let age = 1; age <= 10; age++) {
       const key = ageSetKey(age, CardSet.ECHOES);
-      const deck = gs.decks.get(key);
+      const deck = state.decks.get(key);
       expect(deck).toBeDefined();
       expect(deck!.length).toBeGreaterThan(0);
     }
   });
 
   it("deals 2 base age-1 cards when echoes not active (default)", () => {
-    const gs = createInitializedGameState();
+    const { state, engine } = createInitializedGS();
     for (const player of PLAYERS) {
-      const hand = gs.hands.get(player)!;
+      const hand = state.hands.get(player)!;
       expect(hand.length).toBe(2);
       for (const card of hand) {
         expect(card.cardSet).toBe(CardSet.BASE);
@@ -1179,9 +1240,9 @@ describe("echoes expansion initGame", () => {
   });
 
   it("deals 2 base age-1 cards when echoes explicitly false", () => {
-    const gs = createInitializedGameState({ echoes: false });
+    const { state, engine } = createInitializedGS({ echoes: false });
     for (const player of PLAYERS) {
-      const hand = gs.hands.get(player)!;
+      const hand = state.hands.get(player)!;
       expect(hand.length).toBe(2);
       for (const card of hand) {
         expect(card.cardSet).toBe(CardSet.BASE);
@@ -1196,7 +1257,7 @@ describe("echoes expansion initGame", () => {
 
 describe("echoes resolveHand", () => {
   it("resolves mixed-set hand cards by candidate matching", () => {
-    const gs = createInitializedGameState({ echoes: true });
+    const { state, engine } = createInitializedGS({ echoes: true });
     // Find a base age-1 card and an echoes age-1 card from the database
     const baseNames = [...cardDb.groups().get(ageSetKey(1, CardSet.BASE))!];
     const echoesNames = [...cardDb.groups().get(ageSetKey(1, CardSet.ECHOES))!];
@@ -1204,8 +1265,8 @@ describe("echoes resolveHand", () => {
     const echoesName = echoesNames[0];
 
     // Resolve with echoes name first, base second (opposite of deal order)
-    gs.resolveHand("Alice", [echoesName, baseName]);
-    const hand = gs.hands.get("Alice")!;
+    engine.resolveHand(state, "Alice", [echoesName, baseName]);
+    const hand = state.hands.get("Alice")!;
     const resolved = hand.filter(c => c.isResolved);
     expect(resolved.length).toBe(2);
     const resolvedNames = resolved.map(c => c.resolvedName).sort();
@@ -1213,19 +1274,19 @@ describe("echoes resolveHand", () => {
   });
 
   it("propagates constraints in both base and echoes groups", () => {
-    const gs = createInitializedGameState({ echoes: true });
+    const { state, engine } = createInitializedGS({ echoes: true });
     const baseNames = [...cardDb.groups().get(ageSetKey(1, CardSet.BASE))!];
     const echoesNames = [...cardDb.groups().get(ageSetKey(1, CardSet.ECHOES))!];
 
-    gs.resolveHand("Alice", [baseNames[0], echoesNames[0]]);
+    engine.resolveHand(state, "Alice", [baseNames[0], echoesNames[0]]);
 
     // Base deck should not contain the resolved base card
-    const baseDeck = gs.decks.get(ageSetKey(1, CardSet.BASE))!;
+    const baseDeck = state.decks.get(ageSetKey(1, CardSet.BASE))!;
     for (const card of baseDeck) {
       expect(card.candidates.has(baseNames[0])).toBe(false);
     }
     // Echoes deck should not contain the resolved echoes card
-    const echoesDeck = gs.decks.get(ageSetKey(1, CardSet.ECHOES))!;
+    const echoesDeck = state.decks.get(ageSetKey(1, CardSet.ECHOES))!;
     for (const card of echoesDeck) {
       expect(card.candidates.has(echoesNames[0])).toBe(false);
     }

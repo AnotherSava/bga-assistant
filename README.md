@@ -91,9 +91,9 @@ src/
     innovation/
       types.ts               Innovation types: Card, CardInfo, CardDatabase, enums, actions
       process_log.ts         Raw BGA packets -> structured Innovation game log
-      game_state.ts          Innovation state tracking + constraint propagation
+      game_state.ts          GameState interface (zone data) + GameEngine class (constraint propagation)
       turn_history.ts         Turn action types and recent-turns grouping
-      render.ts              GameState -> HTML string via template literals
+      render.ts              GameState + GameEngine -> HTML string via template literals
       config.ts              Section layout config, visibility/layout defaults
     azul/
       process_log.ts         Raw BGA packets -> structured Azul game log

@@ -3,7 +3,7 @@ import { readFileSync } from "fs";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
 import { Card, CardDatabase, cardIndex } from "../types";
-import { GameState } from "../game_state";
+import { type GameState, GameEngine, createGameState } from "../game_state";
 import { renderSummary, renderTurnHistory } from "../render";
 import type { TurnAction } from "../turn_history";
 
@@ -204,15 +204,16 @@ describe("renderTurnHistory", () => {
 
 describe("bug: forecast cards shown as unresolved in Cards section", () => {
   it("marks forecast cards as resolved (data-known) in the Cards section", () => {
-    const gs = new GameState(cardDb, PLAYERS, PERSPECTIVE);
-    gs.initGame();
+    const engine = new GameEngine(cardDb);
+    const gs = createGameState(PLAYERS, PERSPECTIVE);
+    engine.initGame(gs);
 
     // Place Sanitation directly into Alice's forecast
     const sanInfo = cardDb.get(cardIndex("sanitation"))!;
     const sanCard = new Card(sanInfo.age, sanInfo.cardSet, [cardIndex("sanitation")]);
     gs.forecast.get(PERSPECTIVE)!.push(sanCard);
 
-    const html = renderSummary(gs, cardDb, PERSPECTIVE, PLAYERS, "test", { textTooltips: true });
+    const html = renderSummary(gs, engine, cardDb, PERSPECTIVE, PLAYERS, "test", { textTooltips: true });
 
     // In the Cards section, find the card div containing "Sanitation"
     const cardsSection = html.match(/data-section="cards"[\s\S]*?(?=<div class="section"|$)/);

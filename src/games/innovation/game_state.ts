@@ -29,7 +29,7 @@ interface SerializedCard {
   resolved?: string;
   age?: number;
   cardSet?: number;
-  excluded?: string[];
+  candidates?: string[];
   opponent?: SerializedOpponentKnowledge;
 }
 
@@ -37,7 +37,7 @@ type SerializedOpponentKnowledge =
   | { kind: "exact"; name: string | null }
   | { kind: "partial"; suspects: string[]; closed: boolean };
 
-interface SerializedGameState {
+export interface SerializedGameState {
   decks: Record<string, SerializedCard[]>;
   hands: Record<string, SerializedCard[]>;
   boards: Record<string, SerializedCard[]>;
@@ -48,10 +48,10 @@ interface SerializedGameState {
 }
 
 // ---------------------------------------------------------------------------
-// GameState
+// GameState interface — plain data, the serialization boundary
 // ---------------------------------------------------------------------------
 
-export class GameState {
+export interface GameState {
   decks: Map<AgeSetKey, Card[]>;
   hands: Map<string, Card[]>;
   boards: Map<string, Card[]>;
@@ -59,33 +59,70 @@ export class GameState {
   revealed: Map<string, Card[]>;
   forecast: Map<string, Card[]>;
   achievements: Card[];
+  players: string[];
+  perspective: string;
+}
+
+/** Create a fresh GameState with empty zones for the given players. */
+export function createGameState(players: string[], perspective: string): GameState {
+  return {
+    decks: new Map(),
+    hands: new Map(players.map(p => [p, []])),
+    boards: new Map(players.map(p => [p, []])),
+    scores: new Map(players.map(p => [p, []])),
+    revealed: new Map(players.map(p => [p, []])),
+    forecast: new Map(players.map(p => [p, []])),
+    achievements: [],
+    players,
+    perspective,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Zone accessor (standalone — operates on GameState data)
+// ---------------------------------------------------------------------------
+
+/** Return the card list for a zone+player combination. */
+export function cardsAt(state: GameState, zone: Zone, player: string | null, groupKey?: AgeSetKey): Card[] {
+  switch (zone) {
+    case "deck": {
+      if (!groupKey) throw new Error(`cardsAt("deck") requires a groupKey`);
+      return state.decks.get(groupKey) ?? [];
+    }
+    case "hand":
+    case "board":
+    case "score":
+    case "revealed":
+    case "forecast": {
+      if (!player) throw new Error(`cardsAt("${zone}") requires a player`);
+      const zoneMap = zone === "hand" ? state.hands : zone === "board" ? state.boards : zone === "score" ? state.scores : zone === "revealed" ? state.revealed : state.forecast;
+      const cards = zoneMap.get(player);
+      if (!cards) throw new Error(`Player "${player}" not found in ${zone} zone`);
+      return cards;
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// GameEngine
+// ---------------------------------------------------------------------------
+
+export class GameEngine {
+  private cardDb: CardDatabase;
 
   /** All Card objects per (age, cardSet) group - master list for propagation. */
   private _groups: Map<AgeSetKey, Card[]>;
-
-  private cardDb: CardDatabase;
-  private players: string[];
-  private perspective: string;
-  private playerPattern: string;
 
   // Cities meld-filter tracking
   private meldIcon: string | null = null;
   private discardNames: Set<string> = new Set();
   private remainingReturns: number = 0;
 
-  constructor(cardDb: CardDatabase, players: string[], perspective: string) {
-    this.cardDb = cardDb;
-    this.players = players;
-    this.perspective = perspective;
-    this.playerPattern = players.map(p => p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
+  // Cached from state.players during processLog
+  private _playerPattern: string = "";
 
-    this.decks = new Map();
-    this.hands = new Map(players.map(p => [p, []]));
-    this.boards = new Map(players.map(p => [p, []]));
-    this.scores = new Map(players.map(p => [p, []]));
-    this.revealed = new Map(players.map(p => [p, []]));
-    this.forecast = new Map(players.map(p => [p, []]));
-    this.achievements = [];
+  constructor(cardDb: CardDatabase) {
+    this.cardDb = cardDb;
     this._groups = new Map();
   }
 
@@ -106,44 +143,32 @@ export class GameState {
   }
 
   // ------------------------------------------------------------------
-  // Zone accessors
+  // Zone helpers (private, operate on GameState)
   // ------------------------------------------------------------------
 
-  /** Return the card list for a zone+player combination. */
-  cardsAt(zone: Zone, player: string | null, groupKey?: AgeSetKey): Card[] {
-    switch (zone) {
-      case "deck": {
-        if (!groupKey) throw new Error(`cardsAt("deck") requires a groupKey`);
-        return this.decks.get(groupKey) ?? [];
-      }
-      case "hand":
-      case "board":
-      case "score":
-      case "revealed":
-      case "forecast": {
-        if (!player) throw new Error(`cardsAt("${zone}") requires a player`);
-        const zoneMap = zone === "hand" ? this.hands : zone === "board" ? this.boards : zone === "score" ? this.scores : zone === "revealed" ? this.revealed : this.forecast;
-        const cards = zoneMap.get(player);
-        if (!cards) throw new Error(`Player "${player}" not found in ${zone} zone`);
-        return cards;
-      }
-    }
-  }
-
   /** Return the mutable card list for a zone, creating it if needed for decks. */
-  private cardsAtMut(zone: Zone, player: string | null, groupKey: AgeSetKey): Card[] {
+  private cardsAtMut(state: GameState, zone: Zone, player: string | null, groupKey: AgeSetKey): Card[] {
     if (zone === "deck") {
-      let deck = this.decks.get(groupKey);
+      let deck = state.decks.get(groupKey);
       if (!deck) {
         deck = [];
-        this.decks.set(groupKey, deck);
+        state.decks.set(groupKey, deck);
       }
       return deck;
     }
-    const zoneMap = zone === "hand" ? this.hands : zone === "board" ? this.boards : zone === "score" ? this.scores : zone === "forecast" ? this.forecast : this.revealed;
+    const zoneMap = zone === "hand" ? state.hands : zone === "board" ? state.boards : zone === "score" ? state.scores : zone === "forecast" ? state.forecast : state.revealed;
     const cards = zoneMap.get(player!);
     if (!cards) throw new Error(`Player "${player}" not found in ${zone} zone`);
     return cards;
+  }
+
+  // ------------------------------------------------------------------
+  // Group helpers
+  // ------------------------------------------------------------------
+
+  /** Look up the card group for an (age, cardSet) pair. */
+  findGroup(age: number, cardSet: CardSet): Card[] {
+    return this._groups.get(ageSetKey(age, cardSet)) ?? [];
   }
 
   // ------------------------------------------------------------------
@@ -151,7 +176,7 @@ export class GameState {
   // ------------------------------------------------------------------
 
   /** Set up initial game state: all cards in decks, achievements, initial deal. */
-  initGame(expansions?: { echoes: boolean }): void {
+  initGame(state: GameState, expansions?: { echoes: boolean }): void {
     const echoesActive = expansions?.echoes ?? false;
 
     // Create all cards in decks
@@ -160,21 +185,21 @@ export class GameState {
       for (let i = 0; i < indexNames.size; i++) {
         deck.push(this.createCard(groupKey, indexNames));
       }
-      this.decks.set(groupKey, deck);
+      state.decks.set(groupKey, deck);
     }
 
     // Move 1 card per base age 1-9 to achievements
     for (let age = 1; age <= 9; age++) {
       const key = ageSetKey(age, CardSet.BASE);
-      const deck = this.decks.get(key)!;
-      this.achievements.push(deck.pop()!);
+      const deck = state.decks.get(key)!;
+      state.achievements.push(deck.pop()!);
     }
 
     // Deal initial hand: 1 base + 1 echoes age-1 when echoes active, 2 base age-1 otherwise
-    const baseAge1Deck = this.decks.get(ageSetKey(1, CardSet.BASE))!;
-    const echoesAge1Deck = echoesActive ? this.decks.get(ageSetKey(1, CardSet.ECHOES)) : undefined;
-    for (const player of this.players) {
-      const hand = this.hands.get(player)!;
+    const baseAge1Deck = state.decks.get(ageSetKey(1, CardSet.BASE))!;
+    const echoesAge1Deck = echoesActive ? state.decks.get(ageSetKey(1, CardSet.ECHOES)) : undefined;
+    for (const player of state.players) {
+      const hand = state.hands.get(player)!;
       hand.push(baseAge1Deck.pop()!);
       if (echoesActive && echoesAge1Deck) {
         hand.push(echoesAge1Deck.pop()!);
@@ -185,15 +210,15 @@ export class GameState {
   }
 
   /** Resolve initial hand cards right after initGame. */
-  resolveHand(player: string, cardNames: string[]): void {
-    const hand = this.hands.get(player)!;
+  resolveHand(state: GameState, player: string, cardNames: string[]): void {
+    const hand = state.hands.get(player)!;
     const resolved = new Set<Card>();
     for (const idx of cardNames) {
       const card = hand.find(c => !resolved.has(c) && c.candidates.has(idx));
       if (!card) throw new Error(`Cannot resolve hand card "${idx}" for ${player}`);
       const info = this.cardDb.get(idx)!;
       const groupKey = ageSetKey(info.age, info.cardSet);
-      card.resolve(idx);
+      card.candidates = new Set([idx]);
       resolved.add(card);
       this.propagate(groupKey);
     }
@@ -204,15 +229,15 @@ export class GameState {
   // ------------------------------------------------------------------
 
   /** Deduce initial hand by reverse-walking the log to undo all hand transfers. */
-  deduceInitialHand(log: GameLogEntry[], myHand: string[]): string[] {
+  deduceInitialHand(state: GameState, log: GameLogEntry[], myHand: string[]): string[] {
     const hand = new Set(myHand);
     for (let i = log.length - 1; i >= 0; i--) {
       const entry = log[i];
       if (entry.type !== "transfer") continue;
-      if (entry.dest === "hand" && entry.destOwner === this.perspective) {
+      if (entry.dest === "hand" && entry.destOwner === state.perspective) {
         if (entry.cardName !== null) hand.delete(entry.cardName);
       }
-      if (entry.source === "hand" && entry.sourceOwner === this.perspective) {
+      if (entry.source === "hand" && entry.sourceOwner === state.perspective) {
         if (entry.cardName !== null) hand.add(entry.cardName);
       }
     }
@@ -220,28 +245,30 @@ export class GameState {
   }
 
   /** Process the full game log: deduce hand, resolve, then process all entries. */
-  processLog(log: GameLogEntry[], myHand: string[]): void {
-    const initialHand = this.deduceInitialHand(log, myHand);
-    this.resolveHand(this.perspective, initialHand);
+  processLog(state: GameState, log: GameLogEntry[], myHand: string[]): void {
+    this._playerPattern = state.players.map(p => p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
+
+    const initialHand = this.deduceInitialHand(state, log, myHand);
+    this.resolveHand(state, state.perspective, initialHand);
 
     for (const entry of log) {
-      this.processEntry(entry);
+      this.processEntry(state, entry);
     }
   }
 
   /** Process a single log entry: dispatch to move, revealHand, or confirmMeldFilter. */
-  private processEntry(entry: GameLogEntry): void {
+  private processEntry(state: GameState, entry: GameLogEntry): void {
     if (entry.type === "transfer") {
       const te = entry as TransferEntry;
       if (["achievements", "claimed", "flags"].includes(te.dest)) return;
       if (["achievements", "claimed", "flags"].includes(te.source)) return;
-      this.processTransfer(te);
+      this.processTransfer(state, te);
     } else if (entry.type === "logWithCardTooltips") {
       const me = entry as MessageEntry;
-      const match = me.msg.match(new RegExp(`^(${this.playerPattern}) reveals (?:his|her|their) hand: (.+)\\.$`));
+      const match = me.msg.match(new RegExp(`^(${this._playerPattern}) reveals (?:his|her|their) hand: (.+)\\.$`));
       if (match) {
         const cardNames = match[2].split(", ").map(part => cardIndex(part.substring(part.indexOf(" ") + 1)));
-        this.revealHand(match[1], cardNames);
+        this.revealHand(state, match[1], cardNames);
       }
     } else if (entry.type === "log") {
       const me = entry as MessageEntry;
@@ -255,8 +282,8 @@ export class GameState {
   private static readonly VALID_ZONES: ReadonlySet<string> = new Set(["deck", "hand", "board", "score", "revealed", "forecast"]);
 
   /** Convert a TransferEntry to an Action and execute it. */
-  private processTransfer(entry: TransferEntry): void {
-    if (!GameState.VALID_ZONES.has(entry.source) || !GameState.VALID_ZONES.has(entry.dest)) return;
+  private processTransfer(state: GameState, entry: TransferEntry): void {
+    if (!GameEngine.VALID_ZONES.has(entry.source) || !GameEngine.VALID_ZONES.has(entry.dest)) return;
 
     const cardName = entry.cardName;
     const cardIdx = cardName ? cardIndex(cardName) : null;
@@ -286,7 +313,7 @@ export class GameState {
       };
     }
 
-    this.move(action);
+    this.move(state, action);
   }
 
   // ------------------------------------------------------------------
@@ -294,7 +321,7 @@ export class GameState {
   // ------------------------------------------------------------------
 
   /** Move a card from one location to another. */
-  move(action: Action): Card {
+  move(state: GameState, action: Action): Card {
     const groupKey = action.type === "named"
       ? ageSetKey(this.cardDb.get(action.cardName)!.age, this.cardDb.get(action.cardName)!.cardSet)
       : ageSetKey(action.age, action.cardSet);
@@ -324,7 +351,7 @@ export class GameState {
     // We know which cards lack the meld icon, so pick one from discardNames.
     if (this.remainingReturns > 0 && action.source === "hand" && action.dest === "deck") {
       if (action.type === "grouped") {
-        const sourceCards = this.cardsAt(action.source, action.sourcePlayer, groupKey);
+        const sourceCards = cardsAt(state, action.source, action.sourcePlayer, groupKey);
         const match = sourceCards.find(c => c.isResolved && this.discardNames.has(c.resolvedName!));
         if (match) {
           action = { type: "named", cardName: match.resolvedName!, source: action.source, dest: action.dest, sourcePlayer: action.sourcePlayer, destPlayer: action.destPlayer, meldKeyword: action.meldKeyword };
@@ -337,9 +364,9 @@ export class GameState {
       }
     }
 
-    const card = this.takeFromSource(action, groupKey);
-    this.cardsAtMut(action.dest, action.destPlayer, groupKey).push(card);
-    this.updateOpponentKnowledge(card, action);
+    const card = this.takeFromSource(state, action, groupKey);
+    this.cardsAtMut(state, action.dest, action.destPlayer, groupKey).push(card);
+    this.updateOpponentKnowledge(state, card, action);
 
     return card;
   }
@@ -353,16 +380,16 @@ export class GameState {
   }
 
   /** Handle "reveals his hand" - resolve and mark cards without moving them. */
-  revealHand(player: string, cardIndices: string[]): void {
-    const hand = this.hands.get(player)!;
+  revealHand(state: GameState, player: string, cardIndices: string[]): void {
+    const hand = state.hands.get(player)!;
     for (const idx of cardIndices) {
       const info = this.cardDb.get(idx);
       if (!info) continue;
       const groupKey = ageSetKey(info.age, info.cardSet);
       const card = hand.find(c => c.candidates.has(idx));
       if (!card) continue;
-      card.resolve(idx);
-      card.markPublic();
+      card.candidates = new Set([idx]);
+      card.opponentKnowledge = { kind: "exact", name: card.resolvedName };
       this.propagate(groupKey);
     }
   }
@@ -372,12 +399,12 @@ export class GameState {
   // ------------------------------------------------------------------
 
   /** Find, resolve, remove, and merge at the source location. */
-  private takeFromSource(action: Action, groupKey: AgeSetKey): Card {
+  private takeFromSource(state: GameState, action: Action, groupKey: AgeSetKey): Card {
     let sourceCards: Card[];
     let card: Card;
 
     if (action.source === "deck") {
-      sourceCards = this.cardsAtMut(action.source, null, groupKey);
+      sourceCards = this.cardsAtMut(state, action.source, null, groupKey);
       if (sourceCards.length === 0) {
         throw new Error(`Cannot draw from empty deck: ${groupKey}`);
       }
@@ -388,13 +415,13 @@ export class GameState {
         card = sourceCards[0];
       }
     } else {
-      sourceCards = this.cardsAt(action.source, action.sourcePlayer, groupKey);
+      sourceCards = cardsAt(state, action.source, action.sourcePlayer, groupKey);
       if (action.type === "named") {
         const found = sourceCards.find(c => c.candidates.has(action.cardName));
         if (!found) throw new Error(`Card "${action.cardName}" not found in ${action.source}`);
         card = found;
       } else {
-        const found = sourceCards.find(c => c.groupKey === groupKey);
+        const found = sourceCards.find(c => ageSetKey(c.age, c.cardSet) === groupKey);
         if (!found) throw new Error(`No card with groupKey "${groupKey}" found in ${action.source}`);
         card = found;
       }
@@ -402,7 +429,7 @@ export class GameState {
 
     // Resolve if named and not yet resolved
     if (action.type === "named" && !card.isResolved) {
-      card.resolve(action.cardName);
+      card.candidates = new Set([action.cardName]);
       this.propagate(groupKey);
     }
 
@@ -416,21 +443,21 @@ export class GameState {
       this.mergeCandidates(card, sourceCards);
     }
 
-    this.mergeSuspects(card, sourceCards, action);
+    this.mergeSuspects(state, card, sourceCards, action);
 
     return card;
   }
 
   /** Update opponent knowledge flags after a move. */
-  private updateOpponentKnowledge(card: Card, action: Action): void {
+  private updateOpponentKnowledge(state: GameState, card: Card, action: Action): void {
     const isVisibleToBoth = action.dest === "board" || action.dest === "revealed"
       || (action.sourcePlayer !== null && action.destPlayer !== null && action.sourcePlayer !== action.destPlayer);
     if (isVisibleToBoth) {
-      card.markPublic();
+      card.opponentKnowledge = { kind: "exact", name: card.resolvedName };
       return;
     }
 
-    const isVisibleToOpponent = (action.dest === "hand" || action.dest === "score" || action.dest === "forecast") && action.destPlayer !== this.perspective;
+    const isVisibleToOpponent = (action.dest === "hand" || action.dest === "score" || action.dest === "forecast") && action.destPlayer !== state.perspective;
     if (isVisibleToOpponent) {
       card.opponentKnowledge = { kind: "exact", name: card.resolvedName };
     }
@@ -438,7 +465,8 @@ export class GameState {
 
   /** Merge candidate sets when we can't tell which card moved from a private zone. */
   private mergeCandidates(card: Card, remainingSource: Card[]): void {
-    const affected = [card, ...remainingSource.filter(c => c.groupKey === card.groupKey)];
+    const cardGroupKey = ageSetKey(card.age, card.cardSet);
+    const affected = [card, ...remainingSource.filter(c => ageSetKey(c.age, c.cardSet) === cardGroupKey)];
     if (affected.length <= 1) return;
 
     const union = new Set<string>();
@@ -452,16 +480,17 @@ export class GameState {
   }
 
   /** Merge suspect lists when opponent can't tell which card moved. */
-  private mergeSuspects(card: Card, remainingSource: Card[], action: Action): void {
+  private mergeSuspects(state: GameState, card: Card, remainingSource: Card[], action: Action): void {
     // Only relevant when our card moves between private zones
     if (!(
       (action.source === "hand" || action.source === "score" || action.source === "forecast")
       && (action.dest === "deck" || action.dest === "hand" || action.dest === "score" || action.dest === "forecast")
-      && action.sourcePlayer === this.perspective
-      && (action.destPlayer === null || action.destPlayer === this.perspective)
+      && action.sourcePlayer === state.perspective
+      && (action.destPlayer === null || action.destPlayer === state.perspective)
     )) return;
 
-    const affected = [card, ...remainingSource.filter(c => c.groupKey === card.groupKey)];
+    const cardGroupKey = ageSetKey(card.age, card.cardSet);
+    const affected = [card, ...remainingSource.filter(c => ageSetKey(c.age, c.cardSet) === cardGroupKey)];
     if (affected.length <= 1) return;
 
     // Collect all suspects and closed status
@@ -497,7 +526,7 @@ export class GameState {
       }
     }
 
-    this.propagate(card.groupKey);
+    this.propagate(ageSetKey(card.age, card.cardSet));
   }
 
   // ------------------------------------------------------------------
@@ -536,7 +565,7 @@ export class GameState {
       for (const candidateName of unresolvedNames) {
         const holders = group.filter(c => !c.isResolved && c.candidates.has(candidateName));
         if (holders.length === 1) {
-          holders[0].resolve(candidateName);
+          holders[0].candidates = new Set([candidateName]);
           changed = true;
         }
       }
@@ -598,7 +627,7 @@ export class GameState {
   opponentHasPartialInformation(card: Card): boolean {
     if (card.opponentKnowledge.kind !== "partial") return false;
     if (card.opponentKnowledge.suspects.size === 0) return false;
-    const group = this._groups.get(card.groupKey) ?? [];
+    const group = this.findGroup(card.age, card.cardSet);
     const hiddenCount = group.filter(c => c.opponentKnowledge.kind !== "exact").length;
     return card.opponentKnowledge.suspects.size < hiddenCount;
   }
@@ -609,124 +638,138 @@ export class GameState {
   }
 
   // ------------------------------------------------------------------
-  // Serialization
+  // Group building (for deserialized states)
   // ------------------------------------------------------------------
 
-  /** Serialize full game state to a JSON-compatible object. */
-  toJSON(): SerializedGameState {
-    const serializeCard = (card: Card): SerializedCard => {
-      const result: SerializedCard = {};
-
-      if (card.isResolved) {
-        result.resolved = card.resolvedName!;
-      } else {
-        result.age = card.age;
-        result.cardSet = card.cardSet;
-        // Store exclusions instead of full candidates
-        const groupNames = this.cardDb.groups().get(card.groupKey);
-        if (groupNames) {
-          const excluded = [...groupNames].filter(n => !card.candidates.has(n)).sort();
-          if (excluded.length > 0) {
-            result.excluded = excluded;
-          }
-        }
+  /** Scan all zone cards in state and populate _groups for constraint queries. */
+  buildGroups(state: GameState): void {
+    this._groups = new Map();
+    const registerCard = (card: Card): void => {
+      const key = ageSetKey(card.age, card.cardSet);
+      let group = this._groups.get(key);
+      if (!group) {
+        group = [];
+        this._groups.set(key, group);
       }
-
-      // Serialize opponent knowledge (omit if "none")
-      if (card.opponentKnowledge.kind === "exact") {
-        result.opponent = { kind: "exact", name: card.opponentKnowledge.name };
-      } else if (card.opponentKnowledge.kind === "partial") {
-        result.opponent = { kind: "partial", suspects: [...card.opponentKnowledge.suspects].sort(), closed: card.opponentKnowledge.closed };
-      }
-
-      return result;
+      group.push(card);
     };
 
-    const serializeCards = (cards: Card[]): SerializedCard[] => cards.map(serializeCard);
+    for (const cards of state.decks.values()) for (const card of cards) registerCard(card);
+    for (const cards of state.hands.values()) for (const card of cards) registerCard(card);
+    for (const cards of state.boards.values()) for (const card of cards) registerCard(card);
+    for (const cards of state.scores.values()) for (const card of cards) registerCard(card);
+    for (const cards of state.revealed.values()) for (const card of cards) registerCard(card);
+    for (const cards of state.forecast.values()) for (const card of cards) registerCard(card);
+    for (const card of state.achievements) registerCard(card);
+  }
+}
 
-    const decks: Record<string, SerializedCard[]> = {};
-    for (const [key, cards] of this.decks) {
-      if (cards.length > 0) {
-        const { age, cardSet } = parseAgeSetKey(key);
-        decks[`${age}/${cardSetLabel(cardSet)}`] = serializeCards(cards);
+// ---------------------------------------------------------------------------
+// Standalone serialization functions
+// ---------------------------------------------------------------------------
+
+/** Serialize full game state to a JSON-compatible object. */
+export function toJSON(state: GameState): SerializedGameState {
+  const serializeCard = (card: Card): SerializedCard => {
+    const result: SerializedCard = {};
+
+    result.age = card.age;
+    result.cardSet = card.cardSet;
+    if (card.isResolved) {
+      result.resolved = card.resolvedName!;
+    } else {
+      const candidateList = [...card.candidates].sort();
+      if (candidateList.length > 0) {
+        result.candidates = candidateList;
       }
     }
 
-    const hands: Record<string, SerializedCard[]> = {};
-    const boards: Record<string, SerializedCard[]> = {};
-    const scores: Record<string, SerializedCard[]> = {};
-    const revealed: Record<string, SerializedCard[]> = {};
-    const forecast: Record<string, SerializedCard[]> = {};
-    for (const player of this.players) {
-      hands[player] = serializeCards(this.hands.get(player)!);
-      boards[player] = serializeCards(this.boards.get(player)!);
-      scores[player] = serializeCards(this.scores.get(player)!);
-      const rev = this.revealed.get(player) ?? [];
-      if (rev.length > 0) revealed[player] = serializeCards(rev);
-      const fc = this.forecast.get(player) ?? [];
-      if (fc.length > 0) forecast[player] = serializeCards(fc);
+    // Serialize opponent knowledge (omit if "none")
+    if (card.opponentKnowledge.kind === "exact") {
+      result.opponent = { kind: "exact", name: card.opponentKnowledge.name };
+    } else if (card.opponentKnowledge.kind === "partial") {
+      result.opponent = { kind: "partial", suspects: [...card.opponentKnowledge.suspects].sort(), closed: card.opponentKnowledge.closed };
     }
 
-    return { decks, hands, boards, scores, revealed, forecast, achievements: serializeCards(this.achievements) };
+    return result;
+  };
+
+  const serializeCards = (cards: Card[]): SerializedCard[] => cards.map(serializeCard);
+
+  const decks: Record<string, SerializedCard[]> = {};
+  for (const [key, cards] of state.decks) {
+    if (cards.length > 0) {
+      const { age, cardSet } = parseAgeSetKey(key);
+      decks[`${age}/${cardSetLabel(cardSet)}`] = serializeCards(cards);
+    }
   }
 
-  /** Deserialize game state from JSON, using CardDatabase to reconstruct candidates. */
-  static fromJSON(data: SerializedGameState, cardDb: CardDatabase, players: string[], perspective: string): GameState {
-    const state = new GameState(cardDb, players, perspective);
-
-    const loadCard = (d: SerializedCard): Card => {
-      let card: Card;
-      if (d.resolved !== undefined) {
-        const info = cardDb.get(d.resolved)!;
-        card = state.createCard(ageSetKey(info.age, info.cardSet), new Set([d.resolved]));
-        card.resolve(d.resolved);
-      } else {
-        const groupKey = ageSetKey(d.age!, d.cardSet as CardSet);
-        const groupNames = cardDb.groups().get(groupKey) ?? new Set();
-        const candidates = new Set(groupNames);
-        if (d.excluded) {
-          for (const name of d.excluded) candidates.delete(name);
-        }
-        card = state.createCard(groupKey, candidates);
-      }
-
-      // Restore opponent knowledge
-      if (d.opponent) {
-        if (d.opponent.kind === "exact") {
-          card.opponentKnowledge = { kind: "exact", name: d.opponent.name };
-        } else if (d.opponent.kind === "partial") {
-          card.opponentKnowledge = { kind: "partial", suspects: new Set(d.opponent.suspects), closed: d.opponent.closed };
-        }
-      }
-
-      return card;
-    };
-
-    const loadCards = (cards: SerializedCard[]): Card[] => cards.map(loadCard);
-
-    // Load decks
-    for (const [key, cardDicts] of Object.entries(data.decks ?? {})) {
-      const [ageStr, setLabel] = key.split("/");
-      const groupKey = ageSetKey(Number(ageStr), cardSetFromLabel(setLabel));
-      state.decks.set(groupKey, loadCards(cardDicts));
-    }
-
-    // Load per-player zones
-    for (const player of players) {
-      state.hands.set(player, loadCards(data.hands[player] ?? []));
-      state.boards.set(player, loadCards(data.boards[player] ?? []));
-      state.scores.set(player, loadCards(data.scores[player] ?? []));
-      const rev = data.revealed?.[player];
-      if (rev && rev.length > 0) state.revealed.set(player, loadCards(rev));
-      const fc = data.forecast?.[player];
-      if (fc && fc.length > 0) state.forecast.set(player, loadCards(fc));
-    }
-
-    // Load achievements
-    state.achievements = loadCards(data.achievements ?? []);
-
-    return state;
+  const hands: Record<string, SerializedCard[]> = {};
+  const boards: Record<string, SerializedCard[]> = {};
+  const scores: Record<string, SerializedCard[]> = {};
+  const revealed: Record<string, SerializedCard[]> = {};
+  const forecast: Record<string, SerializedCard[]> = {};
+  for (const player of state.players) {
+    hands[player] = serializeCards(state.hands.get(player)!);
+    boards[player] = serializeCards(state.boards.get(player)!);
+    scores[player] = serializeCards(state.scores.get(player)!);
+    const rev = state.revealed.get(player) ?? [];
+    if (rev.length > 0) revealed[player] = serializeCards(rev);
+    const fc = state.forecast.get(player) ?? [];
+    if (fc.length > 0) forecast[player] = serializeCards(fc);
   }
+
+  return { decks, hands, boards, scores, revealed, forecast, achievements: serializeCards(state.achievements) };
+}
+
+/** Deserialize game state from JSON. No CardDatabase needed — candidates stored in full. */
+export function fromJSON(data: SerializedGameState, players: string[], perspective: string): GameState {
+  const state = createGameState(players, perspective);
+
+  const loadCard = (d: SerializedCard): Card => {
+    let card: Card;
+    if (d.resolved !== undefined) {
+      card = new Card(d.age!, d.cardSet as CardSet, [d.resolved]);
+    } else {
+      card = new Card(d.age!, d.cardSet as CardSet, d.candidates ?? []);
+    }
+
+    // Restore opponent knowledge
+    if (d.opponent) {
+      if (d.opponent.kind === "exact") {
+        card.opponentKnowledge = { kind: "exact", name: d.opponent.name };
+      } else if (d.opponent.kind === "partial") {
+        card.opponentKnowledge = { kind: "partial", suspects: new Set(d.opponent.suspects), closed: d.opponent.closed };
+      }
+    }
+
+    return card;
+  };
+
+  const loadCards = (cards: SerializedCard[]): Card[] => cards.map(loadCard);
+
+  // Load decks
+  for (const [key, cardDicts] of Object.entries(data.decks ?? {})) {
+    const [ageStr, setLabel] = key.split("/");
+    const groupKey = ageSetKey(Number(ageStr), cardSetFromLabel(setLabel));
+    state.decks.set(groupKey, loadCards(cardDicts));
+  }
+
+  // Load per-player zones
+  for (const player of players) {
+    state.hands.set(player, loadCards(data.hands[player] ?? []));
+    state.boards.set(player, loadCards(data.boards[player] ?? []));
+    state.scores.set(player, loadCards(data.scores[player] ?? []));
+    const rev = data.revealed?.[player];
+    if (rev && rev.length > 0) state.revealed.set(player, loadCards(rev));
+    const fc = data.forecast?.[player];
+    if (fc && fc.length > 0) state.forecast.set(player, loadCards(fc));
+  }
+
+  // Load achievements
+  state.achievements = loadCards(data.achievements ?? []);
+
+  return state;
 }
 
 // ---------------------------------------------------------------------------

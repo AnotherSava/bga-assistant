@@ -35,7 +35,7 @@ Keep `README.md` in the project root up to date when code changes affect project
 - `src/models/types.ts` — shared BGA types (GameName, RawPacket, RawExtractionData, cardIndex) + re-exports Innovation types
 - `src/games/innovation/types.ts` — Innovation types (Card, CardInfo, CardDatabase, enums, actions, log entries)
 - `src/games/innovation/process_log.ts` — Innovation BGA packet processing
-- `src/games/innovation/game_state.ts` — Innovation state engine
+- `src/games/innovation/game_state.ts` — GameState interface (zone data), GameEngine class (state tracking + constraint propagation), standalone toJSON/fromJSON serialization
 - `src/games/innovation/turn_history.ts` — Turn action types (TurnAction, ActionDetail, ActionType) and recent-turns grouping
 - `src/games/innovation/render.ts` — Innovation HTML summary renderer
 - `src/games/innovation/config.ts` — Innovation section layout configuration
@@ -46,7 +46,7 @@ Keep `README.md` in the project root up to date when code changes affect project
 - `src/render/icons.ts` — shared icon utilities
 - `src/render/toggle.ts` — shared toggle/tooltip logic (side panel + ZIP export)
 - `src/extract.ts` — content script (MAIN world)
-- `src/background.ts` — service worker (multi-game pipeline)
+- `src/background.ts` — service worker (multi-game pipeline, PipelineResults discriminated union on gameName)
 - `sidepanel.html` — side panel HTML entry point (project root, Vite input)
 - `src/sidepanel/` — side panel UI (game-type-aware rendering dispatch)
 - `assets/bga/innovation/` — Innovation game data (card_info.json, cards/, icons/, sprites/)

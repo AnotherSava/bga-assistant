@@ -71,7 +71,7 @@ const copyListeners = () => {
 import { runPipeline, classifyNavigation, shouldAutoClose, shouldShowLoading, watcherFunction, isValidPlayerCount, type PipelineResults, type NavigationAction, type PinMode } from "../background";
 import { CardDatabase } from "../models/types";
 import type { RawExtractionData } from "../models/types";
-import { GameState } from "../games/innovation/game_state";
+import { type GameState, GameEngine, createGameState, cardsAt } from "../games/innovation/game_state";
 
 // Initialize listeners after module import so all addListener calls have fired.
 copyListeners();
@@ -459,40 +459,42 @@ describe("runPipeline (azul)", () => {
   });
 });
 
-describe("GameState.cardsAt fail-fast", () => {
+describe("cardsAt fail-fast", () => {
   const cardDb = loadCardDb();
 
-  function makeState(): GameState {
-    return new GameState(cardDb, ["Alice", "Bob"], "Alice");
+  function makeState(): { state: GameState; engine: GameEngine } {
+    const engine = new GameEngine(cardDb);
+    const state = createGameState(["Alice", "Bob"], "Alice");
+    return { state, engine };
   }
 
   it("throws when player zone is called with null player", () => {
-    const state = makeState();
-    state.initGame();
-    expect(() => state.cardsAt("hand", null)).toThrow('cardsAt("hand") requires a player');
-    expect(() => state.cardsAt("board", null)).toThrow('cardsAt("board") requires a player');
-    expect(() => state.cardsAt("score", null)).toThrow('cardsAt("score") requires a player');
-    expect(() => state.cardsAt("revealed", null)).toThrow('cardsAt("revealed") requires a player');
-    expect(() => state.cardsAt("forecast", null)).toThrow('cardsAt("forecast") requires a player');
+    const { state, engine } = makeState();
+    engine.initGame(state);
+    expect(() => cardsAt(state, "hand", null)).toThrow('cardsAt("hand") requires a player');
+    expect(() => cardsAt(state, "board", null)).toThrow('cardsAt("board") requires a player');
+    expect(() => cardsAt(state, "score", null)).toThrow('cardsAt("score") requires a player');
+    expect(() => cardsAt(state, "revealed", null)).toThrow('cardsAt("revealed") requires a player');
+    expect(() => cardsAt(state, "forecast", null)).toThrow('cardsAt("forecast") requires a player');
   });
 
   it("throws when player zone is called with unknown player", () => {
-    const state = makeState();
-    state.initGame();
-    expect(() => state.cardsAt("hand", "Unknown")).toThrow('Player "Unknown" not found in hand zone');
+    const { state, engine } = makeState();
+    engine.initGame(state);
+    expect(() => cardsAt(state, "hand", "Unknown")).toThrow('Player "Unknown" not found in hand zone');
   });
 
   it("throws when deck zone is called without groupKey", () => {
-    const state = makeState();
-    state.initGame();
-    expect(() => state.cardsAt("deck", null)).toThrow('cardsAt("deck") requires a groupKey');
+    const { state, engine } = makeState();
+    engine.initGame(state);
+    expect(() => cardsAt(state, "deck", null)).toThrow('cardsAt("deck") requires a groupKey');
   });
 
   it("returns cards for valid zone+player", () => {
-    const state = makeState();
-    state.initGame();
-    expect(state.cardsAt("hand", "Alice").length).toBe(2);
-    expect(state.cardsAt("board", "Alice").length).toBe(0);
+    const { state, engine } = makeState();
+    engine.initGame(state);
+    expect(cardsAt(state, "hand", "Alice").length).toBe(2);
+    expect(cardsAt(state, "board", "Alice").length).toBe(0);
   });
 });
 

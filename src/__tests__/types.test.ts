@@ -128,46 +128,29 @@ describe("Card", () => {
     expect(card.isResolved).toBe(false);
   });
 
-  it("groupKey returns correct AgeSetKey", () => {
-    const card = new Card(5, CardSet.CITIES);
-    expect(card.groupKey).toBe("5:2");
+  it("isResolved and resolvedName with single candidate", () => {
+    const card = new Card(1, CardSet.BASE, ["agriculture"]);
+    expect(card.isResolved).toBe(true);
+    expect(card.resolvedName).toBe("agriculture");
   });
 
-  it("resolve sets single candidate", () => {
+  it("inline resolve sets single candidate", () => {
     const card = new Card(1, CardSet.BASE, ["agriculture", "archery"]);
-    card.resolve("agriculture");
+    card.candidates = new Set(["agriculture"]);
     expect(card.isResolved).toBe(true);
     expect(card.resolvedName).toBe("agriculture");
     expect(card.candidates.size).toBe(1);
   });
 
-  it("removeCandidates removes names and returns changed flag", () => {
-    const card = new Card(1, CardSet.BASE, ["agriculture", "archery", "clothing"]);
-    const changed = card.removeCandidates(new Set(["archery", "unknown"]));
-    expect(changed).toBe(true);
-    expect(card.candidates.size).toBe(2);
-    expect(card.candidates.has("archery")).toBe(false);
-
-    const notChanged = card.removeCandidates(new Set(["unknown"]));
-    expect(notChanged).toBe(false);
-  });
-
-  it("removeCandidates down to one resolves card", () => {
-    const card = new Card(1, CardSet.BASE, ["agriculture", "archery"]);
-    card.removeCandidates(new Set(["archery"]));
-    expect(card.isResolved).toBe(true);
-    expect(card.resolvedName).toBe("agriculture");
-  });
-
-  it("markPublic sets exact opponent knowledge", () => {
+  it("inline markPublic sets exact opponent knowledge", () => {
     const card = new Card(1, CardSet.BASE, ["agriculture"]);
-    card.markPublic();
+    card.opponentKnowledge = { kind: "exact", name: card.resolvedName };
     expect(card.opponentKnowledge).toEqual({ kind: "exact", name: "agriculture" });
   });
 
-  it("markPublic sets exact with null name when unresolved", () => {
+  it("inline markPublic sets exact with null name when unresolved", () => {
     const card = new Card(1, CardSet.BASE, ["agriculture", "archery"]);
-    card.markPublic();
+    card.opponentKnowledge = { kind: "exact", name: card.resolvedName };
     expect(card.opponentKnowledge).toEqual({ kind: "exact", name: null });
   });
 

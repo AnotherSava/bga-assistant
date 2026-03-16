@@ -1,9 +1,9 @@
 // Service worker: orchestrates extraction pipeline, opens side panel, handles messaging.
 
-import { processRawLog } from "./games/innovation/process_log.js";
-import { GameState } from "./games/innovation/game_state.js";
-import { processAzulLog } from "./games/azul/process_log.js";
-import { processLog as processAzulState, toJSON as azulToJSON } from "./games/azul/game_state.js";
+import { processRawLog, type GameLog } from "./games/innovation/process_log.js";
+import { GameEngine, createGameState, toJSON as innovationToJSON, type SerializedGameState } from "./games/innovation/game_state.js";
+import { processAzulLog, type AzulGameLog } from "./games/azul/process_log.js";
+import { processLog as processAzulState, toJSON as azulToJSON, type SerializedAzulGameState } from "./games/azul/game_state.js";
 import { CardDatabase, CardSet, type GameName, type RawExtractionData } from "./models/types.js";
 import cardInfoRaw from "../assets/bga/innovation/card_info.json";
 
@@ -22,17 +22,10 @@ const BGA_DOMAIN_PATTERN = /^https:\/\/([a-z0-9]+\.)?boardgamearena\.com\//;
 // ---------------------------------------------------------------------------
 
 /** Serialized pipeline results for side panel consumption. */
-export interface PipelineResults {
-  gameName: string;
-  tableNumber: string;
-  rawData: RawExtractionData;
-  // Game-specific payloads — consumers cast based on gameName.
-  // Null for unsupported games (rawData-only extraction).
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  gameLog: any | null;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  gameState: any | null;
-}
+export type PipelineResults =
+  | { gameName: "innovation"; tableNumber: string; rawData: RawExtractionData; gameLog: GameLog; gameState: SerializedGameState }
+  | { gameName: "azul"; tableNumber: string; rawData: RawExtractionData; gameLog: AzulGameLog; gameState: SerializedAzulGameState }
+  | { gameName: string; tableNumber: string; rawData: RawExtractionData; gameLog: null; gameState: null };
 
 /** Where an extraction was triggered from. */
 export type ExtractionSource = "click" | "navigation" | "reconnect" | "live";
@@ -105,6 +98,9 @@ chrome.commands.getAll((commands) => {
  * Run the full analysis pipeline on raw extraction data.
  * Exported for testing.
  */
+export function runPipeline(rawData: RawExtractionData, database: CardDatabase, tableNumber: string, gameName: "innovation"): Extract<PipelineResults, { gameName: "innovation" }>;
+export function runPipeline(rawData: RawExtractionData, database: CardDatabase, tableNumber: string, gameName: "azul"): Extract<PipelineResults, { gameName: "azul" }>;
+export function runPipeline(rawData: RawExtractionData, database: CardDatabase, tableNumber: string, gameName: GameName): PipelineResults;
 export function runPipeline(rawData: RawExtractionData, database: CardDatabase, tableNumber: string, gameName: GameName): PipelineResults {
   if (gameName === "azul") {
     const azulLog = processAzulLog(rawData);
@@ -131,10 +127,11 @@ export function runPipeline(rawData: RawExtractionData, database: CardDatabase, 
 
   const players = Object.values(gameLog.players);
   const perspective = gameLog.currentPlayerId && gameLog.players[gameLog.currentPlayerId] ? gameLog.players[gameLog.currentPlayerId] : players[0];
-  const state = new GameState(database, players, perspective);
-  state.initGame(gameLog.expansions);
-  state.processLog(gameLog.log, gameLog.myHand);
-  return { gameName, tableNumber, rawData, gameLog, gameState: state.toJSON() };
+  const engine = new GameEngine(database);
+  const state = createGameState(players, perspective);
+  engine.initGame(state, gameLog.expansions);
+  engine.processLog(state, gameLog.log, gameLog.myHand);
+  return { gameName, tableNumber, rawData, gameLog, gameState: innovationToJSON(state) };
 }
 
 // ---------------------------------------------------------------------------
@@ -397,10 +394,12 @@ function triggerLiveExtraction(): void {
   }
   const liveTableNumber = lastResults?.tableNumber;
   if (!liveTableNumber) { console.log("[live] ignored: no table number"); return; }
+  const liveGameName = lastResults!.gameName;
+  if (!(SUPPORTED_GAMES as readonly string[]).includes(liveGameName)) { console.log("[live] ignored: unsupported game", liveGameName); return; }
   const previousPacketCount = lastResults?.rawData?.packets?.length ?? 0;
   clearDeferredExtraction();
   extracting = true;
-  extractFromTab(liveTabId, "", lastResults!.gameName as GameName, liveTableNumber, true)
+  extractFromTab(liveTabId, "", liveGameName as GameName, liveTableNumber, true)
     .then(() => {
       const newPacketCount = lastResults?.rawData?.packets?.length ?? 0;
       if (newPacketCount !== previousPacketCount) {

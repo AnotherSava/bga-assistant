@@ -84,10 +84,6 @@ export class Card {
     this.opponentKnowledge = { kind: "none" };
   }
 
-  get groupKey(): AgeSetKey {
-    return ageSetKey(this.age, this.cardSet);
-  }
-
   get isResolved(): boolean {
     return this.candidates.size === 1;
   }
@@ -100,24 +96,6 @@ export class Card {
     return null;
   }
 
-  /** Remove names from candidates. Returns true if candidates changed. */
-  removeCandidates(names: Set<string>): boolean {
-    const before = this.candidates.size;
-    for (const name of names) {
-      this.candidates.delete(name);
-    }
-    return this.candidates.size < before;
-  }
-
-  /** Resolve this card to a single known identity. */
-  resolve(name: string): void {
-    this.candidates = new Set([name]);
-  }
-
-  /** Mark this card as publicly known to opponent. */
-  markPublic(): void {
-    this.opponentKnowledge = { kind: "exact", name: this.resolvedName };
-  }
 }
 
 // ---------------------------------------------------------------------------

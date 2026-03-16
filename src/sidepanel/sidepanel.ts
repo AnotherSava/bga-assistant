@@ -7,9 +7,9 @@ import { recentTurns } from "../games/innovation/turn_history.js";
 import { renderHelp } from "../render/help.js";
 import { positionTooltip, applyToggleMode } from "../render/toggle.js";
 import { CardDatabase, type GameName } from "../models/types.js";
-import { GameState } from "../games/innovation/game_state.js";
+import { GameEngine, fromJSON as innovationFromJSON } from "../games/innovation/game_state.js";
 import { renderAzulSummary, renderAzulFullPage, setAssetResolver as setAzulAssetResolver } from "../games/azul/render.js";
-import { fromJSON as azulFromJSON, type SerializedAzulGameState } from "../games/azul/game_state.js";
+import { fromJSON as azulFromJSON } from "../games/azul/game_state.js";
 import type { PipelineResults, PinMode } from "../background.js";
 
 // ---------------------------------------------------------------------------
@@ -184,8 +184,8 @@ function render(results: PipelineResults): void {
   switchZoomContext(results.gameName);
   const savedScroll = contentEl.scrollTop;
 
-  if (results.gameName === "azul") {
-    const azulState = azulFromJSON(results.gameState as SerializedAzulGameState);
+  if (results.gameName === "azul" && results.gameState !== null) {
+    const azulState = azulFromJSON(results.gameState);
     contentEl.innerHTML = renderAzulSummary(azulState);
 
     // Hide Innovation-only features
@@ -241,7 +241,7 @@ function render(results: PipelineResults): void {
     ? chrome.runtime.getURL("assets/bga/innovation/card_info.json")
     : "assets/bga/innovation/card_info.json";
   fetchCardDb(cardInfoUrl).then((db) => {
-    renderWithDb(db, results, contentEl);
+    renderWithDb(db, results as InnovationResults, contentEl);
     contentEl.scrollTop = savedScroll;
   }).catch(() => {
     contentEl.innerHTML = '<div class="status">Error loading card database</div>';
@@ -256,18 +256,22 @@ async function fetchCardDb(url: string): Promise<CardDatabase> {
   return cachedCardDb;
 }
 
-function renderWithDb(cardDb: CardDatabase, results: PipelineResults, contentEl: HTMLElement): void {
+type InnovationResults = Extract<PipelineResults, { gameName: "innovation" }>;
+
+function renderWithDb(cardDb: CardDatabase, results: InnovationResults, contentEl: HTMLElement): void {
   const { gameLog, gameState: serializedState } = results;
 
   // Reconstruct GameState from serialized form
   const players = Object.keys(serializedState.hands);
   const perspective = gameLog.currentPlayerId && gameLog.players[gameLog.currentPlayerId] ? gameLog.players[gameLog.currentPlayerId] : players[0];
-  const gameState = GameState.fromJSON(serializedState, cardDb, players, perspective);
+  const engine = new GameEngine(cardDb);
+  const gameState = innovationFromJSON(serializedState, players, perspective);
+  engine.buildGroups(gameState);
   const tableId = "game";
 
   // Render summary HTML
   currentExpansions = gameLog.expansions;
-  const summaryHtml = renderSummary(gameState, cardDb, perspective, players, tableId, { expansions: gameLog.expansions });
+  const summaryHtml = renderSummary(gameState, engine, cardDb, perspective, players, tableId, { expansions: gameLog.expansions });
   contentEl.innerHTML = summaryHtml;
 
   // Populate game info bar
@@ -297,7 +301,7 @@ function renderWithDb(cardDb: CardDatabase, results: PipelineResults, contentEl:
     btnDownload.onclick = async () => {
       const css = currentCss ?? "";
       setAssetResolver((path: string) => path);
-      const rawHtml = renderFullPage(gameState, cardDb, perspective, players, tableId, css, { textTooltips: true, expansions: gameLog.expansions });
+      const rawHtml = renderFullPage(gameState, engine, cardDb, perspective, players, tableId, css, { textTooltips: true, expansions: gameLog.expansions });
       if (typeof chrome !== "undefined" && chrome.runtime?.getURL) setAssetResolver((path: string) => chrome.runtime.getURL(path));
       const summaryHtmlFile = await inlineAssets(rawHtml);
       const zip = new JSZip();

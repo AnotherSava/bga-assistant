@@ -5,7 +5,7 @@ import { type CardInfo, type Card, CardSet, Color, CardDatabase, colorLabel, car
 import { escapeHtml } from "../../render/icons.js";
 import type { TurnAction, ActionDetail } from "./turn_history.js";
 import { positionTooltip, applyToggleMode } from "../../render/toggle.js";
-import { GameState } from "./game_state.js";
+import { type GameState, GameEngine } from "./game_state.js";
 import { type SectionId, type SectionConfig, type Toggle, DEFAULT_SECTION_CONFIG, SECTION_IDS, ECHOES_ONLY_SECTIONS, TALL_COLUMNS, visibilityToggle, layoutToggle, compositeToggle } from "./config.js";
 
 // ---------------------------------------------------------------------------
@@ -353,13 +353,13 @@ function prepareCards(cards: Card[], cardDb: CardDatabase, label: string, sort: 
   return { cards: ordered.map(c => renderCard(c, cardDb, markResolved)), label, allKnown: false };
 }
 
-function prepareMyCards(zone: Card[], gameState: GameState, cardDb: CardDatabase): Row[] {
+function prepareMyCards(zone: Card[], engine: GameEngine, cardDb: CardDatabase): Row[] {
   const rows: Row[] = [];
 
-  const hidden = zone.filter(c => gameState.opponentKnowsNothing(c));
+  const hidden = zone.filter(c => engine.opponentKnowsNothing(c));
   if (hidden.length > 0) rows.push(prepareCards(hidden, cardDb, "eye_closed", true, false));
 
-  const suspected = zone.filter(c => gameState.opponentHasPartialInformation(c));
+  const suspected = zone.filter(c => engine.opponentHasPartialInformation(c));
   if (suspected.length > 0) rows.push(prepareCards(suspected, cardDb, "question", true, false));
 
   const revealed = zone.filter(c => c.opponentKnowledge.kind === "exact");
@@ -463,7 +463,7 @@ function makeCompositeSection(sectionId: SectionId, title: string, baseRows: Row
 }
 
 /** Render the full summary HTML for a game state. */
-export function renderSummary(gameState: GameState, cardDb: CardDatabase, perspective: string, players: string[], tableId: string, options?: RenderOptions): string {
+export function renderSummary(gameState: GameState, engine: GameEngine, cardDb: CardDatabase, perspective: string, players: string[], tableId: string, options?: RenderOptions): string {
   const prevTextTooltips = useTextTooltips;
   useTextTooltips = options?.textTooltips ?? false;
   const config = options?.sectionConfig ?? DEFAULT_SECTION_CONFIG;
@@ -476,11 +476,11 @@ export function renderSummary(gameState: GameState, cardDb: CardDatabase, perspe
 
   const sectionBuilders: Record<SectionId, () => SectionData> = {
     "hand-opponent": () => makeSection("hand-opponent", "Hand &mdash; opponent", [opponentHand], config["hand-opponent"], {}),
-    "hand-me": () => makeSection("hand-me", "Hand &mdash; me", prepareMyCards(gameState.hands.get(perspective) ?? [], gameState, cardDb), config["hand-me"], {}),
+    "hand-me": () => makeSection("hand-me", "Hand &mdash; me", prepareMyCards(gameState.hands.get(perspective) ?? [], engine, cardDb), config["hand-me"], {}),
     "score-opponent": () => makeSection("score-opponent", "Score &mdash; opponent", [opponentScore], config["score-opponent"], {}),
-    "score-me": () => makeSection("score-me", "Score &mdash; me", prepareMyCards(gameState.scores.get(perspective) ?? [], gameState, cardDb), config["score-me"], {}),
+    "score-me": () => makeSection("score-me", "Score &mdash; me", prepareMyCards(gameState.scores.get(perspective) ?? [], engine, cardDb), config["score-me"], {}),
     "forecast-opponent": () => makeSection("forecast-opponent", "Forecast &mdash; opponent", [prepareCards(gameState.forecast.get(opponent) ?? [], cardDb, "", true, false)], config["forecast-opponent"], {}),
-    "forecast-me": () => makeSection("forecast-me", "Forecast &mdash; me", prepareMyCards(gameState.forecast.get(perspective) ?? [], gameState, cardDb), config["forecast-me"], {}),
+    "forecast-me": () => makeSection("forecast-me", "Forecast &mdash; me", prepareMyCards(gameState.forecast.get(perspective) ?? [], engine, cardDb), config["forecast-me"], {}),
     "achievements": () => makeSection("achievements", "Achievements", [achievements], config["achievements"], { columnCount: TALL_COLUMNS, arrangeByColumns: false }),
     "deck": () => makeCompositeSection("deck", "Deck", prepareDeck(gameState, CardSet.BASE, cardDb), prepareDeck(gameState, CardSet.ECHOES, cardDb), prepareDeck(gameState, CardSet.CITIES, cardDb), config["deck"], {}),
     "cards": () => { const resolved = collectResolvedNames(gameState); return makeCompositeSection("cards", "Cards", prepareAllCards(gameState, CardSet.BASE, cardDb, resolved), prepareAllCards(gameState, CardSet.ECHOES, cardDb, resolved), prepareAllCards(gameState, CardSet.CITIES, cardDb, resolved), config["cards"], { hasUnknown: true, columnCount: TALL_COLUMNS }); },
@@ -496,8 +496,8 @@ export function renderSummary(gameState: GameState, cardDb: CardDatabase, perspe
 }
 
 /** Render a full standalone HTML page (for download). */
-export function renderFullPage(gameState: GameState, cardDb: CardDatabase, perspective: string, players: string[], tableId: string, css: string, options?: RenderOptions): string {
-  const bodyHtml = renderSummary(gameState, cardDb, perspective, players, tableId, options);
+export function renderFullPage(gameState: GameState, engine: GameEngine, cardDb: CardDatabase, perspective: string, players: string[], tableId: string, css: string, options?: RenderOptions): string {
+  const bodyHtml = renderSummary(gameState, engine, cardDb, perspective, players, tableId, options);
 
   return `<!DOCTYPE html>
 <html>
