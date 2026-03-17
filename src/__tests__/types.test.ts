@@ -401,3 +401,15 @@ describe("GameLogEntry types", () => {
     }
   });
 });
+
+// ---------------------------------------------------------------------------
+// bug: A.I. card name mismatch with BGA
+// ---------------------------------------------------------------------------
+
+describe("bug: A.I. card name matches BGA notation", () => {
+  it("card_info.json uses 'A. I.' to match BGA gamedatas", () => {
+    const db = loadCardDatabase();
+    expect(db.has(cardIndex("A. I."))).toBe(true);
+    expect(db.get(cardIndex("A. I."))!.name).toBe("A. I.");
+  });
+});
