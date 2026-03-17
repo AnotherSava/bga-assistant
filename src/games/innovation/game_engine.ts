@@ -391,8 +391,14 @@ export class GameEngine {
       for (const name of c.candidates) union.add(name);
     }
 
-    for (const c of affected) {
-      c.candidates = new Set(union);
+    if (union.size === affected.length) {
+      // Complete subset: N cards with exactly N candidates — resolve 1:1.
+      const names = [...union];
+      for (let i = 0; i < affected.length; i++) affected[i].candidates = new Set([names[i]]);
+    } else {
+      for (const c of affected) {
+        c.candidates = new Set(union);
+      }
     }
   }
 
@@ -419,12 +425,17 @@ export class GameEngine {
       if (!closed) allClosed = false;
     }
 
-    // All cards lose certainty
-    for (const c of affected) {
-      if (suspectUnion.size === 0 && !allClosed) {
-        c.opponentKnowledge = { kind: "none" };
-      } else {
-        c.opponentKnowledge = { kind: "partial", suspects: new Set(suspectUnion), closed: allClosed };
+    if (suspectUnion.size === affected.length && allClosed) {
+      // Complete subset: opponent knows exactly which N names — resolve 1:1.
+      const names = [...suspectUnion];
+      for (let i = 0; i < affected.length; i++) affected[i].opponentKnowledge = { kind: "exact", name: names[i] };
+    } else {
+      for (const c of affected) {
+        if (suspectUnion.size === 0 && !allClosed) {
+          c.opponentKnowledge = { kind: "none" };
+        } else {
+          c.opponentKnowledge = { kind: "partial", suspects: new Set(suspectUnion), closed: allClosed };
+        }
       }
     }
   }
@@ -470,35 +481,7 @@ export class GameEngine {
         }
       }
 
-      // 3. Naked subsets (only when >3 unresolved cards)
-      const unresolved = group.filter(c => !c.isResolved);
-      if (unresolved.length > 3) {
-        let foundSubset = false;
-        for (let size = 2; size < unresolved.length && !foundSubset; size++) {
-          for (const subset of combinations(unresolved, size)) {
-            const union = new Set<string>();
-            for (const c of subset) {
-              for (const name of c.candidates) union.add(name);
-            }
-            if (union.size === size) {
-              for (const other of unresolved) {
-                if (!subset.includes(other)) {
-                  for (const name of union) {
-                    if (other.candidates.has(name)) {
-                      other.candidates.delete(name);
-                      changed = true;
-                    }
-                  }
-                }
-              }
-              foundSubset = true;
-              break;
-            }
-          }
-        }
-      }
-
-      // 4. Suspect propagation: publicly-known names removed from suspect lists
+      // 3. Suspect propagation: publicly-known names removed from suspect lists
       for (const card of group) {
         if (card.opponentKnowledge.kind === "exact" && card.isResolved) {
           const name = card.resolvedName!;
@@ -580,15 +563,3 @@ function extractSuspects(ok: OpponentKnowledge): { suspects: Set<string>; closed
   }
 }
 
-/** Generate all combinations of size k from an array. */
-function* combinations<T>(arr: T[], k: number): Generator<T[]> {
-  if (k === 0) {
-    yield [];
-    return;
-  }
-  for (let i = 0; i <= arr.length - k; i++) {
-    for (const rest of combinations(arr.slice(i + 1), k - 1)) {
-      yield [arr[i], ...rest];
-    }
-  }
-}

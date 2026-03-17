@@ -17,6 +17,8 @@ Avoid cryptic abbreviations in variable and attribute names. Use descriptive nam
 
 Do not add defensive fallbacks that mask invalid data (e.g. `?? "?"`, `?? 0`). Trust that inputs are correct and let invalid values surface naturally — a visible `null` in output or a runtime error is better than silently producing plausible-looking wrong output.
 
+Do not add logic, data structures, classes, or exports to production code that exist only to support tests. Tests should exercise the public API and real behavior — not rely on test-only hooks, flags, exports, or types in production modules.
+
 ## Workflow
 
 Run `npm run build` after each batch of changes so the extension can be reloaded and tested in the browser.
@@ -36,7 +38,7 @@ Keep `README.md` in the project root up to date when code changes affect project
 - `src/games/innovation/types.ts` — Innovation types (Card, CardInfo, CardDatabase, enums, actions, log entries)
 - `src/games/innovation/process_log.ts` — Innovation BGA packet processing
 - `src/games/innovation/game_state.ts` — GameState interface (zone data), createGameState(), cardsAt()
-- `src/games/innovation/game_engine.ts` — GameEngine class (state tracking + constraint propagation), extractSuspects(), combinations()
+- `src/games/innovation/game_engine.ts` — GameEngine class (state tracking + constraint propagation), extractSuspects()
 - `src/games/innovation/serialization.ts` — toJSON/fromJSON serialization, SerializedGameState type
 - `src/games/innovation/turn_history.ts` — Turn action types (TurnAction, ActionDetail, ActionType) and recent-turns grouping
 - `src/games/innovation/render.ts` — Innovation HTML summary renderer
