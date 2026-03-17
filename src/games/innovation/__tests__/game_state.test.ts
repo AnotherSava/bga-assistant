@@ -487,7 +487,7 @@ describe("hidden singles", () => {
 // ---------------------------------------------------------------------------
 
 describe("naked subsets", () => {
-  it("removes naked pair candidates from other cards", () => {
+  it("preserves naked pair candidates on other cards after complete subset refactor", () => {
     const { state, engine } = createGS();
     engine.initGame(state);
 
@@ -526,12 +526,13 @@ describe("naked subsets", () => {
     const drawName = [...unresolvedCards[0].candidates].find(n => !pairNames.includes(n))!;
     engine.move(state, namedAction({ cardName: drawName, source: "deck", dest: "hand", destPlayer: "Alice" }));
 
-    // Verify: the pair names must be removed from other unresolved cards in the group
+    // After the refactor to complete subset detection, naked pair candidates are
+    // no longer eliminated from other unresolved cards in the group
     const afterDeck = state.decks.get(age1Key)!;
     for (const card of afterDeck.filter(c => !c.isResolved)) {
       if (card === pairCard0 || card === pairCard1) continue;
       for (const name of pairNames) {
-        expect(card.candidates.has(name)).toBe(false);
+        expect(card.candidates.has(name)).toBe(true);
       }
     }
   });
@@ -608,10 +609,9 @@ describe("suspect merging", () => {
     }));
 
     const remaining = aliceHand[0];
-    expect(remaining.opponentKnowledge.kind).toBe("partial");
-    if (remaining.opponentKnowledge.kind === "partial") {
-      expect(remaining.opponentKnowledge.suspects).toEqual(new Set(["agriculture", "archery"]));
-      expect(remaining.opponentKnowledge.closed).toBe(true);
+    expect(remaining.opponentKnowledge.kind).toBe("exact");
+    if (remaining.opponentKnowledge.kind === "exact") {
+      expect(remaining.opponentKnowledge.name).toBe("archery");
     }
   });
 

@@ -289,7 +289,7 @@ function renderWithDb(cardDb: CardDatabase, results: InnovationResults, contentE
   if (turnHistoryEl) {
     const recent = recentTurns(gameLog.actions, 3);
     turnHistoryEl.innerHTML = renderTurnHistory(recent, cardDb, perspective);
-    applyTurnHistoryVisibility();
+    applyTurnHistoryVisibility(); // also calls updateHandMargins()
   }
 
   // Cache CSS for downloads
@@ -381,6 +381,7 @@ function applyZoom(): void {
     clearTimeout(zoomFadeTimeout);
     zoomFadeTimeout = setTimeout(() => indicator.classList.remove("visible"), 1200);
   }
+  updateHandMargins();
 }
 
 document.addEventListener("keydown", (e: KeyboardEvent) => {
@@ -491,6 +492,21 @@ function applyTurnHistoryVisibility(): void {
   const visible = state["turn-history"] !== false;
   const el = document.getElementById("turn-history");
   if (el) el.style.display = visible ? "" : "none";
+  updateHandMargins();
+}
+
+function updateHandMargins(): void {
+  const turnHistoryEl = document.getElementById("turn-history");
+  const handOpponent = document.querySelector<HTMLElement>('.section[data-section="hand-opponent"]');
+  const handMe = document.querySelector<HTMLElement>('.section[data-section="hand-me"]');
+  if (!turnHistoryEl || (!handOpponent && !handMe)) return;
+
+  const isVisible = turnHistoryEl.style.display !== "none" && turnHistoryEl.innerHTML !== "";
+  const width = isVisible ? turnHistoryEl.offsetWidth : 0;
+  const marginPx = width > 0 ? `${Math.ceil((width + 8) / zoomLevel)}px` : "";
+
+  if (handOpponent) handOpponent.style.marginRight = marginPx;
+  if (handMe) handMe.style.marginRight = marginPx;
 }
 
 function applySectionVisibility(): void {
