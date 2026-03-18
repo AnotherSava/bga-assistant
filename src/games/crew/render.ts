@@ -9,10 +9,10 @@ import { ALL_SUITS, SUIT_VALUES, PINK, BLUE, GREEN, YELLOW, SUBMARINE, cardKey }
 // ---------------------------------------------------------------------------
 
 const SUIT_ICONS: Record<number, string> = {
-  [PINK]: '<svg viewBox="0 0 12 12" width="12" height="12"><polygon points="6,10 1,2 11,2" fill="currentColor"/></svg>',
   [BLUE]: '<svg viewBox="0 0 12 12" width="12" height="12"><circle cx="6" cy="6" r="5" fill="currentColor"/></svg>',
-  [GREEN]: '<svg viewBox="0 0 12 12" width="12" height="12"><polygon points="6,1 11,6 6,11 1,6" fill="currentColor"/></svg>',
-  [YELLOW]: '<svg viewBox="0 0 12 12" width="12" height="12"><rect x="1" y="1" width="10" height="10" fill="currentColor"/></svg>',
+  [GREEN]: '<svg viewBox="0 0 12 12" width="12" height="12"><polygon points="6,1 11,11 1,11" fill="currentColor"/></svg>',
+  [PINK]: '<svg viewBox="0 0 12 12" width="12" height="12"><rect x="1" y="1" width="10" height="10" fill="currentColor"/></svg>',
+  [YELLOW]: '<svg viewBox="0 0 12 12" width="12" height="12"><line x1="1" y1="1" x2="11" y2="11" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><line x1="11" y1="1" x2="1" y2="11" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>',
   [SUBMARINE]: '<svg viewBox="0 0 16 12" width="16" height="12"><ellipse cx="8" cy="7" rx="7" ry="4" fill="currentColor"/><rect x="6" y="2" width="4" height="4" rx="1" fill="currentColor"/><rect x="7" y="0" width="2" height="3" fill="currentColor"/></svg>',
 };
 

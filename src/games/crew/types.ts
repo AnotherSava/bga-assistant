@@ -5,8 +5,8 @@ export const GREEN = 3;
 export const YELLOW = 4;
 export const SUBMARINE = 5;
 
-/** All suit numbers. */
-export const ALL_SUITS = [PINK, BLUE, GREEN, YELLOW, SUBMARINE] as const;
+/** All suit numbers in display order (matches BGA card grid). */
+export const ALL_SUITS = [BLUE, GREEN, PINK, YELLOW, SUBMARINE] as const;
 
 /** Valid values for each suit: color suits have 1-9, submarine has 1-4. */
 export const SUIT_VALUES: Record<number, number[]> = {

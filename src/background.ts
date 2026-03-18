@@ -505,7 +505,14 @@ async function extractFromTab(tabId: number, url: string, gameName: GameName, ta
   }
 
   const tblNum = tableNumber ?? url.match(/table=(\d+)/)?.[1] ?? "unknown";
-  lastResults = runPipeline(extractResult as RawExtractionData, cardDb, tblNum, gameName);
+  const rawData = extractResult as RawExtractionData;
+  try {
+    lastResults = runPipeline(rawData, cardDb, tblNum, gameName);
+  } catch (err) {
+    // Preserve raw data for download even when the pipeline fails
+    lastResults = { gameName, tableNumber: tblNum, rawData, gameLog: null, gameState: null };
+    throw err;
+  }
   console.log("Pipeline complete:", Object.keys(lastResults));
 
   lastExtractionTime = Date.now();
@@ -664,10 +671,9 @@ async function togglePanel(tabId: number): Promise<void> {
   } catch (err) {
     console.error("BGA Assistant error:", err);
     setBadge(tabId, "ERR", "#D32F2F");
-    lastResults = null;
     stopLiveTracking("click: extraction error");
     const errorMsg = err instanceof Error ? err.message : String(err);
-    chrome.runtime.sendMessage({ type: "gameError", error: errorMsg }).catch(() => {});
+    chrome.runtime.sendMessage({ type: "gameError", error: errorMsg, results: lastResults }).catch(() => {});
   } finally {
     extracting = false;
     clearBadgeLater(tabId);

@@ -888,8 +888,21 @@ if (typeof chrome !== "undefined" && chrome.runtime?.onMessage) {
       currentResults = null;
       showHelp();
     } else if (message.type === "gameError") {
-      currentResults = null;
+      currentResults = message.results ?? null;
       showHelp(message.error);
+      if (currentResults) {
+        const btnDownload = document.getElementById("btn-download");
+        if (btnDownload) {
+          btnDownload.classList.remove("disabled");
+          const results = currentResults;
+          btnDownload.onclick = async () => {
+            const zip = new JSZip();
+            zip.file("raw_data.json", JSON.stringify(results.rawData, null, 2));
+            const blob = await zip.generateAsync({ type: "blob" });
+            downloadBlob(blob, `bgaa_${results.tableNumber}${lastMoveId(results.rawData.packets)}.zip`);
+          };
+        }
+      }
     }
     return undefined;
   });

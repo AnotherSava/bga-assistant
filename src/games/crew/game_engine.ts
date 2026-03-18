@@ -90,8 +90,14 @@ function propagate(state: CrewGameState): void {
 function findLastMissionStart(entries: CrewLogEntry[]): number {
   for (let i = entries.length - 1; i >= 0; i--) {
     if (entries[i].type === "handDealt") {
+      // Look backward for a missionStart, but only through non-gameplay
+      // entries (captain, handDealt, missionStart). If we hit gameplay
+      // (cardPlayed, trickStart, trickWon, communication), the missionStart
+      // before that belongs to a previous mission.
       for (let j = i - 1; j >= 0; j--) {
-        if (entries[j].type === "missionStart") return j;
+        const t = entries[j].type;
+        if (t === "missionStart") return j;
+        if (t !== "captain" && t !== "handDealt") return i;
       }
       return i;
     }
