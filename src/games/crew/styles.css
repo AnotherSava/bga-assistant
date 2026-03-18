@@ -1,0 +1,173 @@
+/* The Crew: Mission Deep Sea — side panel styles */
+
+.crew-summary { margin-top: 4px; }
+
+/* Section titles */
+.crew-section { margin-bottom: 16px; }
+.crew-section-title { font-size: 13px; margin-bottom: 6px; font-weight: bold; color: #eee; }
+
+/* ---------------------------------------------------------------------------
+   Suit color classes (text/icon color for inline SVG currentColor)
+   --------------------------------------------------------------------------- */
+.crew-pink  { color: #ff6699; }
+.crew-blue  { color: #4488cc; }
+.crew-green { color: #44aa44; }
+.crew-yellow { color: #ddaa00; }
+.crew-sub   { color: #888888; }
+
+/* ---------------------------------------------------------------------------
+   Card grid (9 rows × 5 columns)
+   --------------------------------------------------------------------------- */
+.crew-card-grid {
+  display: inline-block;
+}
+.crew-grid-header {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-bottom: 2px;
+}
+.crew-grid-corner {
+  width: 18px;
+  flex-shrink: 0;
+}
+.crew-grid-suit-header {
+  width: 30px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.crew-grid-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-bottom: 2px;
+}
+.crew-grid-value-label {
+  width: 18px;
+  text-align: center;
+  font-size: 11px;
+  color: #777;
+  flex-shrink: 0;
+}
+
+/* Individual card cell */
+.crew-grid-cell {
+  width: 30px;
+  height: 42px;
+  border-radius: 3px;
+  border: 1px solid;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+}
+.crew-grid-empty {
+  border-color: transparent;
+  background: transparent;
+}
+
+/* Card cell content */
+.crew-cell-value {
+  font-size: 14px;
+  font-weight: bold;
+  line-height: 1;
+}
+.crew-cell-icon {
+  line-height: 0;
+}
+
+/* Card state: suit-specific backgrounds */
+.crew-grid-cell.crew-pink  { border-color: #ff6699; background: #5c1a2a; color: #ff6699; }
+.crew-grid-cell.crew-blue  { border-color: #4488cc; background: #1a2a5c; color: #4488cc; }
+.crew-grid-cell.crew-green { border-color: #44aa44; background: #1a4c1a; color: #44aa44; }
+.crew-grid-cell.crew-yellow { border-color: #ddaa00; background: #4c4a1a; color: #ddaa00; }
+.crew-grid-cell.crew-sub   { border-color: #888888; background: #333; color: #888888; }
+
+/* Card state: played (dimmed) */
+.crew-grid-cell.crew-played {
+  opacity: 0.25;
+}
+
+/* Card state: my hand (highlighted border) */
+.crew-grid-cell.crew-myhand {
+  border-width: 2px;
+  box-shadow: 0 0 4px rgba(255, 255, 255, 0.3);
+}
+
+/* Card state: hidden (normal, no extra styling) */
+
+/* ---------------------------------------------------------------------------
+   Player–Suit matrix
+   --------------------------------------------------------------------------- */
+.crew-matrix {
+  border-collapse: collapse;
+}
+.crew-matrix th {
+  padding: 2px 8px;
+  text-align: center;
+}
+.crew-matrix-name {
+  font-size: 12px;
+  color: #bbb;
+  text-align: right;
+  padding-right: 10px;
+  white-space: nowrap;
+}
+.crew-matrix-me {
+  color: #f4b8b8;
+  font-weight: bold;
+}
+.crew-matrix-cell {
+  text-align: center;
+  padding: 2px 8px;
+  font-size: 14px;
+  font-weight: bold;
+}
+.crew-matrix-void { color: #cc4444; }
+.crew-matrix-has  { color: #44cc44; }
+.crew-matrix-unknown { color: #666; }
+
+/* ---------------------------------------------------------------------------
+   Trick history table
+   --------------------------------------------------------------------------- */
+.crew-tricks {
+  border-collapse: collapse;
+}
+.crew-tricks th {
+  font-size: 11px;
+  color: #999;
+  padding: 2px 8px;
+  text-align: center;
+  font-weight: normal;
+}
+.crew-tricks-player {
+  max-width: 60px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.crew-trick-num {
+  font-size: 11px;
+  color: #666;
+  text-align: right;
+  padding-right: 6px;
+}
+.crew-trick-card {
+  text-align: center;
+  padding: 2px 8px;
+  font-size: 13px;
+  font-weight: bold;
+}
+.crew-trick-card.crew-lead {
+  text-decoration: underline;
+}
+.crew-trick-card.crew-winner {
+  font-weight: 900;
+  text-shadow: 0 0 4px currentColor;
+}
+.crew-trick-current {
+  border-top: 1px dashed #555;
+}

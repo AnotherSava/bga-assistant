@@ -460,6 +460,45 @@ describe("runPipeline (azul)", () => {
   });
 });
 
+describe("runPipeline (thecrewdeepsea)", () => {
+  const cardDb = loadCardDb();
+
+  it("processes empty Crew extraction data", () => {
+    const rawData = { ...makeRawData({ "1": "Alice", "2": "Bob", "3": "Carol" }, []), currentPlayerId: "1" };
+    const result = runPipeline(rawData, cardDb, "77777", "thecrewdeepsea");
+    expect(result.gameName).toBe("thecrewdeepsea");
+    expect(result.tableNumber).toBe("77777");
+    // Empty hand: no dealt cards means empty hands for observer
+    expect(result.gameState.hands["1"]).toEqual([]);
+    expect(result.gameState.tricks).toEqual([]);
+    expect(result.gameLog.players).toEqual({ "1": "Alice", "2": "Bob", "3": "Carol" });
+  });
+
+  it("processes Crew fixture data end-to-end", () => {
+    const raw = JSON.parse(readFileSync(resolve(thisDir, "../games/crew/__tests__/fixtures/last_mission.json"), "utf-8"));
+    const result = runPipeline(raw, cardDb, "757842815", "thecrewdeepsea");
+
+    expect(result.gameName).toBe("thecrewdeepsea");
+    expect(result.tableNumber).toBe("757842815");
+    expect(result.gameLog.playerOrder.length).toBe(4);
+    expect(result.gameLog.log.length).toBeGreaterThan(0);
+
+    // Game state should have tricks completed
+    expect(result.gameState.tricks.length).toBeGreaterThan(0);
+    expect(result.gameState.playerOrder.length).toBe(4);
+  });
+
+  it("Crew pipeline result is JSON-serializable", () => {
+    const rawData = { ...makeRawData({ "1": "Alice", "2": "Bob", "3": "Carol" }, []), currentPlayerId: "1" };
+    const result = runPipeline(rawData, cardDb, "12345", "thecrewdeepsea");
+    const json = JSON.stringify(result);
+    expect(json).toBeDefined();
+    const parsed = JSON.parse(json);
+    expect(parsed.gameName).toBe("thecrewdeepsea");
+    expect(parsed.gameState.hands["1"]).toEqual([]);
+  });
+});
+
 describe("cardsAt fail-fast", () => {
   const cardDb = loadCardDb();
 
@@ -525,9 +564,14 @@ describe("classifyNavigation", () => {
     expect(result).toEqual({ action: "showHelp", url: "https://boardgamearena.com/lobby" });
   });
 
-  it("returns unsupportedGame for an unsupported game with table param", () => {
+  it("returns extract for a crew table URL", () => {
     const result = classifyNavigation("https://boardgamearena.com/1/thecrewdeepsea?table=123");
-    expect(result).toEqual({ action: "unsupportedGame", tableNumber: "123", gameName: "thecrewdeepsea" });
+    expect(result).toEqual({ action: "extract", tableNumber: "123", gameName: "thecrewdeepsea" });
+  });
+
+  it("returns unsupportedGame for an unsupported game with table param", () => {
+    const result = classifyNavigation("https://boardgamearena.com/1/carcassonne?table=123");
+    expect(result).toEqual({ action: "unsupportedGame", tableNumber: "123", gameName: "carcassonne" });
   });
 
   it("handles BGA subdomain URLs with table param", () => {
@@ -581,7 +625,7 @@ describe("shouldAutoClose", () => {
 
   it("returns true for autohide-game mode on unsupported game tables and non-BGA URLs", () => {
     expect(shouldAutoClose("https://example.com", "autohide-game")).toBe(true);
-    expect(shouldAutoClose("https://boardgamearena.com/1/thecrewdeepsea?table=123", "autohide-game")).toBe(true);
+    expect(shouldAutoClose("https://boardgamearena.com/1/carcassonne?table=123", "autohide-game")).toBe(true);
     expect(shouldAutoClose(undefined, "autohide-game")).toBe(true);
   });
 
@@ -594,6 +638,7 @@ describe("shouldAutoClose", () => {
     expect(shouldAutoClose("https://boardgamearena.com/8/innovation?table=123", "autohide-game")).toBe(false);
     expect(shouldAutoClose("https://en.boardgamearena.com/8/innovation?table=456", "autohide-game")).toBe(false);
     expect(shouldAutoClose("https://boardgamearena.com/1/azul?table=789", "autohide-game")).toBe(false);
+    expect(shouldAutoClose("https://boardgamearena.com/1/thecrewdeepsea?table=321", "autohide-game")).toBe(false);
   });
 });
 
@@ -613,6 +658,16 @@ describe("isValidPlayerCount", () => {
     expect(isValidPlayerCount("azul", 3)).toBe(true);
     expect(isValidPlayerCount("azul", 4)).toBe(true);
     expect(isValidPlayerCount("azul", 5)).toBe(false);
+  });
+
+  it("thecrewdeepsea accepts 3-5 players", () => {
+    expect(isValidPlayerCount("thecrewdeepsea", 0)).toBe(false);
+    expect(isValidPlayerCount("thecrewdeepsea", 1)).toBe(false);
+    expect(isValidPlayerCount("thecrewdeepsea", 2)).toBe(false);
+    expect(isValidPlayerCount("thecrewdeepsea", 3)).toBe(true);
+    expect(isValidPlayerCount("thecrewdeepsea", 4)).toBe(true);
+    expect(isValidPlayerCount("thecrewdeepsea", 5)).toBe(true);
+    expect(isValidPlayerCount("thecrewdeepsea", 6)).toBe(false);
   });
 });
 
@@ -1086,7 +1141,7 @@ describe("unified extraction flow", () => {
 
     const rawData = makeRawData({ "1": "Alice", "2": "Bob" }, []);
     mockExecuteScript.mockResolvedValueOnce([{ result: rawData }]);
-    const tab = { id: 1, url: "https://boardgamearena.com/1/thecrewdeepsea?table=123", status: "complete", windowId: 10 };
+    const tab = { id: 1, url: "https://boardgamearena.com/1/carcassonne?table=123", status: "complete", windowId: 10 };
     mockTabsGet.mockResolvedValueOnce(tab).mockResolvedValueOnce(tab);
     listeners.onActivated({ tabId: 1 });
     await new Promise((r) => setTimeout(r, 50));
@@ -1107,7 +1162,7 @@ describe("unified extraction flow", () => {
 
     const rawData = makeRawData({ "1": "Alice", "2": "Bob" }, []);
     mockExecuteScript.mockResolvedValueOnce([{ result: rawData }]);
-    const tab = { id: 1, url: "https://boardgamearena.com/1/thecrewdeepsea?table=123", status: "complete", windowId: 10 };
+    const tab = { id: 1, url: "https://boardgamearena.com/1/carcassonne?table=123", status: "complete", windowId: 10 };
     mockTabsGet.mockResolvedValueOnce(tab).mockResolvedValueOnce(tab);
     listeners.onActivated({ tabId: 1 });
     await new Promise((r) => setTimeout(r, 50));
@@ -1117,7 +1172,7 @@ describe("unified extraction flow", () => {
     expect(resultsCalls.length).toBe(1);
     const result = resultsCalls[0][0].results as PipelineResults;
     expect(result).not.toBeNull();
-    expect(result.gameName).toBe("thecrewdeepsea");
+    expect(result.gameName).toBe("carcassonne");
     expect(result.tableNumber).toBe("123");
     expect(result.rawData).toEqual(rawData);
     expect(result.gameLog).toBeNull();

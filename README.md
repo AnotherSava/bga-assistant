@@ -34,6 +34,19 @@ Tracks the tile bag and discard pile (box lid) for [Azul](https://boardgamegeek.
 - Live tracking: counts update automatically as moves are made
 - All standard features: auto-hide, lit icon, auto-update on tab switch
 
+### The Crew: Mission Deep Sea
+
+Tracks card play across missions for [The Crew: Mission Deep Sea](https://boardgamegeek.com/boardgame/324856/the-crew-mission-deep-sea) tables with 3-5 players. Displays a card grid showing which cards are played, in your hand, or hidden in opponents' hands, a player-suit matrix for void and holding detection, and a trick history table.
+
+- Card grid: 40-card overview (4 color suits + submarine trump) with visual states for played (dimmed), in hand (highlighted), and remaining hidden cards
+- Void detection: automatically detects when a player is void in a suit from trick-following behavior
+- Communication tracking: integrates sonar communication data to narrow down card locations
+- Player-suit matrix: shows X (void), ! (confirmed cards), or ? (unknown) per player per suit
+- Trick history: chronological table of all tricks with lead and winner highlights
+- Per-mission state: automatically resets tracking on each new mission
+- Live tracking: updates as cards are played
+- All standard features: auto-hide, lit icon, auto-update on tab switch
+
 ## Setup
 
 ### Prerequisites
@@ -101,6 +114,14 @@ src/
       process_log.ts         Raw BGA packets -> structured Azul game log
       game_state.ts          Azul bag/discard/wall tracking
       render.ts              AzulGameState -> HTML tile count table
+    crew/
+      types.ts               Crew types: suit constants, ALL_SUITS, CrewCard, card key helper
+      process_log.ts         Raw BGA packets -> structured Crew game log
+      game_state.ts          CardGuess, Trick, CrewGameState interface, createCrewGameState() factory
+      game_engine.ts         processCrewState() pipeline, void detection, communication constraints, playerSuitStatus()
+      serialization.ts       toJSON/fromJSON serialization for side panel transport
+      render.ts              CrewGameState -> HTML card grid, suit matrix, trick history
+      styles.css             Crew-specific CSS (card grid, suit colors, matrix, trick table)
   render/
     help.ts                  Help page content
     icons.ts                 Shared icon utilities
@@ -120,7 +141,7 @@ assets/
 ### Data flow
 1. User clicks extension icon on a BGA game page
 2. extract.ts (MAIN world) fetches game data from BGA internals
-3. background.ts receives data, identifies the game, and runs the appropriate pipeline (Innovation or Azul)
+3. background.ts receives data, identifies the game, and runs the appropriate pipeline (Innovation, Azul, or Crew)
 4. background.ts opens side panel and pushes results directly via chrome.runtime messaging (push-only, no request/response round trips)
 5. sidepanel.ts receives pushed results, dispatches to the game-specific renderer and displays the summary
 6. A MutationObserver watcher is injected to monitor the game log DOM for changes

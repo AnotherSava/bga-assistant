@@ -6,6 +6,9 @@ import { GameEngine } from "./games/innovation/game_engine.js";
 import { toJSON as innovationToJSON, type SerializedGameState } from "./games/innovation/serialization.js";
 import { processAzulLog, type AzulGameLog } from "./games/azul/process_log.js";
 import { processLog as processAzulState, toJSON as azulToJSON, type SerializedAzulGameState } from "./games/azul/game_state.js";
+import { processCrewLog, type CrewGameLog } from "./games/crew/process_log.js";
+import { processCrewState } from "./games/crew/game_engine.js";
+import { crewToJSON, type SerializedCrewGameState } from "./games/crew/serialization.js";
 import { CardDatabase, CardSet, type GameName, type RawExtractionData } from "./models/types.js";
 import cardInfoRaw from "../assets/bga/innovation/card_info.json";
 
@@ -16,7 +19,7 @@ import cardInfoRaw from "../assets/bga/innovation/card_info.json";
 const BADGE_CLEAR_DELAY_MS = 5000;
 const EXTRACTION_TIMEOUT_MS = 60000;
 const LIVE_MIN_INTERVAL_MS = 5000;
-const SUPPORTED_GAMES: GameName[] = ["innovation", "azul"];
+const SUPPORTED_GAMES: GameName[] = ["innovation", "azul", "thecrewdeepsea"];
 const BGA_URL_PATTERN = /^https:\/\/([a-z0-9]+\.)?boardgamearena\.com\/\d+\/(\w+).*[?&]table=\d+/;
 const BGA_DOMAIN_PATTERN = /^https:\/\/([a-z0-9]+\.)?boardgamearena\.com\//;
 // ---------------------------------------------------------------------------
@@ -27,6 +30,7 @@ const BGA_DOMAIN_PATTERN = /^https:\/\/([a-z0-9]+\.)?boardgamearena\.com\//;
 export type PipelineResults =
   | { gameName: "innovation"; tableNumber: string; rawData: RawExtractionData; gameLog: GameLog; gameState: SerializedGameState }
   | { gameName: "azul"; tableNumber: string; rawData: RawExtractionData; gameLog: AzulGameLog; gameState: SerializedAzulGameState }
+  | { gameName: "thecrewdeepsea"; tableNumber: string; rawData: RawExtractionData; gameLog: CrewGameLog; gameState: SerializedCrewGameState }
   | { gameName: string; tableNumber: string; rawData: RawExtractionData; gameLog: null; gameState: null };
 
 /** Where an extraction was triggered from. */
@@ -49,6 +53,7 @@ export type NavigationAction =
  */
 export function isValidPlayerCount(gameName: GameName, playerCount: number): boolean {
   if (gameName === "azul") return playerCount >= 2 && playerCount <= 4;
+  if (gameName === "thecrewdeepsea") return playerCount >= 3 && playerCount <= 5;
   return playerCount === 2;
 }
 
@@ -102,8 +107,20 @@ chrome.commands.getAll((commands) => {
  */
 export function runPipeline(rawData: RawExtractionData, database: CardDatabase, tableNumber: string, gameName: "innovation"): Extract<PipelineResults, { gameName: "innovation" }>;
 export function runPipeline(rawData: RawExtractionData, database: CardDatabase, tableNumber: string, gameName: "azul"): Extract<PipelineResults, { gameName: "azul" }>;
+export function runPipeline(rawData: RawExtractionData, database: CardDatabase, tableNumber: string, gameName: "thecrewdeepsea"): Extract<PipelineResults, { gameName: "thecrewdeepsea" }>;
 export function runPipeline(rawData: RawExtractionData, database: CardDatabase, tableNumber: string, gameName: GameName): PipelineResults;
 export function runPipeline(rawData: RawExtractionData, database: CardDatabase, tableNumber: string, gameName: GameName): PipelineResults {
+  const playerCount = Object.keys(rawData.players).length;
+  if (!isValidPlayerCount(gameName, playerCount)) {
+    throw new Error(`${gameName} does not support ${playerCount}-player games`);
+  }
+
+  if (gameName === "thecrewdeepsea") {
+    const crewLog = processCrewLog(rawData);
+    const crewState = processCrewState(crewLog);
+    return { gameName, tableNumber, rawData, gameLog: crewLog, gameState: crewToJSON(crewState) };
+  }
+
   if (gameName === "azul") {
     const azulLog = processAzulLog(rawData);
     const azulState = processAzulState(azulLog.log);

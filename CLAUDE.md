@@ -48,6 +48,13 @@ Keep `README.md` in the project root up to date when code changes affect project
 - `src/games/azul/process_log.ts` — Azul BGA packet processing
 - `src/games/azul/game_state.ts` — Azul bag/discard/wall tracking
 - `src/games/azul/render.ts` — Azul tile count table renderer
+- `src/games/crew/types.ts` — Crew types (suit constants, ALL_SUITS, CrewCard, card key helper, SUIT_VALUES)
+- `src/games/crew/process_log.ts` — Crew BGA packet processing (missions, tricks, communications)
+- `src/games/crew/game_state.ts` — CardGuess candidate model, Trick interface, CrewGameState interface, createCrewGameState() factory
+- `src/games/crew/game_engine.ts` — processCrewState() pipeline entry, CardGuess candidate narrowing, constraint propagation, getPlayedCards(), playerSuitStatus()
+- `src/games/crew/serialization.ts` — toJSON/fromJSON serialization for Crew game state
+- `src/games/crew/render.ts` — Crew HTML renderer (card grid, suit matrix, trick history)
+- `src/games/crew/styles.css` — Crew-specific CSS styles
 - `src/render/help.ts` — help page content (shared)
 - `src/render/icons.ts` — shared icon utilities
 - `src/render/toggle.ts` — shared toggle/tooltip logic (side panel + ZIP export)

@@ -58,7 +58,7 @@ export async function extractGameData(): Promise<Record<string, unknown>> {
           return;
         }
 
-        resolve({ players: playerNames, gamedatas, packets: result.data, currentPlayerId: String(gui.player_id ?? "") });
+        resolve({ players: playerNames, gamedatas, packets: result.data, currentPlayerId: gui.player_id != null ? String(gui.player_id) : undefined });
       },
       (_isError: boolean, errorMsg: string) => {
         resolve({ error: true, msg: errorMsg });

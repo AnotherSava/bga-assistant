@@ -10,6 +10,9 @@ import { CardDatabase, type GameName } from "../models/types.js";
 import { GameEngine } from "../games/innovation/game_engine.js";
 import { fromJSON as innovationFromJSON } from "../games/innovation/serialization.js";
 import { renderAzulSummary, renderAzulFullPage, setAssetResolver as setAzulAssetResolver } from "../games/azul/render.js";
+import { renderCrewSummary, renderCrewFullPage } from "../games/crew/render.js";
+import { crewFromJSON } from "../games/crew/serialization.js";
+import "../games/crew/styles.css";
 import { fromJSON as azulFromJSON } from "../games/azul/game_state.js";
 import type { PipelineResults, PinMode } from "../background.js";
 
@@ -211,6 +214,49 @@ function render(results: PipelineResults): void {
         setAzulAssetResolver((path: string) => path);
         const rawHtml = renderAzulFullPage(azulState, results.tableNumber, css);
         if (typeof chrome !== "undefined" && chrome.runtime?.getURL) setAzulAssetResolver((path: string) => chrome.runtime.getURL(path));
+        const summaryHtmlFile = await inlineAssets(rawHtml);
+        const zip = new JSZip();
+        zip.file("raw_data.json", JSON.stringify(results.rawData, null, 2));
+        zip.file("game_log.json", JSON.stringify(results.gameLog, null, 2));
+        zip.file("game_state.json", JSON.stringify(results.gameState, null, 2));
+        zip.file("summary.html", summaryHtmlFile);
+        const blob = await zip.generateAsync({ type: "blob" });
+        downloadBlob(blob, `bgaa_${results.tableNumber}${lastMoveId(results.rawData.packets)}.zip`);
+      };
+    }
+
+    // Show live indicator
+    const indicator = document.getElementById("live-indicator");
+    if (indicator) indicator.style.display = "";
+
+    contentEl.scrollTop = savedScroll;
+    return;
+  }
+
+  if (results.gameName === "thecrewdeepsea" && results.gameState !== null) {
+    const crewState = crewFromJSON(results.gameState);
+    contentEl.innerHTML = renderCrewSummary(crewState);
+
+    // Hide Innovation-only features
+    const btnSections = document.getElementById("btn-sections");
+    if (btnSections) btnSections.classList.add("disabled");
+    const turnHistoryEl = document.getElementById("turn-history");
+    if (turnHistoryEl) turnHistoryEl.innerHTML = "";
+
+    // Populate game info bar
+    const tableEl = document.getElementById("game-info-table");
+    if (tableEl) tableEl.textContent = `# ${results.tableNumber}`;
+
+    // Cache CSS for downloads
+    loadCss();
+
+    // Show download button for Crew
+    const btnDownload = document.getElementById("btn-download");
+    if (btnDownload) {
+      btnDownload.classList.remove("disabled");
+      btnDownload.onclick = async () => {
+        const css = currentCss ?? "";
+        const rawHtml = renderCrewFullPage(crewState, results.tableNumber, css);
         const summaryHtmlFile = await inlineAssets(rawHtml);
         const zip = new JSZip();
         zip.file("raw_data.json", JSON.stringify(results.rawData, null, 2));
@@ -728,7 +774,7 @@ function showHelp(errorMessage?: string, forceGameTab?: GameName): void {
   } else {
     try {
       const stored = localStorage.getItem(STORAGE_KEY_HELP_TAB);
-      if (stored === "azul" || stored === "innovation") effectiveTab = stored;
+      if (stored === "azul" || stored === "innovation" || stored === "thecrewdeepsea") effectiveTab = stored;
     } catch { /* ignore */ }
   }
   try { localStorage.setItem(STORAGE_KEY_HELP_TAB, effectiveTab); } catch { /* ignore */ }

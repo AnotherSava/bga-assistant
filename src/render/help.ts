@@ -42,11 +42,12 @@ export function renderHelp(errorMessage?: string, gameName?: GameName): string {
   </div>
 
   <div class="help-tabs">
-    <button class="help-tab${gameName !== "azul" ? " active" : ""}" data-help-tab="innovation">Innovation</button>
+    <button class="help-tab${gameName !== "azul" && gameName !== "thecrewdeepsea" ? " active" : ""}" data-help-tab="innovation">Innovation</button>
     <button class="help-tab${gameName === "azul" ? " active" : ""}" data-help-tab="azul">Azul</button>
+    <button class="help-tab${gameName === "thecrewdeepsea" ? " active" : ""}" data-help-tab="thecrewdeepsea">The Crew</button>
   </div>
 
-  <div class="help-tab-content${gameName !== "azul" ? " active" : ""}" data-help-panel="innovation">
+  <div class="help-tab-content${gameName !== "azul" && gameName !== "thecrewdeepsea" ? " active" : ""}" data-help-panel="innovation">
   <div class="help-section">
     <div class="help-section-title">Sections</div>
     <div class="help-sections-grid">
@@ -91,6 +92,29 @@ export function renderHelp(errorMessage?: string, gameName?: GameName): string {
       <div class="help-grid-item"><span class="help-grid-label">Bag</span><span> Estimated tiles remaining in the bag by color</span></div>
       <div class="help-grid-item"><span class="help-grid-label">Box lid</span><span> Tiles discarded to the box lid (returned to bag on refill)</span></div>
       <div class="help-grid-item"><span class="help-grid-label">Wall</span><span> Tiles placed on player walls</span></div>
+    </div>
+  </div>
+  </div>
+
+  <div class="help-tab-content${gameName === "thecrewdeepsea" ? " active" : ""}" data-help-panel="thecrewdeepsea">
+  <div class="help-section">
+    <div class="help-section-title">Card grid</div>
+    <div class="help-sections-grid">
+      <div class="help-grid-item"><span>40 cards across 5 suits: Pink, Blue, Green, Yellow (1\u20139 each) and Submarine (1\u20134). Cards are shown as highlighted (your hand), dimmed (played), or normal (in opponents\u2019 hands).</span></div>
+    </div>
+  </div>
+  <div class="help-section">
+    <div class="help-section-title">Player\u2013Suit matrix</div>
+    <div class="help-sections-grid">
+      <div class="help-grid-item"><span class="help-grid-label">X</span><span> Player is void in this suit (played off-suit when it was led)</span></div>
+      <div class="help-grid-item"><span class="help-grid-label">!</span><span> Player confirmed to have cards of this suit (via communication or deduction)</span></div>
+      <div class="help-grid-item"><span class="help-grid-label">?</span><span> No definitive information</span></div>
+    </div>
+  </div>
+  <div class="help-section">
+    <div class="help-section-title">Trick history</div>
+    <div class="help-sections-grid">
+      <div class="help-grid-item"><span>Shows each trick with cards played per player. The lead card is highlighted and the trick winner is bold. The current in-progress trick is shown at the bottom.</span></div>
     </div>
   </div>
   </div>
