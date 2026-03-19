@@ -33,8 +33,16 @@ export type PipelineResults =
   | { gameName: "thecrewdeepsea"; tableNumber: string; rawData: RawExtractionData; gameLog: CrewGameLog; gameState: SerializedCrewGameState }
   | { gameName: string; tableNumber: string; rawData: RawExtractionData; gameLog: null; gameState: null };
 
-/** Where an extraction was triggered from. */
-export type ExtractionSource = "click" | "navigation" | "reconnect" | "reopen" | "live";
+/**
+ * Where an extraction was triggered from.
+ * - "click": user clicked the extension icon or pressed the keyboard shortcut
+ * - "navigation": tab switch or same-tab page load
+ * - "focus": window focus change (no loading — content stays visible)
+ * - "reconnect": side panel reconnected after service worker restart (no loading)
+ * - "reopen": side panel reopened on a different table than the cached one
+ * - "live": watcher detected DOM changes during live tracking (no loading)
+ */
+export type ExtractionSource = "click" | "navigation" | "focus" | "reconnect" | "reopen" | "live";
 
 /** Whether the given extraction source should show a loading indicator. */
 export function shouldShowLoading(source: ExtractionSource): boolean {
@@ -562,7 +570,9 @@ async function resolveContent(tabId: number, tabUrl: string, source: ExtractionS
   const nav = classifyNavigation(tabUrl);
 
   if (nav.action === "extract") {
-    if (shouldShowLoading(source)) chrome.runtime.sendMessage({ type: "loading" }).catch(() => {});
+    if (shouldShowLoading(source) && lastResults?.tableNumber !== nav.tableNumber) {
+      chrome.runtime.sendMessage({ type: "loading" }).catch(() => {});
+    }
     await extractFromTab(tabId, tabUrl, nav.gameName, nav.tableNumber);
     return;
   }
@@ -704,10 +714,10 @@ chrome.commands.onCommand.addListener((command) => {
 });
 
 // ---------------------------------------------------------------------------
-// Navigation handler (shared by tab-switch and same-tab navigation)
+// Navigation handler (shared by tab-switch, same-tab navigation, and focus change)
 // ---------------------------------------------------------------------------
 
-async function handleNavigation(initialTabId: number): Promise<void> {
+async function handleNavigation(initialTabId: number, source: ExtractionSource = "navigation"): Promise<void> {
   let tabId = initialTabId;
   while (true) {
     extracting = true;
@@ -728,7 +738,7 @@ async function handleNavigation(initialTabId: number): Promise<void> {
         break;
       }
 
-      await resolveContent(tabId, tab.url ?? "", "navigation");
+      await resolveContent(tabId, tab.url ?? "", source);
     } catch (err) {
       console.error("Navigation error:", err);
       lastResults = null;
@@ -790,7 +800,7 @@ chrome.windows.onFocusChanged.addListener(async (windowId) => {
     pendingNavTabId = tab.id;
     return;
   }
-  handleNavigation(tab.id);
+  handleNavigation(tab.id, "focus");
 });
 
 // Handle messages from side panel and content scripts

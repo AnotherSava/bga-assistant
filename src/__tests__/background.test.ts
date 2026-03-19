@@ -1241,6 +1241,38 @@ describe("unified extraction flow", () => {
 
     conn.triggerDisconnect();
   });
+
+  it("does not send loading on window focus change for same table", async () => {
+    const conn = connectSidePanel();
+    vi.clearAllMocks();
+    mockSendMessage.mockImplementation(() => Promise.resolve());
+
+    // Extract a game table via tab activation
+    const rawData = makeRawData({ "1": "Alice", "2": "Bob" }, []);
+    mockExecuteScript
+      .mockResolvedValueOnce([{ result: 2 }])
+      .mockResolvedValueOnce([{ result: rawData }]);
+    const gameTab = { id: 1, url: "https://boardgamearena.com/8/innovation?table=456", status: "complete", windowId: 10 };
+    mockTabsGet.mockResolvedValueOnce(gameTab).mockResolvedValueOnce(gameTab);
+    listeners.onActivated({ tabId: 1 });
+    await new Promise((r) => setTimeout(r, 50));
+    vi.clearAllMocks();
+    mockSendMessage.mockImplementation(() => Promise.resolve());
+
+    // Window focus change back to same window/tab — should NOT send loading
+    const mockTabsQuery = chrome.tabs.query as ReturnType<typeof vi.fn>;
+    mockTabsQuery.mockResolvedValueOnce([gameTab]);
+    mockExecuteScript.mockResolvedValueOnce([{ result: 2 }]);
+    mockTabsGet.mockResolvedValueOnce(gameTab);
+    mockExecuteScript.mockResolvedValueOnce([{ result: rawData }]);
+    listeners.onFocusChanged(10);
+    await new Promise((r) => setTimeout(r, 50));
+
+    const loadingCalls = mockSendMessage.mock.calls.filter((c: any[]) => c[0]?.type === "loading");
+    expect(loadingCalls.length).toBe(0);
+
+    conn.triggerDisconnect();
+  });
 });
 
 describe("onConnect pushes cached results", () => {
