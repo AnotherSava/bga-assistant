@@ -144,9 +144,9 @@ function renderTrickHistory(state: CrewGameState): string {
         let cls = SUIT_CSS_CLASS[play.card.suit];
         if (isLead) cls += " crew-lead";
         if (isWinner) cls += " crew-winner";
-        html += `<td class="crew-trick-card ${cls}">${play.card.value}</td>`;
+        html += `<td class="crew-trick-cell"><div class="crew-grid-cell ${cls}"><span class="crew-cell-value">${play.card.value}</span><span class="crew-cell-icon">${SUIT_ICONS[play.card.suit]}</span></div></td>`;
       } else {
-        html += '<td class="crew-trick-card"></td>';
+        html += '<td class="crew-trick-cell"></td>';
       }
     }
     html += '</tr>';

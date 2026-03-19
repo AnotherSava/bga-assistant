@@ -25,14 +25,15 @@
   display: flex;
   align-items: center;
   gap: 2px;
-  margin-bottom: 2px;
+  margin-bottom: 6px;
 }
 .crew-grid-corner {
   width: 18px;
   flex-shrink: 0;
 }
 .crew-grid-suit-header {
-  width: 30px;
+  /* Match card cell total width: 30px content + 1px border each side = 32px */
+  width: 32px;
   height: 18px;
   display: flex;
   align-items: center;
@@ -86,18 +87,11 @@
 .crew-grid-cell.crew-yellow { border-color: #ddaa00; background: #4c4a1a; color: #ddaa00; }
 .crew-grid-cell.crew-sub   { border-color: #888888; background: #333; color: #888888; }
 
-/* Card state: played (dimmed) */
-.crew-grid-cell.crew-played {
-  opacity: 0.25;
-}
-
-/* Card state: my hand (highlighted border) */
-.crew-grid-cell.crew-myhand {
-  border-width: 2px;
-  box-shadow: 0 0 4px rgba(255, 255, 255, 0.3);
-}
-
-/* Card state: hidden (normal, no extra styling) */
+/* Card state: hidden = opponents' unplayed (full brightness, no override) */
+/* Card state: myhand = dark background, dimmed text */
+.crew-grid-cell.crew-myhand { background: #1a1a1a; border-color: #333; opacity: 0.55; }
+/* Card state: played = fully dimmed */
+.crew-grid-cell.crew-played { opacity: 0.25; }
 
 /* ---------------------------------------------------------------------------
    Player–Suit matrix
@@ -155,18 +149,19 @@
   text-align: right;
   padding-right: 6px;
 }
-.crew-trick-card {
-  text-align: center;
-  padding: 2px 8px;
-  font-size: 13px;
-  font-weight: bold;
+.crew-trick-cell {
+  padding: 1px 2px;
 }
-.crew-trick-card.crew-lead {
-  text-decoration: underline;
+.crew-trick-cell .crew-grid-cell {
+  margin: 0 auto;
 }
-.crew-trick-card.crew-winner {
-  font-weight: 900;
-  text-shadow: 0 0 4px currentColor;
+/* Lead card: white text/icon */
+.crew-grid-cell.crew-lead {
+  color: #fff;
+}
+/* Winner card: glow */
+.crew-grid-cell.crew-winner {
+  box-shadow: 0 0 6px currentColor;
 }
 .crew-trick-current {
   border-top: 1px dashed #555;
