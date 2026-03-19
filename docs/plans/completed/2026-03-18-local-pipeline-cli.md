@@ -115,3 +115,38 @@ The simplest approach: the debug script processes entries one at a time (like th
 4. `npm run game-state -- data/bgaa_823235522_23/game_log.json` — produces `game_state.json`
 5. `npm run game-state -- data/bgaa_823235522_23/game_log.json --debug` — produces numbered snapshots
 6. Compare CLI output with ZIP download output — should be identical (minus gameName field addition)
+
+## Tasks
+
+### Task 1: Add gameName to data formats
+
+- [x] Add `gameName: string` field to `RawExtractionData` in `src/models/types.ts`
+- [x] Add `gameName` to extraction output in `src/extract.ts` (derive from URL pathname)
+- [x] Add `gameName` field to `GameLog` in `src/games/innovation/process_log.ts` and populate it in `processRawLog`
+- [x] Add `gameName` field to `SerializedGameState` in `src/games/innovation/serialization.ts` and populate in `toJSON`
+- [x] Add `gameName` field to `AzulGameLog` in `src/games/azul/process_log.ts` and populate in `processAzulLog`
+- [x] Add `gameName` field to `SerializedAzulGameState` in `src/games/azul/game_state.ts` and populate in `toJSON`
+- [x] Add `gameName` field to `CrewGameLog` in `src/games/crew/process_log.ts` and populate in `processCrewLog`
+- [x] Add `gameName` field to `SerializedCrewGameState` in `src/games/crew/serialization.ts` and populate in `crewToJSON`
+- [x] Populate `gameName` in `runPipeline` results in `src/background.ts` — pass through to serialized outputs
+- [x] All tests pass (`npm test`) and build succeeds (`npm run build`)
+
+### Task 2: Extract pipeline logic into shared module
+
+- [x] Create `src/pipeline.ts` with `processGameLog(rawData, gameName)` and `processGameState(gameLog, gameName, cardDb)` functions
+- [x] Refactor `src/background.ts` to import and use pipeline functions from `src/pipeline.ts`
+- [x] All tests pass (`npm test`) and build succeeds (`npm run build`)
+
+### Task 3: Create CLI scripts and npm configuration
+
+- [x] Add `tsx` as a dev dependency
+- [x] Create `scripts/game-log.ts` — reads raw_data.json, detects game, calls processGameLog, writes game_log.json
+- [x] Create `scripts/game-state.ts` — reads game_log.json, detects game, runs engine + serialization, writes game_state.json, supports `--debug` flag
+- [x] Add `game-log` and `game-state` npm scripts to `package.json`
+- [x] All tests pass (`npm test`) and build succeeds (`npm run build`)
+
+### Task 4: Documentation
+
+- [x] Add CLI scripts to Commands section in `CLAUDE.md`
+- [x] Update `README.md` with CLI usage information
+- [x] Update `docs/data-flow.md` if pipeline extraction changes affect data flow

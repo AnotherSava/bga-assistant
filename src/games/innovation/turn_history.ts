@@ -17,6 +17,7 @@ export interface TurnAction {
   player: string;
   actionNumber: number;
   time: number | null;
+  logIndex: number;
   actions: ActionDetail[];  // [0] = primary, [1..] = sub-actions
 }
 

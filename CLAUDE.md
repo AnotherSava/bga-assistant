@@ -37,6 +37,8 @@ Any plan that changes or can change logic should include `README.md` and `docs/d
 - `npm test` — run all tests
 - `npm run lint` — TypeScript type checking (`tsc --noEmit`)
 - `npm run dev` — watch mode build
+- `npm run game-log -- <raw_data.json>` — process raw data into game log
+- `npm run game-state -- <game_log.json> [--debug]` — process game log into game state (--debug writes per-turn snapshots)
 
 ## Project Structure
 
@@ -63,7 +65,10 @@ Any plan that changes or can change logic should include `README.md` and `docs/d
 - `src/render/icons.ts` — shared icon utilities
 - `src/render/toggle.ts` — shared toggle/tooltip logic (side panel + ZIP export)
 - `src/extract.ts` — content script (MAIN world)
-- `src/background.ts` — service worker (multi-game pipeline, PipelineResults discriminated union on gameName)
+- `src/pipeline.ts` — pure pipeline logic (processGameLog, processGameState, runPipeline) shared by background.ts and CLI scripts
+- `src/background.ts` — service worker (orchestration, side panel management, live tracking)
+- `scripts/game-log.ts` — CLI: raw_data.json → game_log.json
+- `scripts/game-state.ts` — CLI: game_log.json → game_state.json (+ --debug snapshots)
 - `sidepanel.html` — side panel HTML entry point (project root, Vite input)
 - `src/sidepanel/` — side panel UI (game-type-aware rendering dispatch)
 - `assets/bga/innovation/` — Innovation game data (card_info.json, cards/, icons/, sprites/)

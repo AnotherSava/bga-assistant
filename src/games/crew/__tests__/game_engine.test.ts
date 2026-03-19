@@ -9,6 +9,7 @@ import { cardKey, PINK, BLUE, GREEN, YELLOW, SUBMARINE } from "../types.js";
 
 function makeLog(entries: CrewLogEntry[], overrides?: Partial<CrewGameLog>): CrewGameLog {
   return {
+    gameName: "thecrewdeepsea",
     players: overrides?.players ?? { "1": "Alice", "2": "Bob", "3": "Charlie", "4": "Diana" },
     playerOrder: overrides?.playerOrder ?? ["1", "2", "3", "4"],
     playerCardCounts: overrides?.playerCardCounts ?? {},

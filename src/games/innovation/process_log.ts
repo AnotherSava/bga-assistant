@@ -31,6 +31,7 @@ const UNSUPPORTED_EXPANSION_NAMES: Record<string, string> = {
 
 /** Structured game log output from processRawLog. */
 export interface GameLog {
+  gameName: "innovation";
   players: Record<string, string>;
   currentPlayerId: string;
   myHand: string[];
@@ -115,6 +116,7 @@ interface PendingAction {
   player: string;
   actionNumber: number;
   time: number | null;
+  logIndex: number;
 }
 
 /** Try to classify a pending action from a transfer entry. Returns null if the transfer is not an action. */
@@ -252,7 +254,7 @@ export function processRawLog(rawData: RawExtractionData): GameLog {
         if (pendingAction) {
           const detail = classifyTransfer(entry);
           if (detail) {
-            const turnAction: TurnAction = { player: pendingAction.player, actionNumber: pendingAction.actionNumber, time: pendingAction.time, actions: [detail] };
+            const turnAction: TurnAction = { player: pendingAction.player, actionNumber: pendingAction.actionNumber, time: pendingAction.time, logIndex: pendingAction.logIndex, actions: [detail] };
             actions.push(turnAction);
             currentAction = turnAction;
             pendingAction = null;
@@ -279,7 +281,7 @@ export function processRawLog(rawData: RawExtractionData): GameLog {
         if (pendingAction && entry.type === "logWithCardTooltips") {
           const detail = classifyMessage(entry);
           if (detail) {
-            const turnAction: TurnAction = { player: pendingAction.player, actionNumber: pendingAction.actionNumber, time: pendingAction.time, actions: [detail] };
+            const turnAction: TurnAction = { player: pendingAction.player, actionNumber: pendingAction.actionNumber, time: pendingAction.time, logIndex: pendingAction.logIndex, actions: [detail] };
             actions.push(turnAction);
             currentAction = turnAction;
             pendingAction = null;
@@ -306,9 +308,9 @@ export function processRawLog(rawData: RawExtractionData): GameLog {
             currentAction = null;
             // If previous action was never classified, it stays pending
             if (pendingAction) {
-              actions.push({ player: pendingAction.player, actionNumber: pendingAction.actionNumber, time: pendingAction.time, actions: [{ actionType: "pending", cardName: null, cardAge: null, cardSet: null }] });
+              actions.push({ player: pendingAction.player, actionNumber: pendingAction.actionNumber, time: pendingAction.time, logIndex: pendingAction.logIndex, actions: [{ actionType: "pending", cardName: null, cardAge: null, cardSet: null }] });
             }
-            pendingAction = { player: playerName, actionNumber, time: packet.time ?? null };
+            pendingAction = { player: playerName, actionNumber, time: packet.time ?? null, logIndex: log.length };
             lastPending = { player: playerName, actionNumber, move: moveId };
           }
         }
@@ -318,8 +320,8 @@ export function processRawLog(rawData: RawExtractionData): GameLog {
 
   // Flush: if the last action was never classified, emit as pending
   if (pendingAction) {
-    actions.push({ player: pendingAction.player, actionNumber: pendingAction.actionNumber, time: pendingAction.time, actions: [{ actionType: "pending", cardName: null, cardAge: null, cardSet: null }] });
+    actions.push({ player: pendingAction.player, actionNumber: pendingAction.actionNumber, time: pendingAction.time, logIndex: pendingAction.logIndex, actions: [{ actionType: "pending", cardName: null, cardAge: null, cardSet: null }] });
   }
 
-  return { players: playerNames, currentPlayerId: rawData.currentPlayerId ?? "", myHand, log, actions, expansions: { echoes: hasEchoesTransfer } };
+  return { gameName: "innovation", players: playerNames, currentPlayerId: rawData.currentPlayerId ?? "", myHand, log, actions, expansions: { echoes: hasEchoesTransfer } };
 }

@@ -10,6 +10,7 @@ import { cardKey, PINK, BLUE, GREEN, YELLOW, SUBMARINE } from "../types.js";
 
 function buildTestState(): ReturnType<typeof processCrewState> {
   const log: CrewGameLog = {
+    gameName: "thecrewdeepsea",
     players: { "1": "Alice", "2": "Bob", "3": "Charlie" },
     playerOrder: ["1", "2", "3"],
     playerCardCounts: {},
@@ -99,6 +100,7 @@ describe("crew serialization — JSON shape", () => {
 describe("crew serialization — empty state", () => {
   it("handles state with no tricks", () => {
     const log: CrewGameLog = {
+      gameName: "thecrewdeepsea",
       players: { "1": "Alice", "2": "Bob", "3": "Charlie" },
       playerOrder: ["1", "2", "3"],
       playerCardCounts: {},

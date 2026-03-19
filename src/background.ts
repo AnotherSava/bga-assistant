@@ -1,15 +1,7 @@
 // Service worker: orchestrates extraction pipeline, opens side panel, handles messaging.
 
-import { processRawLog, type GameLog } from "./games/innovation/process_log.js";
-import { createGameState } from "./games/innovation/game_state.js";
-import { GameEngine } from "./games/innovation/game_engine.js";
-import { toJSON as innovationToJSON, type SerializedGameState } from "./games/innovation/serialization.js";
-import { processAzulLog, type AzulGameLog } from "./games/azul/process_log.js";
-import { processLog as processAzulState, toJSON as azulToJSON, type SerializedAzulGameState } from "./games/azul/game_state.js";
-import { processCrewLog, type CrewGameLog } from "./games/crew/process_log.js";
-import { processCrewState } from "./games/crew/game_engine.js";
-import { crewToJSON, type SerializedCrewGameState } from "./games/crew/serialization.js";
-import { CardDatabase, CardSet, type GameName, type RawExtractionData } from "./models/types.js";
+import { runPipeline, isValidPlayerCount, type PipelineResults } from "./pipeline.js";
+import { CardDatabase, type GameName, type RawExtractionData } from "./models/types.js";
 import cardInfoRaw from "../assets/bga/innovation/card_info.json";
 
 // ---------------------------------------------------------------------------
@@ -26,12 +18,7 @@ const BGA_DOMAIN_PATTERN = /^https:\/\/([a-z0-9]+\.)?boardgamearena\.com\//;
 // State
 // ---------------------------------------------------------------------------
 
-/** Serialized pipeline results for side panel consumption. */
-export type PipelineResults =
-  | { gameName: "innovation"; tableNumber: string; rawData: RawExtractionData; gameLog: GameLog; gameState: SerializedGameState }
-  | { gameName: "azul"; tableNumber: string; rawData: RawExtractionData; gameLog: AzulGameLog; gameState: SerializedAzulGameState }
-  | { gameName: "thecrewdeepsea"; tableNumber: string; rawData: RawExtractionData; gameLog: CrewGameLog; gameState: SerializedCrewGameState }
-  | { gameName: string; tableNumber: string; rawData: RawExtractionData; gameLog: null; gameState: null };
+export type { PipelineResults } from "./pipeline.js";
 
 /**
  * Where an extraction was triggered from.
@@ -55,15 +42,7 @@ export type NavigationAction =
   | { action: "showHelp"; url: string }
   | { action: "unsupportedGame"; tableNumber: string; gameName: string };
 
-/**
- * Check if a player count is valid for a given game.
- * Innovation requires exactly 2 players; Azul accepts 2-4.
- */
-export function isValidPlayerCount(gameName: GameName, playerCount: number): boolean {
-  if (gameName === "azul") return playerCount >= 2 && playerCount <= 4;
-  if (gameName === "thecrewdeepsea") return playerCount >= 3 && playerCount <= 5;
-  return playerCount === 2;
-}
+export { isValidPlayerCount } from "./pipeline.js";
 
 /** Pin mode controlling auto-hide behavior. */
 export type PinMode = "pinned" | "autohide-bga" | "autohide-game";
@@ -109,57 +88,7 @@ chrome.commands.getAll((commands) => {
 // Pipeline
 // ---------------------------------------------------------------------------
 
-/**
- * Run the full analysis pipeline on raw extraction data.
- * Exported for testing.
- */
-export function runPipeline(rawData: RawExtractionData, database: CardDatabase, tableNumber: string, gameName: "innovation"): Extract<PipelineResults, { gameName: "innovation" }>;
-export function runPipeline(rawData: RawExtractionData, database: CardDatabase, tableNumber: string, gameName: "azul"): Extract<PipelineResults, { gameName: "azul" }>;
-export function runPipeline(rawData: RawExtractionData, database: CardDatabase, tableNumber: string, gameName: "thecrewdeepsea"): Extract<PipelineResults, { gameName: "thecrewdeepsea" }>;
-export function runPipeline(rawData: RawExtractionData, database: CardDatabase, tableNumber: string, gameName: GameName): PipelineResults;
-export function runPipeline(rawData: RawExtractionData, database: CardDatabase, tableNumber: string, gameName: GameName): PipelineResults {
-  const playerCount = Object.keys(rawData.players).length;
-  if (!isValidPlayerCount(gameName, playerCount)) {
-    throw new Error(`${gameName} does not support ${playerCount}-player games`);
-  }
-
-  if (gameName === "thecrewdeepsea") {
-    const crewLog = processCrewLog(rawData);
-    const crewState = processCrewState(crewLog);
-    return { gameName, tableNumber, rawData, gameLog: crewLog, gameState: crewToJSON(crewState) };
-  }
-
-  if (gameName === "azul") {
-    const azulLog = processAzulLog(rawData);
-    const azulState = processAzulState(azulLog.log);
-    return { gameName, tableNumber, rawData, gameLog: azulLog, gameState: azulToJSON(azulState) };
-  }
-
-  if (gameName !== "innovation") {
-    throw new Error(`Pipeline not implemented for game: ${gameName}`);
-  }
-
-  const gameLog = processRawLog(rawData);
-
-  // Supplement transfer-based detection with myHand detection
-  if (!gameLog.expansions.echoes) {
-    for (const name of gameLog.myHand) {
-      const info = database.get(name.toLowerCase());
-      if (info && info.cardSet === CardSet.ECHOES) {
-        gameLog.expansions.echoes = true;
-        break;
-      }
-    }
-  }
-
-  const players = Object.values(gameLog.players);
-  const perspective = gameLog.currentPlayerId && gameLog.players[gameLog.currentPlayerId] ? gameLog.players[gameLog.currentPlayerId] : players[0];
-  const engine = new GameEngine(database);
-  const state = createGameState(players, perspective);
-  engine.initGame(state, gameLog.expansions);
-  engine.processLog(state, gameLog.log, gameLog.myHand);
-  return { gameName, tableNumber, rawData, gameLog, gameState: innovationToJSON(state) };
-}
+export { runPipeline } from "./pipeline.js";
 
 // ---------------------------------------------------------------------------
 // Badge helpers

@@ -87,13 +87,30 @@ npm run test:watch   # Watch mode tests
 npm run lint         # TypeScript type checking
 ```
 
+### Local Pipeline CLI
+
+Two CLI scripts run the extension's pipeline stages locally for debugging, using the same artifacts saved by the ZIP download.
+
+```
+npm run game-log -- data/bgaa_823235522_23/raw_data.json
+npm run game-state -- data/bgaa_823235522_23/game_log.json
+npm run game-state -- data/bgaa_823235522_23/game_log.json --debug
+```
+
+- `game-log`: reads `raw_data.json`, auto-detects the game from the `gameName` field, runs the game-specific log processor, and writes `game_log.json` to the same directory.
+- `game-state`: reads `game_log.json`, runs the engine and serialization pipeline, and writes `game_state.json` to the same directory. With `--debug`, also creates a `game_states/` subfolder with numbered per-turn snapshots (`0001.json`, `0002.json`, etc.).
+
 ## Architecture
 
 ```
 manifest.json                Chrome extension manifest (v3, side panel)
 sidepanel.html               Side panel page shell (Vite HTML entry point)
+scripts/
+  game-log.ts                CLI: raw_data.json → game_log.json
+  game-state.ts              CLI: game_log.json → game_state.json (+ --debug snapshots)
 src/
-  background.ts              Service worker: pipeline orchestration, side panel management, live tracking
+  background.ts              Service worker: orchestration, side panel management, live tracking
+  pipeline.ts                Pure pipeline logic shared by background.ts and CLI scripts
   extract.ts                 Content script: BGA data extraction (MAIN world)
   sidepanel/
     sidepanel.ts             Receives data, triggers render, handles downloads

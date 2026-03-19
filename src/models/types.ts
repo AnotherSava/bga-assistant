@@ -35,6 +35,7 @@ export interface RawPacket {
 
 /** Shape of the raw extraction data sent from the content script. */
 export interface RawExtractionData {
+  gameName: string;
   players: Record<string, string>;
   packets: RawPacket[];
   currentPlayerId?: string;

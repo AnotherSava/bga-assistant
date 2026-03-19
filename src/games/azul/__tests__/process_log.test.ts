@@ -42,6 +42,7 @@ function makeTile(id: number, type: number, location = "factory"): { id: number;
 
 function makeRawData(packets: RawPacket[], players?: Record<string, string>): RawExtractionData {
   return {
+    gameName: "azul",
     players: players ?? { "1": "Alice", "2": "Bob" },
     packets,
   };
@@ -299,7 +300,7 @@ describe("processAzulLog — player data", () => {
   });
 
   it("defaults to empty players when not provided", () => {
-    const raw: RawExtractionData = { players: {}, packets: [] } as any;
+    const raw: RawExtractionData = { gameName: "azul", players: {}, packets: [] } as any;
     const result = processAzulLog(raw);
     expect(result.players).toEqual({});
   });

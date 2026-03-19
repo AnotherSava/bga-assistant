@@ -102,8 +102,9 @@ function makeRawData(
   players: Record<string, string>,
   packets: RawExtractionData["packets"],
   gamedatas?: RawExtractionData["gamedatas"],
+  gameName: string = "innovation",
 ): RawExtractionData {
-  return { players, packets, gamedatas };
+  return { gameName, players, packets, gamedatas };
 }
 
 // Helper to build a transferedCard spectator + player notification pair.
@@ -406,7 +407,7 @@ describe("runPipeline", () => {
 
   it("throws for unsupported game name", () => {
     const rawData = makeRawData({ "1": "Alice", "2": "Bob" }, []);
-    expect(() => runPipeline(rawData, cardDb, "12345", "unknowngame" as any)).toThrow("Pipeline not implemented for game: unknowngame");
+    expect(() => runPipeline(rawData, cardDb, "12345", "unknowngame" as any)).toThrow("Log processing not implemented for game: unknowngame");
   });
 });
 
@@ -414,7 +415,7 @@ describe("runPipeline (azul)", () => {
   const cardDb = loadCardDb();
 
   it("processes empty Azul extraction data", () => {
-    const rawData = makeRawData({ "1": "Alice", "2": "Bob", "3": "Carol" }, []);
+    const rawData = makeRawData({ "1": "Alice", "2": "Bob", "3": "Carol" }, [], undefined, "azul");
     const result = runPipeline(rawData, cardDb, "99999", "azul");
     expect(result.gameName).toBe("azul");
     expect(result.tableNumber).toBe("99999");
@@ -450,7 +451,7 @@ describe("runPipeline (azul)", () => {
   });
 
   it("Azul pipeline result is JSON-serializable", () => {
-    const rawData = makeRawData({ "1": "Alice", "2": "Bob" }, []);
+    const rawData = makeRawData({ "1": "Alice", "2": "Bob" }, [], undefined, "azul");
     const result = runPipeline(rawData, cardDb, "12345", "azul");
     const json = JSON.stringify(result);
     expect(json).toBeDefined();
@@ -464,7 +465,7 @@ describe("runPipeline (thecrewdeepsea)", () => {
   const cardDb = loadCardDb();
 
   it("processes empty Crew extraction data", () => {
-    const rawData = { ...makeRawData({ "1": "Alice", "2": "Bob", "3": "Carol" }, []), currentPlayerId: "1" };
+    const rawData = { ...makeRawData({ "1": "Alice", "2": "Bob", "3": "Carol" }, [], undefined, "thecrewdeepsea"), currentPlayerId: "1" };
     const result = runPipeline(rawData, cardDb, "77777", "thecrewdeepsea");
     expect(result.gameName).toBe("thecrewdeepsea");
     expect(result.tableNumber).toBe("77777");
@@ -489,7 +490,7 @@ describe("runPipeline (thecrewdeepsea)", () => {
   });
 
   it("Crew pipeline result is JSON-serializable", () => {
-    const rawData = { ...makeRawData({ "1": "Alice", "2": "Bob", "3": "Carol" }, []), currentPlayerId: "1" };
+    const rawData = { ...makeRawData({ "1": "Alice", "2": "Bob", "3": "Carol" }, [], undefined, "thecrewdeepsea"), currentPlayerId: "1" };
     const result = runPipeline(rawData, cardDb, "12345", "thecrewdeepsea");
     const json = JSON.stringify(result);
     expect(json).toBeDefined();
@@ -1071,7 +1072,7 @@ describe("auto-close in handleNavigation", () => {
     vi.clearAllMocks();
 
     // Navigate to a supported game
-    const rawData = { players: { "1": "Alice", "2": "Bob" }, packets: [] };
+    const rawData = { gameName: "innovation", players: { "1": "Alice", "2": "Bob" }, packets: [] };
     (chrome.scripting.executeScript as ReturnType<typeof vi.fn>).mockResolvedValueOnce([{ result: rawData }]);
     // Two mocks: icon update + handleNavigation
     const tab = { id: 1, url: "https://boardgamearena.com/8/innovation?table=123", status: "complete", windowId: 10 };

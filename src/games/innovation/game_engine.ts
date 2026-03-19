@@ -161,12 +161,17 @@ export class GameEngine {
     return [...hand].map(name => cardIndex(name));
   }
 
-  /** Process the full game log: deduce hand, resolve, then process all entries. */
-  processLog(state: GameState, log: GameLogEntry[], myHand: string[]): void {
+  /** Initialize log processing: deduce hand and resolve, without processing entries. */
+  initLog(state: GameState, log: GameLogEntry[], myHand: string[]): void {
     this._playerPattern = state.players.map(p => p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
 
     const initialHand = this.deduceInitialHand(state, log, myHand);
     this.resolveHand(state, state.perspective, initialHand);
+  }
+
+  /** Process the full game log: deduce hand, resolve, then process all entries. */
+  processLog(state: GameState, log: GameLogEntry[], myHand: string[]): void {
+    this.initLog(state, log, myHand);
 
     for (const entry of log) {
       this.processEntry(state, entry);
@@ -174,7 +179,7 @@ export class GameEngine {
   }
 
   /** Process a single log entry: dispatch to move, revealHand, or confirmMeldFilter. */
-  private processEntry(state: GameState, entry: GameLogEntry): void {
+  processEntry(state: GameState, entry: GameLogEntry): void {
     if (entry.type === "transfer") {
       this.processTransfer(state, entry as TransferEntry);
     } else if (entry.type === "logWithCardTooltips") {

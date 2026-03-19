@@ -67,6 +67,7 @@ export type CrewLogEntry =
 
 /** Structured Crew game log output from processCrewLog. */
 export interface CrewGameLog {
+  gameName: "thecrewdeepsea";
   players: Record<string, string>;
   playerOrder: string[];
   playerCardCounts: Record<string, number>;
@@ -200,6 +201,7 @@ export function processCrewLog(rawData: RawExtractionData): CrewGameLog {
   }
 
   return {
+    gameName: "thecrewdeepsea" as const,
     players: playerNames,
     playerOrder,
     playerCardCounts,

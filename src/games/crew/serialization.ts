@@ -8,6 +8,7 @@ import { type CrewGameState, type Trick, createCrewGameState } from "./game_stat
 // ---------------------------------------------------------------------------
 
 export interface SerializedCrewGameState {
+  gameName: "thecrewdeepsea";
   players: Record<string, string>;
   playerOrder: string[];
   currentPlayerId: string;
@@ -28,6 +29,7 @@ export function crewToJSON(state: CrewGameState): SerializedCrewGameState {
   }
 
   return {
+    gameName: "thecrewdeepsea",
     players: state.players,
     playerOrder: state.playerOrder,
     currentPlayerId: state.currentPlayerId,

@@ -37,7 +37,7 @@ function spectatorLog(msg: string) {
 const PLAYERS = { "100": "Alice", "200": "Bob" };
 
 function extractActions(packets: any[]): TurnAction[] {
-  return processRawLog({ players: PLAYERS, packets: packets.flat() }).actions;
+  return processRawLog({ gameName: "innovation", players: PLAYERS, packets: packets.flat() }).actions;
 }
 
 // ---------------------------------------------------------------------------
@@ -158,12 +158,12 @@ describe("action classification", () => {
 
 describe("recentTurns", () => {
   const sampleActions: TurnAction[] = [
-    { player: "Alice", actionNumber: 1, time: null, actions: [{ actionType: "meld", cardName: "Pottery", cardAge: 1, cardSet: "base" }] },
-    { player: "Alice", actionNumber: 2, time: null, actions: [{ actionType: "draw", cardName: null, cardAge: 1, cardSet: "base" }] },
-    { player: "Bob", actionNumber: 1, time: null, actions: [{ actionType: "dogma", cardName: "Agriculture", cardAge: null, cardSet: null }] },
-    { player: "Bob", actionNumber: 2, time: null, actions: [{ actionType: "meld", cardName: "Tools", cardAge: 1, cardSet: "base" }] },
-    { player: "Alice", actionNumber: 1, time: null, actions: [{ actionType: "dogma", cardName: "Philosophy", cardAge: null, cardSet: null }] },
-    { player: "Alice", actionNumber: 2, time: null, actions: [{ actionType: "draw", cardName: null, cardAge: 2, cardSet: "base" }] },
+    { player: "Alice", actionNumber: 1, time: null, logIndex: 0, actions: [{ actionType: "meld", cardName: "Pottery", cardAge: 1, cardSet: "base" }] },
+    { player: "Alice", actionNumber: 2, time: null, logIndex: 1, actions: [{ actionType: "draw", cardName: null, cardAge: 1, cardSet: "base" }] },
+    { player: "Bob", actionNumber: 1, time: null, logIndex: 2, actions: [{ actionType: "dogma", cardName: "Agriculture", cardAge: null, cardSet: null }] },
+    { player: "Bob", actionNumber: 2, time: null, logIndex: 3, actions: [{ actionType: "meld", cardName: "Tools", cardAge: 1, cardSet: "base" }] },
+    { player: "Alice", actionNumber: 1, time: null, logIndex: 4, actions: [{ actionType: "dogma", cardName: "Philosophy", cardAge: null, cardSet: null }] },
+    { player: "Alice", actionNumber: 2, time: null, logIndex: 5, actions: [{ actionType: "draw", cardName: null, cardAge: 2, cardSet: "base" }] },
   ];
 
   it("returns empty for count=0", () => {
@@ -217,9 +217,9 @@ describe("recentTurns", () => {
 
   it("first turn (single action) is one half-turn", () => {
     const actions: TurnAction[] = [
-      { player: "Alice", actionNumber: 1, time: null, actions: [{ actionType: "meld", cardName: "Archery", cardAge: 1, cardSet: "base" }] },
-      { player: "Bob", actionNumber: 1, time: null, actions: [{ actionType: "meld", cardName: "Oars", cardAge: 1, cardSet: "base" }] },
-      { player: "Bob", actionNumber: 2, time: null, actions: [{ actionType: "draw", cardName: null, cardAge: 1, cardSet: "base" }] },
+      { player: "Alice", actionNumber: 1, time: null, logIndex: 0, actions: [{ actionType: "meld", cardName: "Archery", cardAge: 1, cardSet: "base" }] },
+      { player: "Bob", actionNumber: 1, time: null, logIndex: 1, actions: [{ actionType: "meld", cardName: "Oars", cardAge: 1, cardSet: "base" }] },
+      { player: "Bob", actionNumber: 2, time: null, logIndex: 2, actions: [{ actionType: "draw", cardName: null, cardAge: 1, cardSet: "base" }] },
     ];
     const result = recentTurns(actions, 2);
     expect(result).toHaveLength(3);

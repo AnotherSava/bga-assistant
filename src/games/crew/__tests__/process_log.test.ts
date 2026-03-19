@@ -21,6 +21,7 @@ function makePacket(moveId: number, notifications: Array<{ type: string; args: R
 
 function makeRawData(packets: RawPacket[], players?: Record<string, string>, currentPlayerId?: string): RawExtractionData {
   return {
+    gameName: "thecrewdeepsea",
     players: players ?? { "1": "Alice", "2": "Bob", "3": "Charlie", "4": "Diana" },
     packets,
     currentPlayerId: currentPlayerId ?? "1",
@@ -293,7 +294,7 @@ describe("processCrewLog — metadata", () => {
   });
 
   it("throws when currentPlayerId is missing", () => {
-    const raw: RawExtractionData = { players: {}, packets: [] };
+    const raw: RawExtractionData = { gameName: "thecrewdeepsea", players: {}, packets: [] };
     expect(() => processCrewLog(raw)).toThrow("currentPlayerId missing from extraction data");
   });
 });

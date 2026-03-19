@@ -56,6 +56,7 @@ export type AzulLogEntry = FactoryFillEntry | WallPlacementEntry | FloorClearEnt
 
 /** Structured Azul game log output from processAzulLog. */
 export interface AzulGameLog {
+  gameName: "azul";
   players: Record<string, string>;
   log: AzulLogEntry[];
 }
@@ -113,7 +114,7 @@ export function processAzulLog(rawData: RawExtractionData): AzulGameLog {
     }
   }
 
-  return { players: playerNames, log };
+  return { gameName: "azul" as const, players: playerNames, log };
 }
 
 /** Parse a factoriesFilled notification into a FactoryFillEntry. */

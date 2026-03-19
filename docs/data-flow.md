@@ -23,6 +23,7 @@ references to module-level code are undefined after Chrome serializes the functi
 Responsibilities:
 - Read player names and initial hand from `gameui.*` globals
 - Fetch full notification history via BGA's API
+- Extract game name from page URL pathname
 - Package results as `RawExtractionData`
 
 Key files:
@@ -43,6 +44,7 @@ Responsibilities:
 
 Key files:
 - `src/background.ts` — orchestration, message handling, icon/badge, live tracking
+- `src/pipeline.ts` — pure pipeline logic (`processGameLog`, `processGameState`, `runPipeline`); shared by background.ts and CLI scripts (`scripts/game-log.ts`, `scripts/game-state.ts`)
 - `src/games/*/process_log.ts` — raw BGA packets to structured game log
 - `src/games/*/game_state.ts` — game log to game state, serialization
 
@@ -97,11 +99,12 @@ Triggers:
 
 1. Read player names and current hand contents from `gameui.gamedatas`
 2. Fetch full notification history via `gameui.ajaxcall()`
-3. Package results as `RawExtractionData`
+3. Extract game name from page URL pathname
+4. Package results as `RawExtractionData`
 
 ```
 ⇩   RawExtractionData (auto-serialized by Chrome):
-⇩   { players, gamedatas: {my_hand, cards}, packets: RawPacket[], currentPlayerId }
+⇩   { gameName, players, gamedatas: {my_hand, cards}, packets: RawPacket[], currentPlayerId }
 ```
 
 ***Background Service Worker*** — branches here based on classification:
@@ -116,8 +119,8 @@ Triggers:
 
 ***Background Service Worker***
 
-1. Validate player count via `background.isValidPlayerCount()` — reject unsupported configurations (e.g. 2-player Crew)
-2. Transform raw data via `background.runPipeline()`:
+1. Validate player count via `pipeline.isValidPlayerCount()` — reject unsupported configurations (e.g. 2-player Crew)
+2. Transform raw data via `pipeline.runPipeline()`:
    - Innovation: `process_log.processRawLog()` &rarr; `GameState.processLog()` &rarr; `GameState.toJSON()`
    - Azul: `process_log.processAzulLog()` &rarr; `game_state.processLog()` &rarr; `game_state.toJSON()`
    - Crew: `process_log.processCrewLog()` &rarr; `game_engine.processCrewState()` &rarr; `serialization.crewToJSON()`

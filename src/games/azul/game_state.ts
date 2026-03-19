@@ -23,6 +23,7 @@ export interface AzulGameState {
 
 /** Serialized form for side panel message passing. */
 export interface SerializedAzulGameState {
+  gameName: "azul";
   bag: number[];
   discard: number[];
   wall: number[];
@@ -123,6 +124,7 @@ export function processLog(log: AzulLogEntry[]): AzulGameState {
 /** Serialize game state for side panel message passing. */
 export function toJSON(state: AzulGameState): SerializedAzulGameState {
   return {
+    gameName: "azul",
     bag: [...state.bag],
     discard: [...state.discard],
     wall: [...state.wall],

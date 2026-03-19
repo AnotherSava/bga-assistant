@@ -189,7 +189,7 @@ describe("processRawLog", () => {
   }
 
   it("returns empty log for empty packets", () => {
-    const result = processRawLog({ players: { "1": "Alice" }, packets: [] });
+    const result = processRawLog({ gameName: "innovation", players: { "1": "Alice" }, packets: [] });
     expect(result.players).toEqual({ "1": "Alice" });
     expect(result.myHand).toEqual([]);
     expect(result.log).toEqual([]);
@@ -197,6 +197,7 @@ describe("processRawLog", () => {
 
   it("filters out packets with null move_id", () => {
     const raw: RawExtractionData = {
+      gameName: "innovation",
       players: { "1": "Alice" },
       packets: [
         makePacket(null, [{ type: "log_spectator", args: { log: "hello" } }]),
@@ -208,6 +209,7 @@ describe("processRawLog", () => {
 
   it("processes log_spectator messages", () => {
     const raw: RawExtractionData = {
+      gameName: "innovation",
       players: { "1": "Alice" },
       packets: [
         makePacket(1, [{ type: "log_spectator", args: { log: "${name} chose a card.", name: "Alice" } }]),
@@ -220,6 +222,7 @@ describe("processRawLog", () => {
 
   it("processes logWithCardTooltips_spectator messages", () => {
     const raw: RawExtractionData = {
+      gameName: "innovation",
       players: { "1": "Alice" },
       packets: [
         makePacket(2, [{ type: "logWithCardTooltips_spectator", args: { log: "Drew a card." } }]),
@@ -232,6 +235,7 @@ describe("processRawLog", () => {
 
   it("skips empty log templates (<!--empty-->)", () => {
     const raw: RawExtractionData = {
+      gameName: "innovation",
       players: {},
       packets: [
         makePacket(1, [{ type: "log_spectator", args: { log: "<!--empty-->" } }]),
@@ -243,6 +247,7 @@ describe("processRawLog", () => {
 
   it("pairs transferedCard_spectator with player-view transferedCard", () => {
     const raw: RawExtractionData = {
+      gameName: "innovation",
       players: { "100": "Alice", "200": "Bob" },
       packets: [
         makePacket(5, [
@@ -272,6 +277,7 @@ describe("processRawLog", () => {
 
   it("handles cities card set", () => {
     const raw: RawExtractionData = {
+      gameName: "innovation",
       players: { "1": "Alice" },
       packets: [
         makePacket(3, [
@@ -289,6 +295,7 @@ describe("processRawLog", () => {
 
   it("handles null card name (unnamed transfers)", () => {
     const raw: RawExtractionData = {
+      gameName: "innovation",
       players: { "1": "Alice" },
       packets: [
         makePacket(4, [
@@ -306,6 +313,7 @@ describe("processRawLog", () => {
 
   it("handles null card age", () => {
     const raw: RawExtractionData = {
+      gameName: "innovation",
       players: { "1": "Alice" },
       packets: [
         makePacket(4, [
@@ -322,6 +330,7 @@ describe("processRawLog", () => {
 
   it("handles meld_keyword flag", () => {
     const raw: RawExtractionData = {
+      gameName: "innovation",
       players: { "1": "Alice" },
       packets: [
         makePacket(6, [
@@ -338,6 +347,7 @@ describe("processRawLog", () => {
 
   it("throws when spectator transfer has no matching player-view data", () => {
     const raw: RawExtractionData = {
+      gameName: "innovation",
       players: { "1": "Alice" },
       packets: [
         makePacket(7, [
@@ -351,6 +361,7 @@ describe("processRawLog", () => {
 
   it("handles multiple transfers in a single move", () => {
     const raw: RawExtractionData = {
+      gameName: "innovation",
       players: { "1": "Alice", "2": "Bob" },
       packets: [
         makePacket(10, [
@@ -371,6 +382,7 @@ describe("processRawLog", () => {
 
   it("interleaves transfers and messages correctly", () => {
     const raw: RawExtractionData = {
+      gameName: "innovation",
       players: { "1": "Alice" },
       packets: [
         makePacket(1, [
@@ -388,6 +400,7 @@ describe("processRawLog", () => {
 
   it("cleans HTML in log messages", () => {
     const raw: RawExtractionData = {
+      gameName: "innovation",
       players: {},
       packets: [
         makePacket(1, [
@@ -403,6 +416,7 @@ describe("processRawLog", () => {
 
   it("normalizes card names in transfers", () => {
     const raw: RawExtractionData = {
+      gameName: "innovation",
       players: { "1": "Alice" },
       packets: [
         makePacket(1, [
@@ -419,6 +433,7 @@ describe("processRawLog", () => {
 
   it("extracts initial hand from gamedatas", () => {
     const raw: RawExtractionData = {
+      gameName: "innovation",
       players: { "1": "Alice" },
       packets: [],
       gamedatas: {
@@ -435,6 +450,7 @@ describe("processRawLog", () => {
 
   it("handles missing gamedatas gracefully", () => {
     const raw: RawExtractionData = {
+      gameName: "innovation",
       players: {},
       packets: [],
     };
@@ -444,6 +460,7 @@ describe("processRawLog", () => {
 
   it("throws when hand card has no name in cards lookup", () => {
     const raw: RawExtractionData = {
+      gameName: "innovation",
       players: {},
       packets: [],
       gamedatas: {
@@ -459,6 +476,7 @@ describe("processRawLog", () => {
 
   it("processes a full multi-move sequence", () => {
     const raw: RawExtractionData = {
+      gameName: "innovation",
       players: { "1": "Alice", "2": "Bob" },
       packets: [
         makePacket(1, [
@@ -507,6 +525,7 @@ describe("processRawLog", () => {
 
   it("handles template expansion in log messages during processing", () => {
     const raw: RawExtractionData = {
+      gameName: "innovation",
       players: {},
       packets: [
         makePacket(1, [{
@@ -527,6 +546,7 @@ describe("processRawLog", () => {
 
   it("detects echoes expansion from transfers with type 3", () => {
     const raw: RawExtractionData = {
+      gameName: "innovation",
       players: { "1": "Alice" },
       packets: [
         makePacket(1, [
@@ -541,6 +561,7 @@ describe("processRawLog", () => {
 
   it("does not detect echoes when only base and cities transfers present", () => {
     const raw: RawExtractionData = {
+      gameName: "innovation",
       players: { "1": "Alice" },
       packets: [
         makePacket(1, [
@@ -559,6 +580,7 @@ describe("processRawLog", () => {
 
   it("returns expansions.echoes false for empty packets", () => {
     const raw: RawExtractionData = {
+      gameName: "innovation",
       players: { "1": "Alice" },
       packets: [],
     };
@@ -568,6 +590,7 @@ describe("processRawLog", () => {
 
   it("emits pending action for gameStateChange with state id 4", () => {
     const raw: RawExtractionData = {
+      gameName: "innovation",
       players: { "100": "Alice", "200": "Bob" },
       packets: [
         makePacket(10, [
@@ -583,6 +606,7 @@ describe("processRawLog", () => {
 
   it("emits action with action_number 2", () => {
     const raw: RawExtractionData = {
+      gameName: "innovation",
       players: { "100": "Alice" },
       packets: [
         makePacket(15, [
@@ -598,6 +622,7 @@ describe("processRawLog", () => {
 
   it("ignores gameStateChange with non-4 state id", () => {
     const raw: RawExtractionData = {
+      gameName: "innovation",
       players: { "100": "Alice" },
       packets: [
         makePacket(10, [
@@ -611,6 +636,7 @@ describe("processRawLog", () => {
 
   it("ignores gameStateChange state 4 without action_number", () => {
     const raw: RawExtractionData = {
+      gameName: "innovation",
       players: { "100": "Alice" },
       packets: [
         makePacket(10, [
@@ -625,6 +651,7 @@ describe("processRawLog", () => {
 
   it("uses player ID as fallback when player name not found", () => {
     const raw: RawExtractionData = {
+      gameName: "innovation",
       players: {},
       packets: [
         makePacket(10, [
@@ -640,6 +667,7 @@ describe("processRawLog", () => {
 
   it("classifies meld from transfer after gameStateChange", () => {
     const raw: RawExtractionData = {
+      gameName: "innovation",
       players: { "100": "Alice" },
       packets: [
         makePacket(20, [
@@ -657,6 +685,7 @@ describe("processRawLog", () => {
 
   it("appends promote sub-action when forecast→board meld follows primary meld", () => {
     const raw: RawExtractionData = {
+      gameName: "innovation",
       players: { "100": "Alice" },
       packets: [
         makePacket(20, [
@@ -680,6 +709,7 @@ describe("processRawLog", () => {
 
   it("appends dogma sub-action after promote when dogma message follows", () => {
     const raw: RawExtractionData = {
+      gameName: "innovation",
       players: { "100": "Alice" },
       packets: [
         makePacket(20, [
@@ -707,6 +737,7 @@ describe("processRawLog", () => {
 
   it("does not append sub-actions when player chooses not to promote", () => {
     const raw: RawExtractionData = {
+      gameName: "innovation",
       players: { "100": "Alice" },
       packets: [
         makePacket(20, [
@@ -727,6 +758,7 @@ describe("processRawLog", () => {
 
   it("does not pick up spurious sub-actions from non-promote transfers", () => {
     const raw: RawExtractionData = {
+      gameName: "innovation",
       players: { "100": "Alice" },
       packets: [
         makePacket(20, [
@@ -748,6 +780,7 @@ describe("processRawLog", () => {
 
   it("clears sub-action scanning when next gameStateChange arrives", () => {
     const raw: RawExtractionData = {
+      gameName: "innovation",
       players: { "100": "Alice" },
       packets: [
         makePacket(20, [
@@ -783,6 +816,7 @@ describe("processRawLog", () => {
 
   it("does not append dogma sub-action without preceding promote", () => {
     const raw: RawExtractionData = {
+      gameName: "innovation",
       players: { "100": "Alice" },
       packets: [
         makePacket(20, [
@@ -803,6 +837,7 @@ describe("processRawLog", () => {
 
   it("deduplicates gameStateChange from player and spectator channels", () => {
     const raw: RawExtractionData = {
+      gameName: "innovation",
       players: { "100": "Alice" },
       packets: [
         // Player channel packet (no _spectator types) — gameStateChange skipped

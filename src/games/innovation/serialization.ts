@@ -28,6 +28,7 @@ type SerializedOpponentKnowledge =
   | { kind: "partial"; suspects: string[]; closed: boolean };
 
 export interface SerializedGameState {
+  gameName: "innovation";
   decks: Record<string, SerializedCard[]>;
   hands: Record<string, SerializedCard[]>;
   boards: Record<string, SerializedCard[]>;
@@ -91,7 +92,7 @@ export function toJSON(state: GameState): SerializedGameState {
     if (fc.length > 0) forecast[player] = serializeCards(fc);
   }
 
-  return { decks, hands, boards, scores, revealed, forecast, achievements: serializeCards(state.achievements) };
+  return { gameName: "innovation", decks, hands, boards, scores, revealed, forecast, achievements: serializeCards(state.achievements) };
 }
 
 /** Deserialize game state from JSON. No CardDatabase needed — candidates stored in full. */
