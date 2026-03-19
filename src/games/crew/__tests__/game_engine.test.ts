@@ -470,6 +470,13 @@ describe("playerSuitStatus", () => {
     expect(status["2"][GREEN]).toBe("X");
   });
 
+  it("BGA color 2 is GREEN and color 3 is PINK", () => {
+    // Regression: BGA encodes green=2, pink=3. Our constants were swapped,
+    // causing suit 2 cards to render as pink instead of green.
+    expect(GREEN).toBe(2);
+    expect(PINK).toBe(3);
+  });
+
   it("? when no information is available", () => {
     const log = makeLog([
       { type: "missionStart", missionId: 1, missionNumber: 1 },

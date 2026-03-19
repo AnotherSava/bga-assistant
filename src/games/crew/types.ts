@@ -1,7 +1,7 @@
 // Suit constants matching BGA card.color encoding.
 export const BLUE = 1;
-export const PINK = 2;
-export const GREEN = 3;
+export const GREEN = 2;
+export const PINK = 3;
 export const YELLOW = 4;
 export const SUBMARINE = 5;
 
