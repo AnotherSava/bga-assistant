@@ -1,4 +1,4 @@
 title: BGA Assistant
-description: Chrome extension for Board Game Arena that assists with understanding game state
-theme: jekyll-theme-cayman
+description: A Chrome extension for Board Game Arena that keeps track of the game state so you don't have to
+theme: jekyll-theme-hacker
 baseurl: /bga-assistant

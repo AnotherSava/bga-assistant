@@ -13,19 +13,19 @@ Tracks played cards and communication signals to deduce remaining cards in playe
 
 Shows all 40 cards (9 cards of each of the 4 coloured suits and 4 submarine trumps) with visual states: dimmed for played cards, neutral for cards in your hand, and bright for cards still in opponents' hands:
 
-<a href="../screenshots/crew-cards.png"><img src="../screenshots/crew-cards.png" alt="Crew card grid" width="152"></a>
+![Crew card grid](../screenshots/crew-cards.png)
 
 ### Player-suit matrix
 
 Shows what information we know about players having different suits: "X" (the player has no cards of that suit), "!" (confirmed holding), or "?" (unknown) per player per suit. Suit absence is detected automatically from trick-following behavior, and communication data narrows down holdings further:
 
-<a href="../screenshots/crew-suits.png"><img src="../screenshots/crew-suits.png" alt="Crew player-suit matrix" width="192"></a>
+![Crew player-suit matrix](../screenshots/crew-suits.png)
 
 ### Trick history
 
 Chronological table of all tricks with lead and winner highlights. The current in-progress trick appears below a dashed separator:
 
-<a href="../screenshots/crew-history.png"><img src="../screenshots/crew-history.png" alt="Crew trick history" width="232"></a>
+![Crew trick history](../screenshots/crew-history.png)
 
 ### Game features
 

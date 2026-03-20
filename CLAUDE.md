@@ -25,7 +25,7 @@ Do not add logic, data structures, classes, or exports to production code that e
 
 Run `npm run build` after each batch of changes so the extension can be reloaded and tested in the browser.
 
-Keep the relevant page in `docs/pages/` up to date when code changes affect features, setup, or architecture. The `README.md` only needs updating for changes to the supported game list or project description. The per-game descriptions in `README.md` must be exact copies of the first paragraph from the corresponding `docs/pages/` game page — when one changes, update the other to match. The "Standard features" section must be identical across all game pages — when one changes, update all others to match.
+Keep the relevant page in `docs/pages/` up to date when code changes affect features, setup, or architecture. The `README.md` only needs updating for changes to the supported game list or project description. The intro text on `docs/index.md` (tagline + pitch paragraph) must match the corresponding lines in `README.md` — when one changes, update the other to match. The per-game descriptions in `README.md` must be exact copies of the first paragraph from the corresponding `docs/pages/` game page — when one changes, update the other to match. The "Standard features" section must be identical across all game pages — when one changes, update all others to match.
 
 Keep `docs/pages/data-flow.md` up to date when code changes affect data flow, message protocols, or control flow logic. Use the `/document-data-flow` skill.
 

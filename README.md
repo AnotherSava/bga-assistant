@@ -6,14 +6,18 @@ Turn-based games on BGA can stretch across days or weeks — by the time it's yo
 
 ![Innovation hand and forecast tracking](docs/screenshots/innovation-hand.png)
 
-**[Innovation](https://anothersava.github.io/bga-assistant/pages/innovation)** — Reads the full game log from [Innovation](https://boardgamegeek.com/boardgame/63888/innovation) 2-player tables and reconstructs the game state — hand contents and score piles according to revealed cards, and deck stack order with returned cards — displayed as a visual summary in a side panel. Supports the base game and the Echoes of the Past and Cities of Destiny expansions.
+**[Innovation](https://anothersava.github.io/bga-assistant/pages/innovation)** — Reads the full game log from Innovation 2-player tables and reconstructs the game state — hand contents and score piles according to revealed cards, and deck stack order with returned cards — displayed as a visual summary in a side panel. Supports the base game and the Echoes of the Past and Cities of Destiny expansions.
 
-**[Azul](https://anothersava.github.io/bga-assistant/pages/azul)** — Tracks the tile bag and discard pile (box lid) for [Azul](https://boardgamegeek.com/boardgame/230802/azul) tables with any player count. Particularly helpful in 2-player games where the full bag is depleted in exactly 5 rounds. Displays remaining tile counts per color in a compact table so you always know what's left to draw.
+**[Azul](https://anothersava.github.io/bga-assistant/pages/azul)** — Tracks the tile bag and discard pile (box lid) for Azul tables with any player count. Particularly helpful in 2-player games where the full bag is depleted in exactly 5 rounds. Displays remaining tile counts per color in a compact table so you always know what's left to draw.
 
-**[The Crew: Mission Deep Sea](https://anothersava.github.io/bga-assistant/pages/crew)** — Tracks played cards and communication signals to deduce remaining cards in players' hands for [The Crew: Mission Deep Sea](https://boardgamegeek.com/boardgame/324856/the-crew-mission-deep-sea) tables with any player count. The side panel displays three sections — a card grid, a player-suit matrix, and a trick history — all updating live as cards are played.
+**[The Crew: Mission Deep Sea](https://anothersava.github.io/bga-assistant/pages/crew)** — Tracks played cards and communication signals to deduce remaining cards in players' hands for The Crew: Mission Deep Sea tables with any player count. The side panel displays three sections — a card grid, a player-suit matrix, and a trick history — all updating live as cards are played.
 
 ---
 
-Full documentation and screenshots: **[anothersava.github.io/bga-assistant](https://anothersava.github.io/bga-assistant/)**
+See full project documentation at **[anothersava.github.io/bga-assistant](https://anothersava.github.io/bga-assistant/)**:
 
-Developer guide: **[Development](https://anothersava.github.io/bga-assistant/pages/development)**
+- [Installation and usage](https://anothersava.github.io/bga-assistant/)
+  - [Innovation](https://anothersava.github.io/bga-assistant/pages/innovation)
+  - [Azul](https://anothersava.github.io/bga-assistant/pages/azul)
+  - [The Crew](https://anothersava.github.io/bga-assistant/pages/crew)
+- [Developer guide](https://anothersava.github.io/bga-assistant/pages/development)

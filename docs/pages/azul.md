@@ -11,7 +11,7 @@ Tracks the tile bag and discard pile (box lid) for [Azul](https://boardgamegeek.
 
 The side panel shows bag and box counts for each of the five tile colors, updating live as tiles are drawn and placed:
 
-<a href="../screenshots/azul.png"><img src="../screenshots/azul.png" alt="Azul tile counts" width="475"></a>
+![Azul tile counts](../screenshots/azul.png)
 
 ### Game features
 
