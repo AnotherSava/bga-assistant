@@ -351,6 +351,24 @@ export class GameEngine {
       }
     } else {
       sourceCards = cardsAt(state, action.source, action.sourcePlayer, groupKey);
+
+      // Grouped removal from private zone: pool candidates for all same-age-set
+      // cards before selecting which one to remove. We don't know which card left,
+      // so all must share the same candidate set to avoid committing to an arbitrary
+      // resolution that could conflict with a later named reference.
+      if (action.type !== "named" && (action.source === "hand" || action.source === "score" || action.source === "forecast")) {
+        const sameGroup = sourceCards.filter(c => ageSetKey(c.age, c.cardSet) === groupKey);
+        if (sameGroup.length > 1) {
+          const union = new Set<string>();
+          for (const c of sameGroup) {
+            for (const name of c.candidates) union.add(name);
+          }
+          for (const c of sameGroup) {
+            c.candidates = new Set(union);
+          }
+        }
+      }
+
       if (action.type === "named") {
         const found = sourceCards.find(c => c.candidates.has(action.cardName));
         if (!found) throw new Error(`Card "${action.cardName}" not found in ${action.source}`);
@@ -393,11 +411,6 @@ export class GameEngine {
     if (idx === -1) throw new Error("Card not found in source zone for removal");
     sourceCards.splice(idx, 1);
 
-    // Hidden action from private zone: can't tell which card moved
-    if (action.type === "grouped" && (action.source === "hand" || action.source === "score" || action.source === "forecast")) {
-      this.mergeCandidates(card, sourceCards);
-    }
-
     this.mergeSuspects(state, card, sourceCards, action);
 
     return card;
@@ -415,28 +428,6 @@ export class GameEngine {
     const isVisibleToOpponent = (action.dest === "hand" || action.dest === "score" || action.dest === "forecast") && action.destPlayer !== state.perspective;
     if (isVisibleToOpponent) {
       card.opponentKnowledge = { kind: "exact", name: card.resolvedName };
-    }
-  }
-
-  /** Merge candidate sets when we can't tell which card moved from a private zone. */
-  private mergeCandidates(card: Card, remainingSource: Card[]): void {
-    const cardGroupKey = ageSetKey(card.age, card.cardSet);
-    const affected = [card, ...remainingSource.filter(c => ageSetKey(c.age, c.cardSet) === cardGroupKey)];
-    if (affected.length <= 1) return;
-
-    const union = new Set<string>();
-    for (const c of affected) {
-      for (const name of c.candidates) union.add(name);
-    }
-
-    if (union.size === affected.length) {
-      // Complete subset: N cards with exactly N candidates — resolve 1:1.
-      const names = [...union];
-      for (let i = 0; i < affected.length; i++) affected[i].candidates = new Set([names[i]]);
-    } else {
-      for (const c of affected) {
-        c.candidates = new Set(union);
-      }
     }
   }
 

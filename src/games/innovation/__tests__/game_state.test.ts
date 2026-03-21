@@ -462,6 +462,41 @@ describe("candidate merging", () => {
     expect(age2BaseAfter[0].candidates.has("construction")).toBe(true);
   });
 
+  it("creates ambiguity when two resolved same-age cards lose one via grouped removal (bgaa_823235522_111)", () => {
+    // Scenario: opponent has translation[3/base] and medicine[3/base], both
+    // fully resolved. A grouped age-3-base hand→deck transfer removes one
+    // but we don't know which. Both the removed card and the remaining card
+    // must become ambiguous so a later named reference to either still works.
+    const { state, engine } = createInitializedGS();
+    engine.resolveHand(state, "Alice", ["agriculture", "archery"]);
+
+    // Give Bob two resolved age 3 base cards via named draws
+    engine.move(state, namedAction({ cardName: "translation", source: "deck", dest: "hand", destPlayer: "Bob" }));
+    engine.move(state, namedAction({ cardName: "medicine", source: "deck", dest: "hand", destPlayer: "Bob" }));
+
+    // Verify both are resolved
+    const bobBefore = state.hands.get("Bob")!;
+    const age3Before = bobBefore.filter(c => ageSetKey(c.age, c.cardSet) === ageSetKey(3, CardSet.BASE));
+    expect(age3Before.length).toBe(2);
+    expect(age3Before.some(c => c.resolvedName === "translation")).toBe(true);
+    expect(age3Before.some(c => c.resolvedName === "medicine")).toBe(true);
+
+    // Grouped removal: one unknown age 3 base card leaves hand
+    engine.move(state, groupedAction({ age: 3, cardSet: CardSet.BASE, source: "hand", dest: "deck", sourcePlayer: "Bob" }));
+
+    // The remaining age 3 base card should have both candidates
+    const bobAfter = state.hands.get("Bob")!;
+    const age3After = bobAfter.filter(c => ageSetKey(c.age, c.cardSet) === ageSetKey(3, CardSet.BASE));
+    expect(age3After.length).toBe(1);
+    expect(age3After[0].candidates.has("translation")).toBe(true);
+    expect(age3After[0].candidates.has("medicine")).toBe(true);
+
+    // A subsequent named reference to "translation" should succeed
+    expect(() => {
+      engine.move(state, namedAction({ cardName: "translation", source: "hand", dest: "board", sourcePlayer: "Bob", destPlayer: "Bob" }));
+    }).not.toThrow();
+  });
+
   it("does not merge when grouped card enters hand from deck", () => {
     // Drawing an unknown card into hand is not ambiguous — no existing
     // hand card moved. mergeCandidates only fires on source=hand, not dest=hand.
