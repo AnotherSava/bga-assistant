@@ -100,7 +100,7 @@ export function renderHelp(errorMessage?: string, gameName?: GameName): string {
   <div class="help-section">
     <div class="help-section-title">Card grid</div>
     <div class="help-sections-grid">
-      <div class="help-grid-item"><span>40 cards across 5 suits: Pink, Blue, Green, Yellow (1\u20139 each) and Submarine (1\u20134). Cards are shown as highlighted (your hand), dimmed (played), or normal (in opponents\u2019 hands).</span></div>
+      <div class="help-grid-item"><span>All 40 cards (9 cards of each of the 4 coloured suits and 4 submarine trumps) with visual states: dimmed for played cards, neutral for cards in your hand, and bright for cards still in opponents\u2019 hands.</span></div>
     </div>
   </div>
   <div class="help-section">
