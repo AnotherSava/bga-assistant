@@ -381,7 +381,7 @@ describe("renderSummary", () => {
     const html = renderSummary(gs, engine, cardDb, "Alice", ["Alice", "Bob"], "12345");
 
     expect(html).toContain("card-tip");
-    expect(html).toContain("assets/bga/innovation/cards/card_");
+    expect(html).toMatch(/card_\d+\.webp/);
   });
 
   it("classifies my cards by opponent knowledge", () => {
@@ -480,7 +480,7 @@ describe("renderFullPage", () => {
     expect(html).toContain("<html>");
     expect(html).toContain("Innovation &mdash; 12345");
     expect(html).toContain(css);
-    expect(html).toContain("Russo+One");
+    expect(html).toContain("fonts.googleapis.com");
     expect(html).toContain("</html>");
   });
 
@@ -610,7 +610,7 @@ describe("echoes card rendering", () => {
 
     // Bangle card should have its card image in tooltip
     const bangleInfo = cardDb.get("bangle")!;
-    expect(html).toContain(`card_${bangleInfo.spriteIndex}.png`);
+    expect(html).toContain(`card_${bangleInfo.spriteIndex}.webp`);
   });
 });
 

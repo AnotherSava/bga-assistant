@@ -3,7 +3,7 @@ layout: default
 title: Development
 ---
 
-[Home](..) | [Innovation](innovation) | [Azul](azul) | [Crew](crew) | [Development](development)
+[Home](..) | [Innovation](innovation) | [Azul](azul) | [Crew](crew) | [Development](development) | [Privacy](privacy)
 
 ---
 
@@ -56,13 +56,14 @@ sidepanel.html               Side panel page shell (Vite HTML entry point)
 scripts/
   game-log.ts                CLI: raw_data.json → game_log.json
   game-state.ts              CLI: game_log.json → game_state.json (+ --debug snapshots)
+  package.ts                 CLI: build + create Chrome Web Store ZIP
 src/
   background.ts              Service worker: orchestration, side panel management, live tracking
   pipeline.ts                Pure pipeline logic shared by background.ts and CLI scripts
   extract.ts                 Content script: BGA data extraction (MAIN world)
   sidepanel/
     sidepanel.ts             Receives data, triggers render, handles downloads
-    sidepanel.css            Dark theme, card grids, tooltips
+    sidepanel.css            Dark theme, font declarations, card grids, tooltips
   models/
     types.ts                 Shared BGA types (GameName, RawPacket, RawExtractionData)
   games/
@@ -96,10 +97,11 @@ assets/
     innovation/
       card_info.json         Card database (315 cards: 105 base + 105 echoes + 105 cities)
       icons/                 Resource and hex icon PNGs
-      cards/                 Full card face images (for tooltips)
+      cards/                 Full card face images (WebP, for tooltips)
       sprites/               Card sprite sheets (gitignored)
     azul/
-      tiles/                 Tile color PNGs (5 colors)
+      tiles/                 Tile color SVGs (5 colors)
+  fonts/                     Bundled web fonts (Russo One, Barlow Condensed woff2)
   extension/                 Extension toolbar icons
 ```
 

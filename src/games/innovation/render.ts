@@ -75,7 +75,7 @@ function renderKnownCard(info: CardInfo, markResolved: boolean): string {
   if (info.cardSet === CardSet.BASE || info.cardSet === CardSet.ECHOES) {
     const tip = useTextTooltips
       ? `<div class="card-tip-text">${escapeHtml(info.name)}</div>`
-      : `<div class="card-tip"><img src="${resolveAssetUrl(`assets/bga/innovation/cards/card_${info.spriteIndex}.png`)}"></div>`;
+      : `<div class="card-tip"><img src="${resolveAssetUrl(`assets/bga/innovation/cards/card_${info.spriteIndex}.webp`)}"></div>`;
     return `<div class="card card-base b-${color}"${resolvedAttr}>`
       + `<div class="cb-tl">${iconImg(info.icons[0], color, info.spriteIndex)}</div>`
       + `<div class="cb-name">${escapeHtml(info.name)}</div>`
@@ -269,7 +269,7 @@ function cardTooltipSpan(cardName: string, cardDb: CardDatabase): string {
   if (!info) return escapeHtml(cardName);
   const tip = useTextTooltips
     ? `<div class="card-tip-text">${escapeHtml(info.name)}</div>`
-    : `<div class="card-tip"><img src="${resolveAssetUrl(`assets/bga/innovation/cards/card_${info.spriteIndex}.png`)}"></div>`;
+    : `<div class="card-tip"><img src="${resolveAssetUrl(`assets/bga/innovation/cards/card_${info.spriteIndex}.webp`)}"></div>`;
   return `<span class="th-card">${escapeHtml(info.name)}${tip}</span>`;
 }
 
