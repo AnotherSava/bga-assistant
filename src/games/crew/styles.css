@@ -161,7 +161,7 @@
 }
 /* Winner card: glow */
 .crew-grid-cell.crew-winner {
-  box-shadow: 0 0 6px currentColor;
+  box-shadow: 0 0 6px #fff;
 }
 .crew-trick-current {
   border-top: 1px dashed #555;
