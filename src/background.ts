@@ -686,10 +686,15 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
   handleNavigation(activeInfo.tabId);
 });
 
-// React to same-tab navigation (page load complete)
+// React to same-tab navigation (page load complete or SPA pushState)
 chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
   if (tabId !== activeTabId) return;
-  if (changeInfo.status !== "complete") return;
+  // Full page load: status goes "loading" → "complete"; react to "complete".
+  // SPA navigation (BGA uses pushState): only url changes, no status field.
+  // Skip "loading" events (page not ready) and irrelevant changes (title, favicon).
+  const isPageLoadComplete = changeInfo.status === "complete";
+  const isSpaNavigation = changeInfo.url !== undefined && changeInfo.status === undefined;
+  if (!isPageLoadComplete && !isSpaNavigation) return;
   // Update lit icon based on whether tab is a supported game
   chrome.tabs.get(tabId).then((tab) => updateIcon(tabId, tab.url)).catch(() => {});
   if (!sidePanelOpen) return;

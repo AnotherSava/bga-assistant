@@ -339,6 +339,62 @@ The `"loading"` message clears `currentResults`, ensuring that intentional re-ex
 (e.g. page reload) always render even if the data hasn't changed — the dedup guard only
 suppresses redundant renders from the idle shutdown cycle.
 
+## Event Catalog
+
+This section describes every external event that can affect the side panel, how
+the background service worker detects it, and what it does in response.
+
+There are two main handlers in the background service worker:
+
+- **`togglePanel`** — handles icon clicks and keyboard shortcuts. Opens/closes
+  the panel and runs the initial extraction with badge animation.
+- **`handleNavigation`** — handles all subsequent navigation events (tab switch,
+  page load, SPA navigation, window focus). Classifies the active tab's URL via
+  `resolveContent` and pushes the appropriate message to the side panel. When an
+  extraction is already in progress, the tab ID is saved as `pendingNavTabId` and
+  processed when the current extraction finishes. Also checks auto-hide pin mode
+  and closes the panel when applicable.
+
+### User actions
+
+| Event | Chrome API | Handler | Side panel effect |
+|-------|-----------|---------|-------------------|
+| Click extension icon / keyboard shortcut | `chrome.action.onClicked`, `chrome.commands.onCommand` | `togglePanel` — if panel is open, close it; otherwise open panel, extract, push results. Sets `extracting` before opening so the `onConnect` handler (which fires when the panel's JS loads) skips its own extraction, avoiding a race. | Full extraction with badge animation; shows loading then results or help |
+| User reloads the game page | `chrome.tabs.onUpdated` with `status: "complete"` | `handleNavigation` with source `"navigation"` — re-extracts from the reloaded page | Fresh extraction; loading shown if table changed, otherwise silent update |
+| User navigates to a different page in the same tab | `chrome.tabs.onUpdated` — two detection modes: (1) full page load fires `status: "complete"`; (2) SPA navigation (BGA uses `pushState`) fires with `url` change but no `status` field. Both reach the same `handleNavigation` call. | `handleNavigation` — classifies the new URL and resolves content | Shows new game, help page, or auto-closes depending on URL and pin mode |
+| User switches to a different tab | `chrome.tabs.onActivated` | `handleNavigation` with source `"navigation"` — extracts from the newly active tab | Shows the new tab's game, help page, or auto-closes |
+| User switches to a different Chrome window | `chrome.windows.onFocusChanged` | `handleNavigation` with source `"focus"` — queries the active tab in the focused window. Fires for the window gaining focus, regardless of whether the side panel is open there. | Silent update (no loading indicator); shows current game or help |
+| User clicks help button in side panel | Side panel DOM event | Toggles between help page and game summary; sends `"pauseLive"` / `"resumeLive"` to background | Swaps view; live tracking paused while on help |
+
+### Game state changes
+
+| Event | Chrome API | Handler | Side panel effect |
+|-------|-----------|---------|-------------------|
+| Game move happens (opponent or self) | `"gameLogChanged"` message from watcher's `MutationObserver` on `#logs` / `#game_play_area` (2s debounce) | `triggerLiveExtraction` — rate-limited (5s minimum interval), deferred if too soon, skipped if panel closed or extraction in progress | Re-renders only if packet count increased; silent (no loading indicator) |
+
+### Extension lifecycle
+
+These events use the `onConnect` handler, which is the same code path that fires
+when `togglePanel` opens the panel. The race is avoided by the `extracting` flag:
+`togglePanel` sets it before opening, so when `onConnect` fires it sees the flag
+and skips its own extraction.
+
+| Event | Chrome API | Handler | Side panel effect |
+|-------|-----------|---------|-------------------|
+| Service worker restarts | Port disconnect detected by side panel; reconnects after 1s via `chrome.runtime.connect` | `onConnect` handler — pushes cached results if same table, otherwise re-extracts with source `"reconnect"` | No loading indicator; dedup guard skips render if data unchanged. Disconnected indicator shown after 3s if reconnect hasn't completed |
+| Side panel closes | Port `onDisconnect` | Sets `sidePanelOpen = false`, stops live tracking | N/A (panel gone) |
+
+### Filtering and deduplication
+
+Not all events lead to a visible update. Several guards prevent unnecessary work:
+
+- **`extracting` flag**: only one extraction runs at a time; concurrent navigation events are queued via `pendingNavTabId` (last writer wins)
+- **`tab.status !== "complete"` check**: `handleNavigation` breaks early if the tab is still loading (waits for the subsequent `status: "complete"` event)
+- **`shouldShowLoading` filter**: only `"click"`, `"navigation"`, and `"reopen"` sources show the loading indicator; `"focus"`, `"reconnect"`, and `"live"` sources update silently
+- **Same-table loading suppression**: even for sources that show loading, the `"loading"` message is only sent when the table number differs from cached results
+- **Packet count dedup**: live tracking only pushes results when `packets.length` increases; the side panel independently skips re-renders when both `tableNumber` and `packets.length` match `currentResults`
+- **Auto-hide**: `handleNavigation` checks `shouldAutoClose(url, pinMode)` before extracting — if the pin mode requires it, the panel is closed and no extraction runs
+
 ## Asset Resolution
 
 Game renderers accept an asset resolver function rather than hardcoding paths:

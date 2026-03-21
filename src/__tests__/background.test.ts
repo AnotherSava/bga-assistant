@@ -1201,6 +1201,30 @@ describe("unified extraction flow", () => {
     conn.triggerDisconnect();
   });
 
+  it("SPA navigation to lobby sends notAGame via onUpdated", async () => {
+    const conn = connectSidePanel();
+    vi.clearAllMocks();
+    mockSendMessage.mockImplementation(() => Promise.resolve());
+
+    // Set active tab
+    const gameTab = { id: 1, url: "https://boardgamearena.com/8/innovation?table=123", status: "complete", windowId: 10 };
+    mockTabsGet.mockResolvedValueOnce(gameTab).mockResolvedValueOnce(gameTab);
+    listeners.onActivated({ tabId: 1 });
+    await new Promise((r) => setTimeout(r, 50));
+    vi.clearAllMocks();
+    mockSendMessage.mockImplementation(() => Promise.resolve());
+
+    // SPA navigation: url change without status (pushState)
+    const lobbyTab = { id: 1, url: "https://boardgamearena.com/lobby", status: "complete", windowId: 10 };
+    mockTabsGet.mockResolvedValueOnce(lobbyTab).mockResolvedValueOnce(lobbyTab);
+    listeners.onUpdated(1, { url: "https://boardgamearena.com/lobby" } as chrome.tabs.TabChangeInfo);
+    await new Promise((r) => setTimeout(r, 50));
+
+    const notAGameCalls = mockSendMessage.mock.calls.filter((c: any[]) => c[0]?.type === "notAGame");
+    expect(notAGameCalls.length).toBe(1);
+    conn.triggerDisconnect();
+  });
+
   it("supported game sends resultsReady with full pipeline results in payload", async () => {
     const conn = connectSidePanel();
     vi.clearAllMocks();
@@ -1638,5 +1662,26 @@ describe("icon swap behavior", () => {
     await flushFlash();
 
     expectLastIconLit();
+  });
+
+  it("reacts to SPA navigation (url change without status)", async () => {
+    vi.clearAllMocks();
+    // SPA navigation: url changes but no status field (pushState)
+    const lobbyTab = { id: 5, url: "https://boardgamearena.com/lobby", status: "complete" };
+    mockTabsGet.mockResolvedValueOnce(lobbyTab).mockResolvedValueOnce(lobbyTab);
+    listeners.onUpdated(5, { url: "https://boardgamearena.com/lobby" } as chrome.tabs.TabChangeInfo);
+    await flushFlash();
+
+    expectLastIconNormal();
+  });
+
+  it("ignores onUpdated with status loading even if url is present", async () => {
+    vi.clearAllMocks();
+    // Full page load fires { status: "loading", url: "..." } first — skip it
+    listeners.onUpdated(5, { status: "loading", url: "https://boardgamearena.com/lobby" } as chrome.tabs.TabChangeInfo);
+    await flushFlash();
+
+    // Should not trigger any icon change
+    expect(mockSetIcon).not.toHaveBeenCalled();
   });
 });
