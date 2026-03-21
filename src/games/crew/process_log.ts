@@ -52,6 +52,14 @@ export interface CommunicationEntry {
   position: "top" | "bottom" | "middle" | "hidden";
 }
 
+/** Distress signal: observer gave a card to a specific player and received one back. */
+export interface CardExchangeEntry {
+  type: "cardExchange";
+  givenCard: CrewCard;
+  givenToPlayerId: string;
+  receivedCard: CrewCard;
+}
+
 export type CrewLogEntry =
   | MissionStartEntry
   | HandDealtEntry
@@ -59,7 +67,8 @@ export type CrewLogEntry =
   | TrickStartEntry
   | CardPlayedEntry
   | TrickWonEntry
-  | CommunicationEntry;
+  | CommunicationEntry
+  | CardExchangeEntry;
 
 // ---------------------------------------------------------------------------
 // Crew game log
@@ -113,6 +122,7 @@ function parseCard(bgaCard: BgaCard): CrewCard {
  * - playCard: card played
  * - trickWin: trick winner
  * - endComm: sonar communication
+ * - giveCard + receiveCard: distress signal card exchange
  */
 export function processCrewLog(rawData: RawExtractionData): CrewGameLog {
   const playerNames: Record<string, string> = rawData.players ?? {};
@@ -121,6 +131,9 @@ export function processCrewLog(rawData: RawExtractionData): CrewGameLog {
   let playerOrder: string[] = [];
   let playerCardCounts: Record<string, number> = {};
   let playerOrderExtracted = false;
+
+  let pendingGive: { card: CrewCard; toPlayerId: string } | null = null;
+  let pendingReceive: { card: CrewCard } | null = null;
 
   for (const packet of allPackets) {
     for (const notif of packet.data) {
@@ -194,6 +207,28 @@ export function processCrewLog(rawData: RawExtractionData): CrewGameLog {
             card: parseCard(card),
             position: notif.args.comm_status as "top" | "bottom" | "middle" | "hidden",
           });
+          break;
+        }
+
+        case "giveCard": {
+          const card = notif.args.card as BgaCard;
+          pendingGive = { card: parseCard(card), toPlayerId: String(notif.args.player_id) };
+          if (pendingReceive) {
+            log.push({ type: "cardExchange", givenCard: pendingGive.card, givenToPlayerId: pendingGive.toPlayerId, receivedCard: pendingReceive.card });
+            pendingGive = null;
+            pendingReceive = null;
+          }
+          break;
+        }
+
+        case "receiveCard": {
+          const card = notif.args.card as BgaCard;
+          pendingReceive = { card: parseCard(card) };
+          if (pendingGive) {
+            log.push({ type: "cardExchange", givenCard: pendingGive.card, givenToPlayerId: pendingGive.toPlayerId, receivedCard: pendingReceive.card });
+            pendingGive = null;
+            pendingReceive = null;
+          }
           break;
         }
       }

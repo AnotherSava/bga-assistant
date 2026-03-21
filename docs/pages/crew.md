@@ -34,6 +34,7 @@ Chronological table of all tricks with lead and winner highlights. The current i
 - **Communication tracking**: integrates sonar communication data to narrow down card locations
 - **Player-suit matrix**: shows "X" (no cards of that suit), "!" (confirmed cards), or "?" (unknown) per player per suit
 - **Trick history**: chronological table of all tricks with lead and winner highlights
+- **Distress signal**: when a distress signal card exchange occurs, tracks the card you gave (resolving it in the recipient's hand) and the card you received
 - **Per-mission state**: automatically resets tracking on each new mission
 
 ### Standard features

@@ -5,7 +5,7 @@
 // references, so Set<CrewCard>.has() would always miss. String keys via
 // cardKey() give value-based identity for free.
 
-import type { CrewGameLog, CrewLogEntry, CardPlayedEntry, CommunicationEntry } from "./process_log.js";
+import type { CrewGameLog, CrewLogEntry, CardPlayedEntry, CommunicationEntry, CardExchangeEntry } from "./process_log.js";
 import { type CardGuess, type CrewGameState, createCrewGameState } from "./game_state.js";
 import { ALL_SUITS, SUIT_VALUES, SUBMARINE, cardKey } from "./types.js";
 
@@ -91,13 +91,13 @@ function findLastMissionStart(entries: CrewLogEntry[]): number {
   for (let i = entries.length - 1; i >= 0; i--) {
     if (entries[i].type === "handDealt") {
       // Look backward for a missionStart, but only through non-gameplay
-      // entries (captain, handDealt, missionStart). If we hit gameplay
-      // (cardPlayed, trickStart, trickWon, communication), the missionStart
-      // before that belongs to a previous mission.
+      // entries (captain, handDealt, cardExchange, missionStart). If we hit
+      // gameplay (cardPlayed, trickStart, trickWon, communication), the
+      // missionStart before that belongs to a previous mission.
       for (let j = i - 1; j >= 0; j--) {
         const t = entries[j].type;
         if (t === "missionStart") return j;
-        if (t !== "captain" && t !== "handDealt") return i;
+        if (t !== "captain" && t !== "handDealt" && t !== "cardExchange") return i;
       }
       return i;
     }
@@ -203,6 +203,35 @@ function applyCommunication(state: CrewGameState, entry: CommunicationEntry): vo
   propagate(state);
 }
 
+function applyCardExchange(state: CrewGameState, entry: CardExchangeEntry): void {
+  const givenKey = cardKey(entry.givenCard.suit, entry.givenCard.value);
+  const receivedKey = cardKey(entry.receivedCard.suit, entry.receivedCard.value);
+  const myId = state.currentPlayerId;
+
+  // Remove given card from our hand, add received card
+  const myHand = state.hands[myId];
+  const givenIdx = myHand.findIndex(s => s.candidates.has(givenKey) && s.candidates.size === 1);
+  if (givenIdx !== -1) {
+    myHand.splice(givenIdx, 1);
+    myHand.push({ candidates: new Set([receivedKey]) });
+  }
+
+  // The recipient now has the given card — resolve one of their unknown slots.
+  // The card was in our hand so it was excluded from opponents' candidate sets;
+  // force-set an unknown slot's candidates directly.
+  const recipientHand = state.hands[entry.givenToPlayerId];
+  if (recipientHand) {
+    const unknownSlot = recipientHand.find(s => s.candidates.size > 1);
+    if (unknownSlot) {
+      unknownSlot.candidates = new Set([givenKey]);
+    }
+  }
+
+  removeFromAllSlots(state, givenKey, recipientHand?.find(s => s.candidates.size === 1 && s.candidates.has(givenKey)));
+  removeFromAllSlots(state, receivedKey, myHand.find(s => s.candidates.size === 1 && s.candidates.has(receivedKey)));
+  propagate(state);
+}
+
 // ---------------------------------------------------------------------------
 // State processing — replay log entries for the last mission
 // ---------------------------------------------------------------------------
@@ -254,6 +283,9 @@ function applyEntry(state: CrewGameState, entry: CrewLogEntry, playerCardCounts:
       break;
     case "communication":
       applyCommunication(state, entry);
+      break;
+    case "cardExchange":
+      applyCardExchange(state, entry);
       break;
   }
 }

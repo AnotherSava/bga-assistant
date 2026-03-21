@@ -489,3 +489,31 @@ describe("playerSuitStatus", () => {
     expect(status["4"][SUBMARINE]).toBe("?");
   });
 });
+
+// ---------------------------------------------------------------------------
+// Distress signal card exchange
+// ---------------------------------------------------------------------------
+
+describe("processCrewState — distress signal exchange", () => {
+  it("swaps cards between observer and recipient (bgaa_823526353_22)", () => {
+    const log = makeLog([
+      { type: "missionStart", missionId: 1, missionNumber: 1 },
+      { type: "handDealt", cards: [{ suit: PINK, value: 3 }, { suit: BLUE, value: 7 }, { suit: SUBMARINE, value: 2 }] },
+      { type: "captain", playerId: "2" },
+      { type: "cardExchange", givenCard: { suit: PINK, value: 3 }, givenToPlayerId: "3", receivedCard: { suit: GREEN, value: 1 } },
+    ]);
+    const state = processCrewState(log);
+    const myResolved = resolvedCards(state, "1");
+
+    // Observer no longer has the given card, now has the received card
+    expect(myResolved.has(cardKey(PINK, 3))).toBe(false);
+    expect(myResolved.has(cardKey(GREEN, 1))).toBe(true);
+    // Observer still has other cards
+    expect(myResolved.has(cardKey(BLUE, 7))).toBe(true);
+    expect(myResolved.has(cardKey(SUBMARINE, 2))).toBe(true);
+
+    // Recipient has the given card resolved
+    const charlieResolved = resolvedCards(state, "3");
+    expect(charlieResolved.has(cardKey(PINK, 3))).toBe(true);
+  });
+});
