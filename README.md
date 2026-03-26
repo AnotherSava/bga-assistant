@@ -14,6 +14,8 @@ Turn-based games on BGA can stretch across days or weeks — by the time it's yo
 
 ---
 
+Install from [Chrome Web Store](https://chromewebstore.google.com/detail/bga-assistant/idjijmafngfkkbppkgopldomfhdcedig)
+
 See full project documentation at **[anothersava.github.io/bga-assistant](https://anothersava.github.io/bga-assistant/)**:
 
 - [Installation and usage](https://anothersava.github.io/bga-assistant/)

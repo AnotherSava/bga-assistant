@@ -13,7 +13,7 @@ Turn-based games on BGA can stretch across days or weeks — by the time it's yo
 
 ## Install
 
-[Install from Chrome Web Store](#) *(coming soon)*
+[Install from Chrome Web Store](https://chromewebstore.google.com/detail/bga-assistant/idjijmafngfkkbppkgopldomfhdcedig)
 
 ## Supported Games
 
