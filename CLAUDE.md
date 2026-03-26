@@ -1,12 +1,3 @@
-Never prepend `cd` to commands — the working directory is already the project root.
-Always use relative paths to project files/folders — never absolute paths (Windows `D:/...` or Unix `/d/...` style).
-
-Always ask clarifying questions before implementing if anything is ambiguous or unclear.
-
-Exclude `node_modules/` from all file and content search patterns — it clogs results with false positives.
-
-Do not inline Python scripts into Bash commands via `python -c`. Instead, write the script to a temporary file (e.g. `tmp/script.py`), execute it with `python tmp/script.py`, then delete it.
-
 ## TypeScript Conventions
 
 This is a TypeScript Chrome extension project. Build with Vite, test with vitest.
@@ -16,10 +7,6 @@ Use explicit type annotations on function parameters and return values. Use mode
 Do not break long single-expression lines (template literals, chained calls, etc.) into multiple lines for formatting. Keep them on one line.
 
 Avoid cryptic abbreviations in variable and attribute names. Use descriptive names (`playerPattern` not `pp`, `cardIndex` not `ci`).
-
-Do not add defensive fallbacks that mask invalid data (e.g. `?? "?"`, `?? 0`). Trust that inputs are correct and let invalid values surface naturally — a visible `null` in output or a runtime error is better than silently producing plausible-looking wrong output.
-
-Do not add logic, data structures, classes, or exports to production code that exist only to support tests. Tests should exercise the public API and real behavior — not rely on test-only hooks, flags, exports, or types in production modules.
 
 ## Workflow
 
