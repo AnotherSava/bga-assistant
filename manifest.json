@@ -3,6 +3,7 @@
   "name": "BGA Assistant",
   "version": "1.0.0",
   "description": "Game assistant for Board Game Arena.",
+  "homepage_url": "https://anothersava.github.io/bga-assistant/",
   "permissions": ["activeTab", "scripting", "sidePanel", "tabs"],
   "host_permissions": ["https://boardgamearena.com/*", "https://*.boardgamearena.com/*"],
   "action": {

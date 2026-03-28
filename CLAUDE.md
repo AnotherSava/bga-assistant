@@ -1,3 +1,5 @@
+Read `~/.claude/learnings/chrome-extension.md` for domain-specific patterns. When you discover new Chrome extension gotchas, API quirks, or non-obvious behaviors during this project, update that file with the new finding.
+
 ## TypeScript Conventions
 
 This is a TypeScript Chrome extension project. Build with Vite, test with vitest.
