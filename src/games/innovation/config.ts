@@ -1,7 +1,7 @@
 // Section layout configuration: visibility/layout defaults.
 // Section order follows the SECTION_IDS array order.
 
-export type Visibility = "show" | "hide" | "none" | "unknown" | "base" | "echoes" | "cities";
+export type Visibility = "show" | "hide" | "none" | "unknown" | "base" | "echoes" | "cities" | "artifacts";
 export type Layout = "wide" | "tall";
 export type Filter = "all" | "unknown";
 
@@ -21,6 +21,7 @@ export const SECTION_IDS = [
   "deck",
   "cards",
   "achievements",
+  "relics",
 ] as const;
 
 export type SectionId = (typeof SECTION_IDS)[number];
@@ -37,6 +38,7 @@ export const SECTION_LABELS: Record<SectionId | "turn-history", string> = {
   "deck": "Deck",
   "cards": "Cards",
   "achievements": "Achievements",
+  "relics": "Relics",
 };
 
 /** Default section configuration. Order follows SECTION_IDS array. */
@@ -50,6 +52,7 @@ export const DEFAULT_SECTION_CONFIG: Record<SectionId, SectionConfig> = {
   "deck":              { defaultVisibility: "base" },
   "cards":          { defaultVisibility: "base", defaultFilter: "unknown", defaultLayout: "wide" },
   "achievements":   { defaultVisibility: "none", defaultLayout: "wide" },
+  "relics":         { defaultVisibility: "show" },
 };
 
 /** Visibility toggle options for a section. */
@@ -96,9 +99,10 @@ export function layoutToggle(sectionId: SectionId, defaultLayout: Layout): Toggl
   };
 }
 
-/** Build a composite set toggle (Hide/Base/Echoes/Cities) for merged sections. */
+/** Build a composite set toggle (Hide/Base/Echoes/Cities/Artifacts) for merged sections. */
 export function compositeToggle(sectionId: SectionId, defaultVisibility: Visibility): Toggle {
-  const defaultMode = defaultVisibility === "base" || defaultVisibility === "echoes" || defaultVisibility === "cities" ? defaultVisibility : "none";
+  const setModes: Visibility[] = ["base", "echoes", "cities", "artifacts"];
+  const defaultMode = setModes.includes(defaultVisibility) ? defaultVisibility : "none";
   return {
     targetId: sectionId,
     defaultMode,
@@ -107,12 +111,16 @@ export function compositeToggle(sectionId: SectionId, defaultVisibility: Visibil
       { mode: "base", label: "Base", active: defaultMode === "base" },
       { mode: "echoes", label: "Echoes", active: defaultMode === "echoes" },
       { mode: "cities", label: "Cities", active: defaultMode === "cities" },
+      { mode: "artifacts", label: "Artifacts", active: defaultMode === "artifacts" },
     ],
   };
 }
 
 /** Sections that require the Echoes expansion. */
 export const ECHOES_ONLY_SECTIONS: ReadonlySet<SectionId> = new Set(["forecast-opponent", "forecast-me"]);
+
+/** Sections that require the Relics variant. */
+export const RELICS_ONLY_SECTIONS: ReadonlySet<SectionId> = new Set(["relics"]);
 
 /** Number of columns in tall layout (one per color). */
 export const TALL_COLUMNS = 5;

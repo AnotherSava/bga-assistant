@@ -7570,5 +7570,1332 @@
     "karmatext": null,
     "name": "Seoul",
     "set": 2
+  },
+  {
+    "name": "Timbuktu",
+    "age": 3,
+    "color": "green",
+    "set": 2,
+    "icons": [
+      "lightbulb",
+      "crown",
+      "crown",
+      "crown",
+      "hex",
+      "plus"
+    ],
+    "is_relic": true
+  },
+  {
+    "name": "Complex Numbers",
+    "age": 4,
+    "color": "blue",
+    "set": 0,
+    "icons": [
+      "factory",
+      "hex",
+      "lightbulb",
+      "lightbulb"
+    ],
+    "is_relic": true
+  },
+  {
+    "name": "Safety Pin",
+    "age": 7,
+    "color": "yellow",
+    "set": 3,
+    "icons": [
+      "hex",
+      "hexnote",
+      "leaf",
+      "leaf"
+    ],
+    "is_relic": true
+  },
+  {
+    "name": "Holmegaard Bows",
+    "age": 1,
+    "color": "red",
+    "set": 4,
+    "icons": [
+      "castle",
+      "leaf",
+      "hex",
+      "leaf"
+    ]
+  },
+  {
+    "name": "Papyrus of Ani",
+    "age": 1,
+    "color": "red",
+    "set": 4,
+    "icons": [
+      "leaf",
+      "leaf",
+      "leaf",
+      "hex"
+    ]
+  },
+  {
+    "name": "Pavlovian Tusk",
+    "age": 1,
+    "color": "red",
+    "set": 4,
+    "icons": [
+      "hex",
+      "crown",
+      "castle",
+      "crown"
+    ]
+  },
+  {
+    "name": "Dancing Girl",
+    "age": 1,
+    "color": "yellow",
+    "set": 4,
+    "icons": [
+      "hex",
+      "lightbulb",
+      "lightbulb",
+      "lightbulb"
+    ]
+  },
+  {
+    "name": "Lurgan Canoe",
+    "age": 1,
+    "color": "yellow",
+    "set": 4,
+    "icons": [
+      "hex",
+      "crown",
+      "crown",
+      "crown"
+    ]
+  },
+  {
+    "name": "Xianrendong Shards",
+    "age": 1,
+    "color": "yellow",
+    "set": 4,
+    "icons": [
+      "hex",
+      "leaf",
+      "leaf",
+      "leaf"
+    ]
+  },
+  {
+    "name": "Priest-King",
+    "age": 1,
+    "color": "green",
+    "set": 4,
+    "icons": [
+      "castle",
+      "hex",
+      "castle",
+      "castle"
+    ]
+  },
+  {
+    "name": "Electrum Stater of Efesos",
+    "age": 1,
+    "color": "green",
+    "set": 4,
+    "icons": [
+      "crown",
+      "hex",
+      "castle",
+      "crown"
+    ]
+  },
+  {
+    "name": "Jiskairumoko Necklace",
+    "age": 1,
+    "color": "green",
+    "set": 4,
+    "icons": [
+      "hex",
+      "crown",
+      "castle",
+      "castle"
+    ]
+  },
+  {
+    "name": "Treaty of Kadesh",
+    "age": 1,
+    "color": "blue",
+    "set": 4,
+    "icons": [
+      "crown",
+      "castle",
+      "hex",
+      "castle"
+    ]
+  },
+  {
+    "name": "Sibidu Needle",
+    "age": 1,
+    "color": "blue",
+    "set": 4,
+    "icons": [
+      "castle",
+      "castle",
+      "castle",
+      "hex"
+    ]
+  },
+  {
+    "name": "Basur Hoyuk Tokens",
+    "age": 1,
+    "color": "blue",
+    "set": 4,
+    "icons": [
+      "crown",
+      "hex",
+      "leaf",
+      "leaf"
+    ]
+  },
+  {
+    "name": "Mask of Warka",
+    "age": 1,
+    "color": "purple",
+    "set": 4,
+    "icons": [
+      "castle",
+      "castle",
+      "hex",
+      "castle"
+    ]
+  },
+  {
+    "name": "Ark of the Covenant",
+    "age": 1,
+    "color": "purple",
+    "set": 4,
+    "icons": [
+      "hex",
+      "castle",
+      "castle",
+      "castle"
+    ]
+  },
+  {
+    "name": "Tale of the Shipwrecked Sailor",
+    "age": 1,
+    "color": "purple",
+    "set": 4,
+    "icons": [
+      "hex",
+      "castle",
+      "lightbulb",
+      "lightbulb"
+    ]
+  },
+  {
+    "name": "Chronicle of Zuo",
+    "age": 2,
+    "color": "red",
+    "set": 4,
+    "icons": [
+      "crown",
+      "hex",
+      "lightbulb",
+      "lightbulb"
+    ]
+  },
+  {
+    "name": "Babylonian Chronicles",
+    "age": 2,
+    "color": "red",
+    "set": 4,
+    "icons": [
+      "hex",
+      "castle",
+      "castle",
+      "castle"
+    ]
+  },
+  {
+    "name": "Holy Grail",
+    "age": 2,
+    "color": "yellow",
+    "set": 4,
+    "icons": [
+      "leaf",
+      "hex",
+      "crown",
+      "leaf"
+    ]
+  },
+  {
+    "name": "Terracotta Army",
+    "age": 2,
+    "color": "yellow",
+    "set": 4,
+    "icons": [
+      "crown",
+      "crown",
+      "crown",
+      "hex"
+    ]
+  },
+  {
+    "name": "Holy Lance",
+    "age": 2,
+    "color": "green",
+    "set": 4,
+    "icons": [
+      "castle",
+      "leaf",
+      "hex",
+      "castle"
+    ]
+  },
+  {
+    "name": "Baghdad Battery",
+    "age": 2,
+    "color": "green",
+    "set": 4,
+    "icons": [
+      "crown",
+      "lightbulb",
+      "hex",
+      "crown"
+    ]
+  },
+  {
+    "name": "Seikilos Epitaph",
+    "age": 2,
+    "color": "blue",
+    "set": 4,
+    "icons": [
+      "leaf",
+      "leaf",
+      "leaf",
+      "hex"
+    ]
+  },
+  {
+    "name": "Rosetta Stone",
+    "age": 2,
+    "color": "blue",
+    "set": 4,
+    "icons": [
+      "castle",
+      "castle",
+      "castle",
+      "hex"
+    ]
+  },
+  {
+    "name": "Dead Sea Scrolls",
+    "age": 2,
+    "color": "purple",
+    "set": 4,
+    "icons": [
+      "hex",
+      "castle",
+      "lightbulb",
+      "castle"
+    ]
+  },
+  {
+    "name": "Cyrus Cylinder",
+    "age": 2,
+    "color": "purple",
+    "set": 4,
+    "icons": [
+      "hex",
+      "lightbulb",
+      "lightbulb",
+      "castle"
+    ]
+  },
+  {
+    "name": "Excalibur",
+    "age": 3,
+    "color": "red",
+    "set": 4,
+    "icons": [
+      "crown",
+      "hex",
+      "castle",
+      "castle"
+    ]
+  },
+  {
+    "name": "Mjolnir Amulet",
+    "age": 3,
+    "color": "red",
+    "set": 4,
+    "icons": [
+      "hex",
+      "castle",
+      "castle",
+      "lightbulb"
+    ]
+  },
+  {
+    "name": "Moylough Belt Shrine",
+    "age": 3,
+    "color": "yellow",
+    "set": 4,
+    "icons": [
+      "castle",
+      "leaf",
+      "hex",
+      "castle"
+    ]
+  },
+  {
+    "name": "Along the River during the Qingming Festival",
+    "age": 3,
+    "color": "yellow",
+    "set": 4,
+    "icons": [
+      "crown",
+      "crown",
+      "crown",
+      "hex"
+    ]
+  },
+  {
+    "name": "Philosopher's Stone",
+    "age": 3,
+    "color": "green",
+    "set": 4,
+    "icons": [
+      "crown",
+      "crown",
+      "crown",
+      "hex"
+    ]
+  },
+  {
+    "name": "Beauvais Cathedral Clock",
+    "age": 3,
+    "color": "green",
+    "set": 4,
+    "icons": [
+      "crown",
+      "crown",
+      "hex",
+      "crown"
+    ]
+  },
+  {
+    "name": "Dunhuang Star Chart",
+    "age": 3,
+    "color": "blue",
+    "set": 4,
+    "icons": [
+      "lightbulb",
+      "lightbulb",
+      "hex",
+      "lightbulb"
+    ]
+  },
+  {
+    "name": "Charter of Liberties",
+    "age": 3,
+    "color": "blue",
+    "set": 4,
+    "icons": [
+      "lightbulb",
+      "lightbulb",
+      "hex",
+      "castle"
+    ]
+  },
+  {
+    "name": "Necronomicon",
+    "age": 3,
+    "color": "purple",
+    "set": 4,
+    "icons": [
+      "hex",
+      "leaf",
+      "leaf",
+      "leaf"
+    ]
+  },
+  {
+    "name": "Shroud of Turin",
+    "age": 3,
+    "color": "purple",
+    "set": 4,
+    "icons": [
+      "leaf",
+      "hex",
+      "leaf",
+      "leaf"
+    ]
+  },
+  {
+    "name": "East India Company Charter",
+    "age": 4,
+    "color": "red",
+    "set": 4,
+    "icons": [
+      "crown",
+      "factory",
+      "factory",
+      "hex"
+    ]
+  },
+  {
+    "name": "Tortugas Galleon",
+    "age": 4,
+    "color": "red",
+    "set": 4,
+    "icons": [
+      "factory",
+      "factory",
+      "crown",
+      "hex"
+    ]
+  },
+  {
+    "name": "Moses",
+    "age": 4,
+    "color": "yellow",
+    "set": 4,
+    "icons": [
+      "leaf",
+      "leaf",
+      "hex",
+      "leaf"
+    ]
+  },
+  {
+    "name": "Mona Lisa",
+    "age": 4,
+    "color": "yellow",
+    "set": 4,
+    "icons": [
+      "hex",
+      "crown",
+      "leaf",
+      "leaf"
+    ]
+  },
+  {
+    "name": "Molasses Reef Caravel",
+    "age": 4,
+    "color": "green",
+    "set": 4,
+    "icons": [
+      "lightbulb",
+      "lightbulb",
+      "lightbulb",
+      "hex"
+    ]
+  },
+  {
+    "name": "Hunt-Lenox Globe",
+    "age": 4,
+    "color": "green",
+    "set": 4,
+    "icons": [
+      "lightbulb",
+      "lightbulb",
+      "hex",
+      "lightbulb"
+    ]
+  },
+  {
+    "name": "Petition of Right",
+    "age": 4,
+    "color": "blue",
+    "set": 4,
+    "icons": [
+      "lightbulb",
+      "hex",
+      "crown",
+      "lightbulb"
+    ]
+  },
+  {
+    "name": "Delft Pocket Telescope",
+    "age": 4,
+    "color": "blue",
+    "set": 4,
+    "icons": [
+      "factory",
+      "hex",
+      "lightbulb",
+      "lightbulb"
+    ]
+  },
+  {
+    "name": "Cross of Coronado",
+    "age": 4,
+    "color": "purple",
+    "set": 4,
+    "icons": [
+      "crown",
+      "crown",
+      "hex",
+      "crown"
+    ]
+  },
+  {
+    "name": "Abell Gallery Harpsichord",
+    "age": 4,
+    "color": "purple",
+    "set": 4,
+    "icons": [
+      "leaf",
+      "hex",
+      "crown",
+      "leaf"
+    ]
+  },
+  {
+    "name": "Bill of Rights",
+    "age": 5,
+    "color": "red",
+    "set": 4,
+    "icons": [
+      "hex",
+      "leaf",
+      "lightbulb",
+      "lightbulb"
+    ]
+  },
+  {
+    "name": "Ship of the Line Sussex",
+    "age": 5,
+    "color": "red",
+    "set": 4,
+    "icons": [
+      "factory",
+      "factory",
+      "hex",
+      "factory"
+    ]
+  },
+  {
+    "name": "Gujin Tushu Jinsheng",
+    "age": 5,
+    "color": "yellow",
+    "set": 4,
+    "icons": [
+      "lightbulb",
+      "crown",
+      "hex",
+      "lightbulb"
+    ]
+  },
+  {
+    "name": "The Daily Courant",
+    "age": 5,
+    "color": "yellow",
+    "set": 4,
+    "icons": [
+      "factory",
+      "factory",
+      "crown",
+      "hex"
+    ]
+  },
+  {
+    "name": "Barque-Longue La Belle",
+    "age": 5,
+    "color": "green",
+    "set": 4,
+    "icons": [
+      "factory",
+      "hex",
+      "factory",
+      "crown"
+    ]
+  },
+  {
+    "name": "Hudson's Bay Company Archives",
+    "age": 5,
+    "color": "green",
+    "set": 4,
+    "icons": [
+      "crown",
+      "hex",
+      "factory",
+      "crown"
+    ]
+  },
+  {
+    "name": "Boerhavve Silver Microscope",
+    "age": 5,
+    "color": "blue",
+    "set": 4,
+    "icons": [
+      "lightbulb",
+      "factory",
+      "lightbulb",
+      "hex"
+    ]
+  },
+  {
+    "name": "Principia",
+    "age": 5,
+    "color": "blue",
+    "set": 4,
+    "icons": [
+      "lightbulb",
+      "lightbulb",
+      "hex",
+      "lightbulb"
+    ]
+  },
+  {
+    "name": "Sandham Room Cricket Bat",
+    "age": 5,
+    "color": "purple",
+    "set": 4,
+    "icons": [
+      "leaf",
+      "leaf",
+      "factory",
+      "hex"
+    ]
+  },
+  {
+    "name": "Almira, Queen of the Castle",
+    "age": 5,
+    "color": "purple",
+    "set": 4,
+    "icons": [
+      "crown",
+      "hex",
+      "crown",
+      "crown"
+    ]
+  },
+  {
+    "name": "Frigate Constitution",
+    "age": 6,
+    "color": "red",
+    "set": 4,
+    "icons": [
+      "hex",
+      "factory",
+      "factory",
+      "factory"
+    ]
+  },
+  {
+    "name": "U.S. Declaration of Independence",
+    "age": 6,
+    "color": "red",
+    "set": 4,
+    "icons": [
+      "crown",
+      "crown",
+      "lightbulb",
+      "hex"
+    ]
+  },
+  {
+    "name": "Stamp Act",
+    "age": 6,
+    "color": "yellow",
+    "set": 4,
+    "icons": [
+      "hex",
+      "crown",
+      "lightbulb",
+      "lightbulb"
+    ]
+  },
+  {
+    "name": "Pride and Prejudice",
+    "age": 6,
+    "color": "yellow",
+    "set": 4,
+    "icons": [
+      "hex",
+      "lightbulb",
+      "leaf",
+      "lightbulb"
+    ]
+  },
+  {
+    "name": "The Wealth of Nations",
+    "age": 6,
+    "color": "green",
+    "set": 4,
+    "icons": [
+      "crown",
+      "factory",
+      "hex",
+      "crown"
+    ]
+  },
+  {
+    "name": "Buttonwood Agreement",
+    "age": 6,
+    "color": "green",
+    "set": 4,
+    "icons": [
+      "factory",
+      "crown",
+      "factory",
+      "hex"
+    ]
+  },
+  {
+    "name": "Kilogram of the Archives",
+    "age": 6,
+    "color": "blue",
+    "set": 4,
+    "icons": [
+      "factory",
+      "hex",
+      "factory",
+      "lightbulb"
+    ]
+  },
+  {
+    "name": "Puffing Billy",
+    "age": 6,
+    "color": "blue",
+    "set": 4,
+    "icons": [
+      "factory",
+      "hex",
+      "factory",
+      "factory"
+    ]
+  },
+  {
+    "name": "Moonlight Sonata",
+    "age": 6,
+    "color": "purple",
+    "set": 4,
+    "icons": [
+      "lightbulb",
+      "lightbulb",
+      "hex",
+      "lightbulb"
+    ]
+  },
+  {
+    "name": "Marcha Real",
+    "age": 6,
+    "color": "purple",
+    "set": 4,
+    "icons": [
+      "leaf",
+      "leaf",
+      "hex",
+      "crown"
+    ]
+  },
+  {
+    "name": "Submarine H. L. Hunley",
+    "age": 7,
+    "color": "red",
+    "set": 4,
+    "icons": [
+      "factory",
+      "factory",
+      "factory",
+      "hex"
+    ]
+  },
+  {
+    "name": "Jedlik's Electromagnetic Self-Rotor",
+    "age": 7,
+    "color": "red",
+    "set": 4,
+    "icons": [
+      "hex",
+      "clock",
+      "lightbulb",
+      "lightbulb"
+    ]
+  },
+  {
+    "name": "Colt Paterson Revolver",
+    "age": 7,
+    "color": "yellow",
+    "set": 4,
+    "icons": [
+      "factory",
+      "hex",
+      "factory",
+      "crown"
+    ]
+  },
+  {
+    "name": "Singer Model 27",
+    "age": 7,
+    "color": "yellow",
+    "set": 4,
+    "icons": [
+      "hex",
+      "factory",
+      "clock",
+      "clock"
+    ]
+  },
+  {
+    "name": "International Prototype Metre Bar",
+    "age": 7,
+    "color": "green",
+    "set": 4,
+    "icons": [
+      "crown",
+      "hex",
+      "crown",
+      "factory"
+    ]
+  },
+  {
+    "name": "Hansen Writing Ball",
+    "age": 7,
+    "color": "green",
+    "set": 4,
+    "icons": [
+      "clock",
+      "leaf",
+      "clock",
+      "hex"
+    ]
+  },
+  {
+    "name": "Periodic Table",
+    "age": 7,
+    "color": "blue",
+    "set": 4,
+    "icons": [
+      "lightbulb",
+      "hex",
+      "lightbulb",
+      "lightbulb"
+    ]
+  },
+  {
+    "name": "Corvette Challenger",
+    "age": 7,
+    "color": "blue",
+    "set": 4,
+    "icons": [
+      "leaf",
+      "lightbulb",
+      "hex",
+      "leaf"
+    ]
+  },
+  {
+    "name": "Roundhay Garden Scene",
+    "age": 7,
+    "color": "purple",
+    "set": 4,
+    "icons": [
+      "leaf",
+      "leaf",
+      "leaf",
+      "hex"
+    ]
+  },
+  {
+    "name": "The Communist Manifesto",
+    "age": 7,
+    "color": "purple",
+    "set": 4,
+    "icons": [
+      "crown",
+      "crown",
+      "hex",
+      "leaf"
+    ]
+  },
+  {
+    "name": "Battleship Bismarck",
+    "age": 8,
+    "color": "red",
+    "set": 4,
+    "icons": [
+      "hex",
+      "factory",
+      "factory",
+      "factory"
+    ]
+  },
+  {
+    "name": "Battleship Yamato",
+    "age": 8,
+    "color": "red",
+    "set": 4,
+    "icons": [
+      "hex",
+      "hex",
+      "hex",
+      "hex"
+    ]
+  },
+  {
+    "name": "Plush Beweglich Rod Bear",
+    "age": 8,
+    "color": "yellow",
+    "set": 4,
+    "icons": [
+      "leaf",
+      "leaf",
+      "leaf",
+      "hex"
+    ]
+  },
+  {
+    "name": "Time",
+    "age": 8,
+    "color": "yellow",
+    "set": 4,
+    "icons": [
+      "hex",
+      "clock",
+      "clock",
+      "lightbulb"
+    ]
+  },
+  {
+    "name": "Ocean Liner Titanic",
+    "age": 8,
+    "color": "green",
+    "set": 4,
+    "icons": [
+      "crown",
+      "factory",
+      "crown",
+      "hex"
+    ]
+  },
+  {
+    "name": "Meiji-Mura Stamp Vending Machine",
+    "age": 8,
+    "color": "green",
+    "set": 4,
+    "icons": [
+      "leaf",
+      "crown",
+      "hex",
+      "crown"
+    ]
+  },
+  {
+    "name": "Parnell Pitch Drop",
+    "age": 8,
+    "color": "blue",
+    "set": 4,
+    "icons": [
+      "lightbulb",
+      "lightbulb",
+      "lightbulb",
+      "hex"
+    ]
+  },
+  {
+    "name": "Earhart's Lockheed Electra 10E",
+    "age": 8,
+    "color": "blue",
+    "set": 4,
+    "icons": [
+      "clock",
+      "hex",
+      "clock",
+      "clock"
+    ]
+  },
+  {
+    "name": "Garland's Ruby Slippers",
+    "age": 8,
+    "color": "purple",
+    "set": 4,
+    "icons": [
+      "hex",
+      "clock",
+      "clock",
+      "clock"
+    ]
+  },
+  {
+    "name": "'30 World Cup Final Ball",
+    "age": 8,
+    "color": "purple",
+    "set": 4,
+    "icons": [
+      "leaf",
+      "leaf",
+      "clock",
+      "hex"
+    ]
+  },
+  {
+    "name": "United Nations Charter",
+    "age": 9,
+    "color": "red",
+    "set": 4,
+    "icons": [
+      "hex",
+      "leaf",
+      "clock",
+      "leaf"
+    ]
+  },
+  {
+    "name": "Velcro Shoes",
+    "age": 9,
+    "color": "red",
+    "set": 4,
+    "icons": [
+      "factory",
+      "factory",
+      "clock",
+      "hex"
+    ]
+  },
+  {
+    "name": "Rock Around the Clock",
+    "age": 9,
+    "color": "yellow",
+    "set": 4,
+    "icons": [
+      "leaf",
+      "clock",
+      "hex",
+      "clock"
+    ]
+  },
+  {
+    "name": "Magnavox Odyssey",
+    "age": 9,
+    "color": "yellow",
+    "set": 4,
+    "icons": [
+      "lightbulb",
+      "leaf",
+      "hex",
+      "lightbulb"
+    ]
+  },
+  {
+    "name": "Philips Compact Cassette",
+    "age": 9,
+    "color": "green",
+    "set": 4,
+    "icons": [
+      "hex",
+      "leaf",
+      "leaf",
+      "leaf"
+    ]
+  },
+  {
+    "name": "Syncom 3",
+    "age": 9,
+    "color": "green",
+    "set": 4,
+    "icons": [
+      "hex",
+      "clock",
+      "clock",
+      "clock"
+    ]
+  },
+  {
+    "name": "Yeager's Bell X-1A",
+    "age": 9,
+    "color": "blue",
+    "set": 4,
+    "icons": [
+      "clock",
+      "clock",
+      "factory",
+      "hex"
+    ]
+  },
+  {
+    "name": "Luna 3",
+    "age": 9,
+    "color": "blue",
+    "set": 4,
+    "icons": [
+      "factory",
+      "hex",
+      "factory",
+      "factory"
+    ]
+  },
+  {
+    "name": "The Big Bang",
+    "age": 9,
+    "color": "purple",
+    "set": 4,
+    "icons": [
+      "lightbulb",
+      "hex",
+      "lightbulb",
+      "lightbulb"
+    ]
+  },
+  {
+    "name": "Marilyn Diptych",
+    "age": 9,
+    "color": "purple",
+    "set": 4,
+    "icons": [
+      "crown",
+      "crown",
+      "crown",
+      "hex"
+    ]
+  },
+  {
+    "name": "Exxon Valdez",
+    "age": 10,
+    "color": "red",
+    "set": 4,
+    "icons": [
+      "factory",
+      "hex",
+      "factory",
+      "factory"
+    ]
+  },
+  {
+    "name": "Maldives",
+    "age": 10,
+    "color": "red",
+    "set": 4,
+    "icons": [
+      "clock",
+      "hex",
+      "clock",
+      "clock"
+    ]
+  },
+  {
+    "name": "Dolly the Sheep",
+    "age": 10,
+    "color": "yellow",
+    "set": 4,
+    "icons": [
+      "hex",
+      "clock",
+      "leaf",
+      "clock"
+    ]
+  },
+  {
+    "name": "Where's Waldo?",
+    "age": 10,
+    "color": "yellow",
+    "set": 4,
+    "icons": [
+      "leaf",
+      "clock",
+      "hex",
+      "leaf"
+    ]
+  },
+  {
+    "name": "Maastricht Treaty",
+    "age": 10,
+    "color": "green",
+    "set": 4,
+    "icons": [
+      "crown",
+      "crown",
+      "hex",
+      "crown"
+    ]
+  },
+  {
+    "name": "Seikan Tunnel",
+    "age": 10,
+    "color": "green",
+    "set": 4,
+    "icons": [
+      "clock",
+      "clock",
+      "clock",
+      "hex"
+    ]
+  },
+  {
+    "name": "Rover Curiosity",
+    "age": 10,
+    "color": "blue",
+    "set": 4,
+    "icons": [
+      "hex",
+      "lightbulb",
+      "lightbulb",
+      "lightbulb"
+    ]
+  },
+  {
+    "name": "Higgs Boson",
+    "age": 10,
+    "color": "blue",
+    "set": 4,
+    "icons": [
+      "lightbulb",
+      "lightbulb",
+      "lightbulb",
+      "hex"
+    ]
+  },
+  {
+    "name": "DeLorean DMC-12",
+    "age": 10,
+    "color": "purple",
+    "set": 4,
+    "icons": [
+      "hex",
+      "clock",
+      "clock",
+      "clock"
+    ]
+  },
+  {
+    "name": "Twister",
+    "age": 10,
+    "color": "purple",
+    "set": 4,
+    "icons": [
+      "hex",
+      "factory",
+      "factory",
+      "clock"
+    ]
+  },
+  {
+    "name": "Newton-Wickins Telescope",
+    "age": 5,
+    "color": "purple",
+    "set": 4,
+    "icons": [
+      "factory",
+      "lightbulb",
+      "factory",
+      "hex"
+    ],
+    "is_relic": true
+  },
+  {
+    "name": "Ching Shih",
+    "age": 6,
+    "color": "red",
+    "set": 1,
+    "icons": [
+      "clock",
+      "clock",
+      "hex",
+      "leaf"
+    ],
+    "is_relic": true
   }
 ]

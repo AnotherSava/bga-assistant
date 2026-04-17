@@ -41,7 +41,7 @@ export interface RawExtractionData {
   currentPlayerId?: string;
   gamedatas?: {
     my_hand?: Array<{ id: number | string }>;
-    cards?: Record<string, { name?: string }>;
+    cards?: Record<string, { name?: string; is_relic?: string | number | boolean; type?: string | number }>;
   };
 }
 

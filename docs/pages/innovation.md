@@ -7,7 +7,7 @@ title: Innovation
 
 ---
 
-Reads the full game log from [Innovation](https://boardgamegeek.com/boardgame/63888/innovation) 2-player tables and reconstructs the game state — hand contents and score piles according to revealed cards, and deck stack order with returned cards — displayed as a visual summary in a side panel. Supports the base game and the Echoes of the Past and Cities of Destiny expansions.
+Reads the full game log from [Innovation](https://boardgamegeek.com/boardgame/63888/innovation) 2-player tables and reconstructs the game state — hand contents and score piles according to revealed cards, and deck stack order with returned cards — displayed as a visual summary in a side panel. Supports the base game and the Echoes of the Past, Cities of Destiny, and Artifacts of History expansions (including the Relics variant).
 
 ### Hands, forecast and score
 
@@ -23,7 +23,7 @@ A compact sidebar shows recent actions — meld, draw, dogma, endorse, achieve, 
 
 ### Card list
 
-The card list lays out all cards in the game across ages, showing which cards have been identified and which remain unknown. Toggle between Base, Echoes, and Cities sets, filter to show only unaccounted cards, and switch between wide and tall layouts:
+The card list lays out all cards in the game across ages, showing which cards have been identified and which remain unknown. Toggle between Base, Echoes, Cities, and Artifacts sets, filter to show only unaccounted cards, and switch between wide and tall layouts:
 
 <a href="../screenshots/innovation-cards.png"><img src="../screenshots/innovation-cards.png" alt="Innovation card list" width="1000"></a>
 
@@ -36,7 +36,7 @@ The deck section shows remaining cards per age, with known cards revealed by nam
 ### Game features
 
 - **Card grids**: hands, scores, deck, full card list, achievements
-- **Set toggle**: switch between Base, Echoes, and Cities card sets for deck and card list
+- **Set toggle**: switch between Base, Echoes, Cities, and Artifacts card sets for deck and card list
 - **Filter toggle**: All / Unknown (show only unaccounted cards)
 - **Layout toggle**: Wide (one row per age) / Tall (color columns)
 - **Turn history**: compact chronological display of recent actions (meld, draw, dogma, endorse, achieve, promote) with card name tooltips; compound actions (e.g. meld → promote → dogma) render as indented sub-action lines

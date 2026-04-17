@@ -9,49 +9,12 @@ describe("positionTooltip", () => {
   beforeEach(() => {
     tip = document.createElement("div");
     document.body.appendChild(tip);
-    // Default viewport: 1024x768
-    Object.defineProperty(window, "innerWidth", { value: 1024, writable: true, configurable: true });
-    Object.defineProperty(window, "innerHeight", { value: 768, writable: true, configurable: true });
   });
 
-  it("positions tooltip offset from cursor", () => {
-    // jsdom getBoundingClientRect returns all zeros; fallback widths 375/275 apply
-    positionTooltip(tip, 100, 100);
-    expect(tip.style.left).toBe("112px");
-    expect(tip.style.top).toBe("112px");
-  });
-
-  it("flips to left of cursor when near right edge", () => {
-    positionTooltip(tip, 900, 100);
-    // 900 + 12 + 375 > 1024, so x = 900 - 375 - 12 = 513
-    expect(tip.style.left).toBe("513px");
-    expect(tip.style.top).toBe("112px");
-  });
-
-  it("flips above cursor when near bottom edge", () => {
-    positionTooltip(tip, 100, 700);
-    // 700 + 12 + 275 > 768, so y = 700 - 275 - 12 = 413
-    expect(tip.style.left).toBe("112px");
-    expect(tip.style.top).toBe("413px");
-  });
-
-  it("positions normally when tooltip fits within viewport", () => {
-    positionTooltip(tip, 10, 10);
-    // 10 + 12 + 375 > 1024? 397 < 1024, so no flip on x: x = 22
-    // 10 + 12 + 275 > 768? 297 < 768, so no flip on y: y = 22
-    expect(tip.style.left).toBe("22px");
-    expect(tip.style.top).toBe("22px");
-  });
-
-  it("clamps to minimum 4px when flip goes negative", () => {
-    // Near edge with small viewport
-    Object.defineProperty(window, "innerWidth", { value: 100, configurable: true });
-    Object.defineProperty(window, "innerHeight", { value: 100, configurable: true });
-    positionTooltip(tip, 50, 50);
-    // 50 + 12 + 375 > 100, flip: 50 - 375 - 12 = -337 → clamped to 4
-    // 50 + 12 + 275 > 100, flip: 50 - 275 - 12 = -237 → clamped to 4
-    expect(tip.style.left).toBe("4px");
-    expect(tip.style.top).toBe("4px");
+  it("anchors tooltip at cursor coordinates", () => {
+    positionTooltip(tip, 100, 200);
+    expect(tip.style.left).toBe("100px");
+    expect(tip.style.top).toBe("200px");
   });
 });
 

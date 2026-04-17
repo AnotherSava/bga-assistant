@@ -51,8 +51,8 @@ function makeGameState(players: string[], perspective: string): { state: GameSta
 // ---------------------------------------------------------------------------
 
 describe("Section Config", () => {
-  it("has all 9 section IDs with configs", () => {
-    expect(SECTION_IDS).toHaveLength(9);
+  it("has all 10 section IDs with configs", () => {
+    expect(SECTION_IDS).toHaveLength(10);
     for (const id of SECTION_IDS) {
       expect(DEFAULT_SECTION_CONFIG[id]).toBeDefined();
     }
@@ -62,7 +62,7 @@ describe("Section Config", () => {
     expect(SECTION_IDS).toEqual([
       "hand-opponent", "hand-me", "score-opponent", "score-me",
       "forecast-opponent", "forecast-me",
-      "deck", "cards", "achievements",
+      "deck", "cards", "achievements", "relics",
     ]);
   });
 
@@ -135,15 +135,16 @@ describe("visibilityToggle", () => {
 });
 
 describe("compositeToggle", () => {
-  it("builds Hide/Base/Echoes/Cities toggle with base default", () => {
+  it("builds Hide/Base/Echoes/Cities/Artifacts toggle with base default", () => {
     const toggle = compositeToggle("deck", "base");
     expect(toggle.targetId).toBe("deck");
     expect(toggle.defaultMode).toBe("base");
-    expect(toggle.options).toHaveLength(4);
+    expect(toggle.options).toHaveLength(5);
     expect(toggle.options[0]).toEqual({ mode: "none", label: "Hide", active: false });
     expect(toggle.options[1]).toEqual({ mode: "base", label: "Base", active: true });
     expect(toggle.options[2]).toEqual({ mode: "echoes", label: "Echoes", active: false });
     expect(toggle.options[3]).toEqual({ mode: "cities", label: "Cities", active: false });
+    expect(toggle.options[4]).toEqual({ mode: "artifacts", label: "Artifacts", active: false });
   });
 
   it("builds Hide/Base/Echoes/Cities toggle with none default", () => {

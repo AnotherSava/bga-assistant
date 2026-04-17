@@ -52,10 +52,12 @@ describe("CardSet enum", () => {
     expect(cardSetFromLabel("CITIES")).toBe(CardSet.CITIES);
     expect(cardSetFromLabel("Echoes")).toBe(CardSet.ECHOES);
     expect(cardSetFromLabel("Base")).toBe(CardSet.BASE);
+    expect(cardSetFromLabel("figures")).toBe(CardSet.FIGURES);
+    expect(cardSetFromLabel("artifacts")).toBe(CardSet.ARTIFACTS);
   });
 
   it("cardSetFromLabel throws on unknown label", () => {
-    expect(() => cardSetFromLabel("figures")).toThrow("Unknown card set label: figures");
+    expect(() => cardSetFromLabel("unknown")).toThrow("Unknown card set label: unknown");
   });
 });
 

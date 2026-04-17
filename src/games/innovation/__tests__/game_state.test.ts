@@ -48,7 +48,7 @@ function createGS(): { state: GameState; engine: GameEngine } {
   return { state, engine };
 }
 
-function createInitializedGS(expansions?: { echoes: boolean }): { state: GameState; engine: GameEngine } {
+function createInitializedGS(expansions?: { echoes: boolean; artifacts?: boolean; relics?: boolean }): { state: GameState; engine: GameEngine } {
   const { state, engine } = createGS();
   engine.initGame(state, expansions);
   return { state, engine };
@@ -1530,5 +1530,238 @@ describe("echoes resolveHand", () => {
     for (const card of echoesDeck) {
       expect(card.candidates.has(echoesNames[0])).toBe(false);
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Artifacts of History expansion
+// ---------------------------------------------------------------------------
+
+describe("artifacts expansion", () => {
+  function dig(state: GameState, engine: GameEngine, player: string, cardName: string): void {
+    const info = cardDb.get(cardName)!;
+    const action: NamedAction = namedAction({
+      cardName, source: "deck", dest: "display",
+      sourcePlayer: null, destPlayer: player,
+    });
+    engine.move(state, action);
+    expect(info.cardSet).toBe(CardSet.ARTIFACTS);
+  }
+
+  function returnToDeck(state: GameState, engine: GameEngine, player: string, cardName: string): void {
+    engine.move(state, namedAction({
+      cardName, source: "display", dest: "deck",
+      sourcePlayer: player, destPlayer: null, topOfDeck: false,
+    }));
+  }
+
+  it("dig moves card from artifact deck to the player's display", () => {
+    const { state, engine } = createInitializedGS({ echoes: false, artifacts: true, relics: false });
+    const age1Deck = state.decks.get(ageSetKey(1, CardSet.ARTIFACTS))!;
+    const deckSizeBefore = age1Deck.length;
+    const cardName = cardDb.groupInfos(1, CardSet.ARTIFACTS)[0].indexName;
+
+    dig(state, engine, "Alice", cardName);
+
+    expect(state.decks.get(ageSetKey(1, CardSet.ARTIFACTS))!.length).toBe(deckSizeBefore - 1);
+    const aliceDisplay = state.displays.get("Alice")!;
+    expect(aliceDisplay.length).toBe(1);
+    expect(aliceDisplay[0].isResolved).toBe(true);
+    expect(aliceDisplay[0].resolvedName).toBe(cardName);
+    expect(aliceDisplay[0].opponentKnowledge.kind).toBe("exact");
+  });
+
+  it("dig then return restores the deck and empties the display", () => {
+    const { state, engine } = createInitializedGS({ echoes: false, artifacts: true, relics: false });
+    const age1Deck = state.decks.get(ageSetKey(1, CardSet.ARTIFACTS))!;
+    const sizeBefore = age1Deck.length;
+    const cardName = cardDb.groupInfos(1, CardSet.ARTIFACTS)[0].indexName;
+
+    dig(state, engine, "Alice", cardName);
+    returnToDeck(state, engine, "Alice", cardName);
+
+    expect(state.displays.get("Alice")!.length).toBe(0);
+    expect(state.decks.get(ageSetKey(1, CardSet.ARTIFACTS))!.length).toBe(sizeBefore);
+  });
+
+  it("dig leaves card resolved on display across subsequent moves", () => {
+    const { state, engine } = createInitializedGS({ echoes: false, artifacts: true, relics: false });
+    const cardName = cardDb.groupInfos(1, CardSet.ARTIFACTS)[0].indexName;
+    dig(state, engine, "Alice", cardName);
+
+    // No intervening return: display stays populated until next explicit action
+    const display = state.displays.get("Alice")!;
+    expect(display.length).toBe(1);
+    expect(display[0].resolvedName).toBe(cardName);
+  });
+});
+
+describe("with-relics variant", () => {
+  function relicNames(): string[] {
+    // Collect relic indexNames across all supported sets.
+    const out: string[] = [];
+    for (const info of cardDb.values()) {
+      if (info.isRelic) out.push(info.indexName);
+    }
+    return out;
+  }
+
+  it("removes relic cards from their source decks at init and puts them in the relics zone", () => {
+    const relics = relicNames();
+    expect(relics.length).toBeGreaterThan(0);
+    const engine2 = new GameEngine(cardDb);
+    const state2 = newGameState(PLAYERS, PERSPECTIVE);
+    engine2.initGame(state2, { echoes: true, artifacts: true, relics: true }, relics);
+
+    expect(state2.relics.length).toBe(relics.length);
+    for (const card of state2.relics) {
+      expect(card.isResolved).toBe(true);
+      expect(relics).toContain(card.resolvedName);
+    }
+    // Each relic's source deck (if it exists) must not contain the relic.
+    // Relics from unsupported sets (e.g. Figures) have no deck at all.
+    for (const name of relics) {
+      const info = cardDb.get(name)!;
+      const deck = state2.decks.get(ageSetKey(info.age, info.cardSet));
+      if (deck) {
+        for (const c of deck) {
+          expect(c.candidates.has(name)).toBe(false);
+        }
+      }
+    }
+  });
+
+  it("without-relics init does not include relic cards in decks", () => {
+    const relics = relicNames();
+    const engine = new GameEngine(cardDb);
+    const state = newGameState(PLAYERS, PERSPECTIVE);
+    engine.initGame(state, { echoes: true, artifacts: true, relics: false });
+    expect(state.relics.length).toBe(0);
+    // Relic cards are extra cards that only exist in the relics variant —
+    // they're excluded from cardDb groups so they never appear in decks.
+    for (const name of relics) {
+      const info = cardDb.get(name)!;
+      const deck = state.decks.get(ageSetKey(info.age, info.cardSet));
+      if (deck) {
+        const present = deck.some(c => c.candidates.has(name));
+        expect(present).toBe(false);
+      }
+    }
+  });
+});
+
+describe("relic seizes", () => {
+  function seizeRelicToHand(engine: GameEngine, state: GameState, relicName: string, player: string): void {
+    const entry: TransferEntry = {
+      type: "transfer", move: 1, cardSet: "cities",
+      source: "relics", dest: "hand",
+      cardName: relicName, cardAge: cardDb.get(relicName)!.age,
+      sourceOwner: null, destOwner: player,
+      meldKeyword: false, topOfDeck: false,
+    };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (engine as any).processTransfer(state, entry);
+  }
+  function achievementTransfer(engine: GameEngine, state: GameState, source: "relics" | "achievements", dest: "hand" | "achievements" | "relics", relicName: string, srcPlayer: string | null, destPlayer: string | null): void {
+    const info = cardDb.get(relicName)!;
+    const setLabel = info.cardSet === CardSet.BASE ? "base" : info.cardSet === CardSet.CITIES ? "cities" : info.cardSet === CardSet.ECHOES ? "echoes" : "artifacts";
+    const entry: TransferEntry = {
+      type: "transfer", move: 1, cardSet: setLabel,
+      source, dest, cardName: relicName, cardAge: info.age,
+      sourceOwner: srcPlayer, destOwner: destPlayer,
+      meldKeyword: false, topOfDeck: false,
+    };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (engine as any).processTransfer(state, entry);
+  }
+
+  function relicNames(): string[] {
+    const out: string[] = [];
+    for (const info of cardDb.values()) {
+      if (info.isRelic) out.push(info.indexName);
+    }
+    return out;
+  }
+
+  function setup(): { state: GameState; engine: GameEngine; relics: string[] } {
+    const relics = relicNames();
+    const engine = new GameEngine(cardDb);
+    const state = newGameState(PLAYERS, PERSPECTIVE);
+    engine.initGame(state, { echoes: true, artifacts: true, relics: true }, relics);
+    // Must initialize log-processing state (even with an empty log) before
+    // calling processTransfer, which uses the internal player pattern.
+    engine.initLog(state, [], []);
+    return { state, engine, relics };
+  }
+
+  it("seizes a relic from the relics zone to a player's hand", () => {
+    const { state, engine, relics } = setup();
+    const relicName = relics[0];
+    seizeRelicToHand(engine, state, relicName, "Alice");
+
+    expect(state.relics.some(c => c.resolvedName === relicName)).toBe(false);
+    const aliceHand = state.hands.get("Alice")!;
+    expect(aliceHand.some(c => c.isResolved && c.resolvedName === relicName)).toBe(true);
+  });
+
+  it("seizes a relic from the relics zone to a player's achievements", () => {
+    const { state, engine, relics } = setup();
+    const relicName = relics[0];
+    achievementTransfer(engine, state, "relics", "achievements", relicName, null, "Alice");
+
+    expect(state.relics.some(c => c.resolvedName === relicName)).toBe(false);
+    const aliceAchRelics = state.achievementRelics.get("Alice")!;
+    expect(aliceAchRelics.length).toBe(1);
+    expect(aliceAchRelics[0].resolvedName).toBe(relicName);
+  });
+
+  it("re-seizes a relic from achievements back to hand", () => {
+    const { state, engine, relics } = setup();
+    const relicName = relics[0];
+    achievementTransfer(engine, state, "relics", "achievements", relicName, null, "Alice");
+    achievementTransfer(engine, state, "achievements", "hand", relicName, "Alice", "Bob");
+
+    expect(state.achievementRelics.get("Alice")!.length).toBe(0);
+    const bobHand = state.hands.get("Bob")!;
+    expect(bobHand.some(c => c.isResolved && c.resolvedName === relicName)).toBe(true);
+  });
+
+  it("cross-player relic re-seize between achievement piles", () => {
+    const { state, engine, relics } = setup();
+    const relicName = relics[0];
+    achievementTransfer(engine, state, "relics", "achievements", relicName, null, "Alice");
+    achievementTransfer(engine, state, "achievements", "achievements", relicName, "Alice", "Bob");
+
+    expect(state.achievementRelics.get("Alice")!.length).toBe(0);
+    expect(state.achievementRelics.get("Bob")!.length).toBe(1);
+    expect(state.achievementRelics.get("Bob")![0].resolvedName).toBe(relicName);
+  });
+
+  it("throws on non-relic achievement→hand transfer (defensive)", () => {
+    const { state, engine } = setup();
+    // Pick any non-relic base card
+    const baseCard = [...cardDb.values()].find(c => c.cardSet === CardSet.BASE && !c.isRelic)!;
+    const entry: TransferEntry = {
+      type: "transfer", move: 1, cardSet: "base",
+      source: "achievements", dest: "hand",
+      cardName: baseCard.indexName, cardAge: baseCard.age,
+      sourceOwner: "Alice", destOwner: "Alice",
+      meldKeyword: false, topOfDeck: false,
+    };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect(() => (engine as any).processTransfer(state, entry)).toThrow(/non-relic/);
+  });
+
+  it("regular achievement claim (no card name) is silently skipped", () => {
+    const { state, engine } = setup();
+    const entry: TransferEntry = {
+      type: "transfer", move: 1, cardSet: "base",
+      source: "achievements", dest: "achievements",
+      cardName: null, cardAge: 1,
+      sourceOwner: null, destOwner: "Alice",
+      meldKeyword: false, topOfDeck: false,
+    };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect(() => (engine as any).processTransfer(state, entry)).not.toThrow();
   });
 });

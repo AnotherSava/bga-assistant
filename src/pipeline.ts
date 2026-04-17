@@ -86,7 +86,7 @@ export function processGameState(gameLog: GameLog | AzulGameLog | CrewGameLog, g
     const perspective = innovationLog.currentPlayerId && innovationLog.players[innovationLog.currentPlayerId] ? innovationLog.players[innovationLog.currentPlayerId] : players[0];
     const engine = new GameEngine(cardDb);
     const state = createGameState(players, perspective);
-    engine.initGame(state, innovationLog.expansions);
+    engine.initGame(state, innovationLog.expansions, innovationLog.initialRelics);
     engine.processLog(state, innovationLog.log, innovationLog.myHand);
     return innovationToJSON(state);
   }

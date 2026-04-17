@@ -95,7 +95,7 @@ src/
 assets/
   bga/
     innovation/
-      card_info.json         Card database (315 cards: 105 base + 105 echoes + 105 cities)
+      card_info.json         Card database (base, echoes, cities, and artifacts cards plus specials)
       icons/                 Resource and hex icon PNGs
       cards/                 Full card face images (WebP, for tooltips)
       sprites/               Card sprite sheets (gitignored)

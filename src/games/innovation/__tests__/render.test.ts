@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { readFileSync } from "fs";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
-import { Card, CardDatabase, cardIndex } from "../types";
+import { Card, CardDatabase, CardSet, cardIndex } from "../types";
 import { type GameState, createGameState } from "../game_state";
 import { GameEngine } from "../game_engine";
 import { renderSummary, renderTurnHistory } from "../render";
@@ -228,5 +228,47 @@ describe("bug: forecast cards shown as unresolved in Cards section", () => {
     const sanCardMatch = cardsSectionHtml.match(/<div class="card[^"]*"[^>]*>(?:[^<]|<(?!\/div><div class="card))*Sanitation/);
     expect(sanCardMatch).not.toBeNull();
     expect(sanCardMatch![0]).toContain("data-known");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// bug: relic cards appear as extra unknowns in Cards section
+// ---------------------------------------------------------------------------
+
+describe("bug: relic cards excluded from Cards section when in relics zone", () => {
+  it("does not show relic cards in the Cards section when relics variant is active", () => {
+    const relicInfo = [...cardDb.values()].find(c => c.isRelic && c.cardSet === CardSet.BASE);
+    if (!relicInfo) return; // skip if no base relic in card_info
+
+    const engine = new GameEngine(cardDb);
+    const gs = createGameState(PLAYERS, PERSPECTIVE);
+    engine.initGame(gs, { echoes: true, artifacts: true, relics: true }, [relicInfo.indexName]);
+
+    const html = renderSummary(gs, engine, cardDb, PERSPECTIVE, PLAYERS, "test", {
+      textTooltips: true,
+      expansions: { echoes: true, artifacts: true, relics: true },
+    });
+
+    const cardsSection = html.match(/data-section="cards"[\s\S]*?(?=<div class="section"|$)/);
+    expect(cardsSection).not.toBeNull();
+    expect(cardsSection![0]).not.toContain(relicInfo.name);
+  });
+
+  it("excludes relic cards from Cards section even without relics variant", () => {
+    const relicInfo = [...cardDb.values()].find(c => c.isRelic && c.cardSet === CardSet.BASE);
+    if (!relicInfo) return;
+
+    const engine = new GameEngine(cardDb);
+    const gs = createGameState(PLAYERS, PERSPECTIVE);
+    engine.initGame(gs, { echoes: false, artifacts: false, relics: false });
+
+    const html = renderSummary(gs, engine, cardDb, PERSPECTIVE, PLAYERS, "test", {
+      textTooltips: true,
+      expansions: { echoes: false },
+    });
+
+    const cardsSection = html.match(/data-section="cards"[\s\S]*?(?=<div class="section"|$)/);
+    expect(cardsSection).not.toBeNull();
+    expect(cardsSection![0]).not.toContain(relicInfo.name);
   });
 });

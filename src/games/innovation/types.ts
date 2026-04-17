@@ -11,8 +11,10 @@ export { cardIndex };
 
 export enum CardSet {
   BASE = 0,
+  FIGURES = 1,
   CITIES = 2,
   ECHOES = 3,
+  ARTIFACTS = 4,
 }
 
 export enum Color {
@@ -37,8 +39,10 @@ export function cardSetLabel(cardSet: CardSet): string {
 export function cardSetFromLabel(label: string): CardSet {
   const upper = label.toUpperCase();
   if (upper === "BASE") return CardSet.BASE;
+  if (upper === "FIGURES") return CardSet.FIGURES;
   if (upper === "CITIES") return CardSet.CITIES;
   if (upper === "ECHOES") return CardSet.ECHOES;
+  if (upper === "ARTIFACTS") return CardSet.ARTIFACTS;
   throw new Error(`Unknown card set label: ${label}`);
 }
 
@@ -111,6 +115,7 @@ export interface CardInfo {
   spriteIndex: number;
   icons: readonly string[];
   dogmas: readonly string[];
+  isRelic: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -125,6 +130,7 @@ interface RawCardEntry {
   set: number;
   icons?: string[];
   dogmas?: string[];
+  is_relic?: boolean;
 }
 
 const COLOR_MAP: Record<string, Color> = {
@@ -144,7 +150,7 @@ export class CardDatabase {
     for (let idx = 0; idx < rawEntries.length; idx++) {
       const item = rawEntries[idx];
       if (item === null || item === undefined || !("age" in item) || !("color" in item)) continue;
-      if (item.set !== CardSet.BASE && item.set !== CardSet.CITIES && item.set !== CardSet.ECHOES) continue;
+      if (item.set !== CardSet.BASE && item.set !== CardSet.FIGURES && item.set !== CardSet.CITIES && item.set !== CardSet.ECHOES && item.set !== CardSet.ARTIFACTS) continue;
 
       const indexName = cardIndex(item.name);
       const color = COLOR_MAP[item.color.toLowerCase()];
@@ -159,12 +165,17 @@ export class CardDatabase {
         spriteIndex: idx,
         icons: item.icons ?? [],
         dogmas: item.dogmas ?? [],
+        isRelic: item.is_relic === true,
       };
       this._cards.set(indexName, info);
     }
 
-    // Build groups
+    // Build groups — relic cards and Figures cards are excluded. Relics start
+    // in the relics zone (engine creates them separately). Figures cards are
+    // loaded into _cards for name lookups (relic seizes, transfers) but don't
+    // have tracked decks.
     for (const info of this._cards.values()) {
+      if (info.isRelic || info.cardSet === CardSet.FIGURES) continue;
       const key = ageSetKey(info.age, info.cardSet);
       let group = this._groups.get(key);
       if (!group) {
@@ -235,7 +246,7 @@ export class CardDatabase {
 // ---------------------------------------------------------------------------
 
 /** Zone names for card locations. */
-export type Zone = "deck" | "hand" | "board" | "score" | "revealed" | "forecast";
+export type Zone = "deck" | "hand" | "board" | "score" | "revealed" | "forecast" | "display" | "relics" | "achievements";
 
 interface ActionBase {
   source: Zone;

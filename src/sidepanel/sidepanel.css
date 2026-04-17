@@ -58,6 +58,7 @@ body {
 .card.b-gray-base   { background: #363328; border-color: #6b6545; color: #999078; }
 .card.b-gray-cities { background: #4a3548; border-color: #9a6890; color: #c090b8; }
 .card.b-gray-echoes { background: #354858; border-color: #6890a8; color: #90b0c8; }
+.card.b-gray-artifacts { background: #3a2e22; border-color: #8a6640; color: #b08868; }
 .card img { width: 20px; height: 20px; display: block; }
 
 /* Set 0 (base) — 2x3 CSS grid */
@@ -161,6 +162,7 @@ body {
 .mode-unknown [data-known] { background: #363328 !important; border-color: #6b6545 !important; color: #999078 !important; }
 .mode-unknown [data-set="echoes"] [data-known] { background: #354858 !important; border-color: #6890a8 !important; color: #90b0c8 !important; }
 .mode-unknown [data-set="cities"] [data-known] { background: #4a3548 !important; border-color: #9a6890 !important; color: #c090b8 !important; }
+.mode-unknown [data-set="artifacts"] [data-known] { background: #3a2e22 !important; border-color: #8a6640 !important; color: #b08868 !important; }
 .mode-unknown [data-known] .cb-tl,
 .mode-unknown [data-known] .cb-name,
 .mode-unknown [data-known] .cb-bl,

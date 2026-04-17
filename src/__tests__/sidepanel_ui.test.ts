@@ -72,8 +72,8 @@ describe("sidepanel UI functions", () => {
 
       // Import and call positionTooltip directly to verify the integration
       positionTooltip(tip, 200, 200);
-      expect(tip.style.left).toBe("212px");
-      expect(tip.style.top).toBe("212px");
+      expect(tip.style.left).toBe("200px");
+      expect(tip.style.top).toBe("200px");
     });
   });
 

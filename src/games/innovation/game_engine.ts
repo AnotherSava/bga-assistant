@@ -73,10 +73,77 @@ export class GameEngine {
       }
       return deck;
     }
-    const zoneMap = zone === "hand" ? state.hands : zone === "board" ? state.boards : zone === "score" ? state.scores : zone === "forecast" ? state.forecast : state.revealed;
+    if (zone === "relics") return state.relics;
+    if (zone === "achievements") {
+      // Relic-aware achievement slot (per player). Regular achievements are handled
+      // upstream in processTransfer via the SKIPPED path.
+      const cards = state.achievementRelics.get(player!);
+      if (!cards) throw new Error(`Player "${player}" not found in achievementRelics zone`);
+      return cards;
+    }
+    const zoneMap =
+      zone === "hand" ? state.hands
+        : zone === "board" ? state.boards
+          : zone === "score" ? state.scores
+            : zone === "forecast" ? state.forecast
+              : zone === "revealed" ? state.revealed
+                : state.displays;
     const cards = zoneMap.get(player!);
     if (!cards) throw new Error(`Player "${player}" not found in ${zone} zone`);
     return cards;
+  }
+
+  // ------------------------------------------------------------------
+  // Relic-specific achievement transfers
+  // ------------------------------------------------------------------
+
+  /** Handle a transfer involving the relics zone or relic cards in achievements.
+   *  Legal patterns: relics→achievements, relics→hand, achievements→hand,
+   *  achievements→achievements, achievements→relics. */
+  private processRelicAchievementTransfer(state: GameState, entry: TransferEntry): void {
+    const cardIdx = entry.cardName ? cardIndex(entry.cardName) : null;
+
+    const takeFromRelicZone = (zone: "relics" | "achievements", player: string | null): Card => {
+      const list = zone === "relics" ? state.relics : state.achievementRelics.get(player!)!;
+      let idx: number;
+      if (cardIdx) {
+        idx = list.findIndex(c => c.isResolved && c.resolvedName === cardIdx);
+      } else {
+        const setLabel = entry.cardSet;
+        const targetSet = cardSetFromLabel(setLabel);
+        idx = list.findIndex(c => c.age === entry.cardAge && c.cardSet === targetSet);
+      }
+      if (idx === -1) throw new Error(`Relic "${cardIdx ?? `age ${entry.cardAge}`}" not found in ${zone}${player ? ` for ${player}` : ""}`);
+      return list.splice(idx, 1)[0];
+    };
+
+    if (entry.source === "relics" && (entry.dest === "achievements" || entry.dest === "hand")) {
+      const card = takeFromRelicZone("relics", null);
+      if (entry.dest === "achievements") {
+        state.achievementRelics.get(entry.destOwner!)!.push(card);
+      } else {
+        state.hands.get(entry.destOwner!)!.push(card);
+        this.propagate(ageSetKey(card.age, card.cardSet));
+      }
+      return;
+    }
+    if (entry.source === "achievements" && entry.dest === "relics") {
+      const card = takeFromRelicZone("achievements", entry.sourceOwner);
+      state.relics.push(card);
+      return;
+    }
+    if (entry.source === "achievements" && entry.dest === "achievements") {
+      const card = takeFromRelicZone("achievements", entry.sourceOwner);
+      state.achievementRelics.get(entry.destOwner!)!.push(card);
+      return;
+    }
+    if (entry.source === "achievements" && entry.dest === "hand") {
+      const card = takeFromRelicZone("achievements", entry.sourceOwner);
+      state.hands.get(entry.destOwner!)!.push(card);
+      this.propagate(ageSetKey(card.age, card.cardSet));
+      return;
+    }
+    throw new Error(`Unexpected relic transfer: ${entry.source} -> ${entry.dest} for "${entry.cardName}"`);
   }
 
   // ------------------------------------------------------------------
@@ -93,16 +160,29 @@ export class GameEngine {
   // ------------------------------------------------------------------
 
   /** Set up initial game state: all cards in decks, achievements, initial deal. */
-  initGame(state: GameState, expansions?: { echoes: boolean }): void {
+  initGame(state: GameState, expansions?: { echoes: boolean; artifacts?: boolean; relics?: boolean }, initialRelics?: string[]): void {
     const echoesActive = expansions?.echoes ?? false;
+    const relicsActive = expansions?.relics ?? false;
 
-    // Create all cards in decks
+    // Create all cards in decks — excluding known relics (they start in the relics zone instead)
+    const relicNames = new Set((relicsActive ? initialRelics ?? [] : []).map(n => cardIndex(n)));
     for (const [groupKey, indexNames] of this.cardDb.groups()) {
+      const filtered = new Set([...indexNames].filter(n => !relicNames.has(n)));
       const deck: Card[] = [];
-      for (let i = 0; i < indexNames.size; i++) {
-        deck.push(this.createCard(groupKey, indexNames));
+      for (let i = 0; i < filtered.size; i++) {
+        deck.push(this.createCard(groupKey, filtered));
       }
       state.decks.set(groupKey, deck);
+    }
+
+    // Populate the relics zone — one resolved card per relic name.
+    for (const relicName of relicNames) {
+      const info = this.cardDb.get(relicName);
+      if (!info) throw new Error(`Relic "${relicName}" not found in card database`);
+      const groupKey = ageSetKey(info.age, info.cardSet);
+      const card = this.createCard(groupKey, new Set([relicName]));
+      card.opponentKnowledge = { kind: "exact", name: relicName };
+      state.relics.push(card);
     }
 
     // Move 1 card per base age 1-9 to achievements
@@ -199,18 +279,39 @@ export class GameEngine {
     }
   }
 
-  private static readonly TRACKED_ZONES: ReadonlySet<string> = new Set(["deck", "hand", "board", "score", "revealed", "forecast"]);
-  private static readonly SKIPPED_ZONES: ReadonlySet<string> = new Set(["achievements", "claimed", "fountains", "flags"]);
+  private static readonly TRACKED_ZONES: ReadonlySet<string> = new Set(["deck", "hand", "board", "score", "revealed", "forecast", "display", "relics"]);
+  private static readonly SKIPPED_ZONES: ReadonlySet<string> = new Set(["claimed", "fountains", "flags"]);
 
   /** Convert a TransferEntry to an Action and execute it. */
   private processTransfer(state: GameState, entry: TransferEntry): void {
     if (GameEngine.SKIPPED_ZONES.has(entry.source) || GameEngine.SKIPPED_ZONES.has(entry.dest)) return;
-    if (!GameEngine.TRACKED_ZONES.has(entry.source) || !GameEngine.TRACKED_ZONES.has(entry.dest)) {
-      throw new Error(`Unknown zone in transfer: source="${entry.source}", dest="${entry.dest}"`);
-    }
 
     const cardName = entry.cardName;
     const cardIdx = cardName ? cardIndex(cardName) : null;
+
+    // Transfers involving the relics zone always go through relic-tracking.
+    if (entry.source === "relics" || entry.dest === "relics") {
+      this.processRelicAchievementTransfer(state, entry);
+      return;
+    }
+
+    // Achievements are count-only for regular cards, but relics keep their identity
+    // there and can be seized back. Any achievements-side transfer of a non-relic card
+    // is either a regular claim (skip) or unexpected.
+    if (entry.source === "achievements" || entry.dest === "achievements") {
+      const info = cardIdx ? this.cardDb.get(cardIdx) : null;
+      const isRelic = info?.isRelic ?? false;
+      if (!isRelic) {
+        if (entry.dest === "achievements") return;  // regular claim: count-only, skip
+        throw new Error(`Unexpected transfer from achievements for non-relic card: "${cardName ?? '?'}" (${entry.source} -> ${entry.dest})`);
+      }
+      this.processRelicAchievementTransfer(state, entry);
+      return;
+    }
+
+    if (!GameEngine.TRACKED_ZONES.has(entry.source) || !GameEngine.TRACKED_ZONES.has(entry.dest)) {
+      throw new Error(`Unknown zone in transfer: source="${entry.source}", dest="${entry.dest}"`);
+    }
 
     if (cardIdx && !this.cardDb.has(cardIdx)) {
       throw new Error(`Card "${cardName}" (index "${cardIdx}") not found in card database`);
@@ -418,7 +519,7 @@ export class GameEngine {
 
   /** Update opponent knowledge flags after a move. */
   private updateOpponentKnowledge(state: GameState, card: Card, action: Action): void {
-    const isVisibleToBoth = action.dest === "board" || action.dest === "revealed"
+    const isVisibleToBoth = action.dest === "board" || action.dest === "revealed" || action.dest === "display" || action.dest === "relics"
       || (action.sourcePlayer !== null && action.destPlayer !== null && action.sourcePlayer !== action.destPlayer);
     if (isVisibleToBoth) {
       card.opponentKnowledge = { kind: "exact", name: card.resolvedName };
@@ -572,7 +673,10 @@ export class GameEngine {
     for (const cards of state.scores.values()) for (const card of cards) registerCard(card);
     for (const cards of state.revealed.values()) for (const card of cards) registerCard(card);
     for (const cards of state.forecast.values()) for (const card of cards) registerCard(card);
+    for (const cards of state.displays.values()) for (const card of cards) registerCard(card);
     for (const card of state.achievements) registerCard(card);
+    for (const card of state.relics) registerCard(card);
+    for (const cards of state.achievementRelics.values()) for (const card of cards) registerCard(card);
   }
 }
 

@@ -1,10 +1,11 @@
 // Innovation display options: section visibility with localStorage persistence.
 
-import { SECTION_IDS, SECTION_LABELS, ECHOES_ONLY_SECTIONS } from "./config.js";
+import { SECTION_IDS, SECTION_LABELS, ECHOES_ONLY_SECTIONS, RELICS_ONLY_SECTIONS } from "./config.js";
 import { loadSetting, saveSetting } from "../../sidepanel/settings.js";
 
 export interface InnovationDisplayContext {
   echoes: boolean;
+  relics: boolean;
   zoomLevel: number;
 }
 
@@ -50,8 +51,7 @@ export function buildInnovationDisplayMenu(panel: HTMLElement, context: Innovati
   }
 
   for (const id of SECTION_IDS) {
-    const isEchoesOnly = ECHOES_ONLY_SECTIONS.has(id);
-    const disabled = isEchoesOnly && !context.echoes;
+    const disabled = (ECHOES_ONLY_SECTIONS.has(id) && !context.echoes) || (RELICS_ONLY_SECTIONS.has(id) && !context.relics);
     const checked = !disabled && state[id] !== false;
     const label = document.createElement("label");
     const checkbox = document.createElement("input");

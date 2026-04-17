@@ -63,7 +63,7 @@ export function renderHelp(errorMessage?: string, gameName?: GameName): string {
     <div class="help-section-title">Toggles</div>
     <div class="help-sections-grid">
       <div class="help-grid-item"><span class="help-grid-label">Hide / Show</span> Collapse or expand a section</div>
-      <div class="help-grid-item"><span class="help-grid-label">Base / Cities</span> Switch between Base and Cities card sets (Deck and Cards sections)</div>
+      <div class="help-grid-item"><span class="help-grid-label">Base / Cities / Artifacts</span> Switch between Base, Echoes, Cities, and Artifacts card sets (Deck and Cards sections)</div>
       <div class="help-grid-item"><span class="help-grid-label">All / Unknown</span> Show all cards or only unaccounted ones (Cards section)</div>
       <div class="help-grid-item"><span class="help-grid-label">Wide / Tall</span> Display one row per age, or a columnar grid grouped by color</div>
     </div>

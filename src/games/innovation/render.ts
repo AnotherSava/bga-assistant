@@ -7,7 +7,7 @@ import type { TurnAction, ActionDetail } from "./turn_history.js";
 import { positionTooltip, applyToggleMode } from "../../render/toggle.js";
 import type { GameState } from "./game_state.js";
 import { GameEngine } from "./game_engine.js";
-import { type SectionId, type SectionConfig, type Toggle, DEFAULT_SECTION_CONFIG, SECTION_IDS, ECHOES_ONLY_SECTIONS, TALL_COLUMNS, visibilityToggle, layoutToggle, compositeToggle } from "./config.js";
+import { type SectionId, type SectionConfig, type Toggle, DEFAULT_SECTION_CONFIG, SECTION_IDS, ECHOES_ONLY_SECTIONS, RELICS_ONLY_SECTIONS, TALL_COLUMNS, visibilityToggle, layoutToggle, compositeToggle } from "./config.js";
 
 // ---------------------------------------------------------------------------
 // Asset URL resolution
@@ -55,7 +55,8 @@ function iconImg(iconName: string, color: string, spriteIndex: number): string {
     return `<img src="${resolveAssetUrl("assets/bga/innovation/icons/echo.svg")}" width="20" height="20" alt="${iconName}">`;
   }
   if (iconName === "left" || iconName === "right" || iconName === "up") {
-    return `<img src="${resolveAssetUrl(`assets/bga/innovation/icons/arrow_${color}.png`)}" width="20" height="20" alt="${iconName}">`;
+    const rotate = iconName === "right" ? ' style="transform:rotate(180deg)"' : iconName === "up" ? ' style="transform:rotate(90deg)"' : "";
+    return `<img src="${resolveAssetUrl(`assets/bga/innovation/icons/arrow_${color}.png`)}" width="20" height="20" alt="${iconName}"${rotate}>`;
   }
   if (iconName.startsWith("bonus-")) {
     const bonusNum = iconName.split("-")[1];
@@ -72,7 +73,7 @@ function renderKnownCard(info: CardInfo, markResolved: boolean): string {
   const color = colorLabel(info.color);
   const resolvedAttr = markResolved ? " data-known" : "";
 
-  if (info.cardSet === CardSet.BASE || info.cardSet === CardSet.ECHOES) {
+  if (info.cardSet === CardSet.BASE || info.cardSet === CardSet.ECHOES || info.cardSet === CardSet.ARTIFACTS || info.cardSet === CardSet.FIGURES) {
     const tip = useTextTooltips
       ? `<div class="card-tip-text">${escapeHtml(info.name)}</div>`
       : `<div class="card-tip"><img src="${resolveAssetUrl(`assets/bga/innovation/cards/card_${info.spriteIndex}.webp`)}"></div>`;
@@ -90,11 +91,14 @@ function renderKnownCard(info: CardInfo, markResolved: boolean): string {
     if (info.icons.length < 6) throw new Error(`City card "${info.name}" has ${info.icons.length} icons, expected 6`);
     const topIcons = [0, 5, 4].map(p => iconImg(info.icons[p], color, info.spriteIndex)).join("");
     const botIcons = [1, 2, 3].map(p => iconImg(info.icons[p], color, info.spriteIndex)).join("");
+    const cityTip = useTextTooltips || !info.isRelic
+      ? `<div class="card-tip-text">${escapeHtml(info.name)}</div>`
+      : `<div class="card-tip"><img src="${resolveAssetUrl(`assets/bga/innovation/cards/card_${info.spriteIndex}.webp`)}"></div>`;
     return `<div class="card card-cities b-${color}"${resolvedAttr}>`
       + `<div class="cc-top">${topIcons}</div>`
       + `<div class="cc-bot">${botIcons}</div>`
       + `<div class="card-age">${info.age}</div>`
-      + `<div class="card-tip-text">${escapeHtml(info.name)}</div>`
+      + cityTip
       + `</div>`;
   }
 
@@ -106,6 +110,7 @@ function renderUnknownCard(age: number | null, cardSet: CardSet): string {
   if (cardSet === CardSet.BASE) cls = "b-gray-base";
   else if (cardSet === CardSet.CITIES) cls = "b-gray-cities";
   else if (cardSet === CardSet.ECHOES) cls = "b-gray-echoes";
+  else if (cardSet === CardSet.ARTIFACTS) cls = "b-gray-artifacts";
   else cls = "b-gray";
 
   return `<div class="card card-base ${cls}"><div class="cb-tl"></div><div class="cb-name"></div><div class="cb-bl"></div><div class="cb-mid"></div><div class="card-age">${age ?? ""}</div></div>`;
@@ -334,7 +339,7 @@ export interface RenderOptions {
   /** Use text-only tooltips for all cards (no card face images). */
   textTooltips?: boolean;
   /** Active expansions — determines which sections are rendered (e.g. forecast requires echoes). */
-  expansions?: { echoes: boolean };
+  expansions?: { echoes: boolean; artifacts?: boolean; relics?: boolean };
 }
 
 /** Sort key for a card: (age, isUnknown, color, name). */
@@ -392,7 +397,10 @@ function collectResolvedNames(gameState: GameState): Set<string> {
   for (const cards of gameState.revealed.values()) addFrom(cards);
   for (const cards of gameState.forecast.values()) addFrom(cards);
   for (const cards of gameState.decks.values()) addFrom(cards);
+  for (const cards of gameState.displays.values()) addFrom(cards);
   addFrom(gameState.achievements);
+  addFrom(gameState.relics);
+  for (const cards of gameState.achievementRelics.values()) addFrom(cards);
   return resolved;
 }
 
@@ -432,7 +440,7 @@ function makeSection(sectionId: SectionId, title: string, rows: Row[], config: S
   };
 }
 
-function makeCompositeSection(sectionId: SectionId, title: string, baseRows: Row[], echoesRows: Row[], citiesRows: Row[], config: SectionConfig, options: { hasUnknown?: boolean; columnCount?: number; arrangeByColumns?: boolean }): SectionData {
+function makeCompositeSection(sectionId: SectionId, title: string, baseRows: Row[], echoesRows: Row[], citiesRows: Row[], artifactsRows: Row[], config: SectionConfig, options: { hasUnknown?: boolean; columnCount?: number; arrangeByColumns?: boolean }): SectionData {
   const toggle = compositeToggle(sectionId, config.defaultVisibility);
   const extraToggles: Toggle[] = [];
   if (options.hasUnknown) {
@@ -449,7 +457,7 @@ function makeCompositeSection(sectionId: SectionId, title: string, baseRows: Row
   if (options.columnCount && options.columnCount > 0 && config.defaultLayout) {
     extraToggles.push(layoutToggle(sectionId, config.defaultLayout));
   }
-  const allRows = [...baseRows, ...echoesRows, ...citiesRows];
+  const allRows = [...baseRows, ...echoesRows, ...citiesRows, ...artifactsRows];
   const empty = !allRows.some(row => row.cards.length > 0);
 
   return {
@@ -457,7 +465,12 @@ function makeCompositeSection(sectionId: SectionId, title: string, baseRows: Row
     title,
     toggle,
     extraToggles,
-    sets: [{ set: "base", rows: baseRows }, { set: "echoes", rows: echoesRows }, { set: "cities", rows: citiesRows }],
+    sets: [
+      { set: "base", rows: baseRows },
+      { set: "echoes", rows: echoesRows },
+      { set: "cities", rows: citiesRows },
+      { set: "artifacts", rows: artifactsRows },
+    ],
     columnCount: options.columnCount ?? 0,
     arrangeByColumns: options.arrangeByColumns ?? true,
     empty,
@@ -471,6 +484,7 @@ export function renderSummary(gameState: GameState, engine: GameEngine, cardDb: 
   try {
     const config = options?.sectionConfig ?? DEFAULT_SECTION_CONFIG;
     const hasEchoes = options?.expansions?.echoes ?? false;
+    const hasRelics = options?.expansions?.relics ?? false;
     const opponent = players.find(p => p !== perspective);
     if (!opponent) throw new Error(`No opponent found: perspective="${perspective}", players=[${players.join(", ")}]`);
 
@@ -486,13 +500,32 @@ export function renderSummary(gameState: GameState, engine: GameEngine, cardDb: 
       "forecast-opponent": () => makeSection("forecast-opponent", "Forecast &mdash; opponent", [prepareCards(gameState.forecast.get(opponent) ?? [], cardDb, "", true, false)], config["forecast-opponent"], {}),
       "forecast-me": () => makeSection("forecast-me", "Forecast &mdash; me", prepareMyCards(gameState.forecast.get(perspective) ?? [], engine, cardDb), config["forecast-me"], {}),
       "achievements": () => makeSection("achievements", "Achievements", [achievements], config["achievements"], { columnCount: TALL_COLUMNS, arrangeByColumns: false }),
-      "deck": () => makeCompositeSection("deck", "Deck", prepareDeck(gameState, CardSet.BASE, cardDb), prepareDeck(gameState, CardSet.ECHOES, cardDb), prepareDeck(gameState, CardSet.CITIES, cardDb), config["deck"], {}),
-      "cards": () => { const resolved = collectResolvedNames(gameState); return makeCompositeSection("cards", "Cards", prepareAllCards(gameState, CardSet.BASE, cardDb, resolved), prepareAllCards(gameState, CardSet.ECHOES, cardDb, resolved), prepareAllCards(gameState, CardSet.CITIES, cardDb, resolved), config["cards"], { hasUnknown: true, columnCount: TALL_COLUMNS }); },
+      "relics": () => {
+        const allRelics = [...gameState.relics];
+        for (const cards of gameState.achievementRelics.values()) allRelics.push(...cards);
+        return makeSection("relics", "Relics", [prepareCards(allRelics, cardDb, "", true, false)], config["relics"], {});
+      },
+      "deck": () => makeCompositeSection("deck", "Deck",
+        prepareDeck(gameState, CardSet.BASE, cardDb),
+        prepareDeck(gameState, CardSet.ECHOES, cardDb),
+        prepareDeck(gameState, CardSet.CITIES, cardDb),
+        prepareDeck(gameState, CardSet.ARTIFACTS, cardDb),
+        config["deck"], {}),
+      "cards": () => {
+        const resolved = collectResolvedNames(gameState);
+        return makeCompositeSection("cards", "Cards",
+          prepareAllCards(gameState, CardSet.BASE, cardDb, resolved),
+          prepareAllCards(gameState, CardSet.ECHOES, cardDb, resolved),
+          prepareAllCards(gameState, CardSet.CITIES, cardDb, resolved),
+          prepareAllCards(gameState, CardSet.ARTIFACTS, cardDb, resolved),
+          config["cards"], { hasUnknown: true, columnCount: TALL_COLUMNS });
+      },
     };
 
     let html = "";
     for (const id of SECTION_IDS) {
       if (ECHOES_ONLY_SECTIONS.has(id) && !hasEchoes) continue;
+      if (RELICS_ONLY_SECTIONS.has(id) && !hasRelics) continue;
       html += renderSection(sectionBuilders[id]());
     }
     return html;

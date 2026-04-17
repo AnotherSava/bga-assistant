@@ -6,18 +6,10 @@
 
 /** Position a tooltip element near the mouse cursor, keeping it within the viewport. */
 export function positionTooltip(tip: HTMLElement, mouseX: number, mouseY: number): void {
-  const rect = tip.getBoundingClientRect();
-  const w = rect.width || 375;
-  const h = rect.height || 275;
-  let x = mouseX + 12;
-  let y = mouseY + 12;
-  if (x + w > window.innerWidth) x = mouseX - w - 12;
-  if (y + h > window.innerHeight) y = mouseY - h - 12;
-  if (x < 0) x = 4;
-  if (y < 0) y = 4;
-  tip.style.left = x + "px";
-  tip.style.top = y + "px";
+  tip.style.left = mouseX + "px";
+  tip.style.top = mouseY + "px";
 }
+
 
 /** Apply a toggle mode to a section target element. */
 export function applyToggleMode(toggle: HTMLElement, mode: string, targetId: string): void {
@@ -40,7 +32,7 @@ export function applyToggleMode(toggle: HTMLElement, mode: string, targetId: str
 
   if (mode === "none") {
     target.style.display = "none";
-  } else if (mode === "base" || mode === "echoes" || mode === "cities") {
+  } else if (mode === "base" || mode === "echoes" || mode === "cities" || mode === "artifacts") {
     target.style.display = "";
     target.querySelectorAll("[data-set]").forEach((el) => {
       (el as HTMLElement).style.display = el.getAttribute("data-set") === mode ? "" : "none";

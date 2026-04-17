@@ -6,7 +6,7 @@ Turn-based games on BGA can stretch across days or weeks — by the time it's yo
 
 ![BGA Assistant](docs/screenshots/cover.png)
 
-**[Innovation](https://anothersava.github.io/bga-assistant/pages/innovation)** — Reads the full game log from Innovation 2-player tables and reconstructs the game state — hand contents and score piles according to revealed cards, and deck stack order with returned cards — displayed as a visual summary in a side panel. Supports the base game and the Echoes of the Past and Cities of Destiny expansions.
+**[Innovation](https://anothersava.github.io/bga-assistant/pages/innovation)** — Reads the full game log from Innovation 2-player tables and reconstructs the game state — hand contents and score piles according to revealed cards, and deck stack order with returned cards — displayed as a visual summary in a side panel. Supports the base game and the Echoes of the Past, Cities of Destiny, and Artifacts of History expansions (including the Relics variant).
 
 **[Azul](https://anothersava.github.io/bga-assistant/pages/azul)** — Tracks the tile bag and discard pile (box lid) for Azul tables with any player count. Particularly helpful in 2-player games where the full bag is depleted in exactly 5 rounds. Displays remaining tile counts per color in a compact table so you always know what's left to draw.
 

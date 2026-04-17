@@ -28,7 +28,7 @@ let currentResults: PipelineResults | null = null;
 let currentCss: string | null = null;
 let cachedCardDb: CardDatabase | null = null;
 let disconnectTimer: number | undefined;
-let currentExpansions: { echoes: boolean } = { echoes: false };
+let currentExpansions: { echoes: boolean; relics: boolean } = { echoes: false, relics: false };
 
 const KEY_PIN_MODE = "bgaa_pin_mode";
 const PIN_MODE_DEFAULT: PinMode = "pinned";
@@ -338,7 +338,7 @@ function renderWithDb(cardDb: CardDatabase, results: InnovationResults, contentE
     turnHistoryEl.innerHTML = renderTurnHistory(recent, cardDb, perspective);
   }
 
-  applyInnovationDisplayOptions({ echoes: currentExpansions.echoes, zoomLevel });
+  applyInnovationDisplayOptions({ echoes: currentExpansions.echoes, relics: currentExpansions.relics ?? false, zoomLevel });
 
   // Cache CSS for downloads
   loadCss();
@@ -422,7 +422,7 @@ function applyZoom(): void {
     zoomFadeTimeout = setTimeout(() => indicator.classList.remove("visible"), 1200);
   }
   if (currentResults?.gameName === "innovation") {
-    applyInnovationDisplayOptions({ echoes: currentExpansions.echoes, zoomLevel });
+    applyInnovationDisplayOptions({ echoes: currentExpansions.echoes, relics: currentExpansions.relics ?? false, zoomLevel });
   }
 }
 
@@ -465,7 +465,7 @@ document.getElementById("btn-sections")?.addEventListener("click", (e) => {
     if (currentResults?.gameName === "azul") {
       buildAzulDisplayMenu(panel);
     } else if (currentResults?.gameName === "innovation") {
-      buildInnovationDisplayMenu(panel, { echoes: currentExpansions.echoes, zoomLevel });
+      buildInnovationDisplayMenu(panel, { echoes: currentExpansions.echoes, relics: currentExpansions.relics ?? false, zoomLevel });
     } else {
       return;
     }

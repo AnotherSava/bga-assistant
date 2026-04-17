@@ -20,13 +20,10 @@ export const ICON_MAP: Record<string, string> = {
 /** BGA set type id -> lowercase set label. */
 export const SET_MAP: Record<string, string> = {
   "0": "base",
+  "1": "artifacts",
   "2": "cities",
   "3": "echoes",
-};
-
-/** Known BGA expansion type ids not yet supported -> display names. */
-const UNSUPPORTED_EXPANSION_NAMES: Record<string, string> = {
-  "1": "Figures",
+  "4": "figures",
 };
 
 /** Structured game log output from processRawLog. */
@@ -37,7 +34,10 @@ export interface GameLog {
   myHand: string[];
   log: GameLogEntry[];
   actions: TurnAction[];
-  expansions: { echoes: boolean };
+  expansions: { echoes: boolean; artifacts: boolean; relics: boolean };
+  /** Names (as cardIndex) of cards flagged is_relic in gamedata.cards at game start.
+   *  Drives deck-init adjustment: relic cards start in the relics zone, not in their deck. */
+  initialRelics: string[];
 }
 
 // ---------------------------------------------------------------------------
@@ -121,7 +121,9 @@ interface PendingAction {
 
 /** Try to classify a pending action from a transfer entry. Returns null if the transfer is not an action. */
 function classifyTransfer(entry: TransferEntry): ActionDetail | null {
-  if (entry.source === "achievements" && entry.dest === "achievements") {
+  // Regular achievement claim: anonymous card movement within the achievements pool.
+  // Relic seizes involving achievements always name the card — those fall through.
+  if (entry.source === "achievements" && entry.dest === "achievements" && entry.cardName === null) {
     return { actionType: "achieve", cardName: null, cardAge: entry.cardAge, cardSet: null };
   }
   if (entry.meldKeyword && entry.source === "hand" && entry.dest === "board") {
@@ -129,6 +131,9 @@ function classifyTransfer(entry: TransferEntry): ActionDetail | null {
   }
   if (entry.source === "deck") {
     return { actionType: "draw", cardName: entry.cardName, cardAge: entry.cardAge, cardSet: entry.cardSet };
+  }
+  if (entry.source === "relics") {
+    return { actionType: "seize", cardName: entry.cardName, cardAge: entry.cardAge, cardSet: entry.cardSet };
   }
   return null;
 }
@@ -175,6 +180,17 @@ export function processRawLog(rawData: RawExtractionData): GameLog {
     myHand.push(normalizeName(info.name));
   }
 
+  // Scan gamedatas.cards for relic cards (public knowledge — placed in the
+  // "relics" zone at game start when the with-relics variant is active).
+  const initialRelics: string[] = [];
+  let hasRelicsZone = false;
+  for (const info of Object.values(gdCards)) {
+    if (info && String(info.is_relic) === "1" && typeof info.name === "string") {
+      hasRelicsZone = true;
+      initialRelics.push(normalizeName(info.name));
+    }
+  }
+
   // Pass 1: collect player-view transferedCard args, grouped by move_id.
   // Accumulate across all packets sharing the same move_id.
   const playerTransfersByMove = new Map<number, Record<string, unknown>[]>();
@@ -201,6 +217,7 @@ export function processRawLog(rawData: RawExtractionData): GameLog {
   // entries arrive, so we classify the action from the first relevant entry
   // after the marker, then push the completed TurnAction.
   let hasEchoesTransfer = false;
+  let hasArtifactsTransfer = false;
   const actions: TurnAction[] = [];
   let pendingAction: PendingAction | null = null;
   let lastPending: { player: string; actionNumber: number; move: number } | null = null;
@@ -235,6 +252,7 @@ export function processRawLog(rawData: RawExtractionData): GameLog {
         }
 
         if (cardSet === "echoes") hasEchoesTransfer = true;
+        if (cardSet === "artifacts") hasArtifactsTransfer = true;
 
         const dest = String(playerArgs.location_to);
         const bto = playerArgs.bottom_to;
@@ -327,5 +345,14 @@ export function processRawLog(rawData: RawExtractionData): GameLog {
     actions.push({ player: pendingAction.player, actionNumber: pendingAction.actionNumber, time: pendingAction.time, logIndex: pendingAction.logIndex, actions: [{ actionType: "pending", cardName: null, cardAge: null, cardSet: null }] });
   }
 
-  return { gameName: "innovation", players: playerNames, currentPlayerId: rawData.currentPlayerId ?? "", myHand, log, actions, expansions: { echoes: hasEchoesTransfer } };
+  return {
+    gameName: "innovation",
+    players: playerNames,
+    currentPlayerId: rawData.currentPlayerId ?? "",
+    myHand,
+    log,
+    actions,
+    expansions: { echoes: hasEchoesTransfer, artifacts: hasArtifactsTransfer, relics: hasRelicsZone },
+    initialRelics,
+  };
 }
