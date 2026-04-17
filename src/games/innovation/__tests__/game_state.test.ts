@@ -1764,4 +1764,26 @@ describe("relic seizes", () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     expect(() => (engine as any).processTransfer(state, entry)).not.toThrow();
   });
+
+  it("returns a relic from hand back to the relics zone", () => {
+    const { state, engine, relics } = setup();
+    const relicName = relics[0];
+    seizeRelicToHand(engine, state, relicName, "Alice");
+    expect(state.hands.get("Alice")!.some(c => c.resolvedName === relicName)).toBe(true);
+
+    const info = cardDb.get(relicName)!;
+    const setLabel = info.cardSet === CardSet.BASE ? "base" : info.cardSet === CardSet.CITIES ? "cities" : info.cardSet === CardSet.ECHOES ? "echoes" : "artifacts";
+    const entry: TransferEntry = {
+      type: "transfer", move: 2, cardSet: setLabel,
+      source: "hand", dest: "relics",
+      cardName: relicName, cardAge: info.age,
+      sourceOwner: "Alice", destOwner: null,
+      meldKeyword: false, topOfDeck: false,
+    };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (engine as any).processTransfer(state, entry);
+
+    expect(state.hands.get("Alice")!.some(c => c.resolvedName === relicName)).toBe(false);
+    expect(state.relics.some(c => c.resolvedName === relicName)).toBe(true);
+  });
 });

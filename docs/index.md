@@ -21,7 +21,7 @@ Click a game heading for the full feature list and screenshots.
 
 ### [Innovation](pages/innovation)
 
-Reads the full game log from Innovation 2-player tables and reconstructs the game state — hand contents and score piles according to revealed cards, and deck stack order with returned cards — displayed as a visual summary in a side panel. Supports the base game and the Echoes of the Past and Cities of Destiny expansions.
+Reads the full game log from Innovation 2-player tables and reconstructs the game state — hand contents and score piles according to revealed cards, and deck stack order with returned cards — displayed as a visual summary in a side panel. Supports the base game and the Echoes of the Past, Cities of Destiny, and Artifacts of History expansions (including the Relics variant).
 
 ![Innovation hand and forecast tracking](screenshots/innovation-hand.png)
 

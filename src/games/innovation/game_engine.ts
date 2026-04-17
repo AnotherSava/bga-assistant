@@ -98,27 +98,44 @@ export class GameEngine {
   // ------------------------------------------------------------------
 
   /** Handle a transfer involving the relics zone or relic cards in achievements.
-   *  Legal patterns: relics→achievements, relics→hand, achievements→hand,
-   *  achievements→achievements, achievements→relics. */
+   *  Covers relics→hand, relics→achievements, *→relics (return from any zone),
+   *  achievements→hand, achievements→achievements. */
   private processRelicAchievementTransfer(state: GameState, entry: TransferEntry): void {
     const cardIdx = entry.cardName ? cardIndex(entry.cardName) : null;
 
-    const takeFromRelicZone = (zone: "relics" | "achievements", player: string | null): Card => {
-      const list = zone === "relics" ? state.relics : state.achievementRelics.get(player!)!;
+    const takeFromRelicList = (list: Card[]): Card => {
       let idx: number;
       if (cardIdx) {
         idx = list.findIndex(c => c.isResolved && c.resolvedName === cardIdx);
       } else {
-        const setLabel = entry.cardSet;
-        const targetSet = cardSetFromLabel(setLabel);
+        const targetSet = cardSetFromLabel(entry.cardSet);
         idx = list.findIndex(c => c.age === entry.cardAge && c.cardSet === targetSet);
       }
-      if (idx === -1) throw new Error(`Relic "${cardIdx ?? `age ${entry.cardAge}`}" not found in ${zone}${player ? ` for ${player}` : ""}`);
+      if (idx === -1) throw new Error(`Relic "${cardIdx ?? `age ${entry.cardAge}`}" not found`);
       return list.splice(idx, 1)[0];
     };
 
-    if (entry.source === "relics" && (entry.dest === "achievements" || entry.dest === "hand")) {
-      const card = takeFromRelicZone("relics", null);
+    // *→relics: return a relic to the Available Relics pool from any zone
+    if (entry.dest === "relics") {
+      let card: Card;
+      if (entry.source === "relics") {
+        card = takeFromRelicList(state.relics);
+      } else if (entry.source === "achievements") {
+        card = takeFromRelicList(state.achievementRelics.get(entry.sourceOwner!)!);
+      } else {
+        const sourceZone = entry.source as Zone;
+        const sourceCards = cardsAt(state, sourceZone, entry.sourceOwner);
+        const idx = cardIdx ? sourceCards.findIndex(c => c.isResolved && c.resolvedName === cardIdx) : sourceCards.findIndex(c => c.age === entry.cardAge && c.cardSet === cardSetFromLabel(entry.cardSet));
+        if (idx === -1) throw new Error(`Relic "${cardIdx ?? `age ${entry.cardAge}`}" not found in ${entry.source}`);
+        card = sourceCards.splice(idx, 1)[0];
+      }
+      state.relics.push(card);
+      return;
+    }
+
+    // relics→hand or relics→achievements
+    if (entry.source === "relics") {
+      const card = takeFromRelicList(state.relics);
       if (entry.dest === "achievements") {
         state.achievementRelics.get(entry.destOwner!)!.push(card);
       } else {
@@ -127,22 +144,19 @@ export class GameEngine {
       }
       return;
     }
-    if (entry.source === "achievements" && entry.dest === "relics") {
-      const card = takeFromRelicZone("achievements", entry.sourceOwner);
-      state.relics.push(card);
+
+    // achievements→achievements or achievements→hand
+    if (entry.source === "achievements") {
+      const card = takeFromRelicList(state.achievementRelics.get(entry.sourceOwner!)!);
+      if (entry.dest === "achievements") {
+        state.achievementRelics.get(entry.destOwner!)!.push(card);
+      } else {
+        state.hands.get(entry.destOwner!)!.push(card);
+        this.propagate(ageSetKey(card.age, card.cardSet));
+      }
       return;
     }
-    if (entry.source === "achievements" && entry.dest === "achievements") {
-      const card = takeFromRelicZone("achievements", entry.sourceOwner);
-      state.achievementRelics.get(entry.destOwner!)!.push(card);
-      return;
-    }
-    if (entry.source === "achievements" && entry.dest === "hand") {
-      const card = takeFromRelicZone("achievements", entry.sourceOwner);
-      state.hands.get(entry.destOwner!)!.push(card);
-      this.propagate(ageSetKey(card.age, card.cardSet));
-      return;
-    }
+
     throw new Error(`Unexpected relic transfer: ${entry.source} -> ${entry.dest} for "${entry.cardName}"`);
   }
 

@@ -501,8 +501,17 @@ export function renderSummary(gameState: GameState, engine: GameEngine, cardDb: 
       "forecast-me": () => makeSection("forecast-me", "Forecast &mdash; me", prepareMyCards(gameState.forecast.get(perspective) ?? [], engine, cardDb), config["forecast-me"], {}),
       "achievements": () => makeSection("achievements", "Achievements", [achievements], config["achievements"], { columnCount: TALL_COLUMNS, arrangeByColumns: false }),
       "relics": () => {
-        const allRelics = [...gameState.relics];
+        const relicNames = new Set<string>();
+        for (const info of cardDb.values()) { if (info.isRelic) relicNames.add(info.indexName); }
+        const allRelics: Card[] = [];
+        const scanZone = (cards: Card[]) => { for (const c of cards) { if (c.isResolved && relicNames.has(c.resolvedName!)) allRelics.push(c); } };
+        for (const c of gameState.relics) allRelics.push(c);
         for (const cards of gameState.achievementRelics.values()) allRelics.push(...cards);
+        for (const cards of gameState.hands.values()) scanZone(cards);
+        for (const cards of gameState.boards.values()) scanZone(cards);
+        for (const cards of gameState.scores.values()) scanZone(cards);
+        for (const cards of gameState.displays.values()) scanZone(cards);
+        allRelics.sort((a, b) => a.age - b.age);
         return makeSection("relics", "Relics", [prepareCards(allRelics, cardDb, "", true, false)], config["relics"], {});
       },
       "deck": () => makeCompositeSection("deck", "Deck",
