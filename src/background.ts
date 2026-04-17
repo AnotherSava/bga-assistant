@@ -659,7 +659,7 @@ async function handleNavigation(initialTabId: number, source: ExtractionSource =
 
       await resolveContent(tabId, tab.url ?? "", source);
     } catch (err) {
-      console.error("Navigation error:", err);
+      console.warn("Navigation error:", err);
       lastResults = null;
       stopLiveTracking("navigation: error");
       chrome.runtime.sendMessage({ type: "notAGame" }).catch(() => {});
