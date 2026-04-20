@@ -17,6 +17,7 @@ import {
   parseAgeSetKey,
 } from "./types.js";
 import { type GameState, createGameState, cardsAt } from "./game_state.js";
+import { normalizeName } from "./process_log.js";
 
 const REGULAR_ICONS = new Set(["crown", "leaf", "lightbulb", "castle", "factory", "clock"]);
 
@@ -281,7 +282,7 @@ export class GameEngine {
       const me = entry as MessageEntry;
       const match = me.msg.match(new RegExp(`^(${this._playerPattern}) reveals (?:his|her|their) hand: (.+)\\.$`));
       if (match) {
-        const cardNames = match[2].split(", ").map(part => cardIndex(part.substring(part.indexOf(" ") + 1)));
+        const cardNames = match[2].split(", ").map(part => cardIndex(normalizeName(part.substring(part.indexOf(" ") + 1))));
         this.revealHand(state, match[1], cardNames);
       }
     } else if (entry.type === "log") {

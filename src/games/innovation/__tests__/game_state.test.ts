@@ -1022,6 +1022,27 @@ describe("processLog", () => {
     expect(clothing!.opponentKnowledge.kind).toBe("exact");
   });
 
+  it("normalizes non-breaking hyphen in revealed-hand card names (bgaa_839288882)", () => {
+    // BGA renders "Newton-Wickins Telescope" with a non-breaking hyphen (U+2011) in
+    // logWithCardTooltips messages, while card_info.json has a regular hyphen (U+002D).
+    // The revealHand log parser must normalize before looking up the card.
+    const { state, engine } = createGS();
+    engine.initGame(state, { echoes: false, artifacts: true, relics: true }, ["Newton-Wickins Telescope"]);
+
+    const log: GameLogEntry[] = [
+      { type: "transfer", move: 1, cardSet: "artifacts", source: "relics", dest: "hand", cardName: "Newton-Wickins Telescope", cardAge: 5, sourceOwner: null, destOwner: "Bob", meldKeyword: false, topOfDeck: false },
+      { type: "logWithCardTooltips", move: 2, msg: "Bob reveals his hand: [5] Newton\u2011Wickins Telescope." },
+    ];
+    const myHand = ["Agriculture", "Archery"];
+
+    expect(() => engine.processLog(state, log, myHand)).not.toThrow();
+
+    const bobHand = state.hands.get("Bob")!;
+    const card = bobHand.find(c => c.resolvedName === "newton-wickins telescope");
+    expect(card).toBeDefined();
+    expect(card!.opponentKnowledge.kind).toBe("exact");
+  });
+
   it("processes meld filter messages", () => {
     const { state, engine } = createInitializedGS();
 
