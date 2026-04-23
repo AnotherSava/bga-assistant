@@ -34,6 +34,16 @@ function spectatorLog(msg: string) {
   return { type: "logWithCardTooltips_spectator", args: { log: msg } };
 }
 
+/** Spectator-channel plain-text log notification. */
+function spectatorLogPlain(msg: string) {
+  return { type: "log_spectator", args: { log: msg } };
+}
+
+/** gameStateChange with id:15 — marks start of an artifact-decision turn. */
+function stateChange15(playerId: string) {
+  return { type: "gameStateChange", args: { id: 15, active_player: playerId } };
+}
+
 const PLAYERS = { "100": "Alice", "200": "Bob" };
 
 function extractActions(packets: any[]): TurnAction[] {
@@ -134,6 +144,78 @@ describe("action classification", () => {
     expect(actions[3]).toMatchObject({ player: "Bob", actionNumber: 2, actions: [{ actionType: "meld", cardName: "Tools" }] });
   });
 
+  it("classifies artifact_pass as actionNumber:0 with name from display tracking", () => {
+    const actions = extractActions([
+      // Setup: Alice draws her Artifact onto display at move 5 (no stateChange markers)
+      makePackets(5,
+        [playerTransfer({ name: "Holmegaard Bows", age: 1, location_from: "deck", location_to: "display", owner_from: "0", owner_to: "100", type: "1" })],
+        [spectatorTransfer("1")]),
+      // id:15 opens the artifact window for Alice (standalone move)
+      makePackets(9, [stateChange15("100")], [stateChange15("100")]),
+      // Pass message arrives
+      makePackets(10, [], [spectatorLogPlain("Alice chooses not to return or dogma her Artifact on display.")]),
+      // Alice's regular first action: meld
+      makePackets(11,
+        [stateChange("100", 1), playerTransfer({ name: "Agriculture", age: 1, location_from: "hand", location_to: "board", meld_keyword: true })],
+        [{ type: "log_spectator", args: { log: "<!--empty-->" } }, stateChange("100", 1), spectatorTransfer(), stateChange("200", 1)]),
+    ]);
+    expect(actions[0]).toMatchObject({ player: "Alice", actionNumber: 0, actions: [{ actionType: "artifact_pass", cardName: "Holmegaard Bows", cardAge: 1, cardSet: "artifacts" }] });
+    expect(actions[1]).toMatchObject({ player: "Alice", actionNumber: 1, actions: [{ actionType: "meld", cardName: "Agriculture" }] });
+  });
+
+  it("classifies artifact_return as actionNumber:0 with name from transfer", () => {
+    const actions = extractActions([
+      // Alice draws Tools onto display
+      makePackets(5,
+        [playerTransfer({ name: "Tools", age: 1, location_from: "deck", location_to: "display", owner_from: "0", owner_to: "100", type: "1" })],
+        [spectatorTransfer("1")]),
+      // id:15 opens the window
+      makePackets(9, [stateChange15("100")], [stateChange15("100")]),
+      // Return transfer
+      makePackets(10,
+        [playerTransfer({ name: "Tools", age: 1, location_from: "display", location_to: "deck", owner_from: "100", owner_to: "0", type: "1" })],
+        [spectatorTransfer("1")]),
+      // Alice's regular first action
+      makePackets(11,
+        [stateChange("100", 1), playerTransfer({ name: "Agriculture", age: 1, location_from: "hand", location_to: "board", meld_keyword: true })],
+        [{ type: "log_spectator", args: { log: "<!--empty-->" } }, stateChange("100", 1), spectatorTransfer(), stateChange("200", 1)]),
+    ]);
+    expect(actions[0]).toMatchObject({ player: "Alice", actionNumber: 0, actions: [{ actionType: "artifact_return", cardName: "Tools", cardAge: 1, cardSet: "artifacts" }] });
+    expect(actions[1]).toMatchObject({ player: "Alice", actionNumber: 1, actions: [{ actionType: "meld", cardName: "Agriculture" }] });
+  });
+
+  it("classifies artifact_dogma (FAD) as actionNumber:0 preceding regular actions", () => {
+    const actions = extractActions([
+      // Alice draws Holmegaard Bows onto display
+      makePackets(5,
+        [playerTransfer({ name: "Holmegaard Bows", age: 1, location_from: "deck", location_to: "display", owner_from: "0", owner_to: "100", type: "1" })],
+        [spectatorTransfer("1")]),
+      // id:15 opens the window
+      makePackets(9, [stateChange15("100")], [stateChange15("100")]),
+      // FAD dogma message, followed by the auto-return transfer
+      makePackets(10,
+        [playerTransfer({ name: "Holmegaard Bows", age: 1, location_from: "display", location_to: "deck", owner_from: "100", owner_to: "0", type: "1" })],
+        [spectatorLog("Alice activates the dogma of 1 Holmegaard Bows with [leaf] as the featured icon."), spectatorTransfer("1")]),
+      // Alice's regular first action
+      makePackets(11,
+        [stateChange("100", 1), playerTransfer({ name: "Agriculture", age: 1, location_from: "hand", location_to: "board", meld_keyword: true })],
+        [{ type: "log_spectator", args: { log: "<!--empty-->" } }, stateChange("100", 1), spectatorTransfer(), stateChange("200", 1)]),
+    ]);
+    expect(actions[0]).toMatchObject({ player: "Alice", actionNumber: 0, actions: [{ actionType: "artifact_dogma", cardName: "Holmegaard Bows", cardAge: 1, cardSet: "artifacts" }] });
+    // The auto-return transfer is NOT re-classified as artifact_return
+    expect(actions.filter((a) => a.actions[0].actionType === "artifact_return")).toHaveLength(0);
+    // The regular first action (meld) still classifies
+    expect(actions[1]).toMatchObject({ player: "Alice", actionNumber: 1, actions: [{ actionType: "meld", cardName: "Agriculture" }] });
+  });
+
+  it("emits no artifact step when id:15 does not fire", () => {
+    const actions = extractActions([
+      makePackets(10, [stateChange("100", 1)], [{ type: "log_spectator", args: { log: "<!--empty-->" } }, stateChange("100", 1)]),
+      makePackets(11, [playerTransfer({ name: "Agriculture", age: 1, location_from: "hand", location_to: "board", meld_keyword: true })], [spectatorTransfer(), stateChange("200", 1)]),
+    ]);
+    expect(actions.filter((a) => a.actionNumber === 0)).toHaveLength(0);
+  });
+
   it("deduplicates gameStateChange across player and spectator channels", () => {
     const actions = extractActions([
       // Player channel has gameStateChange, spectator channel also has it
@@ -213,6 +295,20 @@ describe("recentTurns", () => {
   it("handles count larger than available half-turns", () => {
     const result = recentTurns(sampleActions, 10);
     expect(result).toHaveLength(6); // all actions
+  });
+
+  it("groups an artifact step (actionNumber:0) with the following regular actions of the same player", () => {
+    const actions: TurnAction[] = [
+      { player: "Bob", actionNumber: 2, time: null, logIndex: 0, actions: [{ actionType: "draw", cardName: null, cardAge: 2, cardSet: "base" }] },
+      { player: "Alice", actionNumber: 0, time: null, logIndex: 1, actions: [{ actionType: "artifact_pass", cardName: "Tools", cardAge: 1, cardSet: "artifacts" }] },
+      { player: "Alice", actionNumber: 1, time: null, logIndex: 2, actions: [{ actionType: "meld", cardName: "Agriculture", cardAge: 1, cardSet: "base" }] },
+      { player: "Alice", actionNumber: 2, time: null, logIndex: 3, actions: [{ actionType: "dogma", cardName: "Philosophy", cardAge: null, cardSet: null }] },
+    ];
+    const result = recentTurns(actions, 1);
+    expect(result).toHaveLength(3);
+    expect(result[0]).toMatchObject({ player: "Alice", actionNumber: 0, actions: [{ actionType: "artifact_pass" }] });
+    expect(result[1]).toMatchObject({ player: "Alice", actionNumber: 1, actions: [{ actionType: "meld" }] });
+    expect(result[2]).toMatchObject({ player: "Alice", actionNumber: 2, actions: [{ actionType: "dogma" }] });
   });
 
   it("first turn (single action) is one half-turn", () => {

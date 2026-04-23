@@ -4,7 +4,7 @@
 // Types
 // ---------------------------------------------------------------------------
 
-export type ActionType = "meld" | "draw" | "dogma" | "endorse" | "achieve" | "promote" | "pending" | "seize";
+export type ActionType = "meld" | "draw" | "dogma" | "endorse" | "achieve" | "promote" | "pending" | "seize" | "artifact_dogma" | "artifact_return" | "artifact_pass";
 
 export interface ActionDetail {
   actionType: ActionType;

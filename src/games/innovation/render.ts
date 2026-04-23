@@ -287,6 +287,11 @@ function formatActionDetail(detail: ActionDetail, cardDb: CardDatabase): string 
     const setLabel = detail.cardSet && detail.cardSet !== "base" ? ` ${detail.cardSet}` : "";
     return `draw [${detail.cardAge}]${setLabel}`;
   }
+  if (detail.actionType === "artifact_pass" || detail.actionType === "artifact_return" || detail.actionType === "artifact_dogma") {
+    const verb = detail.actionType === "artifact_pass" ? "pass" : detail.actionType === "artifact_return" ? "return" : "dogma";
+    const card = detail.cardName ? `${cardTooltipSpan(detail.cardName, cardDb)} ` : "";
+    return `${verb} ${card}artifact`;
+  }
   const verb = detail.actionType;
   if (detail.cardName) return `${verb} ${cardTooltipSpan(detail.cardName, cardDb)}`;
   return verb;
@@ -314,11 +319,12 @@ export function renderTurnHistory(actions: TurnAction[], cardDb: CardDatabase, p
     const isMe = action.player === perspective;
     const label = isMe ? "you" : "opp";
     const playerCls = isMe ? " th-me" : " th-opp";
+    const artifactCls = action.actionNumber === 0 ? " th-artifact" : "";
     const timeStr = formatTime(action.time);
     const timePrefix = timeStr ? `<span class="th-time">${timeStr}</span> ` : "";
     const detail = formatActionDetail(action.actions[0], cardDb);
     const suffix = detail ? ` ${detail}` : "";
-    html += `<div class="turn-action${playerCls}">${timePrefix}${label}:${suffix}</div>`;
+    html += `<div class="turn-action${playerCls}${artifactCls}">${timePrefix}${label}:${suffix}</div>`;
 
     // Render sub-actions (promote, dogma after promote, etc.)
     for (let i = 1; i < action.actions.length; i++) {

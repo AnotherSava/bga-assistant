@@ -119,6 +119,18 @@ interface PendingAction {
   logIndex: number;
 }
 
+interface DisplayCard {
+  cardName: string | null;
+  cardAge: number | null;
+  cardSet: string;
+}
+
+interface ArtifactWindow {
+  player: string;
+  time: number | null;
+  logIndex: number;
+}
+
 /** Try to classify a pending action from a transfer entry. Returns null if the transfer is not an action. */
 function classifyTransfer(entry: TransferEntry): ActionDetail | null {
   // Regular achievement claim: anonymous card movement within the achievements pool.
@@ -138,17 +150,30 @@ function classifyTransfer(entry: TransferEntry): ActionDetail | null {
   return null;
 }
 
+/** Match the BGA dogma log line, extracting (age, cardName). Null if not a dogma message. */
+function matchDogma(msg: string): { cardAge: number; cardName: string } | null {
+  const m = msg.match(/activates the dogma of (\d+) (.+?) with/);
+  if (!m) return null;
+  return { cardAge: Number(m[1]), cardName: m[2].trim() };
+}
+
 /** Try to classify a pending action from a logWithCardTooltips message. Returns null if not a dogma/endorse. */
 function classifyMessage(entry: MessageEntry): ActionDetail | null {
-  const dogmaMatch = entry.msg.match(/activates the dogma of (\d+) (.+?) with/);
-  if (dogmaMatch) {
-    return { actionType: "dogma", cardName: dogmaMatch[2].trim(), cardAge: null, cardSet: null };
+  const dogma = matchDogma(entry.msg);
+  if (dogma) {
+    return { actionType: "dogma", cardName: dogma.cardName, cardAge: null, cardSet: null };
   }
   const endorseMatch = entry.msg.match(/endorses the dogma of (\d+) (.+?) with/);
   if (endorseMatch) {
     return { actionType: "endorse", cardName: endorseMatch[2].trim(), cardAge: null, cardSet: null };
   }
   return null;
+}
+
+/** Match the "chooses not to return or dogma" pass log line, extracting the player name. */
+function matchArtifactPass(msg: string): string | null {
+  const m = msg.match(/^(.+?) chooses not to return or dogma (?:his|her) Artifact on display\.$/);
+  return m ? m[1] : null;
 }
 
 // ---------------------------------------------------------------------------
@@ -227,6 +252,9 @@ export function processRawLog(rawData: RawExtractionData): GameLog {
   let pendingAction: PendingAction | null = null;
   let lastPending: { player: string; actionNumber: number; move: number } | null = null;
   let currentAction: TurnAction | null = null;
+  const displaysByPlayer = new Map<string, DisplayCard>();
+  let artifactWindow: ArtifactWindow | null = null;
+  let lastArtifactOpen: { player: string; move: number } | null = null;
 
   for (const packet of packets) {
     const moveId = packet.move_id!;
@@ -284,6 +312,21 @@ export function processRawLog(rawData: RawExtractionData): GameLog {
         };
         log.push(entry);
 
+        // Track artifact display occupancy for later pass-message attribution
+        if (entry.dest === "display" && entry.destOwner) {
+          displaysByPlayer.set(entry.destOwner, { cardName: entry.cardName, cardAge: entry.cardAge, cardSet: entry.cardSet });
+        }
+        if (entry.source === "display" && entry.sourceOwner) {
+          displaysByPlayer.delete(entry.sourceOwner);
+        }
+
+        // Artifact-step: return-from-display inside an open artifact window
+        if (artifactWindow && entry.source === "display" && entry.dest === "deck" && entry.sourceOwner === artifactWindow.player) {
+          actions.push({ player: artifactWindow.player, actionNumber: 0, time: artifactWindow.time, logIndex: artifactWindow.logIndex, actions: [{ actionType: "artifact_return", cardName: entry.cardName, cardAge: entry.cardAge, cardSet: entry.cardSet }] });
+          artifactWindow = null;
+          continue;
+        }
+
         // Classify pending action from first transfer after marker
         if (pendingAction) {
           const detail = classifyTransfer(entry);
@@ -311,6 +354,27 @@ export function processRawLog(rawData: RawExtractionData): GameLog {
         };
         log.push(entry);
 
+        // Artifact-step: pass message inside an open artifact window
+        if (artifactWindow && entry.type === "log") {
+          const passPlayer = matchArtifactPass(entry.msg);
+          if (passPlayer && passPlayer === artifactWindow.player) {
+            const display = displaysByPlayer.get(artifactWindow.player) ?? { cardName: null, cardAge: null, cardSet: "artifacts" };
+            actions.push({ player: artifactWindow.player, actionNumber: 0, time: artifactWindow.time, logIndex: artifactWindow.logIndex, actions: [{ actionType: "artifact_pass", cardName: display.cardName, cardAge: display.cardAge, cardSet: display.cardSet }] });
+            artifactWindow = null;
+            continue;
+          }
+        }
+
+        // Artifact-step: FAD dogma inside an open artifact window
+        if (artifactWindow && entry.type === "logWithCardTooltips") {
+          const dogma = matchDogma(entry.msg);
+          if (dogma && entry.msg.startsWith(`${artifactWindow.player} activates the dogma`)) {
+            actions.push({ player: artifactWindow.player, actionNumber: 0, time: artifactWindow.time, logIndex: artifactWindow.logIndex, actions: [{ actionType: "artifact_dogma", cardName: dogma.cardName, cardAge: dogma.cardAge, cardSet: "artifacts" }] });
+            artifactWindow = null;
+            continue;
+          }
+        }
+
         // Classify pending action from first dogma/endorse message after marker
         if (pendingAction && entry.type === "logWithCardTooltips") {
           const detail = classifyMessage(entry);
@@ -328,9 +392,20 @@ export function processRawLog(rawData: RawExtractionData): GameLog {
         }
       }
 
-      if (notifType === "gameStateChange" && isSpectatorPacket) {
+      if (notifType === "gameStateChange") {
         const stateArgs = notif.args;
-        if (String(stateArgs.id) === "4" && stateArgs.args && typeof stateArgs.args === "object") {
+        const stateId = String(stateArgs.id);
+        if (stateId === "15") {
+          // id:15 fires on artifact-decision turns. Process from any channel
+          // (sometimes only the player channel emits it) and dedup by (player, move).
+          const playerId = String(stateArgs.active_player);
+          const playerName = playerNames[playerId] ?? playerId;
+          if (lastArtifactOpen && lastArtifactOpen.move === moveId && lastArtifactOpen.player === playerName) continue;
+          artifactWindow = { player: playerName, time: packet.time ?? null, logIndex: log.length };
+          lastArtifactOpen = { player: playerName, move: moveId };
+          continue;
+        }
+        if (stateId === "4" && isSpectatorPacket && stateArgs.args && typeof stateArgs.args === "object") {
           const innerArgs = stateArgs.args as Record<string, unknown>;
           if (innerArgs.action_number !== undefined) {
             const playerId = String(stateArgs.active_player);
@@ -344,6 +419,8 @@ export function processRawLog(rawData: RawExtractionData): GameLog {
             if (pendingAction) {
               actions.push({ player: pendingAction.player, actionNumber: pendingAction.actionNumber, time: pendingAction.time, logIndex: pendingAction.logIndex, actions: [{ actionType: "pending", cardName: null, cardAge: null, cardSet: null }] });
             }
+            // Clear any still-open artifact window (should have classified already)
+            artifactWindow = null;
             pendingAction = { player: playerName, actionNumber, time: packet.time ?? null, logIndex: log.length };
             lastPending = { player: playerName, actionNumber, move: moveId };
           }

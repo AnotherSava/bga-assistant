@@ -17,7 +17,7 @@ Each of those sections shows known cards with their name, icons, and age, while 
 
 ### Turn history
 
-A compact sidebar shows recent actions — meld, draw, dogma, endorse, achieve, promote — with timestamps and player attribution. Compound actions (e.g. meld → promote → dogma) render as indented sub-action lines:
+A compact sidebar shows recent actions — meld, draw, dogma, endorse, achieve, promote — with timestamps and player attribution. Compound actions (e.g. meld → promote → dogma) render as indented sub-action lines. Turns that begin with an Artifact on display show the pre-turn choice (pass, return, or dogma of that Artifact) as an italicized line above the regular actions:
 
 ![Innovation turn history](../screenshots/innovation-history.png)
 
@@ -39,7 +39,7 @@ The deck section shows remaining cards per age, with known cards revealed by nam
 - **Set toggle**: switch between Base, Echoes, Cities, and Artifacts card sets for deck and card list
 - **Filter toggle**: All / Unknown (show only unaccounted cards)
 - **Layout toggle**: Wide (one row per age) / Tall (color columns)
-- **Turn history**: compact chronological display of recent actions (meld, draw, dogma, endorse, achieve, promote) with card name tooltips; compound actions (e.g. meld → promote → dogma) render as indented sub-action lines
+- **Turn history**: compact chronological display of recent actions (meld, draw, dogma, endorse, achieve, promote) with card name tooltips; compound actions (e.g. meld → promote → dogma) render as indented sub-action lines; pre-turn Artifact decisions (pass, return, or dogma) render as an italicized line above the turn's actions
 - **Section selector**: eye button to show/hide entire sections (including turn history visibility)
 - **Hover tooltips**: card face images with full card details on hover
 

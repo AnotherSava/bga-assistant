@@ -103,6 +103,52 @@ describe("renderTurnHistory", () => {
     expect(html).toContain("achieve [3]");
   });
 
+  it("renders artifact_pass as a distinct th-artifact line with card tooltip", () => {
+    const actions: TurnAction[] = [
+      { player: "Alice", actionNumber: 0, time: null, logIndex: 0, actions: [{ actionType: "artifact_pass", cardName: "Holmegaard Bows", cardAge: 1, cardSet: "artifacts" }] },
+    ];
+    const html = renderTurnHistory(actions, cardDb, PERSPECTIVE);
+    expect(html).toContain("th-artifact");
+    expect(html).toContain("you:");
+    expect(html).toContain("pass");
+    expect(html).toContain("Holmegaard Bows");
+    expect(html).toContain("artifact");
+    expect(html).toContain('class="th-card"');
+  });
+
+  it("renders artifact_return as a distinct th-artifact line", () => {
+    const actions: TurnAction[] = [
+      { player: "Bob", actionNumber: 0, time: null, logIndex: 0, actions: [{ actionType: "artifact_return", cardName: "Tools", cardAge: 1, cardSet: "artifacts" }] },
+    ];
+    const html = renderTurnHistory(actions, cardDb, PERSPECTIVE);
+    expect(html).toContain("th-artifact");
+    expect(html).toContain("opp:");
+    expect(html).toContain("return");
+    expect(html).toContain("Tools");
+    expect(html).toContain("artifact");
+  });
+
+  it("renders artifact_dogma as a distinct th-artifact line", () => {
+    const actions: TurnAction[] = [
+      { player: "Alice", actionNumber: 0, time: null, logIndex: 0, actions: [{ actionType: "artifact_dogma", cardName: "Philosopher's Stone", cardAge: 3, cardSet: "artifacts" }] },
+    ];
+    const html = renderTurnHistory(actions, cardDb, PERSPECTIVE);
+    expect(html).toContain("th-artifact");
+    expect(html).toContain("dogma");
+    expect(html).toContain("Philosopher");
+    expect(html).toContain("artifact");
+  });
+
+  it("keeps artifact step in the same group as the following regular actions", () => {
+    const actions: TurnAction[] = [
+      { player: "Alice", actionNumber: 0, time: null, logIndex: 0, actions: [{ actionType: "artifact_pass", cardName: "Tools", cardAge: 1, cardSet: "artifacts" }] },
+      { player: "Alice", actionNumber: 1, time: null, logIndex: 1, actions: [{ actionType: "meld", cardName: "Agriculture", cardAge: 1, cardSet: "base" }] },
+      { player: "Alice", actionNumber: 2, time: null, logIndex: 2, actions: [{ actionType: "dogma", cardName: "Philosophy", cardAge: null, cardSet: null }] },
+    ];
+    const html = renderTurnHistory(actions, cardDb, PERSPECTIVE);
+    expect(html).not.toContain("turn-group-sep");
+  });
+
   it("renders pending action without action text", () => {
     const actions: TurnAction[] = [
       { player: "Bob", actionNumber: 1, time: null, logIndex: 0, actions: [{ actionType: "pending", cardName: null, cardAge: null, cardSet: null }] },

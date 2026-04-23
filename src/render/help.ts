@@ -80,7 +80,7 @@ export function renderHelp(errorMessage?: string, gameName?: GameName): string {
   <div class="help-section">
     <div class="help-section-title">Action history</div>
     <div class="help-sections-grid">
-      <div class="help-grid-item"><span>Recent player actions (meld, draw, dogma, endorse, achieve) are shown in the top-right corner, newest first. <span style="color:#f4b8b8">Your</span> actions are pink, <span style="color:#c0c0f0">opponent\u2019s</span> are blue. Each action includes a timestamp. Toggle visibility via the ${ICON_EYE} menu.</span></div>
+      <div class="help-grid-item"><span>Recent player actions (meld, draw, dogma, endorse, achieve) are shown in the top-right corner, newest first. <span style="color:#f4b8b8">Your</span> actions are pink, <span style="color:#c0c0f0">opponent\u2019s</span> are blue. Each action includes a timestamp. Turns that begin with an Artifact on display also show the pre-turn choice (pass, return, or dogma) as an italicized line above the regular actions. Toggle visibility via the ${ICON_EYE} menu.</span></div>
     </div>
   </div>
   </div>
