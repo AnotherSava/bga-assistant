@@ -182,12 +182,17 @@ export function processRawLog(rawData: RawExtractionData): GameLog {
 
   // Scan gamedatas.cards for relic cards (public knowledge — placed in the
   // "relics" zone at game start when the with-relics variant is active).
+  // Each age 3-7 has exactly one relic, so (age) is a unique key used later
+  // to resolve anonymous relic transfers (BGA omits the card name on re-seizes).
   const initialRelics: string[] = [];
+  const relicNameByAge = new Map<number, string>();
   let hasRelicsZone = false;
   for (const info of Object.values(gdCards)) {
     if (info && String(info.is_relic) === "1" && typeof info.name === "string") {
       hasRelicsZone = true;
-      initialRelics.push(normalizeName(info.name));
+      const name = normalizeName(info.name);
+      initialRelics.push(name);
+      relicNameByAge.set(Number(info.age), name);
     }
   }
 
@@ -239,9 +244,16 @@ export function processRawLog(rawData: RawExtractionData): GameLog {
         if (playerArgsResult.done) throw new Error(`Player transfer iterator exhausted for move ${moveId} — player/spectator transfer count mismatch`);
         const playerArgs = playerArgsResult.value;
 
-        const cardName = playerArgs.name ? normalizeName(String(playerArgs.name)) : null;
         const rawAge = playerArgs.age;
         const cardAge = rawAge !== null && rawAge !== undefined ? Number(rawAge) : null;
+        let cardName = playerArgs.name ? normalizeName(String(playerArgs.name)) : null;
+        // BGA omits the card name on some relic transfers (e.g. relics→achievements,
+        // achievements→hand re-seizes). The is_relic flag + age uniquely identifies
+        // the card, so fill the name in from the known relic roster.
+        if (!cardName && String(playerArgs.is_relic) === "1" && cardAge !== null) {
+          const resolved = relicNameByAge.get(cardAge);
+          if (resolved) cardName = resolved;
+        }
 
         const setTypeId = String(notif.args.type);
         const cardSet = SET_MAP[setTypeId];

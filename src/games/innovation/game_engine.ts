@@ -314,12 +314,23 @@ export class GameEngine {
     // there and can be seized back. Any achievements-side transfer of a non-relic card
     // is either a regular claim (skip) or unexpected.
     if (entry.source === "achievements" || entry.dest === "achievements") {
-      const info = cardIdx ? this.cardDb.get(cardIdx) : null;
-      const isRelic = info?.isRelic ?? false;
-      if (!isRelic) {
-        if (entry.dest === "achievements") return;  // regular claim: count-only, skip
-        throw new Error(`Unexpected transfer from achievements for non-relic card: "${cardName ?? '?'}" (${entry.source} -> ${entry.dest})`);
+      // Anonymous transfer into achievements: regular claim, count-only.
+      if (!cardIdx && entry.dest === "achievements") return;
+
+      // Named non-relic card involving achievements: regular claim if going IN,
+      // anomalous if coming OUT (non-relic cards never leave the zone).
+      if (cardIdx) {
+        const info = this.cardDb.get(cardIdx);
+        if (!info?.isRelic) {
+          if (entry.dest === "achievements") return;
+          throw new Error(`Unexpected transfer from achievements for non-relic card: "${cardName}" (${entry.source} -> ${entry.dest})`);
+        }
       }
+
+      // Either a named relic, or an anonymous transfer OUT of achievements.
+      // Relic transfers normally arrive with a resolved name (process_log fills it
+      // in from the relic roster when BGA omits it), but processRelicAchievementTransfer
+      // also matches by (age, cardSet) as a defensive fallback.
       this.processRelicAchievementTransfer(state, entry);
       return;
     }

@@ -311,6 +311,36 @@ describe("processRawLog", () => {
     }
   });
 
+  it("resolves missing cardName on relic transfers using age lookup", () => {
+    // Regression: BGA omits `name` on relic re-seizes (e.g. achievements→hand).
+    // Since each age 3-7 has exactly one relic and initialRelics is public
+    // knowledge, processRawLog fills the name in from the relic roster.
+    const raw: RawExtractionData = {
+      gameName: "innovation",
+      players: { "100": "Alice", "200": "Bob" },
+      gamedatas: {
+        cards: {
+          "500": { id: "500", age: "4", name: "Complex Numbers", is_relic: "1", type: "0" },
+          "501": { id: "501", age: "5", name: "Timbuktu", is_relic: "1", type: "2" },
+        },
+      },
+      packets: [
+        makePacket(7, [
+          { type: "transferedCard", args: { name: null, age: 4, is_relic: "1", location_from: "achievements", location_to: "hand", owner_from: "200", owner_to: "200", meld_keyword: false } },
+          { type: "transferedCard_spectator", args: { type: "0" } },
+        ]),
+      ],
+    };
+    const result = processRawLog(raw);
+    expect(result.log).toHaveLength(1);
+    if (result.log[0].type === "transfer") {
+      expect(result.log[0].cardName).toBe("Complex Numbers");
+      expect(result.log[0].cardAge).toBe(4);
+      expect(result.log[0].source).toBe("achievements");
+      expect(result.log[0].dest).toBe("hand");
+    }
+  });
+
   it("handles null card age", () => {
     const raw: RawExtractionData = {
       gameName: "innovation",

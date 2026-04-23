@@ -1773,6 +1773,31 @@ describe("relic seizes", () => {
     expect(() => (engine as any).processTransfer(state, entry)).toThrow(/non-relic/);
   });
 
+  it("re-seizes a relic from achievements back to hand when cardName is null", () => {
+    // Regression: BGA sometimes omits the card name on achievements→hand relic
+    // re-seizes (packet has name=None, card_id=None). The engine must match by
+    // (age, cardSet) against the owner's achievementRelics pile — not throw.
+    const { state, engine, relics } = setup();
+    const relicName = relics[0];
+    const info = cardDb.get(relicName)!;
+    const setLabel = info.cardSet === CardSet.BASE ? "base" : info.cardSet === CardSet.CITIES ? "cities" : info.cardSet === CardSet.ECHOES ? "echoes" : "artifacts";
+
+    achievementTransfer(engine, state, "relics", "achievements", relicName, null, "Alice");
+
+    const anonymousSeize: TransferEntry = {
+      type: "transfer", move: 2, cardSet: setLabel,
+      source: "achievements", dest: "hand",
+      cardName: null, cardAge: info.age,
+      sourceOwner: "Alice", destOwner: "Alice",
+      meldKeyword: false, topOfDeck: false,
+    };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect(() => (engine as any).processTransfer(state, anonymousSeize)).not.toThrow();
+
+    expect(state.achievementRelics.get("Alice")!.length).toBe(0);
+    expect(state.hands.get("Alice")!.some(c => c.isResolved && c.resolvedName === relicName)).toBe(true);
+  });
+
   it("regular achievement claim (no card name) is silently skipped", () => {
     const { state, engine } = setup();
     const entry: TransferEntry = {
