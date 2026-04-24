@@ -73,7 +73,7 @@ export function renderHelp(errorMessage?: string, gameName?: GameName): string {
   <div class="help-section">
     <div class="help-section-title">Card tooltips</div>
     <div class="help-sections-grid">
-      <div class="help-grid-item">Hover over any known Base or Echoes card to see its full image. Cities cards display their names only.</div>
+      <div class="help-grid-item">Hover over any known card to see its full image.</div>
     </div>
   </div>
 

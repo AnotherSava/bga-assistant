@@ -1,15 +1,8 @@
-// Shared toggle/tooltip DOM functions.
+// Shared toggle DOM functions.
 // Used directly by the side panel and serialized via .toString() into
 // standalone HTML downloads (SUMMARY_JS in render.ts).
 // IMPORTANT: these functions must be self-contained (DOM APIs only, no imports)
 // so that .toString() produces valid standalone JavaScript.
-
-/** Position a tooltip element near the mouse cursor, keeping it within the viewport. */
-export function positionTooltip(tip: HTMLElement, mouseX: number, mouseY: number): void {
-  tip.style.left = mouseX + "px";
-  tip.style.top = mouseY + "px";
-}
-
 
 /** Apply a toggle mode to a section target element. */
 export function applyToggleMode(toggle: HTMLElement, mode: string, targetId: string): void {

@@ -4,7 +4,7 @@
 import { type CardInfo, type Card, CardSet, Color, CardDatabase, colorLabel, cardSetLabel, ageSetKey, cardIndex } from "./types.js";
 import { escapeHtml } from "../../render/icons.js";
 import type { TurnAction, ActionDetail } from "./turn_history.js";
-import { positionTooltip, applyToggleMode } from "../../render/toggle.js";
+import { applyToggleMode } from "../../render/toggle.js";
 import type { GameState } from "./game_state.js";
 import { GameEngine } from "./game_engine.js";
 import { type SectionId, type SectionConfig, type Toggle, DEFAULT_SECTION_CONFIG, SECTION_IDS, ECHOES_ONLY_SECTIONS, RELICS_ONLY_SECTIONS, TALL_COLUMNS, visibilityToggle, layoutToggle, compositeToggle } from "./config.js";
@@ -69,21 +69,26 @@ function iconImg(iconName: string, color: string, spriteIndex: number): string {
 // Card rendering
 // ---------------------------------------------------------------------------
 
+/** Hover tooltip for a known card.
+ *  Image tooltip by default; text-only for ZIP exports (useTextTooltips) to
+ *  keep file size down — otherwise every known card would inline its ~50KB WebP face. */
+function renderCardTip(info: CardInfo): string {
+  if (useTextTooltips) return `<div class="card-tip-text">${escapeHtml(info.name)}</div>`;
+  return `<div class="card-tip"><img src="${resolveAssetUrl(`assets/bga/innovation/cards/card_${info.spriteIndex}.webp`)}"></div>`;
+}
+
 function renderKnownCard(info: CardInfo, markResolved: boolean): string {
   const color = colorLabel(info.color);
   const resolvedAttr = markResolved ? " data-known" : "";
 
   if (info.cardSet === CardSet.BASE || info.cardSet === CardSet.ECHOES || info.cardSet === CardSet.ARTIFACTS || info.cardSet === CardSet.FIGURES) {
-    const tip = useTextTooltips
-      ? `<div class="card-tip-text">${escapeHtml(info.name)}</div>`
-      : `<div class="card-tip"><img src="${resolveAssetUrl(`assets/bga/innovation/cards/card_${info.spriteIndex}.webp`)}"></div>`;
     return `<div class="card card-base b-${color}"${resolvedAttr}>`
       + `<div class="cb-tl">${iconImg(info.icons[0], color, info.spriteIndex)}</div>`
       + `<div class="cb-name">${escapeHtml(info.name)}</div>`
       + `<div class="cb-bl">${iconImg(info.icons[1], color, info.spriteIndex)}</div>`
       + `<div class="cb-mid">${iconImg(info.icons[2], color, info.spriteIndex)}${iconImg(info.icons[3], color, info.spriteIndex)}</div>`
       + `<div class="card-age">${info.age}</div>`
-      + tip
+      + renderCardTip(info)
       + `</div>`;
   }
 
@@ -91,14 +96,11 @@ function renderKnownCard(info: CardInfo, markResolved: boolean): string {
     if (info.icons.length < 6) throw new Error(`City card "${info.name}" has ${info.icons.length} icons, expected 6`);
     const topIcons = [0, 5, 4].map(p => iconImg(info.icons[p], color, info.spriteIndex)).join("");
     const botIcons = [1, 2, 3].map(p => iconImg(info.icons[p], color, info.spriteIndex)).join("");
-    const cityTip = useTextTooltips || !info.isRelic
-      ? `<div class="card-tip-text">${escapeHtml(info.name)}</div>`
-      : `<div class="card-tip"><img src="${resolveAssetUrl(`assets/bga/innovation/cards/card_${info.spriteIndex}.webp`)}"></div>`;
     return `<div class="card card-cities b-${color}"${resolvedAttr}>`
       + `<div class="cc-top">${topIcons}</div>`
       + `<div class="cc-bot">${botIcons}</div>`
       + `<div class="card-age">${info.age}</div>`
-      + cityTip
+      + renderCardTip(info)
       + `</div>`;
   }
 
@@ -272,10 +274,7 @@ function renderSection(section: SectionData): string {
 function cardTooltipSpan(cardName: string, cardDb: CardDatabase): string {
   const info = cardDb.get(cardIndex(cardName));
   if (!info) return escapeHtml(cardName);
-  const tip = useTextTooltips
-    ? `<div class="card-tip-text">${escapeHtml(info.name)}</div>`
-    : `<div class="card-tip"><img src="${resolveAssetUrl(`assets/bga/innovation/cards/card_${info.spriteIndex}.webp`)}"></div>`;
-  return `<span class="th-card">${escapeHtml(info.name)}${tip}</span>`;
+  return `<span class="th-card">${escapeHtml(info.name)}${renderCardTip(info)}</span>`;
 }
 
 /** Format the action detail text (action type + card/age). */
@@ -576,12 +575,7 @@ ${SUMMARY_JS}
 // Client-side JavaScript (inlined in standalone HTML downloads)
 // ---------------------------------------------------------------------------
 
-export const SUMMARY_JS = `var positionTooltip = ${positionTooltip.toString()};
-var applyToggleMode = ${applyToggleMode.toString()};
-document.addEventListener('mousemove', function(e) {
-  var tips = document.querySelectorAll('.card:hover > .card-tip, .card:hover > .card-tip-text');
-  tips.forEach(function(tip) { positionTooltip(tip, e.clientX, e.clientY); });
-});
+export const SUMMARY_JS = `var applyToggleMode = ${applyToggleMode.toString()};
 document.querySelectorAll('.tri-toggle').forEach(function(toggle) {
   toggle.addEventListener('click', function(e) {
     var opt = e.target.closest('.tri-opt');

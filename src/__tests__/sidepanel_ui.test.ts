@@ -24,9 +24,8 @@ vi.hoisted(() => {
   };
 });
 
-import { downloadBlob, setupTooltips, setupToggles, render, fetchCardDb, initPinButton, openPinDropdown, closePinDropdown, selectPinMode, updatePinButtonIcon, getCurrentPinMode } from "../sidepanel/sidepanel";
+import { downloadBlob, setupToggles, render, fetchCardDb, initPinButton, openPinDropdown, closePinDropdown, selectPinMode, updatePinButtonIcon, getCurrentPinMode } from "../sidepanel/sidepanel";
 import { applyInnovationDisplayOptions } from "../games/innovation/display";
-import { positionTooltip } from "../render/toggle";
 import type { PipelineResults } from "../pipeline";
 
 describe("sidepanel UI functions", () => {
@@ -49,31 +48,6 @@ describe("sidepanel UI functions", () => {
       expect(clickSpy).toHaveBeenCalledOnce();
       expect(revokeObjectURL).toHaveBeenCalledWith("blob:test");
       clickSpy.mockRestore();
-    });
-  });
-
-  describe("setupTooltips", () => {
-    it("attaches a mousemove listener to the document", () => {
-      const addEventSpy = vi.spyOn(document, "addEventListener");
-      setupTooltips();
-      expect(addEventSpy).toHaveBeenCalledWith("mousemove", expect.any(Function));
-      addEventSpy.mockRestore();
-    });
-
-    it("positions tooltip elements on mousemove", () => {
-      setupTooltips();
-
-      // Create a card with a tooltip — call positionTooltip directly since
-      // jsdom doesn't support :hover pseudo-class for querySelectorAll matching
-      const tip = document.createElement("div");
-      tip.className = "card-tip";
-      tip.style.position = "fixed";
-      document.body.appendChild(tip);
-
-      // Import and call positionTooltip directly to verify the integration
-      positionTooltip(tip, 200, 200);
-      expect(tip.style.left).toBe("200px");
-      expect(tip.style.top).toBe("200px");
     });
   });
 

@@ -48,6 +48,8 @@ body {
   position: relative;
   vertical-align: top;
   cursor: default;
+  anchor-name: --card-anchor;
+  anchor-scope: --card-anchor;
 }
 .card.b-blue   { background: #1a3a5c; border-color: #4a9eff; color: #8ec8ff; }
 .card.b-red    { background: #5c1a1a; border-color: #ff4444; color: #ff8888; }
@@ -95,21 +97,25 @@ body {
   color: #fff;
 }
 
-/* Image tooltip (base cards) */
-.card-tip {
+/* Tooltips anchored to .card / .th-card via CSS anchor positioning.
+ * Default: below the anchor, aligned to its left edge. position-try-fallbacks
+ * flips to the opposite side(s) when the default position would overflow the
+ * viewport. Chrome 125+ native behavior; no JS positioning needed.
+ *
+ * .card-tip (image) is the default in the sidepanel. .card-tip-text (name-only
+ * label) is only emitted for ZIP exports (useTextTooltips) to keep file size down. */
+.card-tip, .card-tip-text {
   display: none;
   position: fixed;
   z-index: 10;
   pointer-events: none;
+  position-anchor: --card-anchor;
+  top: calc(anchor(bottom) + 4px);
+  left: anchor(left);
+  position-try-fallbacks: flip-block, flip-inline, flip-block flip-inline;
 }
 .card-tip img { width: 375px; height: auto; border-radius: 6px; }
-.card:hover > .card-tip { display: block; }
-
-/* Text tooltip (cities cards) */
 .card-tip-text {
-  display: none;
-  position: fixed;
-  z-index: 10;
   background: #222;
   color: #ccc;
   padding: 8px 10px;
@@ -118,10 +124,9 @@ body {
   white-space: pre-wrap;
   max-width: 320px;
   border: 1px solid #555;
-  pointer-events: none;
   line-height: 1.4;
 }
-.card:hover > .card-tip-text { display: block; }
+.card:hover > .card-tip, .card:hover > .card-tip-text { display: block; }
 
 /* Layout */
 .section-row {
@@ -441,6 +446,8 @@ body {
   cursor: default;
   text-decoration: none;
   pointer-events: auto;
+  anchor-name: --card-anchor;
+  anchor-scope: --card-anchor;
 }
 .th-card > .card-tip,
 .th-card > .card-tip-text { display: none; }

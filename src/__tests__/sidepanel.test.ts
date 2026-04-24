@@ -490,7 +490,6 @@ describe("renderFullPage", () => {
     const html = renderFullPage(gs, engine, cardDb, "Alice", ["Alice", "Bob"], "12345", "");
 
     expect(html).toContain("<script>");
-    expect(html).toContain("mousemove");
     expect(html).toContain("tri-toggle");
   });
 
@@ -505,11 +504,6 @@ describe("renderFullPage", () => {
 });
 
 describe("SUMMARY_JS", () => {
-  it("includes mousemove handler", () => {
-    expect(SUMMARY_JS).toContain("mousemove");
-    expect(SUMMARY_JS).toContain("card-tip");
-  });
-
   it("includes toggle handler", () => {
     expect(SUMMARY_JS).toContain("tri-toggle");
     expect(SUMMARY_JS).toContain("mode-unknown");
@@ -568,7 +562,7 @@ describe("echoes card rendering", () => {
     // Find the closing </div> for the card-tip (the outermost card div ends after card-tip's closing div)
     const bangleSnippet = html.slice(bangleCardStart, bangleCardStart + 800);
     expect(bangleSnippet).toContain("card-base");
-    // Should have card-tip with image tooltip (not card-tip-text like cities)
+    // Should have card-tip with image tooltip
     expect(bangleSnippet).toContain("card-tip");
   });
 

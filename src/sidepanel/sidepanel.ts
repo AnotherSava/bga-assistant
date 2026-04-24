@@ -6,7 +6,7 @@ import { buildInnovationDisplayMenu, applyInnovationDisplayOptions } from "../ga
 import { buildAzulDisplayMenu, applyAzulDisplayOptions } from "../games/azul/display.js";
 import { recentTurns } from "../games/innovation/turn_history.js";
 import { renderHelp } from "../render/help.js";
-import { positionTooltip, applyToggleMode } from "../render/toggle.js";
+import { applyToggleMode } from "../render/toggle.js";
 import { CardDatabase, type GameName } from "../models/types.js";
 import { GameEngine } from "../games/innovation/game_engine.js";
 import { fromJSON as innovationFromJSON } from "../games/innovation/serialization.js";
@@ -117,21 +117,6 @@ async function inlineAssets(html: string): Promise<string> {
   return html.replace(pattern, (full, path: string) => {
     const dataUri = dataUris.get(path);
     return dataUri ? `src="${dataUri}"` : full;
-  });
-}
-
-// ---------------------------------------------------------------------------
-// Tooltip positioning (mouse-follow)
-// ---------------------------------------------------------------------------
-
-let tooltipsInitialized = false;
-
-function setupTooltips(): void {
-  if (tooltipsInitialized) return;
-  tooltipsInitialized = true;
-  document.addEventListener("mousemove", (e: MouseEvent) => {
-    const tips = document.querySelectorAll<HTMLElement>(".card:hover > .card-tip, .card:hover > .card-tip-text, .th-card:hover > .card-tip, .th-card:hover > .card-tip-text");
-    tips.forEach((tip) => positionTooltip(tip, e.clientX, e.clientY));
   });
 }
 
@@ -327,8 +312,7 @@ function renderWithDb(cardDb: CardDatabase, results: InnovationResults, contentE
   const tableEl = document.getElementById("game-info-table");
   if (tableEl) tableEl.textContent = `# ${results.tableNumber}`;
 
-  // Set up interactivity
-  setupTooltips();
+  // Set up interactivity (tooltips are fully CSS-driven via anchor positioning)
   setupToggles();
 
   // Render turn history
@@ -798,4 +782,4 @@ if (typeof chrome !== "undefined" && chrome.runtime?.onMessage) {
 function getCurrentPinMode(): PinMode { return currentPinMode; }
 
 // Export for testing
-export { render, showHelp, showHelpWithRawData, setupTooltips, setupToggles, downloadBlob, fetchCardDb, initPinButton, openPinDropdown, closePinDropdown, selectPinMode, updatePinButtonIcon, getCurrentPinMode, setupHelpTabs, switchZoomContext, PIN_ICONS };
+export { render, showHelp, showHelpWithRawData, setupToggles, downloadBlob, fetchCardDb, initPinButton, openPinDropdown, closePinDropdown, selectPinMode, updatePinButtonIcon, getCurrentPinMode, setupHelpTabs, switchZoomContext, PIN_ICONS };

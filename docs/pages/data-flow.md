@@ -74,7 +74,7 @@ Key files:
 - `src/games/*/display.ts` — per-game display menu construction and display-option application (section visibility, shimmer)
 - `src/render/help.ts` — help page content
 - `src/sidepanel/settings.ts` — shared localStorage persistence (loadSetting/saveSetting with typed defaults)
-- `src/render/toggle.ts` — shared toggle/tooltip logic (used by both side panel and ZIP export)
+- `src/render/toggle.ts` — shared toggle logic (used by both side panel and ZIP export); tooltips are CSS-only via anchor positioning
 
 ## Data Flow: Full Extraction
 
@@ -164,7 +164,7 @@ Triggers:
    - Innovation: fetch `card_info.json`, call `GameState.fromJSON()`
    - Azul: call `game_state.fromJSON()`
    - Crew: call `serialization.crewFromJSON()`
-2. Generate HTML, set up tooltips/toggles/zoom, apply per-game display options
+2. Generate HTML, set up toggles/zoom, apply per-game display options (tooltips are CSS-driven via anchor positioning)
 
 </td>
 <td valign="top">

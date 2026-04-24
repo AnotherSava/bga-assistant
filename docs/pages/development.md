@@ -91,7 +91,7 @@ src/
   render/
     help.ts                  Help page content
     icons.ts                 Shared icon utilities
-    toggle.ts                Shared toggle/tooltip logic (side panel + ZIP export)
+    toggle.ts                Shared toggle logic (side panel + ZIP export); tooltips are CSS-only
 assets/
   bga/
     innovation/

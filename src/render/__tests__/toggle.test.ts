@@ -1,22 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach } from "vitest";
-import { positionTooltip, applyToggleMode } from "../toggle.js";
+import { applyToggleMode } from "../toggle.js";
 import { SUMMARY_JS } from "../../games/innovation/render.js";
-
-describe("positionTooltip", () => {
-  let tip: HTMLElement;
-
-  beforeEach(() => {
-    tip = document.createElement("div");
-    document.body.appendChild(tip);
-  });
-
-  it("anchors tooltip at cursor coordinates", () => {
-    positionTooltip(tip, 100, 200);
-    expect(tip.style.left).toBe("100px");
-    expect(tip.style.top).toBe("200px");
-  });
-});
 
 describe("applyToggleMode", () => {
   let container: HTMLElement;
@@ -161,7 +146,6 @@ describe("SUMMARY_JS", () => {
   });
 
   it("contains the serialized shared functions", () => {
-    expect(SUMMARY_JS).toContain("positionTooltip");
     expect(SUMMARY_JS).toContain("applyToggleMode");
   });
 });
