@@ -138,7 +138,9 @@ function classifyTransfer(entry: TransferEntry): ActionDetail | null {
   if (entry.source === "achievements" && entry.dest === "achievements" && entry.cardName === null) {
     return { actionType: "achieve", cardName: null, cardAge: entry.cardAge, cardSet: null };
   }
-  if (entry.meldKeyword && entry.source === "hand" && entry.dest === "board") {
+  // Meld is normally hand→board, but a player may also spend a regular action
+  // to meld an Artifact sitting on their display straight onto their board.
+  if (entry.meldKeyword && (entry.source === "hand" || entry.source === "display") && entry.dest === "board") {
     return { actionType: "meld", cardName: entry.cardName, cardAge: entry.cardAge, cardSet: entry.cardSet };
   }
   if (entry.source === "deck") {

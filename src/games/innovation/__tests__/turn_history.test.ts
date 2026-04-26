@@ -163,6 +163,59 @@ describe("action classification", () => {
     expect(actions[1]).toMatchObject({ player: "Alice", actionNumber: 1, actions: [{ actionType: "meld", cardName: "Agriculture" }] });
   });
 
+  it("classifies a regular meld of an Artifact from display→board (table 841259361)", () => {
+    // After passing on the pre-turn artifact step, a player may spend one of
+    // their two regular actions to meld the Artifact still sitting on their
+    // display straight onto the board. The transfer is display→board with
+    // meld_keyword=true (vs. the usual hand→board for a meld from hand).
+    const actions = extractActions([
+      // Setup: Alice draws Holmegaard Bows onto display
+      makePackets(5,
+        [playerTransfer({ name: "Holmegaard Bows", age: 1, location_from: "deck", location_to: "display", owner_from: "0", owner_to: "100", type: "1" })],
+        [spectatorTransfer("1")]),
+      // id:15 opens the artifact window for Alice
+      makePackets(9, [stateChange15("100")], [stateChange15("100")]),
+      // Alice passes on the pre-turn artifact decision — action_number=1 fires next
+      makePackets(10, [],
+        [spectatorLogPlain("Alice chooses not to return or dogma her Artifact on display."), stateChange("100", 1)]),
+      // Action 1: Alice melds the Artifact from display→board
+      makePackets(11,
+        [playerTransfer({ name: "Holmegaard Bows", age: 1, location_from: "display", location_to: "board", owner_from: "100", owner_to: "100", meld_keyword: true, type: "1" })],
+        [spectatorTransfer("1"), stateChange("100", 2)]),
+      // Action 2: Alice draws an echoes age 4 card
+      makePackets(12,
+        [playerTransfer({ age: 4, type: "3" })],
+        [spectatorTransfer("3"), stateChange("200", 1)]),
+    ]);
+    expect(actions[0]).toMatchObject({ player: "Alice", actionNumber: 0, actions: [{ actionType: "artifact_pass", cardName: "Holmegaard Bows", cardAge: 1, cardSet: "artifacts" }] });
+    expect(actions[1]).toMatchObject({ player: "Alice", actionNumber: 1, actions: [{ actionType: "meld", cardName: "Holmegaard Bows", cardAge: 1, cardSet: "artifacts" }] });
+    expect(actions[2]).toMatchObject({ player: "Alice", actionNumber: 2, actions: [{ actionType: "draw", cardAge: 4, cardSet: "echoes" }] });
+  });
+
+  it("classifies a meld of an Artifact from display→board as action 2", () => {
+    // The display→board meld is a regular action and may be action 1 or action 2.
+    const actions = extractActions([
+      // Setup: Bob draws an Artifact onto display
+      makePackets(5,
+        [playerTransfer({ name: "Holmegaard Bows", age: 1, location_from: "deck", location_to: "display", owner_from: "0", owner_to: "200", type: "1" })],
+        [spectatorTransfer("1")]),
+      // Bob passes on the pre-turn artifact decision — action_number=1 fires next
+      makePackets(9, [stateChange15("200")], [stateChange15("200")]),
+      makePackets(10, [],
+        [spectatorLogPlain("Bob chooses not to return or dogma his Artifact on display."), stateChange("200", 1)]),
+      // Action 1: Bob draws first
+      makePackets(11,
+        [playerTransfer({ owner_to: "200", age: 1 })],
+        [spectatorTransfer(), stateChange("200", 2)]),
+      // Action 2: Bob then melds the Artifact from display→board
+      makePackets(12,
+        [playerTransfer({ name: "Holmegaard Bows", age: 1, location_from: "display", location_to: "board", owner_from: "200", owner_to: "200", meld_keyword: true, type: "1" })],
+        [spectatorTransfer("1"), stateChange("100", 1)]),
+    ]);
+    expect(actions[1]).toMatchObject({ player: "Bob", actionNumber: 1, actions: [{ actionType: "draw" }] });
+    expect(actions[2]).toMatchObject({ player: "Bob", actionNumber: 2, actions: [{ actionType: "meld", cardName: "Holmegaard Bows", cardSet: "artifacts" }] });
+  });
+
   it("classifies artifact_return as actionNumber:0 with name from transfer", () => {
     const actions = extractActions([
       // Alice draws Tools onto display
