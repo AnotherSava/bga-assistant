@@ -33,10 +33,20 @@ export interface RawPacket {
   data: RawNotification[];
 }
 
+/** Per-player metadata captured at extraction time. */
+export interface PlayerInfo {
+  id: string;
+  name: string;
+  /** BGA-assigned color as bare 6-char hex (no `#`). */
+  colorHex: string;
+  /** True for the observer ("you") — derived from gameui.player_id. */
+  isCurrent: boolean;
+}
+
 /** Shape of the raw extraction data sent from the content script. */
 export interface RawExtractionData {
   gameName: string;
-  players: Record<string, string>;
+  players: Record<string, PlayerInfo>;
   packets: RawPacket[];
   currentPlayerId?: string;
   gamedatas?: {

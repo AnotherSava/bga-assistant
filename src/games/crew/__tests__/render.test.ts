@@ -2,14 +2,22 @@ import { describe, it, expect } from "vitest";
 import { renderCrewSummary, renderCrewFullPage } from "../render.js";
 import { createCrewGameState, type CrewGameState } from "../game_state.js";
 import { cardKey, PINK, BLUE, GREEN, YELLOW, SUBMARINE } from "../types.js";
+import type { PlayerInfo } from "../../../models/types.js";
+
+const COLORS = ["ff0000", "0000ff", "008000", "ffa500"];
+
+function mkPlayers(names: Record<string, string>, currentId: string): Record<string, PlayerInfo> {
+  const out: Record<string, PlayerInfo> = {};
+  let i = 0;
+  for (const id in names) {
+    out[id] = { id, name: names[id], colorHex: COLORS[i % COLORS.length], isCurrent: id === currentId };
+    i++;
+  }
+  return out;
+}
 
 function makeState(): CrewGameState {
-  const players: Record<string, string> = {
-    "1": "Alice",
-    "2": "Bob",
-    "3": "Carol",
-    "4": "Dave",
-  };
+  const players = mkPlayers({ "1": "Alice", "2": "Bob", "3": "Carol", "4": "Dave" }, "1");
   const playerOrder = ["1", "2", "3", "4"];
   const state = createCrewGameState(players, playerOrder, "1");
 
@@ -143,11 +151,7 @@ describe("renderCrewSummary", () => {
   });
 
   it("escapes HTML in player names", () => {
-    const players: Record<string, string> = {
-      "1": "Al<script>ice",
-      "2": "Bob",
-      "3": "Carol",
-    };
+    const players = mkPlayers({ "1": "Al<script>ice", "2": "Bob", "3": "Carol" }, "1");
     const state = createCrewGameState(players, ["1", "2", "3"], "1");
     const html = renderCrewSummary(state);
 
@@ -156,7 +160,7 @@ describe("renderCrewSummary", () => {
   });
 
   it("handles empty state with no tricks", () => {
-    const players: Record<string, string> = { "1": "A", "2": "B", "3": "C" };
+    const players = mkPlayers({ "1": "A", "2": "B", "3": "C" }, "1");
     const state = createCrewGameState(players, ["1", "2", "3"], "1");
     const html = renderCrewSummary(state);
 
@@ -166,6 +170,15 @@ describe("renderCrewSummary", () => {
     expect(html).toContain("crew-tricks");
     // No trick rows
     expect(html).not.toContain("crew-trick-num");
+  });
+
+  it("emits per-player BGA colors and observer-row class in matrix", () => {
+    const state = makeState();
+    const html = renderCrewSummary(state);
+    // Each of the 4 distinct BGA colors appears at least once
+    for (const c of COLORS) expect(html).toContain(`--player-color: #${c}`);
+    // Observer row carries crew-matrix-me
+    expect(html).toContain("crew-matrix-me");
   });
 });
 

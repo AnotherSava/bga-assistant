@@ -17,6 +17,11 @@ if (!inputPath) {
 }
 
 const rawData: RawExtractionData = JSON.parse(readFileSync(inputPath, "utf-8"));
+const firstPlayer = Object.values(rawData.players ?? {})[0];
+if (typeof firstPlayer === "string") {
+  console.error("Error: fixture uses legacy players shape (id→name). Regenerate via fresh extraction or run scripts/migrate-fixture.ts.");
+  process.exit(1);
+}
 const gameName = (rawData.gameName ?? gameFlag) as GameName;
 
 if (!gameName) {

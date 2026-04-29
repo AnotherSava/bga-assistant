@@ -3,6 +3,7 @@
 import type { CrewGameState } from "./game_state.js";
 import { playerSuitStatus, getPlayedCards } from "./game_engine.js";
 import { ALL_SUITS, SUIT_VALUES, PINK, BLUE, GREEN, YELLOW, SUBMARINE, cardKey } from "./types.js";
+import { playerColorAttr } from "../../render/player.js";
 
 // ---------------------------------------------------------------------------
 // Suit icons — inline SVG constants (color-blind accessible geometric shapes)
@@ -101,9 +102,10 @@ function renderSuitMatrix(state: CrewGameState): string {
   html += '</tr></thead><tbody>';
 
   for (const pid of effectivePlayerOrder(state)) {
-    const name = state.players[pid];
+    const player = state.players[pid];
     const isMe = pid === state.currentPlayerId;
-    html += `<tr><td class="crew-matrix-name${isMe ? " crew-matrix-me" : ""}">${escapeHtml(name)}</td>`;
+    const rowClass = isMe ? ' class="crew-matrix-me"' : '';
+    html += `<tr ${playerColorAttr(player)}${rowClass}><td class="crew-matrix-name">${escapeHtml(player.name)}</td>`;
     for (const suit of ALL_SUITS) {
       const status = matrix[pid][suit];
       let cls = "crew-matrix-unknown";
@@ -126,7 +128,10 @@ function renderTrickHistory(state: CrewGameState): string {
   let html = '<div class="crew-section"><div class="crew-section-title">Tricks</div>';
   html += '<table class="crew-tricks"><thead><tr><th></th>';
   for (const pid of effectivePlayerOrder(state)) {
-    html += `<th class="crew-tricks-player">${escapeHtml(state.players[pid])}</th>`;
+    const player = state.players[pid];
+    const isMe = pid === state.currentPlayerId;
+    const cls = isMe ? "crew-tricks-player crew-tricks-me-col" : "crew-tricks-player";
+    html += `<th class="${cls}" ${playerColorAttr(player)}>${escapeHtml(player.name)}</th>`;
   }
   html += '</tr></thead><tbody>';
 
@@ -138,15 +143,18 @@ function renderTrickHistory(state: CrewGameState): string {
     html += `<tr${isCurrent ? ' class="crew-trick-current"' : ''}><td class="crew-trick-num">${i + 1}</td>`;
     for (const pid of effectivePlayerOrder(state)) {
       const play = trick.cards.find(c => c.playerId === pid);
+      const player = state.players[pid];
+      const isMe = pid === state.currentPlayerId;
+      const cellClass = isMe ? "crew-trick-cell crew-tricks-me-col" : "crew-trick-cell";
       if (play) {
         const isLead = pid === leadPlayerId;
         const isWinner = pid === trick.winnerId;
         let cls = SUIT_CSS_CLASS[play.card.suit];
         if (isLead) cls += " crew-lead";
         if (isWinner) cls += " crew-winner";
-        html += `<td class="crew-trick-cell"><div class="crew-grid-cell ${cls}"><span class="crew-cell-value">${play.card.value}</span><span class="crew-cell-icon">${SUIT_ICONS[play.card.suit]}</span></div></td>`;
+        html += `<td class="${cellClass}" ${playerColorAttr(player)}><div class="crew-grid-cell ${cls}"><span class="crew-cell-value">${play.card.value}</span><span class="crew-cell-icon">${SUIT_ICONS[play.card.suit]}</span></div></td>`;
       } else {
-        html += '<td class="crew-trick-cell"></td>';
+        html += `<td class="${cellClass}" ${playerColorAttr(player)}></td>`;
       }
     }
     html += '</tr>';

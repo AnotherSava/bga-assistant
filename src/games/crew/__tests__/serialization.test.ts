@@ -3,6 +3,7 @@ import { crewToJSON, crewFromJSON } from "../serialization.js";
 import { processCrewState } from "../game_engine.js";
 import type { CrewGameLog } from "../process_log.js";
 import { cardKey, PINK, BLUE, GREEN, YELLOW, SUBMARINE } from "../types.js";
+import { mkPlayers } from "../../../__tests__/helpers/players.js";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -11,7 +12,7 @@ import { cardKey, PINK, BLUE, GREEN, YELLOW, SUBMARINE } from "../types.js";
 function buildTestState(): ReturnType<typeof processCrewState> {
   const log: CrewGameLog = {
     gameName: "thecrewdeepsea",
-    players: { "1": "Alice", "2": "Bob", "3": "Charlie" },
+    players: mkPlayers({ "1": "Alice", "2": "Bob", "3": "Charlie" }, "1"),
     playerOrder: ["1", "2", "3"],
     playerCardCounts: {},
     currentPlayerId: "1",
@@ -101,7 +102,7 @@ describe("crew serialization — empty state", () => {
   it("handles state with no tricks", () => {
     const log: CrewGameLog = {
       gameName: "thecrewdeepsea",
-      players: { "1": "Alice", "2": "Bob", "3": "Charlie" },
+      players: mkPlayers({ "1": "Alice", "2": "Bob", "3": "Charlie" }, "1"),
       playerOrder: ["1", "2", "3"],
       playerCardCounts: {},
       currentPlayerId: "1",

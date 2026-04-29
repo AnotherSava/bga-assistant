@@ -1,6 +1,6 @@
 // Raw BGA packets -> structured Crew game log
 
-import type { RawExtractionData, RawPacket } from "../../models/types.js";
+import type { PlayerInfo, RawExtractionData, RawPacket } from "../../models/types.js";
 import type { CrewCard } from "./types.js";
 
 // ---------------------------------------------------------------------------
@@ -77,7 +77,7 @@ export type CrewLogEntry =
 /** Structured Crew game log output from processCrewLog. */
 export interface CrewGameLog {
   gameName: "thecrewdeepsea";
-  players: Record<string, string>;
+  players: Record<string, PlayerInfo>;
   playerOrder: string[];
   playerCardCounts: Record<string, number>;
   currentPlayerId: string;
@@ -125,7 +125,7 @@ function parseCard(bgaCard: BgaCard): CrewCard {
  * - giveCard + receiveCard: distress signal card exchange
  */
 export function processCrewLog(rawData: RawExtractionData): CrewGameLog {
-  const playerNames: Record<string, string> = rawData.players ?? {};
+  const players: Record<string, PlayerInfo> = rawData.players ?? {};
   const allPackets: RawPacket[] = rawData.packets ?? [];
   const log: CrewLogEntry[] = [];
   let playerOrder: string[] = [];
@@ -237,7 +237,7 @@ export function processCrewLog(rawData: RawExtractionData): CrewGameLog {
 
   return {
     gameName: "thecrewdeepsea" as const,
-    players: playerNames,
+    players,
     playerOrder,
     playerCardCounts,
     currentPlayerId: rawData.currentPlayerId ?? (() => { throw new Error("currentPlayerId missing from extraction data"); })(),

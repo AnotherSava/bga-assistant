@@ -1,7 +1,7 @@
 // Serialization: toJSON/fromJSON for persisting and restoring GameState.
 
+import type { PlayerInfo } from "../../models/types.js";
 import {
-  type AgeSetKey,
   Card,
   CardSet,
   ageSetKey,
@@ -88,17 +88,18 @@ export function toJSON(state: GameState): SerializedGameState {
   const displays: Record<string, SerializedCard[]> = {};
   const achievementRelics: Record<string, SerializedCard[]> = {};
   for (const player of state.players) {
-    hands[player] = serializeCards(state.hands.get(player)!);
-    boards[player] = serializeCards(state.boards.get(player)!);
-    scores[player] = serializeCards(state.scores.get(player)!);
-    const rev = state.revealed.get(player) ?? [];
-    if (rev.length > 0) revealed[player] = serializeCards(rev);
-    const fc = state.forecast.get(player) ?? [];
-    if (fc.length > 0) forecast[player] = serializeCards(fc);
-    const dp = state.displays.get(player) ?? [];
-    if (dp.length > 0) displays[player] = serializeCards(dp);
-    const ar = state.achievementRelics.get(player) ?? [];
-    if (ar.length > 0) achievementRelics[player] = serializeCards(ar);
+    const id = player.id;
+    hands[id] = serializeCards(state.hands.get(id)!);
+    boards[id] = serializeCards(state.boards.get(id)!);
+    scores[id] = serializeCards(state.scores.get(id)!);
+    const rev = state.revealed.get(id) ?? [];
+    if (rev.length > 0) revealed[id] = serializeCards(rev);
+    const fc = state.forecast.get(id) ?? [];
+    if (fc.length > 0) forecast[id] = serializeCards(fc);
+    const dp = state.displays.get(id) ?? [];
+    if (dp.length > 0) displays[id] = serializeCards(dp);
+    const ar = state.achievementRelics.get(id) ?? [];
+    if (ar.length > 0) achievementRelics[id] = serializeCards(ar);
   }
 
   const result: SerializedGameState = {
@@ -112,7 +113,7 @@ export function toJSON(state: GameState): SerializedGameState {
 }
 
 /** Deserialize game state from JSON. No CardDatabase needed — candidates stored in full. */
-export function fromJSON(data: SerializedGameState, players: string[], perspective: string): GameState {
+export function fromJSON(data: SerializedGameState, players: PlayerInfo[], perspective: string): GameState {
   const state = createGameState(players, perspective);
 
   const loadCard = (d: SerializedCard): Card => {
@@ -150,17 +151,18 @@ export function fromJSON(data: SerializedGameState, players: string[], perspecti
 
   // Load per-player zones
   for (const player of players) {
-    state.hands.set(player, loadCards(data.hands[player] ?? []));
-    state.boards.set(player, loadCards(data.boards[player] ?? []));
-    state.scores.set(player, loadCards(data.scores[player] ?? []));
-    const rev = data.revealed?.[player];
-    if (rev && rev.length > 0) state.revealed.set(player, loadCards(rev));
-    const fc = data.forecast?.[player];
-    if (fc && fc.length > 0) state.forecast.set(player, loadCards(fc));
-    const dp = data.displays?.[player];
-    if (dp && dp.length > 0) state.displays.set(player, loadCards(dp));
-    const ar = data.achievementRelics?.[player];
-    if (ar && ar.length > 0) state.achievementRelics.set(player, loadCards(ar));
+    const id = player.id;
+    state.hands.set(id, loadCards(data.hands[id] ?? []));
+    state.boards.set(id, loadCards(data.boards[id] ?? []));
+    state.scores.set(id, loadCards(data.scores[id] ?? []));
+    const rev = data.revealed?.[id];
+    if (rev && rev.length > 0) state.revealed.set(id, loadCards(rev));
+    const fc = data.forecast?.[id];
+    if (fc && fc.length > 0) state.forecast.set(id, loadCards(fc));
+    const dp = data.displays?.[id];
+    if (dp && dp.length > 0) state.displays.set(id, loadCards(dp));
+    const ar = data.achievementRelics?.[id];
+    if (ar && ar.length > 0) state.achievementRelics.set(id, loadCards(ar));
   }
 
   // Load achievements and relics

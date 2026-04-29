@@ -38,10 +38,16 @@ export async function extractGameData(): Promise<Record<string, unknown>> {
       gui,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (result: any) => {
-        const playerNames: Record<string, string> = {};
+        const currentPlayerId = gui.player_id != null ? String(gui.player_id) : undefined;
+        const players: Record<string, { id: string; name: string; colorHex: string; isCurrent: boolean }> = {};
         if (gui.gamedatas?.players) {
           for (const pid in gui.gamedatas.players) {
-            playerNames[pid] = gui.gamedatas.players[pid].name;
+            const p = gui.gamedatas.players[pid];
+            if (typeof p.color !== "string") {
+              resolve({ error: true, msg: `BGA player color missing for player ${pid}` });
+              return;
+            }
+            players[pid] = { id: pid, name: p.name, colorHex: p.color, isCurrent: pid === currentPlayerId };
           }
         }
 
@@ -58,7 +64,7 @@ export async function extractGameData(): Promise<Record<string, unknown>> {
           return;
         }
 
-        resolve({ gameName: parts[2], players: playerNames, gamedatas, packets: result.data, currentPlayerId: gui.player_id != null ? String(gui.player_id) : undefined });
+        resolve({ gameName: parts[2], players, gamedatas, packets: result.data, currentPlayerId });
       },
       (_isError: boolean, errorMsg: string) => {
         resolve({ error: true, msg: errorMsg });

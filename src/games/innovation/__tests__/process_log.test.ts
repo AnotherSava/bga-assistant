@@ -8,6 +8,7 @@ import {
   processRawLog,
 } from "../process_log.js";
 import type { RawExtractionData, RawPacket } from "../types.js";
+import { mkPlayers } from "../../../__tests__/helpers/players.js";
 
 // ---------------------------------------------------------------------------
 // ICON_MAP / SET_MAP
@@ -189,8 +190,8 @@ describe("processRawLog", () => {
   }
 
   it("returns empty log for empty packets", () => {
-    const result = processRawLog({ gameName: "innovation", players: { "1": "Alice" }, packets: [] });
-    expect(result.players).toEqual({ "1": "Alice" });
+    const result = processRawLog({ gameName: "innovation", players: mkPlayers({ "1": "Alice" }), packets: [] });
+    expect(result.players).toEqual(mkPlayers({ "1": "Alice" }));
     expect(result.myHand).toEqual([]);
     expect(result.log).toEqual([]);
   });
@@ -198,7 +199,7 @@ describe("processRawLog", () => {
   it("filters out packets with null move_id", () => {
     const raw: RawExtractionData = {
       gameName: "innovation",
-      players: { "1": "Alice" },
+      players: mkPlayers({ "1": "Alice" }),
       packets: [
         makePacket(null, [{ type: "log_spectator", args: { log: "hello" } }]),
       ],
@@ -210,7 +211,7 @@ describe("processRawLog", () => {
   it("processes log_spectator messages", () => {
     const raw: RawExtractionData = {
       gameName: "innovation",
-      players: { "1": "Alice" },
+      players: mkPlayers({ "1": "Alice" }),
       packets: [
         makePacket(1, [{ type: "log_spectator", args: { log: "${name} chose a card.", name: "Alice" } }]),
       ],
@@ -223,7 +224,7 @@ describe("processRawLog", () => {
   it("processes logWithCardTooltips_spectator messages", () => {
     const raw: RawExtractionData = {
       gameName: "innovation",
-      players: { "1": "Alice" },
+      players: mkPlayers({ "1": "Alice" }),
       packets: [
         makePacket(2, [{ type: "logWithCardTooltips_spectator", args: { log: "Drew a card." } }]),
       ],
@@ -248,7 +249,7 @@ describe("processRawLog", () => {
   it("pairs transferedCard_spectator with player-view transferedCard", () => {
     const raw: RawExtractionData = {
       gameName: "innovation",
-      players: { "100": "Alice", "200": "Bob" },
+      players: mkPlayers({ "100": "Alice", "200": "Bob" }),
       packets: [
         makePacket(5, [
           // Player-view transfer
@@ -269,8 +270,8 @@ describe("processRawLog", () => {
       expect(entry.cardSet).toBe("base");
       expect(entry.source).toBe("hand");
       expect(entry.dest).toBe("board");
-      expect(entry.sourceOwner).toBe("Alice");
-      expect(entry.destOwner).toBe("Alice");
+      expect(entry.sourceOwner).toBe("100");
+      expect(entry.destOwner).toBe("100");
       expect(entry.meldKeyword).toBe(false);
     }
   });
@@ -278,7 +279,7 @@ describe("processRawLog", () => {
   it("handles cities card set", () => {
     const raw: RawExtractionData = {
       gameName: "innovation",
-      players: { "1": "Alice" },
+      players: mkPlayers({ "1": "Alice" }),
       packets: [
         makePacket(3, [
           { type: "transferedCard", args: { name: "Jerusalem", age: 1, location_from: "deck", location_to: "hand", owner_from: "0", owner_to: "1", meld_keyword: false } },
@@ -296,7 +297,7 @@ describe("processRawLog", () => {
   it("handles null card name (unnamed transfers)", () => {
     const raw: RawExtractionData = {
       gameName: "innovation",
-      players: { "1": "Alice" },
+      players: mkPlayers({ "1": "Alice" }),
       packets: [
         makePacket(4, [
           { type: "transferedCard", args: { name: null, age: 3, location_from: "deck", location_to: "hand", owner_from: "0", owner_to: "1", meld_keyword: false } },
@@ -317,7 +318,7 @@ describe("processRawLog", () => {
     // knowledge, processRawLog fills the name in from the relic roster.
     const raw: RawExtractionData = {
       gameName: "innovation",
-      players: { "100": "Alice", "200": "Bob" },
+      players: mkPlayers({ "100": "Alice", "200": "Bob" }),
       gamedatas: {
         cards: {
           "500": { id: "500", age: "4", name: "Complex Numbers", is_relic: "1", type: "0" },
@@ -344,7 +345,7 @@ describe("processRawLog", () => {
   it("handles null card age", () => {
     const raw: RawExtractionData = {
       gameName: "innovation",
-      players: { "1": "Alice" },
+      players: mkPlayers({ "1": "Alice" }),
       packets: [
         makePacket(4, [
           { type: "transferedCard", args: { name: "Wheel", age: null, location_from: "hand", location_to: "board", owner_from: "1", owner_to: "1", meld_keyword: false } },
@@ -361,7 +362,7 @@ describe("processRawLog", () => {
   it("handles meld_keyword flag", () => {
     const raw: RawExtractionData = {
       gameName: "innovation",
-      players: { "1": "Alice" },
+      players: mkPlayers({ "1": "Alice" }),
       packets: [
         makePacket(6, [
           { type: "transferedCard", args: { name: "Code of Laws", age: 1, location_from: "hand", location_to: "board", owner_from: "1", owner_to: "1", meld_keyword: true } },
@@ -378,7 +379,7 @@ describe("processRawLog", () => {
   it("throws when spectator transfer has no matching player-view data", () => {
     const raw: RawExtractionData = {
       gameName: "innovation",
-      players: { "1": "Alice" },
+      players: mkPlayers({ "1": "Alice" }),
       packets: [
         makePacket(7, [
           // No player-view transferedCard, only spectator
@@ -392,7 +393,7 @@ describe("processRawLog", () => {
   it("handles multiple transfers in a single move", () => {
     const raw: RawExtractionData = {
       gameName: "innovation",
-      players: { "1": "Alice", "2": "Bob" },
+      players: mkPlayers({ "1": "Alice", "2": "Bob" }),
       packets: [
         makePacket(10, [
           { type: "transferedCard", args: { name: "Archery", age: 1, location_from: "hand", location_to: "board", owner_from: "1", owner_to: "1", meld_keyword: false } },
@@ -413,7 +414,7 @@ describe("processRawLog", () => {
   it("interleaves transfers and messages correctly", () => {
     const raw: RawExtractionData = {
       gameName: "innovation",
-      players: { "1": "Alice" },
+      players: mkPlayers({ "1": "Alice" }),
       packets: [
         makePacket(1, [
           { type: "transferedCard", args: { name: "Wheel", age: 1, location_from: "hand", location_to: "board", owner_from: "1", owner_to: "1", meld_keyword: false } },
@@ -447,7 +448,7 @@ describe("processRawLog", () => {
   it("normalizes card names in transfers", () => {
     const raw: RawExtractionData = {
       gameName: "innovation",
-      players: { "1": "Alice" },
+      players: mkPlayers({ "1": "Alice" }),
       packets: [
         makePacket(1, [
           { type: "transferedCard", args: { name: "Chang\u2011An", age: 1, location_from: "deck", location_to: "hand", owner_from: "0", owner_to: "1", meld_keyword: false } },
@@ -464,7 +465,7 @@ describe("processRawLog", () => {
   it("extracts initial hand from gamedatas", () => {
     const raw: RawExtractionData = {
       gameName: "innovation",
-      players: { "1": "Alice" },
+      players: mkPlayers({ "1": "Alice" }),
       packets: [],
       gamedatas: {
         my_hand: [{ id: 10 }, { id: 20 }],
@@ -507,7 +508,7 @@ describe("processRawLog", () => {
   it("processes a full multi-move sequence", () => {
     const raw: RawExtractionData = {
       gameName: "innovation",
-      players: { "1": "Alice", "2": "Bob" },
+      players: mkPlayers({ "1": "Alice", "2": "Bob" }),
       packets: [
         makePacket(1, [
           { type: "log_spectator", args: { log: "Alice chooses a card." } },
@@ -532,7 +533,7 @@ describe("processRawLog", () => {
       },
     };
     const result = processRawLog(raw);
-    expect(result.players).toEqual({ "1": "Alice", "2": "Bob" });
+    expect(result.players).toEqual(mkPlayers({ "1": "Alice", "2": "Bob" }));
     expect(result.myHand).toEqual(["Clothing", "Archery"]);
     expect(result.log).toHaveLength(5);
     // Move 1: log message
@@ -545,11 +546,11 @@ describe("processRawLog", () => {
     expect(result.log[4]).toEqual({ move: 3, type: "log", msg: "Alice melded first." });
     if (result.log[2].type === "transfer") {
       expect(result.log[2].cardName).toBe("Clothing");
-      expect(result.log[2].sourceOwner).toBe("Alice");
+      expect(result.log[2].sourceOwner).toBe("1");
     }
     if (result.log[3].type === "transfer") {
       expect(result.log[3].cardName).toBe("The Wheel");
-      expect(result.log[3].sourceOwner).toBe("Bob");
+      expect(result.log[3].sourceOwner).toBe("2");
     }
   });
 
@@ -577,7 +578,7 @@ describe("processRawLog", () => {
   it("detects echoes expansion from transfers with type 3", () => {
     const raw: RawExtractionData = {
       gameName: "innovation",
-      players: { "1": "Alice" },
+      players: mkPlayers({ "1": "Alice" }),
       packets: [
         makePacket(1, [
           { type: "transferedCard", args: { name: "Bangle", age: 1, location_from: "deck", location_to: "hand", owner_from: "0", owner_to: "1", meld_keyword: false } },
@@ -592,7 +593,7 @@ describe("processRawLog", () => {
   it("does not detect echoes when only base and cities transfers present", () => {
     const raw: RawExtractionData = {
       gameName: "innovation",
-      players: { "1": "Alice" },
+      players: mkPlayers({ "1": "Alice" }),
       packets: [
         makePacket(1, [
           { type: "transferedCard", args: { name: "Archery", age: 1, location_from: "deck", location_to: "hand", owner_from: "0", owner_to: "1", meld_keyword: false } },
@@ -611,7 +612,7 @@ describe("processRawLog", () => {
   it("returns expansions.echoes false for empty packets", () => {
     const raw: RawExtractionData = {
       gameName: "innovation",
-      players: { "1": "Alice" },
+      players: mkPlayers({ "1": "Alice" }),
       packets: [],
     };
     const result = processRawLog(raw);
@@ -621,7 +622,7 @@ describe("processRawLog", () => {
   it("emits pending action for gameStateChange with state id 4", () => {
     const raw: RawExtractionData = {
       gameName: "innovation",
-      players: { "100": "Alice", "200": "Bob" },
+      players: mkPlayers({ "100": "Alice", "200": "Bob" }),
       packets: [
         makePacket(10, [
           { type: "log_spectator", args: { log: "test" } },
@@ -631,13 +632,13 @@ describe("processRawLog", () => {
     };
     const result = processRawLog(raw);
     expect(result.actions).toHaveLength(1);
-    expect(result.actions[0]).toMatchObject({ player: "Alice", actionNumber: 1, actions: [{ actionType: "pending" }] });
+    expect(result.actions[0]).toMatchObject({ player: "100", actionNumber: 1, actions: [{ actionType: "pending" }] });
   });
 
   it("emits action with action_number 2", () => {
     const raw: RawExtractionData = {
       gameName: "innovation",
-      players: { "100": "Alice" },
+      players: mkPlayers({ "100": "Alice" }),
       packets: [
         makePacket(15, [
           { type: "log_spectator", args: { log: "test" } },
@@ -653,7 +654,7 @@ describe("processRawLog", () => {
   it("ignores gameStateChange with non-4 state id", () => {
     const raw: RawExtractionData = {
       gameName: "innovation",
-      players: { "100": "Alice" },
+      players: mkPlayers({ "100": "Alice" }),
       packets: [
         makePacket(10, [
           { type: "gameStateChange", args: { id: 2, active_player: "100", args: { action_number: 1 } } },
@@ -667,7 +668,7 @@ describe("processRawLog", () => {
   it("ignores gameStateChange state 4 without action_number", () => {
     const raw: RawExtractionData = {
       gameName: "innovation",
-      players: { "100": "Alice" },
+      players: mkPlayers({ "100": "Alice" }),
       packets: [
         makePacket(10, [
           { type: "log_spectator", args: { log: "test" } },
@@ -698,7 +699,7 @@ describe("processRawLog", () => {
   it("classifies meld from transfer after gameStateChange", () => {
     const raw: RawExtractionData = {
       gameName: "innovation",
-      players: { "100": "Alice" },
+      players: mkPlayers({ "100": "Alice" }),
       packets: [
         makePacket(20, [
           { type: "gameStateChange", args: { id: 4, active_player: "100", args: { action_number: 1 } } },
@@ -710,13 +711,13 @@ describe("processRawLog", () => {
     };
     const result = processRawLog(raw);
     expect(result.actions).toHaveLength(1);
-    expect(result.actions[0]).toMatchObject({ player: "Alice", actions: [{ actionType: "meld", cardName: "Archery" }] });
+    expect(result.actions[0]).toMatchObject({ player: "100", actions: [{ actionType: "meld", cardName: "Archery" }] });
   });
 
   it("appends promote sub-action when forecast→board meld follows primary meld", () => {
     const raw: RawExtractionData = {
       gameName: "innovation",
-      players: { "100": "Alice" },
+      players: mkPlayers({ "100": "Alice" }),
       packets: [
         makePacket(20, [
           { type: "gameStateChange", args: { id: 4, active_player: "100", args: { action_number: 1 } } },
@@ -740,7 +741,7 @@ describe("processRawLog", () => {
   it("appends dogma sub-action after promote when dogma message follows", () => {
     const raw: RawExtractionData = {
       gameName: "innovation",
-      players: { "100": "Alice" },
+      players: mkPlayers({ "100": "Alice" }),
       packets: [
         makePacket(20, [
           { type: "gameStateChange", args: { id: 4, active_player: "100", args: { action_number: 1 } } },
@@ -768,7 +769,7 @@ describe("processRawLog", () => {
   it("does not append sub-actions when player chooses not to promote", () => {
     const raw: RawExtractionData = {
       gameName: "innovation",
-      players: { "100": "Alice" },
+      players: mkPlayers({ "100": "Alice" }),
       packets: [
         makePacket(20, [
           { type: "gameStateChange", args: { id: 4, active_player: "100", args: { action_number: 1 } } },
@@ -789,7 +790,7 @@ describe("processRawLog", () => {
   it("does not pick up spurious sub-actions from non-promote transfers", () => {
     const raw: RawExtractionData = {
       gameName: "innovation",
-      players: { "100": "Alice" },
+      players: mkPlayers({ "100": "Alice" }),
       packets: [
         makePacket(20, [
           { type: "gameStateChange", args: { id: 4, active_player: "100", args: { action_number: 1 } } },
@@ -811,7 +812,7 @@ describe("processRawLog", () => {
   it("clears sub-action scanning when next gameStateChange arrives", () => {
     const raw: RawExtractionData = {
       gameName: "innovation",
-      players: { "100": "Alice" },
+      players: mkPlayers({ "100": "Alice" }),
       packets: [
         makePacket(20, [
           { type: "log_spectator", args: { log: "test" } },
@@ -847,7 +848,7 @@ describe("processRawLog", () => {
   it("does not append dogma sub-action without preceding promote", () => {
     const raw: RawExtractionData = {
       gameName: "innovation",
-      players: { "100": "Alice" },
+      players: mkPlayers({ "100": "Alice" }),
       packets: [
         makePacket(20, [
           { type: "gameStateChange", args: { id: 4, active_player: "100", args: { action_number: 1 } } },
@@ -868,7 +869,7 @@ describe("processRawLog", () => {
   it("deduplicates gameStateChange from player and spectator channels", () => {
     const raw: RawExtractionData = {
       gameName: "innovation",
-      players: { "100": "Alice" },
+      players: mkPlayers({ "100": "Alice" }),
       packets: [
         // Player channel packet (no _spectator types) — gameStateChange skipped
         makePacket(10, [

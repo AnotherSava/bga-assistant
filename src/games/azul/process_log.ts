@@ -1,6 +1,6 @@
 // Raw BGA packets -> structured Azul game log
 
-import type { RawExtractionData, RawPacket } from "../../models/types.js";
+import type { PlayerInfo, RawExtractionData, RawPacket } from "../../models/types.js";
 import type { TileCounts } from "./game_state.js";
 
 // ---------------------------------------------------------------------------
@@ -57,7 +57,7 @@ export type AzulLogEntry = FactoryFillEntry | WallPlacementEntry | FloorClearEnt
 /** Structured Azul game log output from processAzulLog. */
 export interface AzulGameLog {
   gameName: "azul";
-  players: Record<string, string>;
+  players: Record<string, PlayerInfo>;
   log: AzulLogEntry[];
 }
 
@@ -97,7 +97,7 @@ interface BgaFloorLine {
  * - emptyFloorLine: floor tiles discarded at round end
  */
 export function processAzulLog(rawData: RawExtractionData): AzulGameLog {
-  const playerNames: Record<string, string> = rawData.players ?? {};
+  const players: Record<string, PlayerInfo> = rawData.players ?? {};
   const allPackets: RawPacket[] = rawData.packets ?? [];
   const log: AzulLogEntry[] = [];
 
@@ -114,7 +114,7 @@ export function processAzulLog(rawData: RawExtractionData): AzulGameLog {
     }
   }
 
-  return { gameName: "azul" as const, players: playerNames, log };
+  return { gameName: "azul" as const, players, log };
 }
 
 /** Parse a factoriesFilled notification into a FactoryFillEntry. */

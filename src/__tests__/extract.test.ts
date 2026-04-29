@@ -69,12 +69,16 @@ describe("extractGameData", () => {
     expect(result).toEqual({ error: true, msg: "Network failure" });
   });
 
-  it("extracts player names from gamedatas", async () => {
+  it("extracts player info (name + BGA color + isCurrent) from gamedatas", async () => {
     setLocation("?table=789", "/42/innovation");
     const mockPackets = [{ move_id: 1, data: [] }];
     (globalThis as any).gameui = {
+      player_id: "100",
       gamedatas: {
-        players: { "100": { name: "Alice" }, "200": { name: "Bob" } },
+        players: {
+          "100": { name: "Alice", color: "ff0000" },
+          "200": { name: "Bob", color: "0000ff" },
+        },
         my_hand: [],
         cards: {},
       },
@@ -84,8 +88,28 @@ describe("extractGameData", () => {
     };
     const result = await extractGameData();
     expect(result.error).toBeUndefined();
-    expect(result.players).toEqual({ "100": "Alice", "200": "Bob" });
+    expect(result.players).toEqual({
+      "100": { id: "100", name: "Alice", colorHex: "ff0000", isCurrent: true },
+      "200": { id: "200", name: "Bob", colorHex: "0000ff", isCurrent: false },
+    });
     expect(result.packets).toBe(mockPackets);
+  });
+
+  it("returns an error when BGA player color is missing", async () => {
+    setLocation("?table=789", "/42/innovation");
+    (globalThis as any).gameui = {
+      gamedatas: {
+        players: { "100": { name: "Alice" } },
+        my_hand: [],
+        cards: {},
+      },
+      ajaxcall: (_endpoint: string, _params: any, _context: any, successCb: (r: any) => void) => {
+        successCb({ data: [] });
+      },
+    };
+    const result = await extractGameData();
+    expect(result.error).toBe(true);
+    expect(String(result.msg)).toContain("BGA player color missing");
   });
 
   it("extracts gamedatas with hand and cards", async () => {

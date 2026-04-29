@@ -40,7 +40,7 @@ Keep `docs/pages/data-flow.md` up to date when code changes affect data flow, me
 
 ## Project Structure
 
-- `src/models/types.ts` — shared BGA types (GameName, RawPacket, RawExtractionData, cardIndex) + re-exports Innovation types
+- `src/models/types.ts` — shared BGA types (GameName, RawPacket, RawExtractionData, PlayerInfo, cardIndex) + re-exports Innovation types
 - `src/games/innovation/types.ts` — Innovation types (Card, CardInfo, CardDatabase, enums, actions, log entries)
 - `src/games/innovation/process_log.ts` — Innovation BGA packet processing
 - `src/games/innovation/game_state.ts` — GameState interface (zone data), createGameState(), cardsAt()
@@ -49,7 +49,7 @@ Keep `docs/pages/data-flow.md` up to date when code changes affect data flow, me
 - `src/games/innovation/turn_history.ts` — Turn action types (TurnAction, ActionDetail, ActionType) and recent-turns grouping
 - `src/games/innovation/render.ts` — Innovation HTML summary renderer
 - `src/games/innovation/config.ts` — Innovation section layout configuration
-- `src/games/innovation/display.ts` — Innovation display menu (section visibility persistence + margin updates)
+- `src/games/innovation/display.ts` — Innovation display menu (section visibility, "Show player names" toggle, margin updates)
 - `src/games/azul/process_log.ts` — Azul BGA packet processing
 - `src/games/azul/game_state.ts` — Azul bag/discard/wall tracking
 - `src/games/azul/render.ts` — Azul tile count table renderer
@@ -64,12 +64,14 @@ Keep `docs/pages/data-flow.md` up to date when code changes affect data flow, me
 - `src/games/crew/styles.css` — Crew-specific CSS styles
 - `src/render/help.ts` — help page content (shared)
 - `src/render/icons.ts` — shared icon utilities
+- `src/render/player.ts` — shared player-color rendering helper (`playerColorAttr` emits inline `--player-color` style from a PlayerInfo)
 - `src/render/toggle.ts` — shared toggle logic (side panel + ZIP export); tooltips are CSS-only via anchor positioning
 - `src/extract.ts` — content script (MAIN world)
 - `src/pipeline.ts` — pure pipeline logic (processGameLog, processGameState, runPipeline) shared by background.ts and CLI scripts
 - `src/background.ts` — service worker (orchestration, side panel management, live tracking)
 - `scripts/game-log.ts` — CLI: raw_data.json → game_log.json
 - `scripts/game-state.ts` — CLI: game_log.json → game_state.json (+ --debug snapshots)
+- `scripts/migrate-fixture.ts` — one-shot migration for legacy `players: {id: name}` fixtures → `Record<string, PlayerInfo>`
 - `sidepanel.html` — side panel HTML entry point (project root, Vite input)
 - `src/sidepanel/settings.ts` — shared localStorage persistence (loadSetting/saveSetting with typed defaults)
 - `src/sidepanel/` — side panel UI (game-type-aware rendering dispatch)

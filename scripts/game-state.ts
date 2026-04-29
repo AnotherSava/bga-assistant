@@ -27,6 +27,11 @@ if (!inputPath) {
 }
 
 const gameLog = JSON.parse(readFileSync(inputPath, "utf-8"));
+const firstPlayer = Object.values(gameLog.players ?? {})[0];
+if (typeof firstPlayer === "string") {
+  console.error("Error: game_log uses legacy players shape (id→name). Regenerate via fresh extraction or run scripts/migrate-fixture.ts.");
+  process.exit(1);
+}
 const gameName = (gameLog.gameName ?? gameFlag) as GameName;
 
 if (!gameName) {
@@ -95,7 +100,7 @@ if (!debug) {
 function innovationSnapshots(log: GameLog, cardDb: CardDatabase): Snapshot[] {
   const snapshots: Snapshot[] = [];
   const players = Object.values(log.players);
-  const perspective = log.currentPlayerId && log.players[log.currentPlayerId] ? log.players[log.currentPlayerId] : players[0];
+  const perspective = log.currentPlayerId && log.players[log.currentPlayerId] ? log.currentPlayerId : players[0].id;
 
   detectEchoes(log, cardDb);
 

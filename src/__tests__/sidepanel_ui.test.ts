@@ -527,23 +527,26 @@ describe("turn history integration", () => {
       rawData: { packets: [] },
       gameLog: {
         currentPlayerId: "1",
-        players: { "1": "Alice", "2": "Bob" },
+        players: {
+          "1": { id: "1", name: "Alice", colorHex: "ff0000", isCurrent: true },
+          "2": { id: "2", name: "Bob", colorHex: "0000ff", isCurrent: false },
+        },
         log: [
-          { type: "transfer", move: 1, source: "deck", dest: "hand", cardName: null, cardAge: 1, cardSet: "base", meldKeyword: false, player: "Alice", cardIndex: null },
+          { type: "transfer", move: 1, source: "deck", dest: "hand", cardName: null, cardAge: 1, cardSet: "base", meldKeyword: false, player: "1", cardIndex: null },
         ],
         actions: [
-          { player: "Alice", actionNumber: 1, time: null, logIndex: 0, actions: [{ actionType: "draw", cardName: null, cardAge: 1, cardSet: "base" }] },
+          { player: "1", actionNumber: 1, time: null, logIndex: 0, actions: [{ actionType: "draw", cardName: null, cardAge: 1, cardSet: "base" }] },
         ],
         myHand: [],
         expansions: { echoes: false },
       },
-      gameState: { hands: { "Alice": [], "Bob": [] }, scores: { "Alice": [], "Bob": [] }, boards: { "Alice": [], "Bob": [] }, achievements: [], specialAchievements: [], decks: {}, forecast: {} },
+      gameState: { hands: { "1": [], "2": [] }, scores: { "1": [], "2": [] }, boards: { "1": [], "2": [] }, achievements: [], specialAchievements: [], decks: {}, forecast: {} },
     } as any;
 
     render(results);
     await vi.waitFor(() => {
       const el = document.getElementById("turn-history")!;
-      expect(el.innerHTML).toContain("you:");
+      expect(el.innerHTML).toContain("Alice:");
       expect(el.innerHTML).toContain("draw");
     });
   });

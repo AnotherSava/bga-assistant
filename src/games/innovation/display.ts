@@ -1,4 +1,4 @@
-// Innovation display options: section visibility with localStorage persistence.
+// Innovation display options: section visibility + show-player-names toggle, with localStorage persistence.
 
 import { SECTION_IDS, SECTION_LABELS, ECHOES_ONLY_SECTIONS, RELICS_ONLY_SECTIONS } from "./config.js";
 import { loadSetting, saveSetting } from "../../sidepanel/settings.js";
@@ -12,12 +12,22 @@ export interface InnovationDisplayContext {
 const KEY = "bgaa_section_visibility";
 const DEFAULTS: Record<string, boolean> = {};
 
+const SHOW_NAMES_KEY = "bgaa_show_player_names";
+
 function loadSections(): Record<string, boolean> {
   return loadSetting(KEY, DEFAULTS);
 }
 
 function saveSections(state: Record<string, boolean>): void {
   saveSetting(KEY, state);
+}
+
+function loadShowPlayerNames(): boolean {
+  return loadSetting(SHOW_NAMES_KEY, false);
+}
+
+function saveShowPlayerNames(value: boolean): void {
+  saveSetting(SHOW_NAMES_KEY, value);
 }
 
 export function buildInnovationDisplayMenu(panel: HTMLElement, context: InnovationDisplayContext): void {
@@ -47,6 +57,23 @@ export function buildInnovationDisplayMenu(panel: HTMLElement, context: Innovati
       current["turn-history"] = checkbox.checked;
       saveSections(current);
       applyTurnHistoryVisibility(context);
+    });
+  }
+
+  // Show player names toggle (turn-history sub-option)
+  {
+    const label = document.createElement("label");
+    label.style.paddingLeft = "16px";
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.checked = loadShowPlayerNames();
+    label.appendChild(checkbox);
+    label.appendChild(document.createTextNode("Show player names"));
+    panel.appendChild(label);
+
+    checkbox.addEventListener("change", () => {
+      saveShowPlayerNames(checkbox.checked);
+      applyShowPlayerNames();
     });
   }
 
@@ -106,7 +133,12 @@ export function applySectionVisibility(): void {
   }
 }
 
+export function applyShowPlayerNames(): void {
+  document.body.classList.toggle("show-player-names", loadShowPlayerNames());
+}
+
 export function applyInnovationDisplayOptions(context: InnovationDisplayContext): void {
   applySectionVisibility();
   applyTurnHistoryVisibility(context);
+  applyShowPlayerNames();
 }

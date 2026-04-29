@@ -1,5 +1,6 @@
 // GameState interface — plain data layer, the serialization boundary.
 
+import type { PlayerInfo } from "../../models/types.js";
 import {
   type AgeSetKey,
   type Zone,
@@ -29,23 +30,27 @@ export interface GameState {
    *  Unlike regular achievements (count-only), relics can be seized back, so
    *  their identity must be tracked. Fully public. */
   achievementRelics: Map<string, Card[]>;
-  players: string[];
+  /** Players in seat order (id, name, BGA color, observer flag). All per-player Maps
+   *  above are keyed by `PlayerInfo.id`. */
+  players: PlayerInfo[];
+  /** Observer's player ID. Compared against `entry.sourceOwner`/`destOwner` (also IDs). */
   perspective: string;
 }
 
 /** Create a fresh GameState with empty zones for the given players. */
-export function createGameState(players: string[], perspective: string): GameState {
+export function createGameState(players: PlayerInfo[], perspective: string): GameState {
+  const ids = players.map(p => p.id);
   return {
     decks: new Map(),
-    hands: new Map(players.map(p => [p, []])),
-    boards: new Map(players.map(p => [p, []])),
-    scores: new Map(players.map(p => [p, []])),
-    revealed: new Map(players.map(p => [p, []])),
-    forecast: new Map(players.map(p => [p, []])),
+    hands: new Map(ids.map(id => [id, []])),
+    boards: new Map(ids.map(id => [id, []])),
+    scores: new Map(ids.map(id => [id, []])),
+    revealed: new Map(ids.map(id => [id, []])),
+    forecast: new Map(ids.map(id => [id, []])),
     achievements: [],
-    displays: new Map(players.map(p => [p, []])),
+    displays: new Map(ids.map(id => [id, []])),
     relics: [],
-    achievementRelics: new Map(players.map(p => [p, []])),
+    achievementRelics: new Map(ids.map(id => [id, []])),
     players,
     perspective,
   };

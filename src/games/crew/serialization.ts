@@ -1,5 +1,6 @@
 // Serialization: toJSON/fromJSON for persisting and restoring CrewGameState.
 
+import type { PlayerInfo } from "../../models/types.js";
 import type { CrewCard } from "./types.js";
 import { type CrewGameState, type Trick, createCrewGameState } from "./game_state.js";
 
@@ -9,7 +10,7 @@ import { type CrewGameState, type Trick, createCrewGameState } from "./game_stat
 
 export interface SerializedCrewGameState {
   gameName: "thecrewdeepsea";
-  players: Record<string, string>;
+  players: Record<string, PlayerInfo>;
   playerOrder: string[];
   currentPlayerId: string;
   missionNumber: number;

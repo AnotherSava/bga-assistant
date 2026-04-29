@@ -296,8 +296,8 @@ function renderWithDb(cardDb: CardDatabase, results: InnovationResults, contentE
   const { gameLog, gameState: serializedState } = results;
 
   // Reconstruct GameState from serialized form
-  const players = Object.keys(serializedState.hands);
-  const perspective = gameLog.currentPlayerId && gameLog.players[gameLog.currentPlayerId] ? gameLog.players[gameLog.currentPlayerId] : players[0];
+  const players = Object.values(gameLog.players);
+  const perspective = gameLog.currentPlayerId && gameLog.players[gameLog.currentPlayerId] ? gameLog.currentPlayerId : players[0].id;
   const engine = new GameEngine(cardDb);
   const gameState = innovationFromJSON(serializedState, players, perspective);
   engine.buildGroups(gameState);
@@ -319,7 +319,7 @@ function renderWithDb(cardDb: CardDatabase, results: InnovationResults, contentE
   const turnHistoryEl = document.getElementById("turn-history");
   if (turnHistoryEl) {
     const recent = recentTurns(gameLog.actions, 3);
-    turnHistoryEl.innerHTML = renderTurnHistory(recent, cardDb, perspective);
+    turnHistoryEl.innerHTML = renderTurnHistory(recent, cardDb, players);
   }
 
   applyInnovationDisplayOptions({ echoes: currentExpansions.echoes, relics: currentExpansions.relics ?? false, zoomLevel });

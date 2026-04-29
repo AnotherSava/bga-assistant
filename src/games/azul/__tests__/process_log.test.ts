@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { processAzulLog, TILE_TYPES, COLOR_COUNT, type AzulGameLog, type FactoryFillEntry, type WallPlacementEntry, type FloorClearEntry } from "../process_log.js";
-import type { RawExtractionData, RawPacket } from "../../../models/types.js";
+import type { PlayerInfo, RawExtractionData, RawPacket } from "../../../models/types.js";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -40,10 +40,13 @@ function makeTile(id: number, type: number, location = "factory"): { id: number;
   return { id, type, column: 0, line: 0, location };
 }
 
-function makeRawData(packets: RawPacket[], players?: Record<string, string>): RawExtractionData {
+function makeRawData(packets: RawPacket[], names?: Record<string, string>): RawExtractionData {
+  const namesMap = names ?? { "1": "Alice", "2": "Bob" };
+  const players: Record<string, PlayerInfo> = {};
+  for (const id in namesMap) players[id] = { id, name: namesMap[id], colorHex: "ff0000", isCurrent: false };
   return {
     gameName: "azul",
-    players: players ?? { "1": "Alice", "2": "Bob" },
+    players,
     packets,
   };
 }
@@ -292,11 +295,13 @@ describe("processAzulLog — ignored notifications", () => {
 
 describe("processAzulLog — player data", () => {
   it("preserves player names from raw data", () => {
-    const players = { "100": "Alice", "200": "Bob", "300": "Charlie" };
-    const raw = makeRawData([], players);
+    const names: Record<string, string> = { "100": "Alice", "200": "Bob", "300": "Charlie" };
+    const raw = makeRawData([], names);
 
     const result = processAzulLog(raw);
-    expect(result.players).toEqual(players);
+    for (const id in names) {
+      expect(result.players[id].name).toBe(names[id]);
+    }
   });
 
   it("defaults to empty players when not provided", () => {

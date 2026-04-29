@@ -2,18 +2,20 @@ import { describe, it, expect } from "vitest";
 import { processCrewState, playerSuitStatus, getPlayedCards } from "../game_engine.js";
 import type { CrewGameLog, CrewLogEntry } from "../process_log.js";
 import { cardKey, PINK, BLUE, GREEN, YELLOW, SUBMARINE } from "../types.js";
+import { mkPlayers } from "../../../__tests__/helpers/players.js";
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-function makeLog(entries: CrewLogEntry[], overrides?: Partial<CrewGameLog>): CrewGameLog {
+function makeLog(entries: CrewLogEntry[], overrides?: { players?: Record<string, string>; playerOrder?: string[]; playerCardCounts?: Record<string, number>; currentPlayerId?: string }): CrewGameLog {
+  const currentPlayerId = overrides?.currentPlayerId ?? "1";
   return {
     gameName: "thecrewdeepsea",
-    players: overrides?.players ?? { "1": "Alice", "2": "Bob", "3": "Charlie", "4": "Diana" },
+    players: mkPlayers(overrides?.players ?? { "1": "Alice", "2": "Bob", "3": "Charlie", "4": "Diana" }, currentPlayerId),
     playerOrder: overrides?.playerOrder ?? ["1", "2", "3", "4"],
     playerCardCounts: overrides?.playerCardCounts ?? {},
-    currentPlayerId: overrides?.currentPlayerId ?? "1",
+    currentPlayerId,
     log: entries,
   };
 }

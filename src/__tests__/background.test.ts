@@ -65,7 +65,7 @@ const copyListeners = () => {
 import { classifyNavigation, shouldAutoClose, shouldShowLoading, watcherFunction, type NavigationAction, type PinMode } from "../background";
 import { runPipeline, isValidPlayerCount, type PipelineResults } from "../pipeline";
 import { CardDatabase } from "../models/types";
-import type { RawExtractionData } from "../models/types";
+import type { PlayerInfo, RawExtractionData } from "../models/types";
 import { type GameState, createGameState, cardsAt } from "../games/innovation/game_state";
 import { GameEngine } from "../games/innovation/game_engine";
 
@@ -94,11 +94,13 @@ function connectSidePanel(): { triggerDisconnect: () => void } {
 
 // Helper to build minimal raw extraction data with the given notification packets.
 function makeRawData(
-  players: Record<string, string>,
+  names: Record<string, string>,
   packets: RawExtractionData["packets"],
   gamedatas?: RawExtractionData["gamedatas"],
   gameName: string = "innovation",
 ): RawExtractionData {
+  const players: Record<string, PlayerInfo> = {};
+  for (const id in names) players[id] = { id, name: names[id], colorHex: "ff0000", isCurrent: false };
   return { gameName, players, packets, gamedatas };
 }
 
@@ -130,7 +132,8 @@ describe("runPipeline", () => {
     const result = runPipeline(rawData, cardDb, "12345", "innovation");
     expect(result.gameLog).toBeDefined();
     expect(result.gameState).toBeDefined();
-    expect(result.gameLog.players).toEqual({ "1": "Alice", "2": "Bob" });
+    expect(result.gameLog.players["1"].name).toBe("Alice");
+    expect(result.gameLog.players["2"].name).toBe("Bob");
     expect(result.gameLog.log).toEqual([]);
   });
 
@@ -141,11 +144,11 @@ describe("runPipeline", () => {
     // Decks should exist for each age/set combo
     expect(Object.keys(result.gameState.decks).length).toBeGreaterThan(0);
     // Hands should exist for each player
-    expect(result.gameState.hands["Alice"]).toBeDefined();
-    expect(result.gameState.hands["Bob"]).toBeDefined();
+    expect(result.gameState.hands["1"]).toBeDefined();
+    expect(result.gameState.hands["2"]).toBeDefined();
     // Each player starts with 2 cards in hand
-    expect(result.gameState.hands["Alice"].length).toBe(2);
-    expect(result.gameState.hands["Bob"].length).toBe(2);
+    expect(result.gameState.hands["1"].length).toBe(2);
+    expect(result.gameState.hands["2"].length).toBe(2);
   });
 
   it("initializes achievements from base ages 1-9", () => {
@@ -169,9 +172,9 @@ describe("runPipeline", () => {
     const result = runPipeline(rawData, cardDb, "12345", "innovation");
 
     // Alice should have 3 cards in hand (2 initial + 1 drawn)
-    expect(result.gameState.hands["Alice"].length).toBe(3);
+    expect(result.gameState.hands["1"].length).toBe(3);
     // The drawn card should be resolved to Metalworking
-    const metalworking = result.gameState.hands["Alice"].find(
+    const metalworking = result.gameState.hands["1"].find(
       (c: { resolved?: string }) => c.resolved === "metalworking",
     );
     expect(metalworking).toBeDefined();
@@ -192,10 +195,10 @@ describe("runPipeline", () => {
     const result = runPipeline(rawData, cardDb, "12345", "innovation");
 
     // Alice should have 1 card on board
-    expect(result.gameState.boards["Alice"].length).toBe(1);
-    expect(result.gameState.boards["Alice"][0].resolved).toBe("pottery");
+    expect(result.gameState.boards["1"].length).toBe(1);
+    expect(result.gameState.boards["1"][0].resolved).toBe("pottery");
     // Alice should have 1 card in hand (started with 2, one moved to board)
-    expect(result.gameState.hands["Alice"].length).toBe(1);
+    expect(result.gameState.hands["1"].length).toBe(1);
   });
 
   it("processes initial hand deduction from gamedatas", () => {
@@ -210,7 +213,7 @@ describe("runPipeline", () => {
     const result = runPipeline(rawData, cardDb, "12345", "innovation");
 
     // Alice (first player = perspective) should have her hand resolved
-    const hand = result.gameState.hands["Alice"];
+    const hand = result.gameState.hands["1"];
     const resolvedNames = hand.map((c: { resolved?: string }) => c.resolved).filter(Boolean);
     expect(resolvedNames).toContain("pottery");
     expect(resolvedNames).toContain("tools");
@@ -240,10 +243,10 @@ describe("runPipeline", () => {
     const result = runPipeline(rawData, cardDb, "12345", "innovation");
 
     // Metalworking should be on Alice's board
-    expect(result.gameState.boards["Alice"].length).toBe(1);
-    expect(result.gameState.boards["Alice"][0].resolved).toBe("metalworking");
+    expect(result.gameState.boards["1"].length).toBe(1);
+    expect(result.gameState.boards["1"][0].resolved).toBe("metalworking");
     // Alice's hand should still have 2 cards (started with 2, drew 1, played 1)
-    expect(result.gameState.hands["Alice"].length).toBe(2);
+    expect(result.gameState.hands["1"].length).toBe(2);
   });
 
   it("processes scoring (hand to score)", () => {
@@ -260,8 +263,8 @@ describe("runPipeline", () => {
     );
     const result = runPipeline(rawData, cardDb, "12345", "innovation");
 
-    expect(result.gameState.scores["Alice"].length).toBe(1);
-    expect(result.gameState.scores["Alice"][0].resolved).toBe("pottery");
+    expect(result.gameState.scores["1"].length).toBe(1);
+    expect(result.gameState.scores["1"][0].resolved).toBe("pottery");
   });
 
   it("returns serializable game state", () => {
@@ -324,7 +327,7 @@ describe("runPipeline", () => {
     const result = runPipeline(rawData, cardDb, "12345", "innovation");
 
     // Bob should have 3 cards in hand (2 initial + 1 drawn)
-    expect(result.gameState.hands["Bob"].length).toBe(3);
+    expect(result.gameState.hands["2"].length).toBe(3);
   });
 
   it("pipeline results contain gameName, gameLog, and gameState", () => {
@@ -350,7 +353,7 @@ describe("runPipeline", () => {
     const result = runPipeline(rawData, cardDb, "12345", "innovation");
     expect(result.gameLog.expansions.echoes).toBe(true);
     // With echoes active, each player gets 1 base + 1 echoes
-    const hand = result.gameState.hands["Alice"];
+    const hand = result.gameState.hands["1"];
     expect(hand.length).toBe(2);
   });
 
@@ -390,11 +393,11 @@ describe("runPipeline", () => {
     // Start: [Pottery, Tools] -> draw Metalworking -> [Pottery, Tools, Metalworking]
     // Meld Metalworking -> board: [Metalworking], hand: [Pottery, Tools]
     // Score Pottery -> score: [Pottery], hand: [Tools]
-    expect(result.gameState.hands["Alice"].length).toBe(1);
-    expect(result.gameState.boards["Alice"].length).toBe(1);
-    expect(result.gameState.boards["Alice"][0].resolved).toBe("metalworking");
-    expect(result.gameState.scores["Alice"].length).toBe(1);
-    expect(result.gameState.scores["Alice"][0].resolved).toBe("pottery");
+    expect(result.gameState.hands["1"].length).toBe(1);
+    expect(result.gameState.boards["1"].length).toBe(1);
+    expect(result.gameState.boards["1"][0].resolved).toBe("metalworking");
+    expect(result.gameState.scores["1"].length).toBe(1);
+    expect(result.gameState.scores["1"][0].resolved).toBe("pottery");
 
     // Game log should have 3 transfer entries
     expect(result.gameLog.log.length).toBe(3);
@@ -467,7 +470,9 @@ describe("runPipeline (thecrewdeepsea)", () => {
     // Empty hand: no dealt cards means empty hands for observer
     expect(result.gameState.hands["1"]).toEqual([]);
     expect(result.gameState.tricks).toEqual([]);
-    expect(result.gameLog.players).toEqual({ "1": "Alice", "2": "Bob", "3": "Carol" });
+    expect(result.gameLog.players["1"].name).toBe("Alice");
+    expect(result.gameLog.players["2"].name).toBe("Bob");
+    expect(result.gameLog.players["3"].name).toBe("Carol");
   });
 
   it("processes Crew fixture data end-to-end", () => {
@@ -500,7 +505,11 @@ describe("cardsAt fail-fast", () => {
 
   function makeState(): { state: GameState; engine: GameEngine } {
     const engine = new GameEngine(cardDb);
-    const state = createGameState(["Alice", "Bob"], "Alice");
+    const players: PlayerInfo[] = [
+      { id: "Alice", name: "Alice", colorHex: "ff0000", isCurrent: true },
+      { id: "Bob", name: "Bob", colorHex: "0000ff", isCurrent: false },
+    ];
+    const state = createGameState(players, "Alice");
     return { state, engine };
   }
 

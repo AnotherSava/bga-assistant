@@ -3,6 +3,7 @@ import { readFileSync } from "fs";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
 import { Card, CardDatabase, CardSet, cardIndex } from "../types";
+import type { PlayerInfo } from "../../../models/types";
 import { type GameState, createGameState } from "../game_state";
 import { GameEngine } from "../game_engine";
 import { renderSummary, renderTurnHistory } from "../render";
@@ -16,7 +17,10 @@ function loadCardDatabase(): CardDatabase {
   return new CardDatabase(raw);
 }
 
-const PLAYERS = ["Alice", "Bob"];
+const PLAYERS: PlayerInfo[] = [
+  { id: "Alice", name: "Alice", colorHex: "ff0000", isCurrent: true },
+  { id: "Bob", name: "Bob", colorHex: "0000ff", isCurrent: false },
+];
 const PERSPECTIVE = "Alice";
 
 let cardDb: CardDatabase;
@@ -31,15 +35,15 @@ beforeEach(() => {
 
 describe("renderTurnHistory", () => {
   it("returns empty string for empty actions", () => {
-    expect(renderTurnHistory([], cardDb, PERSPECTIVE)).toBe("");
+    expect(renderTurnHistory([], cardDb, PLAYERS)).toBe("");
   });
 
   it("renders meld action with card tooltip", () => {
     const actions: TurnAction[] = [
       { player: "Alice", actionNumber: 1, time: null, logIndex: 0, actions: [{ actionType: "meld", cardName: "Agriculture", cardAge: 1, cardSet: "base" }] },
     ];
-    const html = renderTurnHistory(actions, cardDb, PERSPECTIVE);
-    expect(html).toContain("you:");
+    const html = renderTurnHistory(actions, cardDb, PLAYERS);
+    expect(html).toContain("Alice:");
     expect(html).toContain("meld");
     expect(html).toContain("Agriculture");
     // Card exists in DB, so should have tooltip span
@@ -51,8 +55,8 @@ describe("renderTurnHistory", () => {
     const actions: TurnAction[] = [
       { player: "Bob", actionNumber: 2, time: null, logIndex: 0, actions: [{ actionType: "dogma", cardName: "Philosophy", cardAge: null, cardSet: null }] },
     ];
-    const html = renderTurnHistory(actions, cardDb, PERSPECTIVE);
-    expect(html).toContain("opp:");
+    const html = renderTurnHistory(actions, cardDb, PLAYERS);
+    expect(html).toContain("Bob:");
     expect(html).toContain("dogma");
     expect(html).toContain("Philosophy");
     expect(html).toContain('class="th-card"');
@@ -62,7 +66,7 @@ describe("renderTurnHistory", () => {
     const actions: TurnAction[] = [
       { player: "Alice", actionNumber: 1, time: null, logIndex: 0, actions: [{ actionType: "endorse", cardName: "Compass", cardAge: null, cardSet: null }] },
     ];
-    const html = renderTurnHistory(actions, cardDb, PERSPECTIVE);
+    const html = renderTurnHistory(actions, cardDb, PLAYERS);
     expect(html).toContain("endorse");
     expect(html).toContain("Compass");
   });
@@ -71,7 +75,7 @@ describe("renderTurnHistory", () => {
     const actions: TurnAction[] = [
       { player: "Bob", actionNumber: 1, time: null, logIndex: 0, actions: [{ actionType: "draw", cardName: "Construction", cardAge: 4, cardSet: "base" }] },
     ];
-    const html = renderTurnHistory(actions, cardDb, PERSPECTIVE);
+    const html = renderTurnHistory(actions, cardDb, PLAYERS);
     expect(html).toContain("draw");
     expect(html).toContain("Construction");
     expect(html).toContain('class="th-card"');
@@ -81,7 +85,7 @@ describe("renderTurnHistory", () => {
     const actions: TurnAction[] = [
       { player: "Alice", actionNumber: 2, time: null, logIndex: 0, actions: [{ actionType: "draw", cardName: null, cardAge: 2, cardSet: "base" }] },
     ];
-    const html = renderTurnHistory(actions, cardDb, PERSPECTIVE);
+    const html = renderTurnHistory(actions, cardDb, PLAYERS);
     expect(html).toContain("draw [2]");
     // Should not include "base" set label
     expect(html).not.toContain("base");
@@ -91,7 +95,7 @@ describe("renderTurnHistory", () => {
     const actions: TurnAction[] = [
       { player: "Bob", actionNumber: 1, time: null, logIndex: 0, actions: [{ actionType: "draw", cardName: null, cardAge: 3, cardSet: "echoes" }] },
     ];
-    const html = renderTurnHistory(actions, cardDb, PERSPECTIVE);
+    const html = renderTurnHistory(actions, cardDb, PLAYERS);
     expect(html).toContain("draw [3] echoes");
   });
 
@@ -99,7 +103,7 @@ describe("renderTurnHistory", () => {
     const actions: TurnAction[] = [
       { player: "Alice", actionNumber: 1, time: null, logIndex: 0, actions: [{ actionType: "achieve", cardName: null, cardAge: 3, cardSet: null }] },
     ];
-    const html = renderTurnHistory(actions, cardDb, PERSPECTIVE);
+    const html = renderTurnHistory(actions, cardDb, PLAYERS);
     expect(html).toContain("achieve [3]");
   });
 
@@ -107,9 +111,9 @@ describe("renderTurnHistory", () => {
     const actions: TurnAction[] = [
       { player: "Alice", actionNumber: 0, time: null, logIndex: 0, actions: [{ actionType: "artifact_pass", cardName: "Holmegaard Bows", cardAge: 1, cardSet: "artifacts" }] },
     ];
-    const html = renderTurnHistory(actions, cardDb, PERSPECTIVE);
+    const html = renderTurnHistory(actions, cardDb, PLAYERS);
     expect(html).toContain("th-artifact");
-    expect(html).toContain("you:");
+    expect(html).toContain("Alice:");
     expect(html).toContain("pass");
     expect(html).toContain("Holmegaard Bows");
     expect(html).toContain("artifact");
@@ -120,9 +124,9 @@ describe("renderTurnHistory", () => {
     const actions: TurnAction[] = [
       { player: "Bob", actionNumber: 0, time: null, logIndex: 0, actions: [{ actionType: "artifact_return", cardName: "Tools", cardAge: 1, cardSet: "artifacts" }] },
     ];
-    const html = renderTurnHistory(actions, cardDb, PERSPECTIVE);
+    const html = renderTurnHistory(actions, cardDb, PLAYERS);
     expect(html).toContain("th-artifact");
-    expect(html).toContain("opp:");
+    expect(html).toContain("Bob:");
     expect(html).toContain("return");
     expect(html).toContain("Tools");
     expect(html).toContain("artifact");
@@ -132,7 +136,7 @@ describe("renderTurnHistory", () => {
     const actions: TurnAction[] = [
       { player: "Alice", actionNumber: 0, time: null, logIndex: 0, actions: [{ actionType: "artifact_dogma", cardName: "Philosopher's Stone", cardAge: 3, cardSet: "artifacts" }] },
     ];
-    const html = renderTurnHistory(actions, cardDb, PERSPECTIVE);
+    const html = renderTurnHistory(actions, cardDb, PLAYERS);
     expect(html).toContain("th-artifact");
     expect(html).toContain("dogma");
     expect(html).toContain("Philosopher");
@@ -145,7 +149,7 @@ describe("renderTurnHistory", () => {
       { player: "Alice", actionNumber: 1, time: null, logIndex: 1, actions: [{ actionType: "meld", cardName: "Agriculture", cardAge: 1, cardSet: "base" }] },
       { player: "Alice", actionNumber: 2, time: null, logIndex: 2, actions: [{ actionType: "dogma", cardName: "Philosophy", cardAge: null, cardSet: null }] },
     ];
-    const html = renderTurnHistory(actions, cardDb, PERSPECTIVE);
+    const html = renderTurnHistory(actions, cardDb, PLAYERS);
     expect(html).not.toContain("turn-group-sep");
   });
 
@@ -153,21 +157,23 @@ describe("renderTurnHistory", () => {
     const actions: TurnAction[] = [
       { player: "Bob", actionNumber: 1, time: null, logIndex: 0, actions: [{ actionType: "pending", cardName: null, cardAge: null, cardSet: null }] },
     ];
-    const html = renderTurnHistory(actions, cardDb, PERSPECTIVE);
-    expect(html).toContain("th-opp");
-    expect(html).toContain("opp:");
+    const html = renderTurnHistory(actions, cardDb, PLAYERS);
+    expect(html).toContain("Bob:");
     // Pending should not have action text after the colon
-    expect(html).not.toMatch(/opp:.*\b(meld|draw|dogma|endorse|achieve)\b/);
+    expect(html).not.toMatch(/Bob:.*\b(meld|draw|dogma|endorse|achieve)\b/);
   });
 
-  it("uses th-me class for perspective player and th-opp for opponent", () => {
+  it("emits per-player BGA colors and the th-me observer class", () => {
     const actions: TurnAction[] = [
       { player: "Alice", actionNumber: 1, time: null, logIndex: 0, actions: [{ actionType: "meld", cardName: "Agriculture", cardAge: 1, cardSet: "base" }] },
       { player: "Bob", actionNumber: 1, time: null, logIndex: 0, actions: [{ actionType: "draw", cardName: null, cardAge: 1, cardSet: "base" }] },
     ];
-    const html = renderTurnHistory(actions, cardDb, PERSPECTIVE);
+    const html = renderTurnHistory(actions, cardDb, PLAYERS);
+    // Observer (Alice) row gets the th-me class for the background-tint affordance
     expect(html).toContain("th-me");
-    expect(html).toContain("th-opp");
+    // Both rows carry their player's BGA color via inline style
+    expect(html).toContain("--player-color: #ff0000");
+    expect(html).toContain("--player-color: #0000ff");
   });
 
   it("adds group separator between different players", () => {
@@ -176,7 +182,7 @@ describe("renderTurnHistory", () => {
       { player: "Alice", actionNumber: 2, time: null, logIndex: 0, actions: [{ actionType: "draw", cardName: null, cardAge: 2, cardSet: "base" }] },
       { player: "Bob", actionNumber: 1, time: null, logIndex: 0, actions: [{ actionType: "meld", cardName: "Tools", cardAge: 1, cardSet: "base" }] },
     ];
-    const html = renderTurnHistory(actions, cardDb, PERSPECTIVE);
+    const html = renderTurnHistory(actions, cardDb, PLAYERS);
     expect(html).toContain('class="turn-group-sep"');
     // Should have exactly one separator (between Alice and Bob)
     const sepCount = (html.match(/turn-group-sep/g) || []).length;
@@ -188,7 +194,7 @@ describe("renderTurnHistory", () => {
       { player: "Alice", actionNumber: 1, time: null, logIndex: 0, actions: [{ actionType: "meld", cardName: "Agriculture", cardAge: 1, cardSet: "base" }] },
       { player: "Alice", actionNumber: 2, time: null, logIndex: 0, actions: [{ actionType: "draw", cardName: null, cardAge: 1, cardSet: "base" }] },
     ];
-    const html = renderTurnHistory(actions, cardDb, PERSPECTIVE);
+    const html = renderTurnHistory(actions, cardDb, PLAYERS);
     expect(html).not.toContain("turn-group-sep");
   });
 
@@ -196,7 +202,7 @@ describe("renderTurnHistory", () => {
     const actions: TurnAction[] = [
       { player: "Alice", actionNumber: 1, time: 1710000000, logIndex: 0, actions: [{ actionType: "meld", cardName: "Agriculture", cardAge: 1, cardSet: "base" }] },
     ];
-    const html = renderTurnHistory(actions, cardDb, PERSPECTIVE);
+    const html = renderTurnHistory(actions, cardDb, PLAYERS);
     expect(html).toContain('class="th-time"');
   });
 
@@ -204,7 +210,7 @@ describe("renderTurnHistory", () => {
     const actions: TurnAction[] = [
       { player: "Alice", actionNumber: 1, time: null, logIndex: 0, actions: [{ actionType: "meld", cardName: "Agriculture", cardAge: 1, cardSet: "base" }] },
     ];
-    const html = renderTurnHistory(actions, cardDb, PERSPECTIVE);
+    const html = renderTurnHistory(actions, cardDb, PLAYERS);
     expect(html).not.toContain("th-time");
   });
 
@@ -216,9 +222,9 @@ describe("renderTurnHistory", () => {
         { actionType: "dogma", cardName: "Feudalism", cardAge: null, cardSet: null },
       ] },
     ];
-    const html = renderTurnHistory(actions, cardDb, PERSPECTIVE);
+    const html = renderTurnHistory(actions, cardDb, PLAYERS);
     // Primary line
-    expect(html).toContain("you:");
+    expect(html).toContain("Alice:");
     expect(html).toContain("meld");
     // Sub-action lines with arrow prefix
     expect(html).toContain("\u2192 promote");
@@ -229,19 +235,19 @@ describe("renderTurnHistory", () => {
     expect(subLines).toHaveLength(2);
   });
 
-  it("sub-action lines inherit player color class but have no player label", () => {
+  it("sub-action lines carry the player's BGA color but have no player label", () => {
     const actions: TurnAction[] = [
       { player: "Bob", actionNumber: 1, time: null, logIndex: 0, actions: [
         { actionType: "meld", cardName: "Agriculture", cardAge: 1, cardSet: "base" },
         { actionType: "promote", cardName: "Feudalism", cardAge: 4, cardSet: "echoes" },
       ] },
     ];
-    const html = renderTurnHistory(actions, cardDb, PERSPECTIVE);
-    // Sub-action line should have th-opp but no "opp:" label
-    const subLineMatch = html.match(/<div class="turn-action th-sub th-opp">[\s\S]*?<\/div>/);
+    const html = renderTurnHistory(actions, cardDb, PLAYERS);
+    // Sub-action line carries Bob's BGA color but no "Bob:" / "Alice:" name label
+    const subLineMatch = html.match(/<div class="turn-action th-sub" style="--player-color: #0000ff">[\s\S]*?<\/div>/);
     expect(subLineMatch).not.toBeNull();
-    expect(subLineMatch![0]).not.toContain("opp:");
-    expect(subLineMatch![0]).not.toContain("you:");
+    expect(subLineMatch![0]).not.toContain("Bob:");
+    expect(subLineMatch![0]).not.toContain("Alice:");
   });
 });
 

@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { recentTurns, type TurnAction } from "../turn_history.js";
 import { processRawLog } from "../process_log.js";
+import { mkPlayers } from "../../../__tests__/helpers/players.js";
 
 // ---------------------------------------------------------------------------
 // Helpers — build raw BGA packets for processRawLog
@@ -44,7 +45,7 @@ function stateChange15(playerId: string) {
   return { type: "gameStateChange", args: { id: 15, active_player: playerId } };
 }
 
-const PLAYERS = { "100": "Alice", "200": "Bob" };
+const PLAYERS = mkPlayers({ "100": "Alice", "200": "Bob" });
 
 function extractActions(packets: any[]): TurnAction[] {
   return processRawLog({ gameName: "innovation", players: PLAYERS, packets: packets.flat() }).actions;
@@ -65,7 +66,7 @@ describe("action classification", () => {
       makePackets(10, [stateChange("100", 1)], [{ type: "log_spectator", args: { log: "<!--empty-->" } }, stateChange("100", 1)]),
       makePackets(11, [playerTransfer({ name: "Agriculture", age: 1, location_from: "hand", location_to: "board", meld_keyword: true })], [spectatorTransfer(), stateChange("200", 1)]),
     ]);
-    expect(actions[0]).toMatchObject({ player: "Alice", actionNumber: 1, actions: [{ actionType: "meld", cardName: "Agriculture", cardAge: 1, cardSet: "base" }] });
+    expect(actions[0]).toMatchObject({ player: "100", actionNumber: 1, actions: [{ actionType: "meld", cardName: "Agriculture", cardAge: 1, cardSet: "base" }] });
   });
 
   it("classifies draw action", () => {
@@ -73,7 +74,7 @@ describe("action classification", () => {
       makePackets(10, [stateChange("200", 2)], [{ type: "log_spectator", args: { log: "<!--empty-->" } }, stateChange("200", 2)]),
       makePackets(11, [playerTransfer({ name: "Construction", age: 4, location_from: "deck", location_to: "hand" })], [spectatorTransfer(), stateChange("100", 1)]),
     ]);
-    expect(actions[0]).toMatchObject({ player: "Bob", actionNumber: 2, actions: [{ actionType: "draw", cardName: "Construction", cardAge: 4, cardSet: "base" }] });
+    expect(actions[0]).toMatchObject({ player: "200", actionNumber: 2, actions: [{ actionType: "draw", cardName: "Construction", cardAge: 4, cardSet: "base" }] });
   });
 
   it("classifies draw with unknown card", () => {
@@ -81,7 +82,7 @@ describe("action classification", () => {
       makePackets(10, [stateChange("200", 1)], [{ type: "log_spectator", args: { log: "<!--empty-->" } }, stateChange("200", 1)]),
       makePackets(11, [playerTransfer({ age: 2, type: "3" })], [spectatorTransfer("3"), stateChange("100", 1)]),
     ]);
-    expect(actions[0]).toMatchObject({ player: "Bob", actions: [{ actionType: "draw", cardName: null, cardAge: 2, cardSet: "echoes" }] });
+    expect(actions[0]).toMatchObject({ player: "200", actions: [{ actionType: "draw", cardName: null, cardAge: 2, cardSet: "echoes" }] });
   });
 
   it("classifies dogma action", () => {
@@ -89,7 +90,7 @@ describe("action classification", () => {
       makePackets(10, [stateChange("100", 2)], [{ type: "log_spectator", args: { log: "<!--empty-->" } }, stateChange("100", 2)]),
       makePackets(11, [], [spectatorLog("Alice activates the dogma of 1 Agriculture with [crown]"), stateChange("200", 1)]),
     ]);
-    expect(actions[0]).toMatchObject({ player: "Alice", actionNumber: 2, actions: [{ actionType: "dogma", cardName: "Agriculture" }] });
+    expect(actions[0]).toMatchObject({ player: "100", actionNumber: 2, actions: [{ actionType: "dogma", cardName: "Agriculture" }] });
   });
 
   it("classifies endorse action", () => {
@@ -97,7 +98,7 @@ describe("action classification", () => {
       makePackets(10, [stateChange("200", 1)], [{ type: "log_spectator", args: { log: "<!--empty-->" } }, stateChange("200", 1)]),
       makePackets(11, [], [spectatorLog("Bob endorses the dogma of 3 Compass with [crown]"), stateChange("100", 1)]),
     ]);
-    expect(actions[0]).toMatchObject({ player: "Bob", actionNumber: 1, actions: [{ actionType: "endorse", cardName: "Compass" }] });
+    expect(actions[0]).toMatchObject({ player: "200", actionNumber: 1, actions: [{ actionType: "endorse", cardName: "Compass" }] });
   });
 
   it("classifies achieve action", () => {
@@ -105,7 +106,7 @@ describe("action classification", () => {
       makePackets(10, [stateChange("100", 1)], [{ type: "log_spectator", args: { log: "<!--empty-->" } }, stateChange("100", 1)]),
       makePackets(11, [playerTransfer({ age: 3, location_from: "achievements", location_to: "achievements" })], [spectatorTransfer(), stateChange("200", 1)]),
     ]);
-    expect(actions[0]).toMatchObject({ player: "Alice", actionNumber: 1, actions: [{ actionType: "achieve", cardAge: 3 }] });
+    expect(actions[0]).toMatchObject({ player: "100", actionNumber: 1, actions: [{ actionType: "achieve", cardAge: 3 }] });
   });
 
   it("classifies pending action (no subsequent entries)", () => {
@@ -113,7 +114,7 @@ describe("action classification", () => {
       makePackets(10, [stateChange("200", 1)], [{ type: "log_spectator", args: { log: "<!--empty-->" } }, stateChange("200", 1)]),
     ]);
     expect(actions).toHaveLength(1);
-    expect(actions[0]).toMatchObject({ player: "Bob", actionNumber: 1, actions: [{ actionType: "pending" }] });
+    expect(actions[0]).toMatchObject({ player: "200", actionNumber: 1, actions: [{ actionType: "pending" }] });
   });
 
   it("handles multiple turns in sequence", () => {
@@ -138,10 +139,10 @@ describe("action classification", () => {
         [spectatorTransfer()]),
     ]);
     expect(actions).toHaveLength(4);
-    expect(actions[0]).toMatchObject({ player: "Alice", actionNumber: 1, actions: [{ actionType: "meld", cardName: "Pottery" }] });
-    expect(actions[1]).toMatchObject({ player: "Alice", actionNumber: 2, actions: [{ actionType: "draw" }] });
-    expect(actions[2]).toMatchObject({ player: "Bob", actionNumber: 1, actions: [{ actionType: "dogma", cardName: "Agriculture" }] });
-    expect(actions[3]).toMatchObject({ player: "Bob", actionNumber: 2, actions: [{ actionType: "meld", cardName: "Tools" }] });
+    expect(actions[0]).toMatchObject({ player: "100", actionNumber: 1, actions: [{ actionType: "meld", cardName: "Pottery" }] });
+    expect(actions[1]).toMatchObject({ player: "100", actionNumber: 2, actions: [{ actionType: "draw" }] });
+    expect(actions[2]).toMatchObject({ player: "200", actionNumber: 1, actions: [{ actionType: "dogma", cardName: "Agriculture" }] });
+    expect(actions[3]).toMatchObject({ player: "200", actionNumber: 2, actions: [{ actionType: "meld", cardName: "Tools" }] });
   });
 
   it("classifies artifact_pass as actionNumber:0 with name from display tracking", () => {
@@ -159,8 +160,8 @@ describe("action classification", () => {
         [stateChange("100", 1), playerTransfer({ name: "Agriculture", age: 1, location_from: "hand", location_to: "board", meld_keyword: true })],
         [{ type: "log_spectator", args: { log: "<!--empty-->" } }, stateChange("100", 1), spectatorTransfer(), stateChange("200", 1)]),
     ]);
-    expect(actions[0]).toMatchObject({ player: "Alice", actionNumber: 0, actions: [{ actionType: "artifact_pass", cardName: "Holmegaard Bows", cardAge: 1, cardSet: "artifacts" }] });
-    expect(actions[1]).toMatchObject({ player: "Alice", actionNumber: 1, actions: [{ actionType: "meld", cardName: "Agriculture" }] });
+    expect(actions[0]).toMatchObject({ player: "100", actionNumber: 0, actions: [{ actionType: "artifact_pass", cardName: "Holmegaard Bows", cardAge: 1, cardSet: "artifacts" }] });
+    expect(actions[1]).toMatchObject({ player: "100", actionNumber: 1, actions: [{ actionType: "meld", cardName: "Agriculture" }] });
   });
 
   it("classifies a regular meld of an Artifact from display→board (table 841259361)", () => {
@@ -187,9 +188,9 @@ describe("action classification", () => {
         [playerTransfer({ age: 4, type: "3" })],
         [spectatorTransfer("3"), stateChange("200", 1)]),
     ]);
-    expect(actions[0]).toMatchObject({ player: "Alice", actionNumber: 0, actions: [{ actionType: "artifact_pass", cardName: "Holmegaard Bows", cardAge: 1, cardSet: "artifacts" }] });
-    expect(actions[1]).toMatchObject({ player: "Alice", actionNumber: 1, actions: [{ actionType: "meld", cardName: "Holmegaard Bows", cardAge: 1, cardSet: "artifacts" }] });
-    expect(actions[2]).toMatchObject({ player: "Alice", actionNumber: 2, actions: [{ actionType: "draw", cardAge: 4, cardSet: "echoes" }] });
+    expect(actions[0]).toMatchObject({ player: "100", actionNumber: 0, actions: [{ actionType: "artifact_pass", cardName: "Holmegaard Bows", cardAge: 1, cardSet: "artifacts" }] });
+    expect(actions[1]).toMatchObject({ player: "100", actionNumber: 1, actions: [{ actionType: "meld", cardName: "Holmegaard Bows", cardAge: 1, cardSet: "artifacts" }] });
+    expect(actions[2]).toMatchObject({ player: "100", actionNumber: 2, actions: [{ actionType: "draw", cardAge: 4, cardSet: "echoes" }] });
   });
 
   it("classifies a meld of an Artifact from display→board as action 2", () => {
@@ -212,8 +213,8 @@ describe("action classification", () => {
         [playerTransfer({ name: "Holmegaard Bows", age: 1, location_from: "display", location_to: "board", owner_from: "200", owner_to: "200", meld_keyword: true, type: "1" })],
         [spectatorTransfer("1"), stateChange("100", 1)]),
     ]);
-    expect(actions[1]).toMatchObject({ player: "Bob", actionNumber: 1, actions: [{ actionType: "draw" }] });
-    expect(actions[2]).toMatchObject({ player: "Bob", actionNumber: 2, actions: [{ actionType: "meld", cardName: "Holmegaard Bows", cardSet: "artifacts" }] });
+    expect(actions[1]).toMatchObject({ player: "200", actionNumber: 1, actions: [{ actionType: "draw" }] });
+    expect(actions[2]).toMatchObject({ player: "200", actionNumber: 2, actions: [{ actionType: "meld", cardName: "Holmegaard Bows", cardSet: "artifacts" }] });
   });
 
   it("classifies artifact_return as actionNumber:0 with name from transfer", () => {
@@ -233,8 +234,8 @@ describe("action classification", () => {
         [stateChange("100", 1), playerTransfer({ name: "Agriculture", age: 1, location_from: "hand", location_to: "board", meld_keyword: true })],
         [{ type: "log_spectator", args: { log: "<!--empty-->" } }, stateChange("100", 1), spectatorTransfer(), stateChange("200", 1)]),
     ]);
-    expect(actions[0]).toMatchObject({ player: "Alice", actionNumber: 0, actions: [{ actionType: "artifact_return", cardName: "Tools", cardAge: 1, cardSet: "artifacts" }] });
-    expect(actions[1]).toMatchObject({ player: "Alice", actionNumber: 1, actions: [{ actionType: "meld", cardName: "Agriculture" }] });
+    expect(actions[0]).toMatchObject({ player: "100", actionNumber: 0, actions: [{ actionType: "artifact_return", cardName: "Tools", cardAge: 1, cardSet: "artifacts" }] });
+    expect(actions[1]).toMatchObject({ player: "100", actionNumber: 1, actions: [{ actionType: "meld", cardName: "Agriculture" }] });
   });
 
   it("classifies artifact_dogma (FAD) as actionNumber:0 preceding regular actions", () => {
@@ -254,11 +255,11 @@ describe("action classification", () => {
         [stateChange("100", 1), playerTransfer({ name: "Agriculture", age: 1, location_from: "hand", location_to: "board", meld_keyword: true })],
         [{ type: "log_spectator", args: { log: "<!--empty-->" } }, stateChange("100", 1), spectatorTransfer(), stateChange("200", 1)]),
     ]);
-    expect(actions[0]).toMatchObject({ player: "Alice", actionNumber: 0, actions: [{ actionType: "artifact_dogma", cardName: "Holmegaard Bows", cardAge: 1, cardSet: "artifacts" }] });
+    expect(actions[0]).toMatchObject({ player: "100", actionNumber: 0, actions: [{ actionType: "artifact_dogma", cardName: "Holmegaard Bows", cardAge: 1, cardSet: "artifacts" }] });
     // The auto-return transfer is NOT re-classified as artifact_return
     expect(actions.filter((a) => a.actions[0].actionType === "artifact_return")).toHaveLength(0);
     // The regular first action (meld) still classifies
-    expect(actions[1]).toMatchObject({ player: "Alice", actionNumber: 1, actions: [{ actionType: "meld", cardName: "Agriculture" }] });
+    expect(actions[1]).toMatchObject({ player: "100", actionNumber: 1, actions: [{ actionType: "meld", cardName: "Agriculture" }] });
   });
 
   it("emits no artifact step when id:15 does not fire", () => {
@@ -281,9 +282,9 @@ describe("action classification", () => {
         [spectatorTransfer(), stateChange("200", 1)]),
     ]);
     expect(actions).toHaveLength(3);
-    expect(actions[0]).toMatchObject({ player: "Alice", actions: [{ actionType: "meld", cardName: "Pottery" }] });
-    expect(actions[1]).toMatchObject({ player: "Alice", actions: [{ actionType: "meld", cardName: "Tools" }] });
-    expect(actions[2]).toMatchObject({ player: "Bob", actions: [{ actionType: "pending" }] });
+    expect(actions[0]).toMatchObject({ player: "100", actions: [{ actionType: "meld", cardName: "Pottery" }] });
+    expect(actions[1]).toMatchObject({ player: "100", actions: [{ actionType: "meld", cardName: "Tools" }] });
+    expect(actions[2]).toMatchObject({ player: "200", actions: [{ actionType: "pending" }] });
   });
 });
 
@@ -293,12 +294,12 @@ describe("action classification", () => {
 
 describe("recentTurns", () => {
   const sampleActions: TurnAction[] = [
-    { player: "Alice", actionNumber: 1, time: null, logIndex: 0, actions: [{ actionType: "meld", cardName: "Pottery", cardAge: 1, cardSet: "base" }] },
-    { player: "Alice", actionNumber: 2, time: null, logIndex: 1, actions: [{ actionType: "draw", cardName: null, cardAge: 1, cardSet: "base" }] },
-    { player: "Bob", actionNumber: 1, time: null, logIndex: 2, actions: [{ actionType: "dogma", cardName: "Agriculture", cardAge: null, cardSet: null }] },
-    { player: "Bob", actionNumber: 2, time: null, logIndex: 3, actions: [{ actionType: "meld", cardName: "Tools", cardAge: 1, cardSet: "base" }] },
-    { player: "Alice", actionNumber: 1, time: null, logIndex: 4, actions: [{ actionType: "dogma", cardName: "Philosophy", cardAge: null, cardSet: null }] },
-    { player: "Alice", actionNumber: 2, time: null, logIndex: 5, actions: [{ actionType: "draw", cardName: null, cardAge: 2, cardSet: "base" }] },
+    { player: "100", actionNumber: 1, time: null, logIndex: 0, actions: [{ actionType: "meld", cardName: "Pottery", cardAge: 1, cardSet: "base" }] },
+    { player: "100", actionNumber: 2, time: null, logIndex: 1, actions: [{ actionType: "draw", cardName: null, cardAge: 1, cardSet: "base" }] },
+    { player: "200", actionNumber: 1, time: null, logIndex: 2, actions: [{ actionType: "dogma", cardName: "Agriculture", cardAge: null, cardSet: null }] },
+    { player: "200", actionNumber: 2, time: null, logIndex: 3, actions: [{ actionType: "meld", cardName: "Tools", cardAge: 1, cardSet: "base" }] },
+    { player: "100", actionNumber: 1, time: null, logIndex: 4, actions: [{ actionType: "dogma", cardName: "Philosophy", cardAge: null, cardSet: null }] },
+    { player: "100", actionNumber: 2, time: null, logIndex: 5, actions: [{ actionType: "draw", cardName: null, cardAge: 2, cardSet: "base" }] },
   ];
 
   it("returns empty for count=0", () => {
@@ -312,9 +313,9 @@ describe("recentTurns", () => {
   it("returns last half-turn for count=1, chronological order", () => {
     const result = recentTurns(sampleActions, 1);
     expect(result).toHaveLength(2);
-    expect(result[0].player).toBe("Alice");
+    expect(result[0].player).toBe("100");
     expect(result[0].actions[0].actionType).toBe("dogma");
-    expect(result[1].player).toBe("Alice");
+    expect(result[1].player).toBe("100");
     expect(result[1].actions[0].actionType).toBe("draw");
   });
 
@@ -322,14 +323,14 @@ describe("recentTurns", () => {
     const result = recentTurns(sampleActions, 2);
     expect(result).toHaveLength(4);
     // Oldest half-turn first (Bob's turn), oldest action first within
-    expect(result[0].player).toBe("Bob");
+    expect(result[0].player).toBe("200");
     expect(result[0].actions[0].actionType).toBe("dogma");
-    expect(result[1].player).toBe("Bob");
+    expect(result[1].player).toBe("200");
     expect(result[1].actions[0].actionType).toBe("meld");
     // Then Alice's second turn, oldest action first within
-    expect(result[2].player).toBe("Alice");
+    expect(result[2].player).toBe("100");
     expect(result[2].actions[0].actionType).toBe("dogma");
-    expect(result[3].player).toBe("Alice");
+    expect(result[3].player).toBe("100");
     expect(result[3].actions[0].actionType).toBe("draw");
   });
 
@@ -337,12 +338,12 @@ describe("recentTurns", () => {
     const result = recentTurns(sampleActions, 3);
     expect(result).toHaveLength(6);
     // All 3 half-turns, chronological order
-    expect(result[0]).toMatchObject({ player: "Alice", actions: [{ actionType: "meld" }] });
-    expect(result[1]).toMatchObject({ player: "Alice", actions: [{ actionType: "draw" }] });
-    expect(result[2]).toMatchObject({ player: "Bob", actions: [{ actionType: "dogma" }] });
-    expect(result[3]).toMatchObject({ player: "Bob", actions: [{ actionType: "meld" }] });
-    expect(result[4]).toMatchObject({ player: "Alice", actions: [{ actionType: "dogma" }] });
-    expect(result[5]).toMatchObject({ player: "Alice", actions: [{ actionType: "draw" }] });
+    expect(result[0]).toMatchObject({ player: "100", actions: [{ actionType: "meld" }] });
+    expect(result[1]).toMatchObject({ player: "100", actions: [{ actionType: "draw" }] });
+    expect(result[2]).toMatchObject({ player: "200", actions: [{ actionType: "dogma" }] });
+    expect(result[3]).toMatchObject({ player: "200", actions: [{ actionType: "meld" }] });
+    expect(result[4]).toMatchObject({ player: "100", actions: [{ actionType: "dogma" }] });
+    expect(result[5]).toMatchObject({ player: "100", actions: [{ actionType: "draw" }] });
   });
 
   it("handles count larger than available half-turns", () => {
@@ -352,29 +353,29 @@ describe("recentTurns", () => {
 
   it("groups an artifact step (actionNumber:0) with the following regular actions of the same player", () => {
     const actions: TurnAction[] = [
-      { player: "Bob", actionNumber: 2, time: null, logIndex: 0, actions: [{ actionType: "draw", cardName: null, cardAge: 2, cardSet: "base" }] },
-      { player: "Alice", actionNumber: 0, time: null, logIndex: 1, actions: [{ actionType: "artifact_pass", cardName: "Tools", cardAge: 1, cardSet: "artifacts" }] },
-      { player: "Alice", actionNumber: 1, time: null, logIndex: 2, actions: [{ actionType: "meld", cardName: "Agriculture", cardAge: 1, cardSet: "base" }] },
-      { player: "Alice", actionNumber: 2, time: null, logIndex: 3, actions: [{ actionType: "dogma", cardName: "Philosophy", cardAge: null, cardSet: null }] },
+      { player: "200", actionNumber: 2, time: null, logIndex: 0, actions: [{ actionType: "draw", cardName: null, cardAge: 2, cardSet: "base" }] },
+      { player: "100", actionNumber: 0, time: null, logIndex: 1, actions: [{ actionType: "artifact_pass", cardName: "Tools", cardAge: 1, cardSet: "artifacts" }] },
+      { player: "100", actionNumber: 1, time: null, logIndex: 2, actions: [{ actionType: "meld", cardName: "Agriculture", cardAge: 1, cardSet: "base" }] },
+      { player: "100", actionNumber: 2, time: null, logIndex: 3, actions: [{ actionType: "dogma", cardName: "Philosophy", cardAge: null, cardSet: null }] },
     ];
     const result = recentTurns(actions, 1);
     expect(result).toHaveLength(3);
-    expect(result[0]).toMatchObject({ player: "Alice", actionNumber: 0, actions: [{ actionType: "artifact_pass" }] });
-    expect(result[1]).toMatchObject({ player: "Alice", actionNumber: 1, actions: [{ actionType: "meld" }] });
-    expect(result[2]).toMatchObject({ player: "Alice", actionNumber: 2, actions: [{ actionType: "dogma" }] });
+    expect(result[0]).toMatchObject({ player: "100", actionNumber: 0, actions: [{ actionType: "artifact_pass" }] });
+    expect(result[1]).toMatchObject({ player: "100", actionNumber: 1, actions: [{ actionType: "meld" }] });
+    expect(result[2]).toMatchObject({ player: "100", actionNumber: 2, actions: [{ actionType: "dogma" }] });
   });
 
   it("first turn (single action) is one half-turn", () => {
     const actions: TurnAction[] = [
-      { player: "Alice", actionNumber: 1, time: null, logIndex: 0, actions: [{ actionType: "meld", cardName: "Archery", cardAge: 1, cardSet: "base" }] },
-      { player: "Bob", actionNumber: 1, time: null, logIndex: 1, actions: [{ actionType: "meld", cardName: "Oars", cardAge: 1, cardSet: "base" }] },
-      { player: "Bob", actionNumber: 2, time: null, logIndex: 2, actions: [{ actionType: "draw", cardName: null, cardAge: 1, cardSet: "base" }] },
+      { player: "100", actionNumber: 1, time: null, logIndex: 0, actions: [{ actionType: "meld", cardName: "Archery", cardAge: 1, cardSet: "base" }] },
+      { player: "200", actionNumber: 1, time: null, logIndex: 1, actions: [{ actionType: "meld", cardName: "Oars", cardAge: 1, cardSet: "base" }] },
+      { player: "200", actionNumber: 2, time: null, logIndex: 2, actions: [{ actionType: "draw", cardName: null, cardAge: 1, cardSet: "base" }] },
     ];
     const result = recentTurns(actions, 2);
     expect(result).toHaveLength(3);
     // Chronological: Alice first, then Bob
-    expect(result[0]).toMatchObject({ player: "Alice", actions: [{ actionType: "meld" }] });
-    expect(result[1]).toMatchObject({ player: "Bob", actions: [{ actionType: "meld" }] });
-    expect(result[2]).toMatchObject({ player: "Bob", actions: [{ actionType: "draw" }] });
+    expect(result[0]).toMatchObject({ player: "100", actions: [{ actionType: "meld" }] });
+    expect(result[1]).toMatchObject({ player: "200", actions: [{ actionType: "meld" }] });
+    expect(result[2]).toMatchObject({ player: "200", actions: [{ actionType: "draw" }] });
   });
 });

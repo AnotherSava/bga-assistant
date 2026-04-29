@@ -83,7 +83,7 @@ export function processGameState(gameLog: GameLog | AzulGameLog | CrewGameLog, g
     const innovationLog = gameLog as GameLog;
     detectEchoes(innovationLog, cardDb);
     const players = Object.values(innovationLog.players);
-    const perspective = innovationLog.currentPlayerId && innovationLog.players[innovationLog.currentPlayerId] ? innovationLog.players[innovationLog.currentPlayerId] : players[0];
+    const perspective = innovationLog.currentPlayerId && innovationLog.players[innovationLog.currentPlayerId] ? innovationLog.currentPlayerId : players[0].id;
     const engine = new GameEngine(cardDb);
     const state = createGameState(players, perspective);
     engine.initGame(state, innovationLog.expansions, innovationLog.initialRelics);

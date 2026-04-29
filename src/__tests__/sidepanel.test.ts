@@ -17,9 +17,14 @@ import {
 } from "../games/innovation/config.js";
 import { renderSummary, renderFullPage, setAssetResolver, SUMMARY_JS } from "../games/innovation/render.js";
 import { recentTurns } from "../games/innovation/turn_history.js";
-import { CardDatabase, CardSet, Card, ageSetKey } from "../models/types.js";
+import { CardDatabase, CardSet, Card, ageSetKey, type PlayerInfo } from "../models/types.js";
 import { type GameState, createGameState } from "../games/innovation/game_state.js";
 import { GameEngine } from "../games/innovation/game_engine.js";
+
+/** Build PlayerInfo[] from a name list, treating each name as its own id. */
+function infoOf(names: string[], perspective: string): PlayerInfo[] {
+  return names.map(n => ({ id: n, name: n, colorHex: "ff0000", isCurrent: n === perspective }));
+}
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -41,7 +46,7 @@ let engine: GameEngine;
 
 function makeGameState(players: string[], perspective: string): { state: GameState; engine: GameEngine } {
   engine = new GameEngine(cardDb);
-  const state = createGameState(players, perspective);
+  const state = createGameState(infoOf(players, perspective), perspective);
   engine.initGame(state);
   return { state, engine };
 }
@@ -191,7 +196,7 @@ describe("layoutToggle", () => {
 describe("renderSummary", () => {
   it("produces HTML with all 7 section titles", () => {
     const { state: gs } = makeGameState(["Alice", "Bob"], "Alice");
-    const html = renderSummary(gs, engine, cardDb, "Alice", ["Alice", "Bob"], "12345");
+    const html = renderSummary(gs, engine, cardDb, "Alice", infoOf(["Alice", "Bob"], "Alice"), "12345");
 
     expect(html).toContain("Hand &mdash; opponent");
     expect(html).toContain("Hand &mdash; me");
@@ -204,7 +209,7 @@ describe("renderSummary", () => {
 
   it("contains tri-toggle elements", () => {
     const { state: gs } = makeGameState(["Alice", "Bob"], "Alice");
-    const html = renderSummary(gs, engine, cardDb, "Alice", ["Alice", "Bob"], "12345");
+    const html = renderSummary(gs, engine, cardDb, "Alice", infoOf(["Alice", "Bob"], "Alice"), "12345");
 
     expect(html).toContain("tri-toggle");
     expect(html).toContain("tri-opt");
@@ -213,7 +218,7 @@ describe("renderSummary", () => {
 
   it("renders unknown cards with b-gray-base class", () => {
     const { state: gs } = makeGameState(["Alice", "Bob"], "Alice");
-    const html = renderSummary(gs, engine, cardDb, "Alice", ["Alice", "Bob"], "12345");
+    const html = renderSummary(gs, engine, cardDb, "Alice", infoOf(["Alice", "Bob"], "Alice"), "12345");
 
     // Hand cards should be unresolved -> gray cards
     expect(html).toContain("b-gray-base");
@@ -221,14 +226,14 @@ describe("renderSummary", () => {
 
   it("renders card-age elements", () => {
     const { state: gs } = makeGameState(["Alice", "Bob"], "Alice");
-    const html = renderSummary(gs, engine, cardDb, "Alice", ["Alice", "Bob"], "12345");
+    const html = renderSummary(gs, engine, cardDb, "Alice", infoOf(["Alice", "Bob"], "Alice"), "12345");
 
     expect(html).toContain('class="card-age"');
   });
 
   it("renders deck section with age labels", () => {
     const { state: gs } = makeGameState(["Alice", "Bob"], "Alice");
-    const html = renderSummary(gs, engine, cardDb, "Alice", ["Alice", "Bob"], "12345");
+    const html = renderSummary(gs, engine, cardDb, "Alice", infoOf(["Alice", "Bob"], "Alice"), "12345");
 
     expect(html).toContain("section-row");
     expect(html).toContain("row-label");
@@ -236,7 +241,7 @@ describe("renderSummary", () => {
 
   it("renders section divs with data-section attributes", () => {
     const { state: gs } = makeGameState(["Alice", "Bob"], "Alice");
-    const html = renderSummary(gs, engine, cardDb, "Alice", ["Alice", "Bob"], "12345");
+    const html = renderSummary(gs, engine, cardDb, "Alice", infoOf(["Alice", "Bob"], "Alice"), "12345");
 
     expect(html).toContain('data-section="hand-opponent"');
     expect(html).toContain('data-section="hand-me"');
@@ -247,7 +252,7 @@ describe("renderSummary", () => {
 
   it("renders section divs with IDs for toggle targeting", () => {
     const { state: gs } = makeGameState(["Alice", "Bob"], "Alice");
-    const html = renderSummary(gs, engine, cardDb, "Alice", ["Alice", "Bob"], "12345");
+    const html = renderSummary(gs, engine, cardDb, "Alice", infoOf(["Alice", "Bob"], "Alice"), "12345");
 
     expect(html).toContain('id="hand-opponent"');
     expect(html).toContain('id="deck"');
@@ -256,7 +261,7 @@ describe("renderSummary", () => {
 
   it("cards section defaults to base with unknown filter", () => {
     const { state: gs } = makeGameState(["Alice", "Bob"], "Alice");
-    const html = renderSummary(gs, engine, cardDb, "Alice", ["Alice", "Bob"], "12345");
+    const html = renderSummary(gs, engine, cardDb, "Alice", infoOf(["Alice", "Bob"], "Alice"), "12345");
 
     // Cards visible (no display:none), with mode-unknown class
     expect(html).toContain('id="cards" class="mode-unknown"');
@@ -264,7 +269,7 @@ describe("renderSummary", () => {
 
   it("deck section shows base set by default and hides echoes/cities", () => {
     const { state: gs } = makeGameState(["Alice", "Bob"], "Alice");
-    const html = renderSummary(gs, engine, cardDb, "Alice", ["Alice", "Bob"], "12345");
+    const html = renderSummary(gs, engine, cardDb, "Alice", infoOf(["Alice", "Bob"], "Alice"), "12345");
 
     // Extract deck section content — use enough chars to include all sets
     const deckStart = html.indexOf('id="deck"');
@@ -285,7 +290,7 @@ describe("renderSummary", () => {
 
   it("cards section contains all three data-set containers", () => {
     const { state: gs } = makeGameState(["Alice", "Bob"], "Alice");
-    const html = renderSummary(gs, engine, cardDb, "Alice", ["Alice", "Bob"], "12345");
+    const html = renderSummary(gs, engine, cardDb, "Alice", infoOf(["Alice", "Bob"], "Alice"), "12345");
 
     const cardsStart = html.indexOf('id="cards"');
     const cardsHtml = html.slice(cardsStart);
@@ -297,7 +302,7 @@ describe("renderSummary", () => {
 
   it("deck section has Hide/Base/Echoes/Cities composite toggle", () => {
     const { state: gs } = makeGameState(["Alice", "Bob"], "Alice");
-    const html = renderSummary(gs, engine, cardDb, "Alice", ["Alice", "Bob"], "12345");
+    const html = renderSummary(gs, engine, cardDb, "Alice", infoOf(["Alice", "Bob"], "Alice"), "12345");
 
     // Find the Deck section title area
     const deckTitleIdx = html.indexOf(">Deck");
@@ -315,7 +320,7 @@ describe("renderSummary", () => {
 
   it("cards section has All/Unknown and Wide/Tall toggles alongside set toggle", () => {
     const { state: gs } = makeGameState(["Alice", "Bob"], "Alice");
-    const html = renderSummary(gs, engine, cardDb, "Alice", ["Alice", "Bob"], "12345");
+    const html = renderSummary(gs, engine, cardDb, "Alice", infoOf(["Alice", "Bob"], "Alice"), "12345");
 
     // Find the Cards section title area
     const cardsTitleIdx = html.indexOf(">Cards");
@@ -337,7 +342,7 @@ describe("renderSummary", () => {
 
   it("hides extra toggles initially when section defaults to none", () => {
     const { state: gs } = makeGameState(["Alice", "Bob"], "Alice");
-    const html = renderSummary(gs, engine, cardDb, "Alice", ["Alice", "Bob"], "12345");
+    const html = renderSummary(gs, engine, cardDb, "Alice", infoOf(["Alice", "Bob"], "Alice"), "12345");
 
     // Achievements defaults to "none" — its Wide/Tall toggle should be hidden
     const achTitleIdx = html.indexOf(">Achievements");
@@ -349,7 +354,7 @@ describe("renderSummary", () => {
 
   it("shows extra toggles when section is visible", () => {
     const { state: gs } = makeGameState(["Alice", "Bob"], "Alice");
-    const html = renderSummary(gs, engine, cardDb, "Alice", ["Alice", "Bob"], "12345");
+    const html = renderSummary(gs, engine, cardDb, "Alice", infoOf(["Alice", "Bob"], "Alice"), "12345");
 
     // Cards defaults to "base" — its extra toggles should be visible (no display:none)
     const cardsTitleIdx = html.indexOf(">Cards");
@@ -361,7 +366,7 @@ describe("renderSummary", () => {
   it("renders resolved cards with known card info", () => {
     const { state: gs } = makeGameState(["Alice", "Bob"], "Alice");
     engine.resolveHand(gs, "Alice", ["agriculture", "archery"]);
-    const html = renderSummary(gs, engine, cardDb, "Alice", ["Alice", "Bob"], "12345");
+    const html = renderSummary(gs, engine, cardDb, "Alice", infoOf(["Alice", "Bob"], "Alice"), "12345");
 
     expect(html).toContain("Agriculture");
     expect(html).toContain("Archery");
@@ -370,7 +375,7 @@ describe("renderSummary", () => {
   it("renders icon images for known base cards", () => {
     const { state: gs } = makeGameState(["Alice", "Bob"], "Alice");
     engine.resolveHand(gs, "Alice", ["agriculture", "archery"]);
-    const html = renderSummary(gs, engine, cardDb, "Alice", ["Alice", "Bob"], "12345");
+    const html = renderSummary(gs, engine, cardDb, "Alice", infoOf(["Alice", "Bob"], "Alice"), "12345");
 
     expect(html).toContain("assets/bga/innovation/icons/");
     expect(html).toContain('width="20"');
@@ -379,7 +384,7 @@ describe("renderSummary", () => {
   it("renders card tooltips for base cards", () => {
     const { state: gs } = makeGameState(["Alice", "Bob"], "Alice");
     engine.resolveHand(gs, "Alice", ["agriculture", "archery"]);
-    const html = renderSummary(gs, engine, cardDb, "Alice", ["Alice", "Bob"], "12345");
+    const html = renderSummary(gs, engine, cardDb, "Alice", infoOf(["Alice", "Bob"], "Alice"), "12345");
 
     expect(html).toContain("card-tip");
     expect(html).toMatch(/card_\d+\.webp/);
@@ -388,7 +393,7 @@ describe("renderSummary", () => {
   it("classifies my cards by opponent knowledge", () => {
     const { state: gs } = makeGameState(["Alice", "Bob"], "Alice");
     engine.resolveHand(gs, "Alice", ["agriculture", "archery"]);
-    const html = renderSummary(gs, engine, cardDb, "Alice", ["Alice", "Bob"], "12345");
+    const html = renderSummary(gs, engine, cardDb, "Alice", infoOf(["Alice", "Bob"], "Alice"), "12345");
 
     expect(html).toContain("M12 7c2.76");
   });
@@ -396,7 +401,7 @@ describe("renderSummary", () => {
   it("renders cards section with data-known attributes for resolved cards", () => {
     const { state: gs } = makeGameState(["Alice", "Bob"], "Alice");
     engine.resolveHand(gs, "Alice", ["agriculture", "archery"]);
-    const html = renderSummary(gs, engine, cardDb, "Alice", ["Alice", "Bob"], "12345");
+    const html = renderSummary(gs, engine, cardDb, "Alice", infoOf(["Alice", "Bob"], "Alice"), "12345");
 
     expect(html).toContain("data-known");
   });
@@ -404,7 +409,7 @@ describe("renderSummary", () => {
   it("renders unresolved card-list cards face-up with card names", () => {
     const { state: gs } = makeGameState(["Alice", "Bob"], "Alice");
     engine.resolveHand(gs, "Alice", ["agriculture", "archery"]);
-    const html = renderSummary(gs, engine, cardDb, "Alice", ["Alice", "Bob"], "12345");
+    const html = renderSummary(gs, engine, cardDb, "Alice", infoOf(["Alice", "Bob"], "Alice"), "12345");
 
     // Extract the cards section (base set)
     const cardsStart = html.indexOf('id="cards"');
@@ -422,7 +427,7 @@ describe("renderSummary", () => {
   it("marks only resolved card-list cards with data-known", () => {
     const { state: gs } = makeGameState(["Alice", "Bob"], "Alice");
     engine.resolveHand(gs, "Alice", ["agriculture", "archery"]);
-    const html = renderSummary(gs, engine, cardDb, "Alice", ["Alice", "Bob"], "12345");
+    const html = renderSummary(gs, engine, cardDb, "Alice", infoOf(["Alice", "Bob"], "Alice"), "12345");
 
     const cardsStart = html.indexOf('id="cards"');
     const cardsHtml = html.slice(cardsStart);
@@ -447,7 +452,7 @@ describe("renderSummary", () => {
 
   it("renders tall grid for cards section", () => {
     const { state: gs } = makeGameState(["Alice", "Bob"], "Alice");
-    const html = renderSummary(gs, engine, cardDb, "Alice", ["Alice", "Bob"], "12345");
+    const html = renderSummary(gs, engine, cardDb, "Alice", infoOf(["Alice", "Bob"], "Alice"), "12345");
 
     expect(html).toContain("layout-wide");
     expect(html).toContain("layout-tall");
@@ -456,7 +461,7 @@ describe("renderSummary", () => {
 
   it("renders empty card placeholder when section is empty", () => {
     const { state: gs } = makeGameState(["Alice", "Bob"], "Alice");
-    const html = renderSummary(gs, engine, cardDb, "Alice", ["Alice", "Bob"], "12345");
+    const html = renderSummary(gs, engine, cardDb, "Alice", infoOf(["Alice", "Bob"], "Alice"), "12345");
 
     expect(html).toContain("empty-card");
     expect(html).toContain("empty");
@@ -466,7 +471,7 @@ describe("renderSummary", () => {
     const { state: gs } = makeGameState(["Alice", "Bob"], "Alice");
     engine.resolveHand(gs, "Alice", ["agriculture", "archery"]);
 
-    const html = renderSummary(gs, engine, cardDb, "Alice", ["Alice", "Bob"], "12345");
+    const html = renderSummary(gs, engine, cardDb, "Alice", infoOf(["Alice", "Bob"], "Alice"), "12345");
     expect(html).toContain("section-row");
   });
 });
@@ -475,7 +480,7 @@ describe("renderFullPage", () => {
   it("produces complete standalone HTML document", () => {
     const { state: gs } = makeGameState(["Alice", "Bob"], "Alice");
     const css = "body { background: #000; }";
-    const html = renderFullPage(gs, engine, cardDb, "Alice", ["Alice", "Bob"], "12345", css);
+    const html = renderFullPage(gs, engine, cardDb, "Alice", infoOf(["Alice", "Bob"], "Alice"), "12345", css);
 
     expect(html).toContain("<!DOCTYPE html>");
     expect(html).toContain("<html>");
@@ -487,7 +492,7 @@ describe("renderFullPage", () => {
 
   it("includes interactive JavaScript", () => {
     const { state: gs } = makeGameState(["Alice", "Bob"], "Alice");
-    const html = renderFullPage(gs, engine, cardDb, "Alice", ["Alice", "Bob"], "12345", "");
+    const html = renderFullPage(gs, engine, cardDb, "Alice", infoOf(["Alice", "Bob"], "Alice"), "12345", "");
 
     expect(html).toContain("<script>");
     expect(html).toContain("tri-toggle");
@@ -496,7 +501,7 @@ describe("renderFullPage", () => {
   it("includes the inline CSS", () => {
     const { state: gs } = makeGameState(["Alice", "Bob"], "Alice");
     const css = ".test-class { color: red; }";
-    const html = renderFullPage(gs, engine, cardDb, "Alice", ["Alice", "Bob"], "12345", css);
+    const html = renderFullPage(gs, engine, cardDb, "Alice", infoOf(["Alice", "Bob"], "Alice"), "12345", css);
 
     expect(html).toContain("<style>");
     expect(html).toContain(css);
@@ -535,14 +540,14 @@ describe("SUMMARY_JS", () => {
 describe("echoes card rendering", () => {
   function makeEchoesGameState(players: string[], perspective: string): { state: GameState; engine: GameEngine } {
     engine = new GameEngine(cardDb);
-    const state = createGameState(players, perspective);
+    const state = createGameState(infoOf(players, perspective), perspective);
     engine.initGame(state, { echoes: true });
     return { state, engine };
   }
 
   it("renders unknown echoes cards with b-gray-echoes class", () => {
     const { state: gs } = makeEchoesGameState(["Alice", "Bob"], "Alice");
-    const html = renderSummary(gs, engine, cardDb, "Alice", ["Alice", "Bob"], "12345");
+    const html = renderSummary(gs, engine, cardDb, "Alice", infoOf(["Alice", "Bob"], "Alice"), "12345");
 
     // Echoes-mode deals 1 base + 1 echoes to each player, so hands contain echoes unknowns
     expect(html).toContain("b-gray-echoes");
@@ -552,7 +557,7 @@ describe("echoes card rendering", () => {
     const { state: gs } = makeEchoesGameState(["Alice", "Bob"], "Alice");
     // Resolve hand with one echoes card (bangle is an age-1 echoes card)
     engine.resolveHand(gs, "Alice", ["bangle", "agriculture"]);
-    const html = renderSummary(gs, engine, cardDb, "Alice", ["Alice", "Bob"], "12345");
+    const html = renderSummary(gs, engine, cardDb, "Alice", infoOf(["Alice", "Bob"], "Alice"), "12345");
 
     // Card should use card-base layout (same as base cards)
     expect(html).toContain("Bangle");
@@ -570,7 +575,7 @@ describe("echoes card rendering", () => {
     const { state: gs } = makeEchoesGameState(["Alice", "Bob"], "Alice");
     // Bangle has icons: ["hex", "castle", "echo", "bonus-1"]
     engine.resolveHand(gs, "Alice", ["bangle", "agriculture"]);
-    const html = renderSummary(gs, engine, cardDb, "Alice", ["Alice", "Bob"], "12345");
+    const html = renderSummary(gs, engine, cardDb, "Alice", infoOf(["Alice", "Bob"], "Alice"), "12345");
 
     expect(html).toContain("echo.svg");
     expect(html).toContain('alt="echo"');
@@ -580,7 +585,7 @@ describe("echoes card rendering", () => {
     const { state: gs } = makeEchoesGameState(["Alice", "Bob"], "Alice");
     // Bell has icons: ["castle", "hexnote", "castle", "echo"]
     engine.resolveHand(gs, "Alice", ["bell", "agriculture"]);
-    const html = renderSummary(gs, engine, cardDb, "Alice", ["Alice", "Bob"], "12345");
+    const html = renderSummary(gs, engine, cardDb, "Alice", infoOf(["Alice", "Bob"], "Alice"), "12345");
 
     expect(html).toContain("hexnote_purple.png");
     expect(html).toContain('alt="hexnote"');
@@ -590,7 +595,7 @@ describe("echoes card rendering", () => {
     const { state: gs } = makeEchoesGameState(["Alice", "Bob"], "Alice");
     // Bangle is red, Bell is purple
     engine.resolveHand(gs, "Alice", ["bangle", "agriculture"]);
-    const html = renderSummary(gs, engine, cardDb, "Alice", ["Alice", "Bob"], "12345");
+    const html = renderSummary(gs, engine, cardDb, "Alice", infoOf(["Alice", "Bob"], "Alice"), "12345");
 
     const bangleIdx = html.indexOf("Bangle");
     const bangleCardStart = html.lastIndexOf('<div class="card ', bangleIdx);
@@ -601,7 +606,7 @@ describe("echoes card rendering", () => {
   it("renders echoes card image tooltips with correct sprite index", () => {
     const { state: gs } = makeEchoesGameState(["Alice", "Bob"], "Alice");
     engine.resolveHand(gs, "Alice", ["bangle", "agriculture"]);
-    const html = renderSummary(gs, engine, cardDb, "Alice", ["Alice", "Bob"], "12345");
+    const html = renderSummary(gs, engine, cardDb, "Alice", infoOf(["Alice", "Bob"], "Alice"), "12345");
 
     // Bangle card should have its card image in tooltip
     const bangleInfo = cardDb.get("bangle")!;
@@ -617,20 +622,20 @@ describe("rendering edge cases", () => {
       const key = ageSetKey(age, CardSet.CITIES);
       gs.decks.set(key, []);
     }
-    const html = renderSummary(gs, engine, cardDb, "Alice", ["Alice", "Bob"], "12345");
+    const html = renderSummary(gs, engine, cardDb, "Alice", infoOf(["Alice", "Bob"], "Alice"), "12345");
     expect(html).toContain("Deck");
   });
 
   it("escapes HTML in card names", () => {
     const { state: gs } = makeGameState(["Alice", "Bob"], "Alice");
     engine.resolveHand(gs, "Alice", ["agriculture", "archery"]);
-    const html = renderSummary(gs, engine, cardDb, "Alice", ["Alice", "Bob"], "12345");
+    const html = renderSummary(gs, engine, cardDb, "Alice", infoOf(["Alice", "Bob"], "Alice"), "12345");
     expect(html).not.toContain("<Agriculture>");
   });
 
   it("renders SVG icons in row labels for my-hand section", () => {
     const { state: gs } = makeGameState(["Alice", "Bob"], "Alice");
-    const html = renderSummary(gs, engine, cardDb, "Alice", ["Alice", "Bob"], "12345");
+    const html = renderSummary(gs, engine, cardDb, "Alice", infoOf(["Alice", "Bob"], "Alice"), "12345");
     expect(html).toContain("<svg");
     expect(html).toContain("viewBox");
   });

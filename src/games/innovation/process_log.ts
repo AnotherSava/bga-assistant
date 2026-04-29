@@ -1,5 +1,6 @@
 // Raw BGA packets -> structured game log
 
+import type { PlayerInfo } from "../../models/types.js";
 import type { TransferEntry, MessageEntry, GameLogEntry, RawExtractionData } from "./types.js";
 import type { TurnAction, ActionDetail } from "./turn_history.js";
 
@@ -29,7 +30,7 @@ export const SET_MAP: Record<string, string> = {
 /** Structured game log output from processRawLog. */
 export interface GameLog {
   gameName: "innovation";
-  players: Record<string, string>;
+  players: Record<string, PlayerInfo>;
   currentPlayerId: string;
   myHand: string[];
   log: GameLogEntry[];
@@ -190,7 +191,9 @@ function matchArtifactPass(msg: string): string | null {
  * 2. Iterate spectator notifications, pairing with player-view data
  */
 export function processRawLog(rawData: RawExtractionData): GameLog {
-  const playerNames: Record<string, string> = rawData.players ?? {};
+  const players: Record<string, PlayerInfo> = rawData.players ?? {};
+  const idByName = new Map<string, string>();
+  for (const pid in players) idByName.set(players[pid].name, pid);
   const allPackets = rawData.packets ?? [];
   const packets = allPackets.filter((p) => p.move_id !== null && p.move_id !== undefined);
   const log: GameLogEntry[] = [];
@@ -307,8 +310,8 @@ export function processRawLog(rawData: RawExtractionData): GameLog {
           dest,
           cardName,
           cardAge,
-          sourceOwner: playerNames[String(playerArgs.owner_from)] ?? null,
-          destOwner: playerNames[String(playerArgs.owner_to)] ?? null,
+          sourceOwner: players[String(playerArgs.owner_from)] ? String(playerArgs.owner_from) : null,
+          destOwner: players[String(playerArgs.owner_to)] ? String(playerArgs.owner_to) : null,
           meldKeyword: Boolean(playerArgs.meld_keyword),
           topOfDeck: dest === "deck" && !isBottom,
         };
@@ -358,8 +361,9 @@ export function processRawLog(rawData: RawExtractionData): GameLog {
 
         // Artifact-step: pass message inside an open artifact window
         if (artifactWindow && entry.type === "log") {
-          const passPlayer = matchArtifactPass(entry.msg);
-          if (passPlayer && passPlayer === artifactWindow.player) {
+          const passPlayerName = matchArtifactPass(entry.msg);
+          const passPlayerId = passPlayerName ? idByName.get(passPlayerName) : undefined;
+          if (passPlayerId && passPlayerId === artifactWindow.player) {
             const display = displaysByPlayer.get(artifactWindow.player) ?? { cardName: null, cardAge: null, cardSet: "artifacts" };
             actions.push({ player: artifactWindow.player, actionNumber: 0, time: artifactWindow.time, logIndex: artifactWindow.logIndex, actions: [{ actionType: "artifact_pass", cardName: display.cardName, cardAge: display.cardAge, cardSet: display.cardSet }] });
             artifactWindow = null;
@@ -370,7 +374,8 @@ export function processRawLog(rawData: RawExtractionData): GameLog {
         // Artifact-step: FAD dogma inside an open artifact window
         if (artifactWindow && entry.type === "logWithCardTooltips") {
           const dogma = matchDogma(entry.msg);
-          if (dogma && entry.msg.startsWith(`${artifactWindow.player} activates the dogma`)) {
+          const windowPlayerName = players[artifactWindow.player]?.name;
+          if (dogma && windowPlayerName && entry.msg.startsWith(`${windowPlayerName} activates the dogma`)) {
             actions.push({ player: artifactWindow.player, actionNumber: 0, time: artifactWindow.time, logIndex: artifactWindow.logIndex, actions: [{ actionType: "artifact_dogma", cardName: dogma.cardName, cardAge: dogma.cardAge, cardSet: "artifacts" }] });
             artifactWindow = null;
             continue;
@@ -401,20 +406,18 @@ export function processRawLog(rawData: RawExtractionData): GameLog {
           // id:15 fires on artifact-decision turns. Process from any channel
           // (sometimes only the player channel emits it) and dedup by (player, move).
           const playerId = String(stateArgs.active_player);
-          const playerName = playerNames[playerId] ?? playerId;
-          if (lastArtifactOpen && lastArtifactOpen.move === moveId && lastArtifactOpen.player === playerName) continue;
-          artifactWindow = { player: playerName, time: packet.time ?? null, logIndex: log.length };
-          lastArtifactOpen = { player: playerName, move: moveId };
+          if (lastArtifactOpen && lastArtifactOpen.move === moveId && lastArtifactOpen.player === playerId) continue;
+          artifactWindow = { player: playerId, time: packet.time ?? null, logIndex: log.length };
+          lastArtifactOpen = { player: playerId, move: moveId };
           continue;
         }
         if (stateId === "4" && isSpectatorPacket && stateArgs.args && typeof stateArgs.args === "object") {
           const innerArgs = stateArgs.args as Record<string, unknown>;
           if (innerArgs.action_number !== undefined) {
             const playerId = String(stateArgs.active_player);
-            const playerName = playerNames[playerId] ?? playerId;
             const actionNumber = Number(innerArgs.action_number);
             // Deduplicate: gameStateChange fires in both player and spectator channels
-            if (lastPending && lastPending.move === moveId && lastPending.player === playerName && lastPending.actionNumber === actionNumber) continue;
+            if (lastPending && lastPending.move === moveId && lastPending.player === playerId && lastPending.actionNumber === actionNumber) continue;
             // New action marker ends sub-action scanning for the previous action
             currentAction = null;
             // If previous action was never classified, it stays pending
@@ -423,8 +426,8 @@ export function processRawLog(rawData: RawExtractionData): GameLog {
             }
             // Clear any still-open artifact window (should have classified already)
             artifactWindow = null;
-            pendingAction = { player: playerName, actionNumber, time: packet.time ?? null, logIndex: log.length };
-            lastPending = { player: playerName, actionNumber, move: moveId };
+            pendingAction = { player: playerId, actionNumber, time: packet.time ?? null, logIndex: log.length };
+            lastPending = { player: playerId, actionNumber, move: moveId };
           }
         }
       }
@@ -438,7 +441,7 @@ export function processRawLog(rawData: RawExtractionData): GameLog {
 
   return {
     gameName: "innovation",
-    players: playerNames,
+    players,
     currentPlayerId: rawData.currentPlayerId ?? "",
     myHand,
     log,

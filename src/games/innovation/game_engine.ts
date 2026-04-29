@@ -38,6 +38,7 @@ export class GameEngine {
 
   // Cached from state.players during processLog
   private _playerPattern: string = "";
+  private _idByName: Map<string, string> = new Map();
 
   constructor(cardDb: CardDatabase) {
     this.cardDb = cardDb;
@@ -211,7 +212,7 @@ export class GameEngine {
     const baseAge1Deck = state.decks.get(ageSetKey(1, CardSet.BASE))!;
     const echoesAge1Deck = echoesActive ? state.decks.get(ageSetKey(1, CardSet.ECHOES)) : undefined;
     for (const player of state.players) {
-      const hand = state.hands.get(player)!;
+      const hand = state.hands.get(player.id)!;
       hand.push(baseAge1Deck.pop()!);
       if (echoesActive && echoesAge1Deck) {
         hand.push(echoesAge1Deck.pop()!);
@@ -258,7 +259,8 @@ export class GameEngine {
 
   /** Initialize log processing: deduce hand and resolve, without processing entries. */
   initLog(state: GameState, log: GameLogEntry[], myHand: string[]): void {
-    this._playerPattern = state.players.map(p => p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
+    this._playerPattern = state.players.map(p => p.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
+    this._idByName = new Map(state.players.map(p => [p.name, p.id]));
 
     const initialHand = this.deduceInitialHand(state, log, myHand);
     this.resolveHand(state, state.perspective, initialHand);
@@ -283,7 +285,9 @@ export class GameEngine {
       const match = me.msg.match(new RegExp(`^(${this._playerPattern}) reveals (?:his|her|their) hand: (.+)\\.$`));
       if (match) {
         const cardNames = match[2].split(", ").map(part => cardIndex(normalizeName(part.substring(part.indexOf(" ") + 1))));
-        this.revealHand(state, match[1], cardNames);
+        const playerId = this._idByName.get(match[1]);
+        if (!playerId) throw new Error(`Reveal-hand log mentions unknown player "${match[1]}"`);
+        this.revealHand(state, playerId, cardNames);
       }
     } else if (entry.type === "log") {
       const me = entry as MessageEntry;

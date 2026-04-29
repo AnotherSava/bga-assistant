@@ -80,7 +80,7 @@ export function renderHelp(errorMessage?: string, gameName?: GameName): string {
   <div class="help-section">
     <div class="help-section-title">Action history</div>
     <div class="help-sections-grid">
-      <div class="help-grid-item"><span>Recent player actions (meld, draw, dogma, endorse, achieve) are shown in the top-right corner, newest first. <span style="color:#f4b8b8">Your</span> actions are pink, <span style="color:#c0c0f0">opponent\u2019s</span> are blue. Each action includes a timestamp. Turns that begin with an Artifact on display also show the pre-turn choice (pass, return, or dogma) as an italicized line above the regular actions. Toggle visibility via the ${ICON_EYE} menu.</span></div>
+      <div class="help-grid-item"><span>Recent player actions (meld, draw, dogma, endorse, achieve) are shown in the top-right corner, newest first. Each player\u2019s row renders in their actual BGA-assigned color, and your own row is highlighted with a subtle background tint of that color so it stays distinguishable. Each action includes a timestamp. Turns that begin with an Artifact on display also show the pre-turn choice (pass, return, or dogma) as an italicized line above the regular actions. Toggle visibility via the ${ICON_EYE} menu.</span></div>
     </div>
   </div>
   </div>
@@ -109,12 +109,13 @@ export function renderHelp(errorMessage?: string, gameName?: GameName): string {
       <div class="help-grid-item"><span class="help-grid-label">X</span><span> Player is void in this suit (played off-suit when it was led)</span></div>
       <div class="help-grid-item"><span class="help-grid-label">!</span><span> Player confirmed to have cards of this suit (via communication or deduction)</span></div>
       <div class="help-grid-item"><span class="help-grid-label">?</span><span> No definitive information</span></div>
+      <div class="help-grid-item"><span>Each player’s name renders in their BGA-assigned color; your own row is highlighted with a subtle background tint.</span></div>
     </div>
   </div>
   <div class="help-section">
     <div class="help-section-title">Trick history</div>
     <div class="help-sections-grid">
-      <div class="help-grid-item"><span>Shows each trick with cards played per player. The lead card is highlighted and the trick winner is bold. The current in-progress trick is shown at the bottom.</span></div>
+      <div class="help-grid-item"><span>Shows each trick with cards played per player. Each player’s column header renders in their BGA color, and your own column is tinted. The lead card is highlighted and the trick winner is bold. The current in-progress trick is shown at the bottom.</span></div>
     </div>
   </div>
   </div>

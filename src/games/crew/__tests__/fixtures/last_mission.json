@@ -1,9 +1,29 @@
 {
   "players": {
-    "76419314": "AnotherSava",
-    "85809167": "olorinscousin",
-    "87923723": "azuremerge22",
-    "89867354": "ZecaMS"
+    "76419314": {
+      "id": "76419314",
+      "name": "AnotherSava",
+      "colorHex": "ff0000",
+      "isCurrent": true
+    },
+    "85809167": {
+      "id": "85809167",
+      "name": "olorinscousin",
+      "colorHex": "0000ff",
+      "isCurrent": false
+    },
+    "87923723": {
+      "id": "87923723",
+      "name": "azuremerge22",
+      "colorHex": "008000",
+      "isCurrent": false
+    },
+    "89867354": {
+      "id": "89867354",
+      "name": "ZecaMS",
+      "colorHex": "ffa500",
+      "isCurrent": false
+    }
   },
   "currentPlayerId": "76419314",
   "packets": [
@@ -257,7 +277,7 @@
           "args": {
             "mission": {
               "deadzone": false,
-              "desc": "What a relief! We have finally managed to get a handle on the drama of the last few days. Everyone and everything is all patched up again. On top of that, our mission is on the verge of a breakthrough! We have found several remarkable sculptures in the wreck. They look fantastic: highly elegant and somehow almost modern. But they don\u2019t seem to match any of the known cultures of antiquity. A lot of things indicate that they are in fact much older. The entire crew is all abuzz. All you have to do is look at the sculptures and ideas start coming into your head. Almost as if they wanted to talk to you and guide you. We are working together so harmoniously, it\u2019s almost as if we had been doing this forever. <b>Free task selection applies.</b>",
+              "desc": "What a relief! We have finally managed to get a handle on the drama of the last few days. Everyone and everything is all patched up again. On top of that, our mission is on the verge of a breakthrough! We have found several remarkable sculptures in the wreck. They look fantastic: highly elegant and somehow almost modern. But they don’t seem to match any of the known cultures of antiquity. A lot of things indicate that they are in fact much older. The entire crew is all abuzz. All you have to do is look at the sculptures and ideas start coming into your head. Almost as if they wanted to talk to you and guide you. We are working together so harmoniously, it’s almost as if we had been doing this forever. <b>Free task selection applies.</b>",
               "difficulty": 9,
               "disruption": 0,
               "freeAllocation": true,
@@ -304,7 +324,7 @@
           "args": {
             "mission": {
               "deadzone": false,
-              "desc": "What a relief! We have finally managed to get a handle on the drama of the last few days. Everyone and everything is all patched up again. On top of that, our mission is on the verge of a breakthrough! We have found several remarkable sculptures in the wreck. They look fantastic: highly elegant and somehow almost modern. But they don\u2019t seem to match any of the known cultures of antiquity. A lot of things indicate that they are in fact much older. The entire crew is all abuzz. All you have to do is look at the sculptures and ideas start coming into your head. Almost as if they wanted to talk to you and guide you. We are working together so harmoniously, it\u2019s almost as if we had been doing this forever. <b>Free task selection applies.</b>",
+              "desc": "What a relief! We have finally managed to get a handle on the drama of the last few days. Everyone and everything is all patched up again. On top of that, our mission is on the verge of a breakthrough! We have found several remarkable sculptures in the wreck. They look fantastic: highly elegant and somehow almost modern. But they don’t seem to match any of the known cultures of antiquity. A lot of things indicate that they are in fact much older. The entire crew is all abuzz. All you have to do is look at the sculptures and ideas start coming into your head. Almost as if they wanted to talk to you and guide you. We are working together so harmoniously, it’s almost as if we had been doing this forever. <b>Free task selection applies.</b>",
               "difficulty": 9,
               "disruption": 0,
               "freeAllocation": true,

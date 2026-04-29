@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { processCrewLog, type CrewGameLog, type MissionStartEntry, type HandDealtEntry, type CaptainEntry, type TrickStartEntry, type CardPlayedEntry, type TrickWonEntry, type CommunicationEntry, type CrewLogEntry } from "../process_log.js";
-import type { RawExtractionData, RawPacket } from "../../../models/types.js";
+import type { PlayerInfo, RawExtractionData, RawPacket } from "../../../models/types.js";
 import { readFileSync } from "fs";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
@@ -19,10 +19,13 @@ function makePacket(moveId: number, notifications: Array<{ type: string; args: R
   };
 }
 
-function makeRawData(packets: RawPacket[], players?: Record<string, string>, currentPlayerId?: string): RawExtractionData {
+function makeRawData(packets: RawPacket[], names?: Record<string, string>, currentPlayerId?: string): RawExtractionData {
+  const namesMap = names ?? { "1": "Alice", "2": "Bob", "3": "Charlie", "4": "Diana" };
+  const players: Record<string, PlayerInfo> = {};
+  for (const id in namesMap) players[id] = { id, name: namesMap[id], colorHex: "ff0000", isCurrent: id === (currentPlayerId ?? "1") };
   return {
     gameName: "thecrewdeepsea",
-    players: players ?? { "1": "Alice", "2": "Bob", "3": "Charlie", "4": "Diana" },
+    players,
     packets,
     currentPlayerId: currentPlayerId ?? "1",
   };
@@ -287,10 +290,12 @@ describe("processCrewLog — metadata", () => {
   });
 
   it("preserves player names", () => {
-    const players = { "1": "Alice", "2": "Bob", "3": "Charlie" };
-    const raw = makeRawData([], players);
+    const names: Record<string, string> = { "1": "Alice", "2": "Bob", "3": "Charlie" };
+    const raw = makeRawData([], names);
     const result = processCrewLog(raw);
-    expect(result.players).toEqual(players);
+    for (const id in names) {
+      expect(result.players[id].name).toBe(names[id]);
+    }
   });
 
   it("throws when currentPlayerId is missing", () => {
@@ -332,12 +337,10 @@ describe("processCrewLog — fixture: complete mission", () => {
 
   it("processes the fixture without errors", () => {
     const result = processCrewLog(fixtureData);
-    expect(result.players).toEqual({
-      "76419314": "AnotherSava",
-      "85809167": "olorinscousin",
-      "87923723": "azuremerge22",
-      "89867354": "ZecaMS",
-    });
+    expect(result.players["76419314"].name).toBe("AnotherSava");
+    expect(result.players["85809167"].name).toBe("olorinscousin");
+    expect(result.players["87923723"].name).toBe("azuremerge22");
+    expect(result.players["89867354"].name).toBe("ZecaMS");
     expect(result.currentPlayerId).toBe("76419314");
   });
 

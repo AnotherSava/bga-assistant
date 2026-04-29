@@ -1,51 +1,126 @@
 {
-  "players": { "1": "Alice", "2": "Bob" },
+  "players": {
+    "1": {
+      "id": "1",
+      "name": "Alice",
+      "colorHex": "ff0000",
+      "isCurrent": false
+    },
+    "2": {
+      "id": "2",
+      "name": "Bob",
+      "colorHex": "0000ff",
+      "isCurrent": false
+    }
+  },
   "packets": [
     {
       "move_id": 1,
       "time": 1001,
       "data": [
-        { "type": "transferedCard", "args": { "name": "Metalworking", "age": 1, "location_from": "deck", "location_to": "hand", "owner_from": "", "owner_to": "1", "meld_keyword": false } }
+        {
+          "type": "transferedCard",
+          "args": {
+            "name": "Metalworking",
+            "age": 1,
+            "location_from": "deck",
+            "location_to": "hand",
+            "owner_from": "",
+            "owner_to": "1",
+            "meld_keyword": false
+          }
+        }
       ]
     },
     {
       "move_id": 1,
       "time": 1001,
       "data": [
-        { "type": "transferedCard_spectator", "args": { "type": "0" } }
+        {
+          "type": "transferedCard_spectator",
+          "args": {
+            "type": "0"
+          }
+        }
       ]
     },
     {
       "move_id": 2,
       "time": 1002,
       "data": [
-        { "type": "transferedCard", "args": { "name": "Metalworking", "age": 1, "location_from": "hand", "location_to": "board", "owner_from": "1", "owner_to": "1", "meld_keyword": false } }
+        {
+          "type": "transferedCard",
+          "args": {
+            "name": "Metalworking",
+            "age": 1,
+            "location_from": "hand",
+            "location_to": "board",
+            "owner_from": "1",
+            "owner_to": "1",
+            "meld_keyword": false
+          }
+        }
       ]
     },
     {
       "move_id": 2,
       "time": 1002,
       "data": [
-        { "type": "transferedCard_spectator", "args": { "type": "0" } }
+        {
+          "type": "transferedCard_spectator",
+          "args": {
+            "type": "0"
+          }
+        }
       ]
     },
     {
       "move_id": 3,
       "time": 1003,
       "data": [
-        { "type": "transferedCard", "args": { "name": "Pottery", "age": 1, "location_from": "hand", "location_to": "score", "owner_from": "1", "owner_to": "1", "meld_keyword": false } }
+        {
+          "type": "transferedCard",
+          "args": {
+            "name": "Pottery",
+            "age": 1,
+            "location_from": "hand",
+            "location_to": "score",
+            "owner_from": "1",
+            "owner_to": "1",
+            "meld_keyword": false
+          }
+        }
       ]
     },
     {
       "move_id": 3,
       "time": 1003,
       "data": [
-        { "type": "transferedCard_spectator", "args": { "type": "0" } }
+        {
+          "type": "transferedCard_spectator",
+          "args": {
+            "type": "0"
+          }
+        }
       ]
     }
   ],
   "gamedatas": {
-    "my_hand": [{ "id": 1 }, { "id": 2 }],
-    "cards": { "1": { "name": "Pottery" }, "2": { "name": "Tools" } }
+    "my_hand": [
+      {
+        "id": 1
+      },
+      {
+        "id": 2
+      }
+    ],
+    "cards": {
+      "1": {
+        "name": "Pottery"
+      },
+      "2": {
+        "name": "Tools"
+      }
+    }
   }
 }

@@ -105,13 +105,15 @@
 }
 .crew-matrix-name {
   font-size: 12px;
-  color: #bbb;
+  color: oklch(from var(--player-color, #bbb) clamp(0.65, l, 0.85) c h);
   text-align: right;
   padding-right: 10px;
   white-space: nowrap;
 }
-.crew-matrix-me {
-  color: #f4b8b8;
+.crew-matrix tr.crew-matrix-me {
+  background: color-mix(in srgb, var(--player-color) 12%, transparent);
+}
+.crew-matrix tr.crew-matrix-me .crew-matrix-name {
   font-weight: bold;
 }
 .crew-matrix-cell {
@@ -142,6 +144,13 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  color: oklch(from var(--player-color, #999) clamp(0.65, l, 0.85) c h);
+}
+.crew-tricks-me-col {
+  background: color-mix(in srgb, var(--player-color) 12%, transparent);
+}
+.crew-tricks th.crew-tricks-me-col {
+  font-weight: bold;
 }
 .crew-trick-num {
   font-size: 11px;

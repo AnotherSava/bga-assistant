@@ -1,5 +1,6 @@
 // CrewGameState interface — plain data layer, the serialization boundary.
 
+import type { PlayerInfo } from "../../models/types.js";
 import type { CrewCard } from "./types.js";
 
 // ---------------------------------------------------------------------------
@@ -26,8 +27,8 @@ export interface Trick {
 // ---------------------------------------------------------------------------
 
 export interface CrewGameState {
-  /** Player ID → display name. */
-  players: Record<string, string>;
+  /** Player ID → PlayerInfo (name, BGA color, observer flag). */
+  players: Record<string, PlayerInfo>;
   /** Player IDs in seat order (determines card distribution for remainders). */
   playerOrder: string[];
   /** The observing player's ID (the one whose hand is fully known). */
@@ -39,7 +40,7 @@ export interface CrewGameState {
 }
 
 /** Create a fresh CrewGameState with empty collections. */
-export function createCrewGameState(players: Record<string, string>, playerOrder: string[], currentPlayerId: string): CrewGameState {
+export function createCrewGameState(players: Record<string, PlayerInfo>, playerOrder: string[], currentPlayerId: string): CrewGameState {
   const hands: Record<string, CardGuess[]> = {};
   for (const pid of Object.keys(players)) {
     hands[pid] = [];

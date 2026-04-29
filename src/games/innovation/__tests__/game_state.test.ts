@@ -20,6 +20,7 @@ import { type GameState, createGameState as newGameState, cardsAt } from "../gam
 import { GameEngine } from "../game_engine";
 import { toJSON, fromJSON } from "../serialization";
 import { processRawLog } from "../process_log";
+import type { PlayerInfo } from "../../../models/types";
 
 const thisDir = dirname(fileURLToPath(import.meta.url));
 
@@ -29,7 +30,10 @@ function loadCardDatabase(): CardDatabase {
   return new CardDatabase(raw);
 }
 
-const PLAYERS = ["Alice", "Bob"];
+const PLAYERS: PlayerInfo[] = [
+  { id: "Alice", name: "Alice", colorHex: "ff0000", isCurrent: true },
+  { id: "Bob", name: "Bob", colorHex: "0000ff", isCurrent: false },
+];
 const PERSPECTIVE = "Alice";
 
 let cardDb: CardDatabase;
@@ -106,8 +110,8 @@ describe("initGame", () => {
   it("deals 2 cards to each player's hand", () => {
     const { state, engine } = createInitializedGS();
     for (const player of PLAYERS) {
-      expect(state.hands.get(player)!.length).toBe(2);
-      for (const card of state.hands.get(player)!) {
+      expect(state.hands.get(player.id)!.length).toBe(2);
+      for (const card of state.hands.get(player.id)!) {
         expect(card.age).toBe(1);
         expect(card.cardSet).toBe(CardSet.BASE);
       }
@@ -1155,13 +1159,14 @@ describe("processLog", () => {
     const cardDb = loadCardDatabase();
     const gameLog = processRawLog(raw);
     const players = Object.values(gameLog.players);
-    const perspective = gameLog.currentPlayerId && gameLog.players[gameLog.currentPlayerId] ? gameLog.players[gameLog.currentPlayerId] : players[0];
+    const perspective = gameLog.currentPlayerId && gameLog.players[gameLog.currentPlayerId] ? gameLog.currentPlayerId : players[0].id;
     const engine = new GameEngine(cardDb);
     const state = newGameState(players, perspective);
     engine.initGame(state, gameLog.expansions);
     // Should not throw "Revealed card construction not found among hand candidates"
     engine.processLog(state, gameLog.log, gameLog.myHand);
-    const jamdalla = state.hands.get("jamdalla")!;
+    const jamdallaId = players.find(p => p.name === "jamdalla")!.id;
+    const jamdalla = state.hands.get(jamdallaId)!;
     const names = jamdalla.map(c => c.resolvedName);
     expect(names).toContain("construction");
   });
@@ -1452,7 +1457,7 @@ describe("echoes expansion initGame", () => {
   it("deals 1 base + 1 echoes age-1 card per player when echoes active", () => {
     const { state, engine } = createInitializedGS({ echoes: true });
     for (const player of PLAYERS) {
-      const hand = state.hands.get(player)!;
+      const hand = state.hands.get(player.id)!;
       expect(hand.length).toBe(2);
       const sets = hand.map(c => c.cardSet);
       expect(sets).toContain(CardSet.BASE);
@@ -1491,7 +1496,7 @@ describe("echoes expansion initGame", () => {
   it("deals 2 base age-1 cards when echoes not active (default)", () => {
     const { state, engine } = createInitializedGS();
     for (const player of PLAYERS) {
-      const hand = state.hands.get(player)!;
+      const hand = state.hands.get(player.id)!;
       expect(hand.length).toBe(2);
       for (const card of hand) {
         expect(card.cardSet).toBe(CardSet.BASE);
@@ -1503,7 +1508,7 @@ describe("echoes expansion initGame", () => {
   it("deals 2 base age-1 cards when echoes explicitly false", () => {
     const { state, engine } = createInitializedGS({ echoes: false });
     for (const player of PLAYERS) {
-      const hand = state.hands.get(player)!;
+      const hand = state.hands.get(player.id)!;
       expect(hand.length).toBe(2);
       for (const card of hand) {
         expect(card.cardSet).toBe(CardSet.BASE);

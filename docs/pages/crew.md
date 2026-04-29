@@ -17,13 +17,13 @@ Shows all 40 cards (9 cards of each of the 4 coloured suits and 4 submarine trum
 
 ### Player-suit matrix
 
-Shows what information we know about players having different suits: "X" (the player has no cards of that suit), "!" (confirmed holding), or "?" (unknown) per player per suit. Suit absence is detected automatically from trick-following behavior, and communication data narrows down holdings further:
+Shows what information we know about players having different suits: "X" (the player has no cards of that suit), "!" (confirmed holding), or "?" (unknown) per player per suit. Each player's name renders in their actual BGA-assigned color, and your own row is highlighted with a subtle background tint of that color so you stay distinguishable at a glance. Suit absence is detected automatically from trick-following behavior, and communication data narrows down holdings further:
 
 ![Crew player-suit matrix](../screenshots/crew-suits.png)
 
 ### Trick history
 
-Chronological table of all tricks with lead and winner highlights. The current in-progress trick appears below a dashed separator:
+Chronological table of all tricks with lead and winner highlights. Each player's column header renders in their BGA color, and your own column is tinted to keep you distinguishable. The current in-progress trick appears below a dashed separator:
 
 ![Crew trick history](../screenshots/crew-history.png)
 

@@ -434,9 +434,19 @@ body {
 #turn-history:empty { display: none; }
 .turn-action {
   white-space: nowrap;
+  color: #c0c0f0;
 }
-.turn-action.th-me { color: #f4b8b8; }
-.turn-action.th-opp { color: #c0c0f0; }
+.turn-action .th-name-short,
+.turn-action .th-name-full {
+  color: oklch(from var(--player-color, #c0c0f0) clamp(0.65, l, 0.85) c h);
+}
+.th-name-full { display: none; }
+body.show-player-names .th-name-short { display: none; }
+body.show-player-names .th-name-full { display: inline; }
+.turn-action.th-me {
+  background: color-mix(in srgb, var(--player-color) 12%, transparent);
+  font-weight: bold;
+}
 .turn-action.th-sub { padding-left: 12px; }
 .turn-action.th-artifact { font-style: italic; opacity: 0.75; }
 .turn-group-sep { height: 4px; }

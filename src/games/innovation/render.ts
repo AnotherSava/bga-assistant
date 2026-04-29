@@ -1,8 +1,10 @@
 // GameState -> HTML string via template literals.
 // Replaces Jinja2 templates + DTO layer (TemplateCard/Row/Section).
 
+import type { PlayerInfo } from "../../models/types.js";
 import { type CardInfo, type Card, CardSet, Color, CardDatabase, colorLabel, cardSetLabel, ageSetKey, cardIndex } from "./types.js";
 import { escapeHtml } from "../../render/icons.js";
+import { playerColorAttr } from "../../render/player.js";
 import type { TurnAction, ActionDetail } from "./turn_history.js";
 import { applyToggleMode } from "../../render/toggle.js";
 import type { GameState } from "./game_state.js";
@@ -303,9 +305,10 @@ function formatTime(time: number | null): string {
 }
 
 /** Render turn history HTML from a list of recent actions (chronological order). */
-export function renderTurnHistory(actions: TurnAction[], cardDb: CardDatabase, perspective: string): string {
+export function renderTurnHistory(actions: TurnAction[], cardDb: CardDatabase, players: PlayerInfo[]): string {
   if (actions.length === 0) return "";
 
+  const playerById = new Map(players.map(p => [p.id, p]));
   let html = "";
   let currentPlayer: string | null = null;
 
@@ -315,20 +318,23 @@ export function renderTurnHistory(actions: TurnAction[], cardDb: CardDatabase, p
     }
     currentPlayer = action.player;
 
-    const isMe = action.player === perspective;
-    const label = isMe ? "you" : "opp";
-    const playerCls = isMe ? " th-me" : " th-opp";
+    const player = playerById.get(action.player);
+    if (!player) throw new Error(`Turn-history action references unknown player id "${action.player}"`);
+    const playerCls = player.isCurrent ? " th-me" : "";
+    const colorAttr = playerColorAttr(player);
     const artifactCls = action.actionNumber === 0 ? " th-artifact" : "";
     const timeStr = formatTime(action.time);
     const timePrefix = timeStr ? `<span class="th-time">${timeStr}</span> ` : "";
     const detail = formatActionDetail(action.actions[0], cardDb);
     const suffix = detail ? ` ${detail}` : "";
-    html += `<div class="turn-action${playerCls}${artifactCls}">${timePrefix}${label}:${suffix}</div>`;
+    const fullName = escapeHtml(player.name);
+    const shortName = player.isCurrent ? "you" : "opp";
+    html += `<div class="turn-action${playerCls}${artifactCls}" ${colorAttr}>${timePrefix}<span class="th-name-short">${shortName}:</span><span class="th-name-full">${fullName}:</span>${suffix}</div>`;
 
     // Render sub-actions (promote, dogma after promote, etc.)
     for (let i = 1; i < action.actions.length; i++) {
       const subDetail = formatActionDetail(action.actions[i], cardDb);
-      html += `<div class="turn-action th-sub${playerCls}">  \u2192 ${subDetail}</div>`;
+      html += `<div class="turn-action th-sub${playerCls}" ${colorAttr}>  \u2192 ${subDetail}</div>`;
     }
   }
 
@@ -483,15 +489,16 @@ function makeCompositeSection(sectionId: SectionId, title: string, baseRows: Row
 }
 
 /** Render the full summary HTML for a game state. */
-export function renderSummary(gameState: GameState, engine: GameEngine, cardDb: CardDatabase, perspective: string, players: string[], tableId: string, options?: RenderOptions): string {
+export function renderSummary(gameState: GameState, engine: GameEngine, cardDb: CardDatabase, perspective: string, players: PlayerInfo[], tableId: string, options?: RenderOptions): string {
   const prevTextTooltips = useTextTooltips;
   useTextTooltips = options?.textTooltips ?? false;
   try {
     const config = options?.sectionConfig ?? DEFAULT_SECTION_CONFIG;
     const hasEchoes = options?.expansions?.echoes ?? false;
     const hasRelics = options?.expansions?.relics ?? false;
-    const opponent = players.find(p => p !== perspective);
-    if (!opponent) throw new Error(`No opponent found: perspective="${perspective}", players=[${players.join(", ")}]`);
+    const opponentInfo = players.find(p => p.id !== perspective);
+    if (!opponentInfo) throw new Error(`No opponent found: perspective="${perspective}", players=[${players.map(p => p.id).join(", ")}]`);
+    const opponent = opponentInfo.id;
 
     const opponentHand = prepareCards(gameState.hands.get(opponent) ?? [], cardDb, "", true, false);
     const opponentScore = prepareCards(gameState.scores.get(opponent) ?? [], cardDb, "", true, false);
@@ -549,7 +556,7 @@ export function renderSummary(gameState: GameState, engine: GameEngine, cardDb: 
 }
 
 /** Render a full standalone HTML page (for download). */
-export function renderFullPage(gameState: GameState, engine: GameEngine, cardDb: CardDatabase, perspective: string, players: string[], tableId: string, css: string, options?: RenderOptions): string {
+export function renderFullPage(gameState: GameState, engine: GameEngine, cardDb: CardDatabase, perspective: string, players: PlayerInfo[], tableId: string, css: string, options?: RenderOptions): string {
   const bodyHtml = renderSummary(gameState, engine, cardDb, perspective, players, tableId, options);
 
   return `<!DOCTYPE html>

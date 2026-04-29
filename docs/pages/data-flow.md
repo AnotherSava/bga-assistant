@@ -30,7 +30,7 @@ Must be fully self-contained — injected via `chrome.scripting.executeScript()`
 references to module-level code are undefined after Chrome serializes the function.
 
 Responsibilities:
-- Read player names and initial hand from `gameui.*` globals
+- Read player info (id, name, BGA-assigned color, observer flag) and initial hand from `gameui.*` globals
 - Fetch full notification history via BGA's API
 - Extract game name from page URL pathname
 - Package results as `RawExtractionData`
@@ -108,14 +108,15 @@ Triggers:
 
 ***Content Script***
 
-1. Read player names and current hand contents from `gameui.gamedatas`
+1. Read player info (id, name, BGA color hex, observer flag) and current hand contents from `gameui.gamedatas`
 2. Fetch full notification history via `gameui.ajaxcall()`
 3. Extract game name from page URL pathname
 4. Package results as `RawExtractionData`
 
 ```
 ⇩   RawExtractionData (auto-serialized by Chrome):
-⇩   { gameName, players, gamedatas: {my_hand, cards}, packets: RawPacket[], currentPlayerId }
+⇩   { gameName, players: Record<id, PlayerInfo>, gamedatas: {my_hand, cards}, packets: RawPacket[], currentPlayerId }
+⇩   PlayerInfo: { id, name, colorHex (BGA hex, no `#`), isCurrent }
 ```
 
 ***Background Service Worker*** — branches here based on classification:

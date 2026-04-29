@@ -19208,7 +19208,17 @@
     }
   ],
   "players": {
-    "76419314": "AnotherSava",
-    "87555131": "jamdalla"
+    "76419314": {
+      "id": "76419314",
+      "name": "AnotherSava",
+      "colorHex": "ff0000",
+      "isCurrent": true
+    },
+    "87555131": {
+      "id": "87555131",
+      "name": "jamdalla",
+      "colorHex": "0000ff",
+      "isCurrent": false
+    }
   }
 }
