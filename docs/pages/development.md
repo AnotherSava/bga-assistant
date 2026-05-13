@@ -117,3 +117,16 @@ Tests use vitest and cover the full pipeline: types, log processing, game engine
 npm test                        # Run all tests
 npx vitest run --coverage       # Run with coverage report
 ```
+
+## Release
+
+The `.github/workflows/release.yml` workflow builds the extension in CI and publishes the zip as a GitHub Release.
+
+1. Bump the version in both `manifest.json` and `package.json` and commit
+2. Trigger the workflow: **Actions → Release → Run workflow** on `main`
+3. Download `bga-assistant-<version>.zip` from the resulting GitHub Release
+4. Upload the zip to the Chrome Web Store Developer Dashboard
+
+The workflow fails fast if a tag `v<version>` already exists, so each manifest version produces exactly one release.
+
+Local builds via `npm run package` still work for testing, but the CI build is the canonical artifact for Web Store uploads.
