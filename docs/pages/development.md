@@ -120,13 +120,10 @@ npx vitest run --coverage       # Run with coverage report
 
 ## Release
 
-The `.github/workflows/release.yml` workflow builds the extension in CI and publishes the zip as a GitHub Release.
+`.github/workflows/build.yml` runs on every push to `main` and on every PR — it lints, tests, packages, and uploads the zip as an Actions artifact (30-day retention). When a `v*` tag is pushed, it additionally creates a GitHub Release with the zip attached.
 
-1. Bump the version in both `manifest.json` and `package.json` and commit
-2. Trigger the workflow: **Actions → Release → Run workflow** on `main`
-3. Download `bga-assistant-<version>.zip` from the resulting GitHub Release
-4. Upload the zip to the Chrome Web Store Developer Dashboard
+To cut a new release, run the project-local `/release` skill. It bumps `manifest.json` + `package.json`, commits and pushes, drafts release notes from commits since the last tag for review, pushes the `vX.Y.Z` tag, monitors the workflow run, and updates the release notes once the zip is published. The tag must match `manifest.json` exactly — CI fails fast otherwise.
 
-The workflow fails fast if a tag `v<version>` already exists, so each manifest version produces exactly one release.
+Then download `bga-assistant-X.Y.Z.zip` from the GitHub Release and upload it to the Chrome Web Store Developer Dashboard.
 
 Local builds via `npm run package` still work for testing, but the CI build is the canonical artifact for Web Store uploads.
