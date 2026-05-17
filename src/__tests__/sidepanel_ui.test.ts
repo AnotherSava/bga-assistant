@@ -554,14 +554,14 @@ describe("turn history integration", () => {
   it("hides turn-history when toggled off via localStorage", () => {
     document.body.innerHTML = '<div id="turn-history">some content</div>';
     localStorage.setItem("bgaa_section_visibility", JSON.stringify({ "turn-history": false }));
-    applyInnovationDisplayOptions({ echoes: false, zoomLevel: 1.0 });
+    applyInnovationDisplayOptions({ echoes: false, relics: false, zoomLevel: 1.0 });
     const el = document.getElementById("turn-history")!;
     expect(el.style.display).toBe("none");
   });
 
   it("shows turn-history by default", () => {
     document.body.innerHTML = '<div id="turn-history">some content</div>';
-    applyInnovationDisplayOptions({ echoes: false, zoomLevel: 1.0 });
+    applyInnovationDisplayOptions({ echoes: false, relics: false, zoomLevel: 1.0 });
     const el = document.getElementById("turn-history")!;
     expect(el.style.display).toBe("");
   });

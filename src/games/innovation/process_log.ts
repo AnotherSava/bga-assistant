@@ -290,11 +290,7 @@ export function processRawLog(rawData: RawExtractionData): GameLog {
 
         const setTypeId = String(notif.args.type);
         const cardSet = SET_MAP[setTypeId];
-        if (cardSet === undefined) {
-          const expansionName = UNSUPPORTED_EXPANSION_NAMES[setTypeId];
-          if (expansionName) throw new Error(`This table uses the "${expansionName}" expansion, which is not yet supported.`);
-          throw new Error(`Unknown card set type ID: ${setTypeId}`);
-        }
+        if (cardSet === undefined) throw new Error(`Unknown card set type ID: ${setTypeId}`);
 
         if (cardSet === "echoes") hasEchoesTransfer = true;
         if (cardSet === "artifacts") hasArtifactsTransfer = true;

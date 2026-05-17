@@ -321,8 +321,8 @@ describe("processRawLog", () => {
       players: mkPlayers({ "100": "Alice", "200": "Bob" }),
       gamedatas: {
         cards: {
-          "500": { id: "500", age: "4", name: "Complex Numbers", is_relic: "1", type: "0" },
-          "501": { id: "501", age: "5", name: "Timbuktu", is_relic: "1", type: "2" },
+          "500": { age: "4", name: "Complex Numbers", is_relic: "1", type: "0" },
+          "501": { age: "5", name: "Timbuktu", is_relic: "1", type: "2" },
         },
       },
       packets: [

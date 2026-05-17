@@ -1226,7 +1226,7 @@ describe("unified extraction flow", () => {
     // SPA navigation: url change without status (pushState)
     const lobbyTab = { id: 1, url: "https://boardgamearena.com/lobby", status: "complete", windowId: 10 };
     mockTabsGet.mockResolvedValueOnce(lobbyTab).mockResolvedValueOnce(lobbyTab);
-    listeners.onUpdated(1, { url: "https://boardgamearena.com/lobby" } as chrome.tabs.TabChangeInfo);
+    listeners.onUpdated(1, { url: "https://boardgamearena.com/lobby" });
     await new Promise((r) => setTimeout(r, 50));
 
     const notAGameCalls = mockSendMessage.mock.calls.filter((c: any[]) => c[0]?.type === "notAGame");
@@ -1678,7 +1678,7 @@ describe("icon swap behavior", () => {
     // SPA navigation: url changes but no status field (pushState)
     const lobbyTab = { id: 5, url: "https://boardgamearena.com/lobby", status: "complete" };
     mockTabsGet.mockResolvedValueOnce(lobbyTab).mockResolvedValueOnce(lobbyTab);
-    listeners.onUpdated(5, { url: "https://boardgamearena.com/lobby" } as chrome.tabs.TabChangeInfo);
+    listeners.onUpdated(5, { url: "https://boardgamearena.com/lobby" });
     await flushFlash();
 
     expectLastIconNormal();
@@ -1687,7 +1687,7 @@ describe("icon swap behavior", () => {
   it("ignores onUpdated with status loading even if url is present", async () => {
     vi.clearAllMocks();
     // Full page load fires { status: "loading", url: "..." } first — skip it
-    listeners.onUpdated(5, { status: "loading", url: "https://boardgamearena.com/lobby" } as chrome.tabs.TabChangeInfo);
+    listeners.onUpdated(5, { status: "loading", url: "https://boardgamearena.com/lobby" });
     await flushFlash();
 
     // Should not trigger any icon change
