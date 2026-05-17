@@ -11,7 +11,7 @@ title: Development
 
 ### Prerequisites
 
-- Node.js 18+
+- Node.js 24+
 - Chrome 141+
 
 ### Install
