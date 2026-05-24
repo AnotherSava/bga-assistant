@@ -8,6 +8,7 @@
 import type { CrewGameLog, CrewLogEntry, CardPlayedEntry, CommunicationEntry, CardExchangeEntry } from "./process_log.js";
 import { type CardGuess, type CrewGameState, createCrewGameState } from "./game_state.js";
 import { ALL_SUITS, SUIT_VALUES, SUBMARINE, cardKey } from "./types.js";
+import { propagate as kernelPropagate } from "../../engine/constraint.js";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -60,26 +61,17 @@ function removeSuitFromPlayerSlots(state: CrewGameState, playerId: string, suit:
   }
 }
 
-/** Simple naked-single constraint propagation: repeat until stable. */
+/** Run the shared constraint kernel over all hand slots, with each player's hand as a container. */
 function propagate(state: CrewGameState): void {
-  let changed = true;
-  while (changed) {
-    changed = false;
-    for (const pid of Object.keys(state.hands)) {
-      for (const slot of state.hands[pid]) {
-        if (slot.candidates.size !== 1) continue;
-        const resolved = [...slot.candidates][0];
-        for (const pid2 of Object.keys(state.hands)) {
-          for (const slot2 of state.hands[pid2]) {
-            if (slot2 === slot) continue;
-            if (slot2.candidates.delete(resolved)) {
-              changed = true;
-            }
-          }
-        }
-      }
+  const slotToPlayer = new Map<CardGuess, string>();
+  const allSlots: CardGuess[] = [];
+  for (const pid of Object.keys(state.hands)) {
+    for (const slot of state.hands[pid]) {
+      slotToPlayer.set(slot, pid);
+      allSlots.push(slot);
     }
   }
+  kernelPropagate(allSlots, { containerOf: s => slotToPlayer.get(s)!, enableNakedTuples: true });
 }
 
 // ---------------------------------------------------------------------------

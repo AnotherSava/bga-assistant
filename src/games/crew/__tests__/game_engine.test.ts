@@ -203,6 +203,26 @@ describe("processCrewState — void detection", () => {
     const hasPink = state.hands["2"].some(s => [...s.candidates].some(k => k.startsWith(`${PINK}:`)));
     expect(hasPink).toBe(false);
   });
+
+  it("hidden single: card resolves to the only opponent that can hold it (bgaa_847667119_291)", () => {
+    // 3-player game. Observer has no pinks. Trick 1: P2 leads pink, P3 plays off-suit
+    // → P3 is void of pink. Therefore every remaining pink (including 3:8) must be in P2.
+    const log = makeLog([
+      { type: "missionStart", missionId: 1, missionNumber: 1 },
+      { type: "handDealt", cards: [{ suit: BLUE, value: 1 }] },
+      { type: "trickStart" },
+      { type: "cardPlayed", playerId: "2", card: { suit: PINK, value: 1 } },
+      { type: "cardPlayed", playerId: "3", card: { suit: BLUE, value: 5 } },
+    ], {
+      players: { "1": "Alice", "2": "Bob", "3": "Charlie" },
+      playerOrder: ["1", "2", "3"],
+      currentPlayerId: "1",
+    });
+    const state = processCrewState(log);
+    const p2Resolved = resolvedCards(state, "2");
+    // The hidden card 3:8 must be in P2's hand (only P2 can hold any unplayed pink)
+    expect(p2Resolved.has(cardKey(PINK, 8))).toBe(true);
+  });
 });
 
 // ---------------------------------------------------------------------------
