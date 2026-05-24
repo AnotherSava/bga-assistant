@@ -41,6 +41,7 @@ Keep `docs/pages/data-flow.md` up to date when code changes affect data flow, me
 ## Project Structure
 
 - `src/models/types.ts` — shared BGA types (GameName, RawPacket, RawExtractionData, PlayerInfo, cardIndex) + re-exports Innovation types
+- `src/engine/constraint.ts` — game-agnostic constraint propagation kernel (naked-single, hidden-single per-placeholder, optional hidden-single per-container); shared by Crew and Innovation
 - `src/games/innovation/types.ts` — Innovation types (Card, CardInfo, CardDatabase, enums, actions, log entries)
 - `src/games/innovation/process_log.ts` — Innovation BGA packet processing
 - `src/games/innovation/game_state.ts` — GameState interface (zone data), createGameState(), cardsAt()

@@ -66,6 +66,8 @@ src/
     sidepanel.css            Dark theme, font declarations, card grids, tooltips
   models/
     types.ts                 Shared BGA types (GameName, RawPacket, RawExtractionData)
+  engine/
+    constraint.ts            Game-agnostic constraint propagation kernel (shared by Crew and Innovation)
   games/
     innovation/
       types.ts               Innovation types: Card, CardInfo, CardDatabase, enums, actions
