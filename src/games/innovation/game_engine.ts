@@ -18,6 +18,7 @@ import {
 } from "./types.js";
 import { type GameState, createGameState, cardsAt } from "./game_state.js";
 import { normalizeName } from "./process_log.js";
+import { propagate as kernelPropagate } from "../../engine/constraint.js";
 
 const REGULAR_ICONS = new Set(["crown", "leaf", "lightbulb", "castle", "factory", "clock"]);
 
@@ -142,7 +143,7 @@ export class GameEngine {
         state.achievementRelics.get(entry.destOwner!)!.push(card);
       } else {
         state.hands.get(entry.destOwner!)!.push(card);
-        this.propagate(ageSetKey(card.age, card.cardSet));
+        this.propagate(state, ageSetKey(card.age, card.cardSet));
       }
       return;
     }
@@ -154,7 +155,7 @@ export class GameEngine {
         state.achievementRelics.get(entry.destOwner!)!.push(card);
       } else {
         state.hands.get(entry.destOwner!)!.push(card);
-        this.propagate(ageSetKey(card.age, card.cardSet));
+        this.propagate(state, ageSetKey(card.age, card.cardSet));
       }
       return;
     }
@@ -233,7 +234,7 @@ export class GameEngine {
       const groupKey = ageSetKey(info.age, info.cardSet);
       card.candidates = new Set([idx]);
       resolved.add(card);
-      this.propagate(groupKey);
+      this.propagate(state, groupKey);
     }
   }
 
@@ -408,22 +409,11 @@ export class GameEngine {
       }
     }
 
-    // Meld filter return phase: resolve grouped discard to a named action.
-    // We know which cards lack the meld icon, so pick one from discardNames.
-    if (this.remainingReturns > 0 && action.source === "hand" && action.dest === "deck") {
-      if (action.type === "grouped") {
-        const sourceCards = cardsAt(state, action.source, action.sourcePlayer, groupKey);
-        const match = sourceCards.find(c => c.isResolved && this.discardNames.has(c.resolvedName!));
-        if (match) {
-          action = { type: "named", cardName: match.resolvedName!, source: action.source, dest: action.dest, sourcePlayer: action.sourcePlayer, destPlayer: action.destPlayer, meldKeyword: action.meldKeyword, topOfDeck: action.topOfDeck };
-        }
-      }
-      // Decrement for both named and grouped-resolved returns that match discardNames
-      if (action.type === "named" && this.discardNames.has(action.cardName)) {
-        this.remainingReturns -= 1;
-        if (this.remainingReturns === 0) this.meldIcon = null;
-      }
-    }
+    // Capture meld-filter state BEFORE takeFromSource so we can decrement after.
+    // takeFromSource needs to see remainingReturns > 0 to know we're in the filter phase
+    // and partition the pool accordingly (only pool cards that could be discards,
+    // preserving kept cards' resolutions).
+    const isMeldFilterReturn = this.remainingReturns > 0 && action.source === "hand" && action.dest === "deck";
 
     const card = this.takeFromSource(state, action, groupKey);
     const destCards = this.cardsAtMut(state, action.dest, action.destPlayer, groupKey);
@@ -433,6 +423,15 @@ export class GameEngine {
       destCards.push(card);
     }
     this.updateOpponentKnowledge(state, card, action);
+
+    if (isMeldFilterReturn) {
+      this.remainingReturns -= 1;
+      if (this.remainingReturns === 0) this.meldIcon = null;
+    }
+
+    // Re-propagate after destination is finalized: per-container hidden-single depends on
+    // container membership, which only reflects the move once the card is in its destination.
+    this.propagate(state, groupKey);
 
     return card;
   }
@@ -456,7 +455,7 @@ export class GameEngine {
       if (!card) throw new Error(`Revealed card "${idx}" not found among hand candidates for player "${player}"`);
       card.candidates = new Set([idx]);
       card.opponentKnowledge = { kind: "exact", name: card.resolvedName };
-      this.propagate(groupKey);
+      this.propagate(state, groupKey);
     }
   }
 
@@ -474,7 +473,9 @@ export class GameEngine {
       if (sourceCards.length === 0) {
         throw new Error(`Cannot draw from empty deck: ${groupKey}`);
       }
-      // Prefer a card already resolved to the target name (e.g. returned to deck earlier)
+      // Salvage: if a card already resolved to the named target is somewhere in the deck,
+      // prefer it. This compensates for residual deck-order drift from BGA scenarios where
+      // the engine's array order doesn't match BGA's physical order.
       if (action.type === "named") {
         card = sourceCards.find(c => c.isResolved && c.resolvedName === action.cardName) ?? sourceCards[0];
       } else {
@@ -483,18 +484,23 @@ export class GameEngine {
     } else {
       sourceCards = cardsAt(state, action.source, action.sourcePlayer, groupKey);
 
-      // Grouped removal from private zone: pool candidates for all same-age-set
-      // cards before selecting which one to remove. We don't know which card left,
-      // so all must share the same candidate set to avoid committing to an arbitrary
-      // resolution that could conflict with a later named reference.
+      // Grouped removal from private zone: pool candidates among indistinguishable cards
+      // before selecting which one to remove. During the meld-filter return phase
+      // (remainingReturns > 0, dest=deck), we know the returned card is a discard, so we
+      // pool only the discard candidates (cards whose candidates fit within discardNames)
+      // and leave kept cards untouched — preserving their resolutions. Outside the filter
+      // phase, fall back to pooling all sameGroup cards (we have no differentiation info).
+      const inMeldFilterReturn = action.type !== "named" && (action.source === "hand" || action.source === "score" || action.source === "forecast") && action.dest === "deck" && this.remainingReturns > 0;
+      const isDiscardCandidate = (c: Card): boolean => c.candidates.size > 0 && [...c.candidates].every(name => this.discardNames.has(name));
       if (action.type !== "named" && (action.source === "hand" || action.source === "score" || action.source === "forecast")) {
         const sameGroup = sourceCards.filter(c => ageSetKey(c.age, c.cardSet) === groupKey);
-        if (sameGroup.length > 1) {
+        const toPool = inMeldFilterReturn ? sameGroup.filter(isDiscardCandidate) : sameGroup;
+        if (toPool.length > 1) {
           const union = new Set<string>();
-          for (const c of sameGroup) {
+          for (const c of toPool) {
             for (const name of c.candidates) union.add(name);
           }
-          for (const c of sameGroup) {
+          for (const c of toPool) {
             c.candidates = new Set(union);
           }
         }
@@ -505,7 +511,13 @@ export class GameEngine {
         if (!found) throw new Error(`Card "${action.cardName}" not found in ${action.source}`);
         card = found;
       } else {
-        const found = sourceCards.find(c => ageSetKey(c.age, c.cardSet) === groupKey);
+        // For meld-filter returns, the moved card is a discard by construction — prefer one.
+        // Falls back to any sameGroup card if no discard candidate is found (defensive).
+        let found: Card | undefined;
+        if (inMeldFilterReturn) {
+          found = sourceCards.find(c => ageSetKey(c.age, c.cardSet) === groupKey && isDiscardCandidate(c));
+        }
+        if (!found) found = sourceCards.find(c => ageSetKey(c.age, c.cardSet) === groupKey);
         if (!found) throw new Error(`No card with groupKey "${groupKey}" found in ${action.source}`);
         card = found;
       }
@@ -527,14 +539,14 @@ export class GameEngine {
         for (const c of affected) {
           if (c !== card) c.candidates = new Set(union);
         }
-        this.propagate(groupKey);
+        this.propagate(state, groupKey);
       }
     }
 
     // Resolve if named and not yet resolved
     if (action.type === "named" && !card.isResolved) {
       card.candidates = new Set([action.cardName]);
-      this.propagate(groupKey);
+      this.propagate(state, groupKey);
     }
 
     // Remove from source
@@ -604,62 +616,70 @@ export class GameEngine {
   // Constraint propagation
   // ------------------------------------------------------------------
 
-  /** Propagate constraints within an (age, cardSet) group to fixed-point. */
-  private propagate(groupKey: AgeSetKey): void {
+  /** Propagate constraints within an (age, cardSet) group to fixed-point.
+   *  Card-identity deductions go through the shared kernel. Per-container hidden-single is enabled
+   *  but skips ordered containers (deck, forecast, revealed) where committing a name to a specific
+   *  placeholder would falsely pin a position the observer cannot know. Opponent-knowledge
+   *  (suspect) propagation stays here as a separate fact layer. */
+  private propagate(state: GameState, groupKey: AgeSetKey): void {
     const group = this._groups.get(groupKey);
     if (!group) return;
+
+    const locator = this.locateCards(state);
+    const containerOf = (c: Card): string => locator.get(c) ?? "orphan";
 
     let changed = true;
     while (changed) {
       changed = false;
+      if (kernelPropagate(group, { containerOf, isContainerOrdered: GameEngine.isOrderedContainer })) changed = true;
+      if (this.propagateSuspects(group)) changed = true;
+    }
+  }
 
-      // 1. Singleton propagation: resolved card's name removed from all others
-      for (const card of group) {
-        if (card.isResolved) {
-          const name = card.resolvedName!;
-          for (const other of group) {
-            if (other !== card && other.candidates.has(name)) {
-              other.candidates.delete(name);
-              changed = true;
-            }
-          }
-        }
-      }
+  /** Containers whose internal order is observable via BGA's grouped-access semantics.
+   *  Per-container hidden-single must not commit to specific placeholders in these. */
+  private static isOrderedContainer(containerId: string): boolean {
+    return containerId.startsWith("deck:") || containerId.startsWith("forecast:") || containerId.startsWith("revealed:");
+  }
 
-      // 2. Hidden singles: name appearing in only one unresolved card's candidates
-      const unresolvedNames = new Set<string>();
-      for (const card of group) {
-        if (!card.isResolved) {
-          for (const name of card.candidates) unresolvedNames.add(name);
-        }
-      }
-      for (const candidateName of unresolvedNames) {
-        const holders = group.filter(c => !c.isResolved && c.candidates.has(candidateName));
-        if (holders.length === 1) {
-          holders[0].candidates = new Set([candidateName]);
-          changed = true;
-        }
-      }
+  /** Build a Card → container-key map by scanning all zones in the state. */
+  private locateCards(state: GameState): Map<Card, string> {
+    const locator = new Map<Card, string>();
+    const visit = (cards: Card[], container: string): void => {
+      for (const card of cards) locator.set(card, container);
+    };
+    for (const [groupKey, cards] of state.decks) visit(cards, `deck:${groupKey}`);
+    for (const [pid, cards] of state.hands) visit(cards, `hand:${pid}`);
+    for (const [pid, cards] of state.boards) visit(cards, `board:${pid}`);
+    for (const [pid, cards] of state.scores) visit(cards, `score:${pid}`);
+    for (const [pid, cards] of state.forecast) visit(cards, `forecast:${pid}`);
+    for (const [pid, cards] of state.revealed) visit(cards, `revealed:${pid}`);
+    for (const [pid, cards] of state.displays) visit(cards, `display:${pid}`);
+    visit(state.achievements, "achievements");
+    visit(state.relics, "relics");
+    for (const [pid, cards] of state.achievementRelics) visit(cards, `achievementRelics:${pid}`);
+    return locator;
+  }
 
-      // 3. Suspect propagation: publicly-known names removed from suspect lists
-      for (const card of group) {
-        if (card.opponentKnowledge.kind === "exact" && card.isResolved) {
-          const name = card.resolvedName!;
-          for (const other of group) {
-            if (other !== card && other.opponentKnowledge.kind === "partial") {
-              if (other.opponentKnowledge.suspects.has(name)) {
-                other.opponentKnowledge.suspects.delete(name);
-                if (other.opponentKnowledge.closed && other.opponentKnowledge.suspects.size === 1) {
-                  const remainingName = other.opponentKnowledge.suspects.values().next().value!;
-                  other.opponentKnowledge = { kind: "exact", name: remainingName };
-                  changed = true;
-                }
-              }
-            }
-          }
+  /** Suspect-list propagation: a publicly-known resolved name is removed from peers' suspect lists.
+   *  A closed suspect list collapsing to size 1 becomes an "exact" knowledge entry. */
+  private propagateSuspects(group: Card[]): boolean {
+    let anyChange = false;
+    for (const card of group) {
+      if (card.opponentKnowledge.kind !== "exact" || !card.isResolved) continue;
+      const name = card.resolvedName!;
+      for (const other of group) {
+        if (other === card || other.opponentKnowledge.kind !== "partial") continue;
+        if (!other.opponentKnowledge.suspects.has(name)) continue;
+        other.opponentKnowledge.suspects.delete(name);
+        if (other.opponentKnowledge.closed && other.opponentKnowledge.suspects.size === 1) {
+          const remainingName = other.opponentKnowledge.suspects.values().next().value!;
+          other.opponentKnowledge = { kind: "exact", name: remainingName };
+          anyChange = true;
         }
       }
     }
+    return anyChange;
   }
 
   // ------------------------------------------------------------------

@@ -731,6 +731,55 @@ describe("naked subsets", () => {
 });
 
 // ---------------------------------------------------------------------------
+// Hidden pair via per-container after both cards drawn
+// ---------------------------------------------------------------------------
+
+describe("hidden pair (deck → both drawn by opponent)", () => {
+  it("resolves both cards when opponent draws the last two from a 2-candidate deck", () => {
+    // Setup the user-described scenario:
+    //   Deck contains 2 cards, each with 2 candidates.
+    //   Opponent draws both.
+    //   Engine should know the opponent has both those cards (resolved 1:1).
+    //
+    // Use age 10 base — no achievement is pulled from it (initGame only takes ages 1-9),
+    // no initial deal, no in-hand cards for this age. So we can drain the deck to
+    // exactly 2 unresolved cards with shared 2 candidates via named draws.
+    const { state, engine } = createInitializedGS();
+    engine.resolveHand(state, "Alice", ["agriculture", "archery"]);
+
+    const age10Key = ageSetKey(10, CardSet.BASE);
+    const age10Names = [...cardDb.groups().get(age10Key)!];
+    expect(state.decks.get(age10Key)!.length).toBe(age10Names.length);
+
+    // Draw N-2 named age-10 cards out of the deck (to Alice's score, just to resolve them).
+    const drawOutCount = age10Names.length - 2;
+    for (let i = 0; i < drawOutCount; i++) {
+      engine.move(state, namedAction({ cardName: age10Names[i], source: "deck", dest: "score", destPlayer: "Alice" }));
+    }
+
+    // Verify pre-condition: 2 cards left in deck, each with exactly 2 candidates (the last two names).
+    const remainingDeck = state.decks.get(age10Key)!;
+    expect(remainingDeck.length).toBe(2);
+    const pairNames = age10Names.slice(-2);
+    for (const card of remainingDeck) {
+      expect(card.candidates.size).toBe(2);
+      expect([...card.candidates].sort()).toEqual([...pairNames].sort());
+    }
+
+    // Bob draws both (grouped — opponent draw, no name).
+    engine.move(state, groupedAction({ age: 10, cardSet: CardSet.BASE, source: "deck", dest: "hand", destPlayer: "Bob" }));
+    engine.move(state, groupedAction({ age: 10, cardSet: CardSet.BASE, source: "deck", dest: "hand", destPlayer: "Bob" }));
+
+    // Bob's hand should now hold both age-10 cards, resolved 1:1.
+    const bobAge10 = state.hands.get("Bob")!.filter(c => ageSetKey(c.age, c.cardSet) === age10Key);
+    expect(bobAge10.length).toBe(2);
+    expect(bobAge10.every(c => c.isResolved)).toBe(true);
+    const resolvedNames = new Set(bobAge10.map(c => c.resolvedName));
+    expect(resolvedNames).toEqual(new Set(pairNames));
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Suspect propagation
 // ---------------------------------------------------------------------------
 
@@ -1056,6 +1105,83 @@ describe("processLog", () => {
     const myHand = ["Agriculture", "Archery"];
 
     engine.processLog(state, log, myHand);
+  });
+
+  it("does not pin specific Card when multiple discards remain ambiguous (bgaa_855455504)", () => {
+    const { state, engine } = createInitializedGS();
+
+    // Opponent melds Nanjing (cities age 2, [castle] keyword). Draws Currency and Philosophy
+    // via deck→revealed→hand (neither has [castle], both end up in discardNames). Then BGA
+    // emits TWO grouped returns. The engine cannot tell which return is Currency and which is
+    // Philosophy — both candidates are still in hand at the first return. Pre-committing via
+    // hand array order would drift the engine's deck order from BGA's physical order, causing
+    // later named references to fail.
+    const log: GameLogEntry[] = [
+      { type: "transfer", move: 1, cardSet: "cities", source: "deck", dest: "hand", cardName: "Nanjing", cardAge: 2, sourceOwner: null, destOwner: "Bob", meldKeyword: false, topOfDeck: false },
+      { type: "transfer", move: 1, cardSet: "cities", source: "hand", dest: "board", cardName: "Nanjing", cardAge: 2, sourceOwner: "Bob", destOwner: "Bob", meldKeyword: true, topOfDeck: false },
+      { type: "transfer", move: 1, cardSet: "base", source: "deck", dest: "revealed", cardName: "Currency", cardAge: 2, sourceOwner: null, destOwner: "Bob", meldKeyword: false, topOfDeck: false },
+      { type: "transfer", move: 1, cardSet: "base", source: "revealed", dest: "hand", cardName: "Currency", cardAge: 2, sourceOwner: "Bob", destOwner: "Bob", meldKeyword: false, topOfDeck: false },
+      { type: "transfer", move: 1, cardSet: "base", source: "deck", dest: "revealed", cardName: "Philosophy", cardAge: 2, sourceOwner: null, destOwner: "Bob", meldKeyword: false, topOfDeck: false },
+      { type: "transfer", move: 1, cardSet: "base", source: "revealed", dest: "hand", cardName: "Philosophy", cardAge: 2, sourceOwner: "Bob", destOwner: "Bob", meldKeyword: false, topOfDeck: false },
+      { type: "log", move: 1, msg: "The revealed cards with a [castle] will be kept and the others will be returned." },
+      { type: "transfer", move: 1, cardSet: "base", source: "hand", dest: "deck", cardName: null, cardAge: 2, sourceOwner: "Bob", destOwner: null, meldKeyword: false, topOfDeck: false },
+      { type: "transfer", move: 1, cardSet: "base", source: "hand", dest: "deck", cardName: null, cardAge: 2, sourceOwner: "Bob", destOwner: null, meldKeyword: false, topOfDeck: false },
+      // Later, Bob plays Philosophy from hand — but his hand is empty here. Instead, simulate
+      // the situation by having Bob draw Philosophy back from deck (named, BGA-authoritative).
+      // Both pooled candidates have philosophy, so the salvage path resolves correctly.
+      { type: "transfer", move: 2, cardSet: "base", source: "deck", dest: "hand", cardName: "Philosophy", cardAge: 2, sourceOwner: null, destOwner: "Bob", meldKeyword: false, topOfDeck: false },
+    ];
+    const myHand = ["Agriculture", "Archery"];
+
+    // Pre-fix this throws "Card 'philosophy' not found in ..." because the meld-filter
+    // logic pre-pinned Currency to the first return and Philosophy to the second based on
+    // engine's hand array order, and subsequent draws hit the wrong Card object.
+    expect(() => engine.processLog(state, log, myHand)).not.toThrow();
+
+    // Bob ends up holding Philosophy (resolved) after the named draw-back.
+    const bobHand = state.hands.get("Bob")!;
+    expect(bobHand.some(c => c.resolvedName === "philosophy")).toBe(true);
+  });
+
+  it("preserves kept cards and pools discards separately when meld filter has both", () => {
+    const { state, engine } = createInitializedGS();
+
+    // Opponent melds Hoi An (cities age 5, icon[5]=crown). Draws 5 age-5 base cards via
+    // revealed→hand: 3 lack crown (returned: Coal, Chemistry, Measurement), 2 have crown
+    // (kept: Astronomy, Banking). Three grouped returns follow.
+    //
+    // Before this fix: grouped-pooling unioned ALL 5 sameGroup cards (3 discards + 2 keeps)
+    // to a 5-name set on each return — destroying the keeps' resolutions.
+    //
+    // After fix: pool only the 3 discards into the 3-name discard set; keeps stay resolved.
+    const log: GameLogEntry[] = [
+      { type: "transfer", move: 1, cardSet: "cities", source: "deck", dest: "hand", cardName: "Hoi An", cardAge: 5, sourceOwner: null, destOwner: "Bob", meldKeyword: false, topOfDeck: false },
+      { type: "transfer", move: 1, cardSet: "cities", source: "hand", dest: "board", cardName: "Hoi An", cardAge: 5, sourceOwner: "Bob", destOwner: "Bob", meldKeyword: true, topOfDeck: false },
+      { type: "transfer", move: 1, cardSet: "base", source: "deck", dest: "revealed", cardName: "Coal", cardAge: 5, sourceOwner: null, destOwner: "Bob", meldKeyword: false, topOfDeck: false },
+      { type: "transfer", move: 1, cardSet: "base", source: "revealed", dest: "hand", cardName: "Coal", cardAge: 5, sourceOwner: "Bob", destOwner: "Bob", meldKeyword: false, topOfDeck: false },
+      { type: "transfer", move: 1, cardSet: "base", source: "deck", dest: "revealed", cardName: "Chemistry", cardAge: 5, sourceOwner: null, destOwner: "Bob", meldKeyword: false, topOfDeck: false },
+      { type: "transfer", move: 1, cardSet: "base", source: "revealed", dest: "hand", cardName: "Chemistry", cardAge: 5, sourceOwner: "Bob", destOwner: "Bob", meldKeyword: false, topOfDeck: false },
+      { type: "transfer", move: 1, cardSet: "base", source: "deck", dest: "revealed", cardName: "Measurement", cardAge: 5, sourceOwner: null, destOwner: "Bob", meldKeyword: false, topOfDeck: false },
+      { type: "transfer", move: 1, cardSet: "base", source: "revealed", dest: "hand", cardName: "Measurement", cardAge: 5, sourceOwner: "Bob", destOwner: "Bob", meldKeyword: false, topOfDeck: false },
+      { type: "transfer", move: 1, cardSet: "base", source: "deck", dest: "revealed", cardName: "Astronomy", cardAge: 5, sourceOwner: null, destOwner: "Bob", meldKeyword: false, topOfDeck: false },
+      { type: "transfer", move: 1, cardSet: "base", source: "revealed", dest: "hand", cardName: "Astronomy", cardAge: 5, sourceOwner: "Bob", destOwner: "Bob", meldKeyword: false, topOfDeck: false },
+      { type: "transfer", move: 1, cardSet: "base", source: "deck", dest: "revealed", cardName: "Banking", cardAge: 5, sourceOwner: null, destOwner: "Bob", meldKeyword: false, topOfDeck: false },
+      { type: "transfer", move: 1, cardSet: "base", source: "revealed", dest: "hand", cardName: "Banking", cardAge: 5, sourceOwner: "Bob", destOwner: "Bob", meldKeyword: false, topOfDeck: false },
+      { type: "log", move: 1, msg: "The revealed cards with a [crown] will be kept and the others will be returned." },
+      { type: "transfer", move: 1, cardSet: "base", source: "hand", dest: "deck", cardName: null, cardAge: 5, sourceOwner: "Bob", destOwner: null, meldKeyword: false, topOfDeck: false },
+      { type: "transfer", move: 1, cardSet: "base", source: "hand", dest: "deck", cardName: null, cardAge: 5, sourceOwner: "Bob", destOwner: null, meldKeyword: false, topOfDeck: false },
+      { type: "transfer", move: 1, cardSet: "base", source: "hand", dest: "deck", cardName: null, cardAge: 5, sourceOwner: "Bob", destOwner: null, meldKeyword: false, topOfDeck: false },
+    ];
+    const myHand = ["Agriculture", "Archery"];
+
+    engine.processLog(state, log, myHand);
+
+    // Bob keeps Astronomy and Banking (both have crown), both still resolved by name.
+    const bobHand = state.hands.get("Bob")!;
+    const age5InHand = bobHand.filter(c => c.age === 5 && c.cardSet === CardSet.BASE);
+    expect(age5InHand.length).toBe(2);
+    const keptNames = age5InHand.filter(c => c.isResolved).map(c => c.resolvedName).sort();
+    expect(keptNames).toEqual(["astronomy", "banking"]);
   });
 
   it("keeps resolved cards after grouped discard from meld filter (bgaa_818433588)", () => {
