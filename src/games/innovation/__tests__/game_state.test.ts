@@ -856,6 +856,36 @@ describe("suspect merging", () => {
     }
   });
 
+  it("does not pool exact/none opponent knowledge when an exact card leaves our hand (bug #858231817)", () => {
+    // Repro: after a public reveal, Compass (kept) and Translation (returned) are opponent-exact,
+    // while an older hidden hand card (e.g. Education) is opponent-none. Returning the exact
+    // Translation to the deck must NOT pool the group — doing so downgraded the exact cards to
+    // partial and gave Education a suspect set that excluded Education itself.
+    const { state, engine } = createInitializedGS();
+    engine.resolveHand(state, "Alice", ["agriculture", "archery"]);
+    // Draw a third same-group card so Alice holds 3 age-1 base cards.
+    engine.move(state, namedAction({ cardName: "clothing", source: "deck", dest: "hand", destPlayer: "Alice" }));
+
+    const aliceHand = state.hands.get("Alice")!;
+    const byName = (n: string) => aliceHand.find(c => c.resolvedName === n)!;
+    byName("agriculture").opponentKnowledge = { kind: "exact", name: "agriculture" };
+    byName("clothing").opponentKnowledge = { kind: "exact", name: "clothing" };
+    byName("archery").opponentKnowledge = { kind: "none" };
+
+    // Return the opponent-exact agriculture to the deck.
+    engine.move(state, namedAction({ cardName: "agriculture", source: "hand", dest: "deck", sourcePlayer: "Alice" }));
+
+    // The untracked card must stay "none", never a partial set that excludes its true card.
+    const archery = state.hands.get("Alice")!.find(c => c.resolvedName === "archery")!;
+    expect(archery.opponentKnowledge.kind).toBe("none");
+    // The other exact card must remain exact, not be downgraded to partial.
+    const clothing = state.hands.get("Alice")!.find(c => c.resolvedName === "clothing")!;
+    expect(clothing.opponentKnowledge.kind).toBe("exact");
+    // The returned card stays exact-known to the opponent (it was publicly seen leaving).
+    const agri = state.decks.get(ageSetKey(1, CardSet.BASE))!.find(c => c.resolvedName === "agriculture")!;
+    expect(agri.opponentKnowledge.kind).toBe("exact");
+  });
+
   it("does not merge suspects for opponent's moves", () => {
     const { state, engine } = createInitializedGS();
     engine.resolveHand(state, "Alice", ["agriculture", "archery"]);

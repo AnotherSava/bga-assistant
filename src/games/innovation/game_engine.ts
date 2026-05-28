@@ -585,7 +585,13 @@ export class GameEngine {
     )) return;
 
     const cardGroupKey = ageSetKey(card.age, card.cardSet);
-    const affected = [card, ...remainingSource.filter(c => ageSetKey(c.age, c.cardSet) === cardGroupKey)];
+    const sameGroup = [card, ...remainingSource.filter(c => ageSetKey(c.age, c.cardSet) === cardGroupKey)];
+    // Only cards the opponent tracks as a shared uncertainty pool ("partial") may merge.
+    // Cards the opponent knows exactly are distinguishable, and cards it has no information
+    // about ("none") are untracked — pooling either would corrupt knowledge: it downgrades
+    // exact cards to partial, or fabricates a suspect set that excludes an untracked card's
+    // true identity.
+    const affected = sameGroup.filter(c => c.opponentKnowledge.kind === "partial");
     if (affected.length <= 1) return;
 
     // Collect all suspects and closed status
