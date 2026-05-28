@@ -18,6 +18,7 @@ import "../games/crew/styles.css";
 import { fromJSON as azulFromJSON } from "../games/azul/game_state.js";
 import type { PipelineResults } from "../pipeline.js";
 import type { PinMode } from "../background.js";
+import type { Granularity } from "../time-tracking.js";
 import { loadSetting, saveSetting } from "./settings.js";
 
 // ---------------------------------------------------------------------------
@@ -709,6 +710,150 @@ document.getElementById("btn-help")?.addEventListener("click", () => {
   }
 });
 
+// Stats page
+let cachedExportFn: (() => Promise<string>) | null = null;
+
+const KEY_STATS_GRANULARITY = "bgaa_stats_granularity";
+const CHART_PALETTE = ["#4a9eff", "#ff6b6b", "#51cf66", "#ffd43b", "#cc5de8", "#ff922b", "#22b8cf", "#f06595", "#94d82d", "#a78bfa", "#ffa94d", "#63e6be"];
+const CHART_HEIGHT = 140;
+const STOPWATCH_SVG = '<svg class="stats-rt" viewBox="0 0 24 24" width="11" height="11" aria-label="real-time"><path fill="currentColor" d="M15 1H9v2h6V1zm-4 13h2V8h-2v6zm8.03-6.61l1.42-1.42c-.43-.51-.9-.99-1.41-1.41l-1.42 1.42A8.962 8.962 0 0012 4c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-2.12-.74-4.07-1.97-5.61zM12 20c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg>';
+
+function escapeHtml(text: string): string {
+  return text.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c] as string));
+}
+
+/** True while the user has the play-time stats page open. Background pushes (e.g. on service worker revival) must not re-render over it. */
+function statsPageOpen(): boolean {
+  return !!document.getElementById("content")?.querySelector(".stats-page");
+}
+
+/** Round a max value up to a "nice" axis maximum and return evenly spaced tick values from 0. */
+function niceTicks(max: number): { axisMax: number; ticks: number[] } {
+  if (max <= 0) return { axisMax: 1, ticks: [0] };
+  const rough = max / 4;
+  const pow = Math.pow(10, Math.floor(Math.log10(rough)));
+  const norm = rough / pow;
+  const step = (norm <= 1 ? 1 : norm <= 2 ? 2 : norm <= 5 ? 5 : 10) * pow;
+  const axisMax = Math.ceil(max / step) * step;
+  const ticks: number[] = [];
+  for (let tick = 0; tick <= axisMax + step / 1000; tick += step) ticks.push(Math.round(tick * 1000) / 1000);
+  return { axisMax, ticks };
+}
+
+/** Build the chart's y-axis. Bars are scaled in minutes; once the axis would exceed 100 minutes the labels switch to hours. */
+function axisScale(maxMinutes: number): { axisMaxMinutes: number; ticks: { minutes: number; label: string }[] } {
+  const minutes = niceTicks(maxMinutes);
+  if (minutes.axisMax <= 100) {
+    return { axisMaxMinutes: minutes.axisMax, ticks: minutes.ticks.map((t) => ({ minutes: t, label: Number.isInteger(t) ? String(t) : t.toFixed(1) })) };
+  }
+  const hours = niceTicks(maxMinutes / 60); // niceTicks yields ~4 steps, so always ≥2 non-zero hour marks
+  return { axisMaxMinutes: hours.axisMax * 60, ticks: hours.ticks.map((h) => ({ minutes: h * 60, label: h === 0 ? "0" : `${Number.isInteger(h) ? h : h.toFixed(1)}h` })) };
+}
+
+async function showStats(): Promise<void> {
+  const contentEl = document.getElementById("content");
+  if (!contentEl) return;
+  const { exportSessionsCsv, aggregateSessions, STORAGE_KEY_SESSIONS, STORAGE_KEY_GAMES, STORAGE_KEY_ACTIVE, STORAGE_KEY_MODES } = await import("../time-tracking.js");
+  cachedExportFn = exportSessionsCsv;
+  const result = await chrome.storage.local.get([STORAGE_KEY_SESSIONS, STORAGE_KEY_GAMES, STORAGE_KEY_MODES, STORAGE_KEY_ACTIVE]);
+  const stored: [string, number, number, number][] = result[STORAGE_KEY_SESSIONS] ?? [];
+  const gameMap: Record<string, string> = result[STORAGE_KEY_GAMES] ?? {};
+  const modeMap: Record<string, boolean> = result[STORAGE_KEY_MODES] ?? {};
+  const active = result[STORAGE_KEY_ACTIVE] as { slug: string; tableId: number; from: number } | undefined;
+  // Fold the in-progress session (if any) in as a synthetic [slug, table, from, now] tuple — newest, so it sorts first.
+  const activeTuple: [string, number, number, number] | null = active ? [active.slug, active.tableId, active.from, Date.now()] : null;
+  const sessions = activeTuple ? [...stored, activeTuple] : stored;
+  const granularity = loadSetting<Granularity>(KEY_STATS_GRANULARITY, "day");
+  switchZoomContext("help");
+  closeMenus();
+  const btnSections = document.getElementById("btn-sections");
+  if (btnSections) btnSections.classList.add("disabled");
+  const turnHistoryEl = document.getElementById("turn-history");
+  if (turnHistoryEl) turnHistoryEl.innerHTML = "";
+  chrome.runtime.sendMessage({ type: "pauseLive" }).catch(() => {});
+
+  const rows = sessions.slice().reverse().map(([slug, tableId, from, to]) => {
+    const minutes = ((to - from) / 60000).toFixed(1);
+    const date = new Date(from).toLocaleDateString();
+    const time = new Date(from).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    const rt = modeMap[tableId] ? ` ${STOPWATCH_SVG}` : "";
+    const isActive = activeTuple !== null && from === activeTuple[2];
+    const live = isActive ? ' <span class="stats-live" title="in progress"></span>' : "";
+    return `<tr${isActive ? ' class="stats-active"' : ""}><td>${escapeHtml(gameMap[slug] ?? slug)}</td><td>${tableId}${rt}${live}</td><td>${date} ${time}</td><td>${minutes} min</td></tr>`;
+  }).join("");
+
+  const chart = aggregateSessions(sessions, gameMap, granularity);
+  const colorOf = (game: string): string => CHART_PALETTE[chart.games.indexOf(game) % CHART_PALETTE.length];
+  const switchHtml = (["day", "week", "month"] as Granularity[]).map((g) => `<button class="stats-gran${g === granularity ? " active" : ""}" data-gran="${g}">${g[0].toUpperCase()}${g.slice(1)}</button>`).join("");
+  let chartHtml: string;
+  if (chart.buckets.length === 0) {
+    chartHtml = '<div class="stats-chart-empty">No data to chart yet</div>';
+  } else {
+    const { axisMaxMinutes, ticks } = axisScale(chart.maxTotalMinutes);
+    const cols = chart.buckets.map((bucket) => {
+      const segs = chart.games.filter((game) => bucket.minutesByGame[game] > 0).map((game) => {
+        const px = Math.max(1, Math.round((bucket.minutesByGame[game] / axisMaxMinutes) * CHART_HEIGHT));
+        return `<div class="stats-seg" style="height:${px}px;background:${colorOf(game)}" title="${escapeHtml(game)}: ${bucket.minutesByGame[game].toFixed(0)}m"></div>`;
+      }).join("");
+      return `<div class="stats-col" title="${bucket.label}: ${bucket.totalMinutes.toFixed(0)}m"><div class="stats-col-bars" style="height:${CHART_HEIGHT}px">${segs}</div><div class="stats-col-x">${bucket.label}</div></div>`;
+    }).join("");
+    const axis = ticks.map((t) => `<span class="stats-ytick" style="bottom:${(t.minutes / axisMaxMinutes) * CHART_HEIGHT}px">${t.label}</span>`).join("");
+    const legend = chart.games.map((game) => `<span class="stats-legend-item"><span class="stats-legend-swatch" style="background:${colorOf(game)}"></span>${escapeHtml(game)}</span>`).join("");
+    chartHtml = `<div class="stats-chart-wrap"><div class="stats-yaxis" style="height:${CHART_HEIGHT}px">${axis}</div><div class="stats-chart">${cols}</div></div><div class="stats-legend">${legend}</div>`;
+  }
+
+  const totalMinutes = sessions.reduce((sum, [, , from, to]) => sum + (to - from), 0) / 60000;
+  contentEl.innerHTML = `<div class="stats-page"><h2>Play time</h2><div class="stats-summary"><span>${new Set(sessions.map(([, tableId]) => tableId)).size} tables, ${totalMinutes.toFixed(0)} minutes total</span><span class="stats-actions"><button class="stats-btn" id="btn-stats-refresh">Refresh</button><button class="stats-btn" id="btn-stats-export">Export</button><button class="stats-btn" id="btn-stats-import">Import</button><button class="stats-btn stats-btn-danger" id="btn-stats-clear">Clear</button></span></div><div class="stats-gran-switch">${switchHtml}</div>${chartHtml}<table class="stats-table"><thead><tr><th>Game</th><th>Table</th><th>Date</th><th>Duration</th></tr></thead><tbody>${rows || '<tr><td colspan="4" class="stats-empty">No sessions recorded yet</td></tr>'}</tbody></table></div>`;
+
+  document.querySelectorAll<HTMLElement>(".stats-gran").forEach((btn) => btn.addEventListener("click", () => {
+    saveSetting(KEY_STATS_GRANULARITY, btn.getAttribute("data-gran"));
+    showStats();
+  }));
+  document.getElementById("btn-stats-refresh")?.addEventListener("click", () => showStats());
+  document.getElementById("btn-stats-export")?.addEventListener("click", async () => {
+    const csv = await cachedExportFn!();
+    const blob = new Blob([csv], { type: "text/csv" });
+    const dateStr = new Date().toISOString().slice(0, 10);
+    downloadBlob(blob, `bgaa_playtime_${dateStr}.csv`);
+  });
+  document.getElementById("btn-stats-import")?.addEventListener("click", () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".csv,text/csv";
+    input.addEventListener("change", async () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      const { importSessionsCsv } = await import("../time-tracking.js");
+      const added = await importSessionsCsv(await file.text());
+      window.alert(`Imported ${added} session${added === 1 ? "" : "s"}.`);
+      showStats();
+    });
+    input.click();
+  });
+  document.getElementById("btn-stats-clear")?.addEventListener("click", async () => {
+    if (!window.confirm("Delete all recorded play time? This cannot be undone.")) return;
+    await chrome.storage.local.remove([STORAGE_KEY_SESSIONS, STORAGE_KEY_GAMES, STORAGE_KEY_ACTIVE, STORAGE_KEY_MODES]);
+    chrome.runtime.sendMessage({ type: "resetTimeTracking" }).catch(() => {});
+    showStats();
+  });
+}
+
+// Wire stats button — toggles between stats page and game summary
+document.getElementById("btn-stats")?.addEventListener("click", () => {
+  const contentEl = document.getElementById("content");
+  if (!contentEl) return;
+  if (contentEl.querySelector(".stats-page")) {
+    if (currentResults?.gameState) {
+      render(currentResults);
+      chrome.runtime.sendMessage({ type: "resumeLive" }).catch(() => {});
+    } else {
+      showHelp(undefined, currentResults?.gameName as GameName | undefined);
+    }
+    return;
+  }
+  showStats();
+});
+
 
 // ---------------------------------------------------------------------------
 // Message listener
@@ -737,6 +882,10 @@ if (typeof chrome !== "undefined" && chrome.runtime?.onMessage) {
         const same = currentResults && currentResults.tableNumber === response.tableNumber && currentResults.rawData.packets.length === response.rawData.packets.length;
         const sameTable = currentResults && currentResults.tableNumber === response.tableNumber;
         currentResults = response;
+        // Keep the stats page up unless the user navigated to a *different supported* table (results with gameState).
+        // Same-table re-pushes (service worker revival) and unsupported tables must not clobber it.
+        const navigatedToSupportedTable = !sameTable && !!response.gameState;
+        if (statsPageOpen() && !navigatedToSupportedTable) return;
         if (same) return;
         if (!sameTable) closeMenus();
         if (response.gameState) {
@@ -746,6 +895,8 @@ if (typeof chrome !== "undefined" && chrome.runtime?.onMessage) {
         }
       }
     } else if (message.type === "loading") {
+      // "loading" is only sent when navigating to a different *supported* table, so it should
+      // leave the stats page (with feedback). It never fires during idle same-table revival.
       currentResults = null;
       closeMenus();
       const btnSections = document.getElementById("btn-sections");
@@ -757,9 +908,11 @@ if (typeof chrome !== "undefined" && chrome.runtime?.onMessage) {
       if (turnHistoryEl) turnHistoryEl.innerHTML = "";
     } else if (message.type === "notAGame") {
       currentResults = null;
+      if (statsPageOpen()) return;
       showHelp();
     } else if (message.type === "gameError") {
       currentResults = message.results ?? null;
+      if (statsPageOpen()) return;
       showHelp(message.error);
       if (currentResults) {
         const btnDownload = document.getElementById("btn-download");
@@ -776,6 +929,19 @@ if (typeof chrome !== "undefined" && chrome.runtime?.onMessage) {
       }
     }
     return undefined;
+  });
+}
+
+// Re-render the stats page whenever the tracked sessions change in storage — e.g. the active
+// session ends as you navigate away (its dot should disappear and it should become a finished row).
+// Fires after the write completes, so it reflects up-to-date data (no message-timing race).
+if (typeof chrome !== "undefined" && chrome.storage?.onChanged) {
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area !== "local" || !statsPageOpen()) return;
+    // Keys mirror time-tracking.ts (STORAGE_KEY_SESSIONS / _ACTIVE / _MODES).
+    if (changes["bgaa_time_sessions"] || changes["bgaa_time_active"] || changes["bgaa_time_modes"]) {
+      showStats();
+    }
   });
 }
 

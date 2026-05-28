@@ -64,7 +64,9 @@ export async function extractGameData(): Promise<Record<string, unknown>> {
           return;
         }
 
-        resolve({ gameName: parts[2], players, gamedatas, packets: result.data, currentPlayerId });
+        // gameui.bRealtime is the framework-level real-time flag (1/0), present on every game.
+        const realTime = typeof gui.bRealtime === "number" ? gui.bRealtime === 1 : typeof gui.bRealtime === "boolean" ? gui.bRealtime : null;
+        resolve({ gameName: parts[2], players, gamedatas, packets: result.data, currentPlayerId, realTime });
       },
       (_isError: boolean, errorMsg: string) => {
         resolve({ error: true, msg: errorMsg });

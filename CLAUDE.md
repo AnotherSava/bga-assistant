@@ -67,9 +67,10 @@ Keep `docs/pages/data-flow.md` up to date when code changes affect data flow, me
 - `src/render/icons.ts` — shared icon utilities
 - `src/render/player.ts` — shared player-color rendering helper (`playerColorAttr` emits inline `--player-color` style from a PlayerInfo)
 - `src/render/toggle.ts` — shared toggle logic (side panel + ZIP export); tooltips are CSS-only via anchor positioning
+- `src/time-tracking.ts` — game table play-time tracker (session types, URL parser, SessionTracker class, BGA localStorage sync, JSON export)
 - `src/extract.ts` — content script (MAIN world)
 - `src/pipeline.ts` — pure pipeline logic (processGameLog, processGameState, runPipeline) shared by background.ts and CLI scripts
-- `src/background.ts` — service worker (orchestration, side panel management, live tracking)
+- `src/background.ts` — service worker (orchestration, side panel management, live tracking, time tracking integration)
 - `scripts/game-log.ts` — CLI: raw_data.json → game_log.json
 - `scripts/game-state.ts` — CLI: game_log.json → game_state.json (+ --debug snapshots)
 - `scripts/migrate-fixture.ts` — one-shot migration for legacy `players: {id: name}` fixtures → `Record<string, PlayerInfo>`

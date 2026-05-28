@@ -49,6 +49,8 @@ export interface RawExtractionData {
   players: Record<string, PlayerInfo>;
   packets: RawPacket[];
   currentPlayerId?: string;
+  /** Whether the table is real-time (vs turn-based); null when unknown. */
+  realTime?: boolean | null;
   gamedatas?: {
     my_hand?: Array<{ id: number | string }>;
     cards?: Record<string, { name?: string; age?: string | number; is_relic?: string | number | boolean; type?: string | number }>;

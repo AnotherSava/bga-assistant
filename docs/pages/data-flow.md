@@ -277,6 +277,52 @@ Triggers:
 4. For unsupported games: ZIP contains only `raw_data.json`
 5. Download as `bgaa_<tableNumber>_<moveId>.zip`
 
+## Data Flow: Time Tracking
+
+Tracks how long game table pages are open and in focus. Works across all BGA games,
+not only supported ones.
+
+### Session lifecycle
+
+***Background Service Worker***
+
+1. On every focus-changing event (`tabs.onActivated`, `tabs.onUpdated` URL change,
+   `tabs.onRemoved`, `windows.onFocusChanged`), call `timeTracker.handleFocusChange(url)`
+2. `SessionTracker` parses the URL via `parseGameTableUrl()`:
+   - If it's a game table URL different from the active session: end the current session, start a new one
+   - If it's the same table: no-op
+   - If null or non-game URL: end the current session
+3. Completed sessions are written to `chrome.storage.local` as compact tuples `[gameId, tableId, from, to]`
+4. A game-name map (`gameId → gameName`) is maintained alongside sessions
+
+### Storage architecture (two tiers)
+
+| Tier | Key(s) | Written when | Purpose |
+|------|---------|--------------|---------|
+| `chrome.storage.local` | `bgaa_time_sessions`, `bgaa_time_games` | Every session end | Primary durable store |
+| BGA page `localStorage` | `bgaa_time_sessions` | On backup (throttled) | Cross-reinstall backup |
+
+### BGA localStorage backup/restore
+
+Triggered when navigating to any BGA page, throttled to once per 5 minutes.
+
+- **Restore** (once per SW lifetime): if `chrome.storage.local` is empty, read from
+  BGA page localStorage and populate it. Handles the fresh-install-after-reinstall case.
+- **Backup**: copy current sessions from `chrome.storage.local` to BGA page localStorage
+  via `chrome.scripting.executeScript` (MAIN world).
+
+### CSV export
+
+***Side Panel***
+
+1. User clicks the time export button (clock icon)
+2. `exportSessionsCsv()` reads sessions and game map from `chrome.storage.local`
+3. Produces CSV with columns: `game_id, game_name, table_id, from, to, minutes`
+4. Downloads as `bgaa_playtime_YYYY-MM-DD.csv`
+
+Key files:
+- `src/time-tracking.ts` — types, URL parser, SessionTracker class, sync logic, export
+
 ## Message Protocol
 
 ### *Side Panel* &rarr; *Background Service Worker*
@@ -364,7 +410,8 @@ There are two main handlers in the background service worker:
 | User reloads the game page | `chrome.tabs.onUpdated` with `status: "complete"` | `handleNavigation` with source `"navigation"` — re-extracts from the reloaded page | Fresh extraction; loading shown if table changed, otherwise silent update |
 | User navigates to a different page in the same tab | `chrome.tabs.onUpdated` — two detection modes: (1) full page load fires `status: "complete"`; (2) SPA navigation (BGA uses `pushState`) fires with `url` change but no `status` field. Both reach the same `handleNavigation` call. | `handleNavigation` — classifies the new URL and resolves content | Shows new game, help page, or auto-closes depending on URL and pin mode |
 | User switches to a different tab | `chrome.tabs.onActivated` | `handleNavigation` with source `"navigation"` — extracts from the newly active tab | Shows the new tab's game, help page, or auto-closes |
-| User switches to a different Chrome window | `chrome.windows.onFocusChanged` | `handleNavigation` with source `"focus"` — queries the active tab in the focused window. Fires for the window gaining focus, regardless of whether the side panel is open there. | Silent update (no loading indicator); shows current game or help |
+| User switches to a different Chrome window | `chrome.windows.onFocusChanged` | `handleNavigation` with source `"focus"` — queries the active tab in the focused window. Fires for the window gaining focus, regardless of whether the side panel is open there. Also ends any active time tracking session on `WINDOW_ID_NONE` (all windows lost focus). | Silent update (no loading indicator); shows current game or help |
+| User closes a game tab | `chrome.tabs.onRemoved` | Ends the active time tracking session if the closed tab was the tracked tab | No side panel effect |
 | User clicks help button in side panel | Side panel DOM event | Toggles between help page and game summary; sends `"pauseLive"` / `"resumeLive"` to background | Swaps view; live tracking paused while on help |
 
 ### Game state changes

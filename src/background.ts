@@ -2,6 +2,7 @@
 
 import { runPipeline, isValidPlayerCount, type PipelineResults } from "./pipeline.js";
 import { CardDatabase, type GameName, type RawExtractionData } from "./models/types.js";
+import { SessionTracker, parseGameTableUrl } from "./time-tracking.js";
 import cardInfoRaw from "../assets/bga/innovation/card_info.json";
 
 // ---------------------------------------------------------------------------
@@ -12,7 +13,6 @@ const BADGE_CLEAR_DELAY_MS = 5000;
 const EXTRACTION_TIMEOUT_MS = 60000;
 const LIVE_MIN_INTERVAL_MS = 5000;
 const SUPPORTED_GAMES: GameName[] = ["innovation", "azul", "thecrewdeepsea"];
-const BGA_URL_PATTERN = /^https:\/\/([a-z0-9]+\.)?boardgamearena\.com\/\d+\/(\w+).*[?&]table=\d+/;
 const BGA_DOMAIN_PATTERN = /^https:\/\/([a-z0-9]+\.)?boardgamearena\.com\//;
 // ---------------------------------------------------------------------------
 // State
@@ -58,12 +58,36 @@ let deferredExtractionTimer: ReturnType<typeof setTimeout> | null = null;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const cardDb = new CardDatabase(cardInfoRaw as any[]);
 
+const timeTracker = new SessionTracker();
+const BACKUP_THROTTLE_MS = 5 * 60 * 1000;
+let lastBackupTime = 0;
+let restoredFromBga = false;
+
+function recordTableMode(tableNumber: string, rawData: RawExtractionData): void {
+  const tableId = Number(tableNumber);
+  if (Number.isFinite(tableId)) timeTracker.setTableMode(tableId, rawData.realTime);
+}
+
+function maybeBgaSync(tabId: number, url: string | undefined): void {
+  if (!url || !BGA_DOMAIN_PATTERN.test(url)) return;
+  if (!restoredFromBga) {
+    restoredFromBga = true;
+    timeTracker.restoreFromBga(tabId).catch(() => {});
+  }
+  if (Date.now() - lastBackupTime < BACKUP_THROTTLE_MS) return;
+  lastBackupTime = Date.now();
+  timeTracker.backupToBga(tabId).catch(() => {});
+}
+
 // Initialize activeTabId and icon on service worker startup
 chrome.tabs.query({ active: true, currentWindow: true }).then((tabs) => {
   const tab = tabs[0];
   if (tab?.id) {
     activeTabId = tab.id;
     updateIcon(tab.id, tab.url);
+    // Start/restore the time-tracking session for the already-focused tab — no tab/window
+    // event fires when the SW (re)starts while the user is already sitting on a game table.
+    timeTracker.handleFocusChange(tab.url ?? null, tab.title);
   }
 });
 
@@ -374,16 +398,15 @@ function triggerLiveExtraction(): void {
  * Pure function — no side effects, easy to test.
  */
 export function classifyNavigation(url: string | undefined): NavigationAction {
-  const match = url?.match(BGA_URL_PATTERN);
-  if (!match) {
+  const info = url ? parseGameTableUrl(url) : null;
+  if (!info) {
     return { action: "showHelp", url: url ?? "" };
   }
-  const gameName = match[2];
-  const tableNumber = url!.match(/table=(\d+)/)?.[1] ?? "";
-  if (!(SUPPORTED_GAMES as readonly string[]).includes(gameName)) {
-    return { action: "unsupportedGame", tableNumber, gameName };
+  const tableNumber = String(info.tableId);
+  if (!(SUPPORTED_GAMES as readonly string[]).includes(info.gameName)) {
+    return { action: "unsupportedGame", tableNumber, gameName: info.gameName };
   }
-  return { action: "extract", tableNumber, gameName: gameName as GameName };
+  return { action: "extract", tableNumber, gameName: info.gameName as GameName };
 }
 
 /**
@@ -430,6 +453,7 @@ async function extractFromTab(tabId: number, url: string, gameName: GameName, ta
 
   const tblNum = tableNumber ?? url.match(/table=(\d+)/)?.[1] ?? "unknown";
   const rawData = extractResult as RawExtractionData;
+  recordTableMode(tblNum, rawData);
   try {
     lastResults = runPipeline(rawData, cardDb, tblNum, gameName);
   } catch (err) {
@@ -468,7 +492,9 @@ async function extractRawDataAsResults(tabId: number, tableNumber: string, gameN
     ]);
     const extractResult = (results as chrome.scripting.InjectionResult[])[0]?.result;
     if (extractResult && !(extractResult as Record<string, unknown>).error) {
-      lastResults = { gameName, tableNumber, rawData: extractResult as RawExtractionData, gameLog: null, gameState: null };
+      const rawData = extractResult as RawExtractionData;
+      recordTableMode(tableNumber, rawData);
+      lastResults = { gameName, tableNumber, rawData, gameLog: null, gameState: null };
     } else {
       lastResults = null;
     }
@@ -680,6 +706,8 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
   try {
     const tab = await chrome.tabs.get(activeInfo.tabId);
     updateIcon(activeInfo.tabId, tab.url);
+    timeTracker.handleFocusChange(tab.url ?? null, tab.title);
+    maybeBgaSync(activeInfo.tabId, tab.url);
   } catch { /* tab may have been closed */ }
   if (!sidePanelOpen) { console.log("[nav] onActivated: panel closed, skip"); return; }
   if (extracting) {
@@ -702,7 +730,11 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
   if (!isPageLoadComplete && !isSpaNavigation) return;
   console.log("[nav] onUpdated: triggered", isPageLoadComplete ? "pageLoad" : "SPA", changeInfo.url ?? "");
   // Update lit icon based on whether tab is a supported game
-  chrome.tabs.get(tabId).then((tab) => updateIcon(tabId, tab.url)).catch(() => {});
+  chrome.tabs.get(tabId).then((tab) => {
+    updateIcon(tabId, tab.url);
+    timeTracker.handleFocusChange(tab.url ?? null, tab.title);
+    maybeBgaSync(tabId, tab.url);
+  }).catch(() => {});
   if (!sidePanelOpen) { console.log("[nav] onUpdated: panel closed, skip. sidePanelOpen=", sidePanelOpen, "tabId=", tabId, "activeTabId=", activeTabId); return; }
   if (extracting) {
     console.log("[nav] onUpdated: extracting, queued tab", tabId);
@@ -713,9 +745,16 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
   handleNavigation(tabId);
 });
 
+chrome.tabs.onRemoved.addListener((tabId) => {
+  if (tabId === activeTabId) timeTracker.handleFocusChange(null);
+});
+
 // React to window focus changes (switching between Chrome windows)
 chrome.windows.onFocusChanged.addListener(async (windowId) => {
-  if (windowId === chrome.windows.WINDOW_ID_NONE) return;
+  if (windowId === chrome.windows.WINDOW_ID_NONE) {
+    timeTracker.handleFocusChange(null);
+    return;
+  }
   let tabs: chrome.tabs.Tab[];
   try {
     tabs = await chrome.tabs.query({ active: true, windowId });
@@ -724,6 +763,7 @@ chrome.windows.onFocusChanged.addListener(async (windowId) => {
   if (!tab?.id) return;
   activeTabId = tab.id;
   updateIcon(tab.id, tab.url);
+  timeTracker.handleFocusChange(tab.url ?? null, tab.title);
   if (!sidePanelOpen) return;
   if (extracting) {
     pendingNavTabId = tab.id;
@@ -751,6 +791,8 @@ chrome.runtime.onMessage.addListener(
     } else if (message.type === "gameLogChanged") {
       if (sender.tab?.id !== liveTabId) { console.log("[live] ignored: sender tab", sender.tab?.id, "!= liveTabId", liveTabId); return; }
       triggerLiveExtraction();
+    } else if (message.type === "resetTimeTracking") {
+      timeTracker.reset();
     }
     return undefined;
   },

@@ -47,12 +47,20 @@ vi.hoisted(() => {
     tabs: {
       onActivated: { addListener: (cb: Function) => { _listeners.onActivated = cb; } },
       onUpdated: { addListener: (cb: Function) => { _listeners.onUpdated = cb; } },
+      onRemoved: { addListener: (cb: Function) => { _listeners.onRemoved = cb; } },
       get: vi.fn(() => Promise.resolve({})),
       query: vi.fn(() => Promise.resolve([])),
     },
     windows: {
       onFocusChanged: { addListener: (cb: Function) => { _listeners.onFocusChanged = cb; } },
       WINDOW_ID_NONE: -1,
+    },
+    storage: {
+      local: {
+        get: vi.fn(() => Promise.resolve({})),
+        set: vi.fn(() => Promise.resolve()),
+        remove: vi.fn(() => Promise.resolve()),
+      },
     },
   };
 });
