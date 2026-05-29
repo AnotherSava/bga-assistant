@@ -18,7 +18,7 @@ import "../games/crew/styles.css";
 import { fromJSON as azulFromJSON } from "../games/azul/game_state.js";
 import type { PipelineResults } from "../pipeline.js";
 import type { PinMode } from "../background.js";
-import type { Granularity } from "../time-tracking.js";
+import type { Granularity, SessionFilter, TimeSession } from "../time-tracking.js";
 import { loadSetting, saveSetting } from "./settings.js";
 
 // ---------------------------------------------------------------------------
@@ -441,13 +441,15 @@ document.getElementById("btn-zoom-in")?.addEventListener("click", () => {
 // Section selector (eye button)
 // ---------------------------------------------------------------------------
 
-document.getElementById("btn-sections")?.addEventListener("click", (e) => {
+document.getElementById("btn-sections")?.addEventListener("click", async (e) => {
   e.stopPropagation();
   const panel = document.getElementById("section-selector");
   if (!panel) return;
   if (panel.style.display === "none") {
     closePinDropdown();
-    if (currentResults?.gameName === "azul") {
+    if (statsPageOpen()) {
+      await buildStatsSettingsMenu(panel);
+    } else if (currentResults?.gameName === "azul") {
       buildAzulDisplayMenu(panel);
     } else if (currentResults?.gameName === "innovation") {
       buildInnovationDisplayMenu(panel, { echoes: currentExpansions.echoes, relics: currentExpansions.relics ?? false, zoomLevel });
@@ -714,12 +716,21 @@ document.getElementById("btn-help")?.addEventListener("click", () => {
 let cachedExportFn: (() => Promise<string>) | null = null;
 
 const KEY_STATS_GRANULARITY = "bgaa_stats_granularity";
+const KEY_STATS_DAY_START = "bgaa_stats_day_start";
+const KEY_STATS_WEEK_START = "bgaa_stats_week_start";
+const KEY_STATS_SESSION_FILTER = "bgaa_stats_session_filter";
 const CHART_PALETTE = ["#4a9eff", "#ff6b6b", "#51cf66", "#ffd43b", "#cc5de8", "#ff922b", "#22b8cf", "#f06595", "#94d82d", "#a78bfa", "#ffa94d", "#63e6be"];
 const CHART_HEIGHT = 140;
 const STOPWATCH_SVG = '<svg class="stats-rt" viewBox="0 0 24 24" width="11" height="11" aria-label="real-time"><path fill="currentColor" d="M15 1H9v2h6V1zm-4 13h2V8h-2v6zm8.03-6.61l1.42-1.42c-.43-.51-.9-.99-1.41-1.41l-1.42 1.42A8.962 8.962 0 0012 4c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-2.12-.74-4.07-1.97-5.61zM12 20c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg>';
 
 function escapeHtml(text: string): string {
   return text.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c] as string));
+}
+
+/** Short localized weekday name (e.g. "Wed") for a day bucket key formatted "YYYY-MM-DD". */
+function weekdayAbbr(dayKey: string): string {
+  const [year, month, day] = dayKey.split("-").map(Number);
+  return new Date(year, month - 1, day).toLocaleDateString(undefined, { weekday: "short" });
 }
 
 /** True while the user has the play-time stats page open. Background pushes (e.g. on service worker revival) must not re-render over it. */
@@ -753,36 +764,42 @@ function axisScale(maxMinutes: number): { axisMaxMinutes: number; ticks: { minut
 async function showStats(): Promise<void> {
   const contentEl = document.getElementById("content");
   if (!contentEl) return;
-  const { exportSessionsCsv, aggregateSessions, STORAGE_KEY_SESSIONS, STORAGE_KEY_GAMES, STORAGE_KEY_ACTIVE, STORAGE_KEY_MODES } = await import("../time-tracking.js");
+  const { exportSessionsCsv, aggregateSessions, minutesInCurrentBucket, currentBucketRange, sessionsOverlapping, formatDuration, formatDurationClock, DAY_START_HOUR, WEEK_START_DAY, STORAGE_KEY_SESSIONS, STORAGE_KEY_GAMES, STORAGE_KEY_ACTIVE, STORAGE_KEY_MODES } = await import("../time-tracking.js");
   cachedExportFn = exportSessionsCsv;
   const result = await chrome.storage.local.get([STORAGE_KEY_SESSIONS, STORAGE_KEY_GAMES, STORAGE_KEY_MODES, STORAGE_KEY_ACTIVE]);
-  const stored: [string, number, number, number][] = result[STORAGE_KEY_SESSIONS] ?? [];
+  const stored: TimeSession[] = result[STORAGE_KEY_SESSIONS] ?? [];
   const gameMap: Record<string, string> = result[STORAGE_KEY_GAMES] ?? {};
   const modeMap: Record<string, boolean> = result[STORAGE_KEY_MODES] ?? {};
   const active = result[STORAGE_KEY_ACTIVE] as { slug: string; tableId: number; from: number } | undefined;
+  const now = Date.now();
   // Fold the in-progress session (if any) in as a synthetic [slug, table, from, now] tuple — newest, so it sorts first.
-  const activeTuple: [string, number, number, number] | null = active ? [active.slug, active.tableId, active.from, Date.now()] : null;
-  const sessions = activeTuple ? [...stored, activeTuple] : stored;
+  const activeTuple: TimeSession | null = active ? [active.slug, active.tableId, active.from, now] : null;
+  const sessions: TimeSession[] = activeTuple ? [...stored, activeTuple] : stored;
   const granularity = loadSetting<Granularity>(KEY_STATS_GRANULARITY, "day");
+  const dayStartHour = loadSetting<number>(KEY_STATS_DAY_START, DAY_START_HOUR);
+  const weekStartDay = loadSetting<number>(KEY_STATS_WEEK_START, WEEK_START_DAY);
+  const sessionFilter = loadSetting<SessionFilter>(KEY_STATS_SESSION_FILTER, "all");
+  const dayRange = currentBucketRange("day", now, dayStartHour, weekStartDay);
+  const weekRange = currentBucketRange("week", now, dayStartHour, weekStartDay);
+  const tableSessions = sessionFilter === "off" ? [] : sessionFilter === "today" ? sessionsOverlapping(sessions, dayRange.start, dayRange.end) : sessionFilter === "week" ? sessionsOverlapping(sessions, weekRange.start, weekRange.end) : sessions;
   switchZoomContext("help");
-  closeMenus();
   const btnSections = document.getElementById("btn-sections");
-  if (btnSections) btnSections.classList.add("disabled");
+  if (btnSections) btnSections.classList.remove("disabled");
   const turnHistoryEl = document.getElementById("turn-history");
   if (turnHistoryEl) turnHistoryEl.innerHTML = "";
   chrome.runtime.sendMessage({ type: "pauseLive" }).catch(() => {});
 
-  const rows = sessions.slice().reverse().map(([slug, tableId, from, to]) => {
-    const minutes = ((to - from) / 60000).toFixed(1);
+  const rows = tableSessions.slice().reverse().map(([slug, tableId, from, to]) => {
+    const duration = formatDurationClock(to - from);
     const date = new Date(from).toLocaleDateString();
     const time = new Date(from).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     const rt = modeMap[tableId] ? ` ${STOPWATCH_SVG}` : "";
     const isActive = activeTuple !== null && from === activeTuple[2];
     const live = isActive ? ' <span class="stats-live" title="in progress"></span>' : "";
-    return `<tr${isActive ? ' class="stats-active"' : ""}><td>${escapeHtml(gameMap[slug] ?? slug)}</td><td>${tableId}${rt}${live}</td><td>${date} ${time}</td><td>${minutes} min</td></tr>`;
+    return `<tr${isActive ? ' class="stats-active"' : ""}><td>${escapeHtml(gameMap[slug] ?? slug)}</td><td>${tableId}${rt}${live}</td><td>${date} ${time}</td><td>${duration}</td></tr>`;
   }).join("");
 
-  const chart = aggregateSessions(sessions, gameMap, granularity);
+  const chart = aggregateSessions(sessions, gameMap, granularity, dayStartHour, weekStartDay);
   const colorOf = (game: string): string => CHART_PALETTE[chart.games.indexOf(game) % CHART_PALETTE.length];
   const switchHtml = (["day", "week", "month"] as Granularity[]).map((g) => `<button class="stats-gran${g === granularity ? " active" : ""}" data-gran="${g}">${g[0].toUpperCase()}${g.slice(1)}</button>`).join("");
   let chartHtml: string;
@@ -793,17 +810,22 @@ async function showStats(): Promise<void> {
     const cols = chart.buckets.map((bucket) => {
       const segs = chart.games.filter((game) => bucket.minutesByGame[game] > 0).map((game) => {
         const px = Math.max(1, Math.round((bucket.minutesByGame[game] / axisMaxMinutes) * CHART_HEIGHT));
-        return `<div class="stats-seg" style="height:${px}px;background:${colorOf(game)}" title="${escapeHtml(game)}: ${bucket.minutesByGame[game].toFixed(0)}m"></div>`;
+        return `<div class="stats-seg" style="height:${px}px;background:${colorOf(game)}" title="${escapeHtml(game)}: ${formatDuration(bucket.minutesByGame[game])}"></div>`;
       }).join("");
-      return `<div class="stats-col" title="${bucket.label}: ${bucket.totalMinutes.toFixed(0)}m"><div class="stats-col-bars" style="height:${CHART_HEIGHT}px">${segs}</div><div class="stats-col-x">${bucket.label}</div></div>`;
+      const xLabel = granularity === "day" ? `<span class="stats-col-dow">${weekdayAbbr(bucket.key)}</span>${bucket.label}` : bucket.label;
+      return `<div class="stats-col" title="${bucket.label}: ${formatDuration(bucket.totalMinutes)}"><div class="stats-col-bars" style="height:${CHART_HEIGHT}px">${segs}</div><div class="stats-col-x">${xLabel}</div></div>`;
     }).join("");
     const axis = ticks.map((t) => `<span class="stats-ytick" style="bottom:${(t.minutes / axisMaxMinutes) * CHART_HEIGHT}px">${t.label}</span>`).join("");
     const legend = chart.games.map((game) => `<span class="stats-legend-item"><span class="stats-legend-swatch" style="background:${colorOf(game)}"></span>${escapeHtml(game)}</span>`).join("");
     chartHtml = `<div class="stats-chart-wrap"><div class="stats-yaxis" style="height:${CHART_HEIGHT}px">${axis}</div><div class="stats-chart">${cols}</div></div><div class="stats-legend">${legend}</div>`;
   }
 
-  const totalMinutes = sessions.reduce((sum, [, , from, to]) => sum + (to - from), 0) / 60000;
-  contentEl.innerHTML = `<div class="stats-page"><h2>Play time</h2><div class="stats-summary"><span>${new Set(sessions.map(([, tableId]) => tableId)).size} tables, ${totalMinutes.toFixed(0)} minutes total</span><span class="stats-actions"><button class="stats-btn" id="btn-stats-refresh">Refresh</button><button class="stats-btn" id="btn-stats-export">Export</button><button class="stats-btn" id="btn-stats-import">Import</button><button class="stats-btn stats-btn-danger" id="btn-stats-clear">Clear</button></span></div><div class="stats-gran-switch">${switchHtml}</div>${chartHtml}<table class="stats-table"><thead><tr><th>Game</th><th>Table</th><th>Date</th><th>Duration</th></tr></thead><tbody>${rows || '<tr><td colspan="4" class="stats-empty">No sessions recorded yet</td></tr>'}</tbody></table></div>`;
+  const todayMinutes = minutesInCurrentBucket(sessions, "day", now, dayStartHour, weekStartDay);
+  const weekMinutes = minutesInCurrentBucket(sessions, "week", now, dayStartHour, weekStartDay);
+  const summary = `Today: ${formatDuration(todayMinutes)}<span class="stats-sep">·</span>This week: ${formatDuration(weekMinutes)}`;
+  const emptyMessage = sessionFilter === "all" ? "No sessions recorded yet" : "No sessions in this period";
+  const tableHtml = sessionFilter === "off" ? "" : `<div class="stats-table-wrap"><table class="stats-table"><thead><tr><th>Game</th><th>Table</th><th>Date</th><th>Duration</th></tr></thead><tbody>${rows || `<tr><td colspan="4" class="stats-empty">${emptyMessage}</td></tr>`}</tbody></table></div>`;
+  contentEl.innerHTML = `<div class="stats-page"><h2>Play time</h2><div class="stats-summary"><span>${summary}</span><span class="stats-actions"><button class="stats-btn" id="btn-stats-refresh">Refresh</button><button class="stats-btn" id="btn-stats-export">Export</button><button class="stats-btn" id="btn-stats-import">Import</button><button class="stats-btn stats-btn-danger" id="btn-stats-clear">Clear</button></span></div><div class="stats-gran-switch">${switchHtml}</div>${chartHtml}${tableHtml}</div>`;
 
   document.querySelectorAll<HTMLElement>(".stats-gran").forEach((btn) => btn.addEventListener("click", () => {
     saveSetting(KEY_STATS_GRANULARITY, btn.getAttribute("data-gran"));
@@ -835,6 +857,79 @@ async function showStats(): Promise<void> {
     await chrome.storage.local.remove([STORAGE_KEY_SESSIONS, STORAGE_KEY_GAMES, STORAGE_KEY_ACTIVE, STORAGE_KEY_MODES]);
     chrome.runtime.sendMessage({ type: "resetTimeTracking" }).catch(() => {});
     showStats();
+  });
+}
+
+const WEEKDAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const SESSION_FILTER_LABELS: Record<SessionFilter, string> = { off: "Off", today: "Today", week: "This week", all: "All" };
+
+/** Re-render the stats page and, while the eye-icon menu is open, rebuild it so the per-option session counts stay current. */
+function refreshStatsView(): void {
+  showStats();
+  const panel = document.getElementById("section-selector");
+  if (panel && panel.style.display !== "none") buildStatsSettingsMenu(panel);
+}
+
+/** Populate the eye-icon menu with the play-time tracking settings (day-start hour, week-start day, session-list filter), persisted to localStorage. */
+async function buildStatsSettingsMenu(panel: HTMLElement): Promise<void> {
+  const { DAY_START_HOUR, WEEK_START_DAY, currentBucketRange, sessionsOverlapping, STORAGE_KEY_SESSIONS, STORAGE_KEY_ACTIVE } = await import("../time-tracking.js");
+  panel.innerHTML = "";
+
+  const header = document.createElement("div");
+  header.className = "dropdown-header";
+  header.textContent = "Time tracking settings:";
+  panel.appendChild(header);
+
+  const dayStart = loadSetting<number>(KEY_STATS_DAY_START, DAY_START_HOUR);
+  const dayOptions = Array.from({ length: 24 }, (_, hour) => `<option value="${hour}"${hour === dayStart ? " selected" : ""}>${hour}:00</option>`).join("");
+  const dayLabel = document.createElement("label");
+  dayLabel.className = "stats-setting";
+  dayLabel.innerHTML = `<span>Day starts at</span><select id="setting-day-start">${dayOptions}</select>`;
+  panel.appendChild(dayLabel);
+
+  const weekStart = loadSetting<number>(KEY_STATS_WEEK_START, WEEK_START_DAY);
+  const weekOptions = WEEKDAY_NAMES.map((day, index) => `<option value="${index}"${index === weekStart ? " selected" : ""}>${day}</option>`).join("");
+  const weekLabel = document.createElement("label");
+  weekLabel.className = "stats-setting";
+  weekLabel.innerHTML = `<span>Week starts on</span><select id="setting-week-start">${weekOptions}</select>`;
+  panel.appendChild(weekLabel);
+
+  // Session-list filter, with a live count of matching sessions per option.
+  const stats = await chrome.storage.local.get([STORAGE_KEY_SESSIONS, STORAGE_KEY_ACTIVE]);
+  const stored = (stats[STORAGE_KEY_SESSIONS] as TimeSession[] | undefined) ?? [];
+  const active = stats[STORAGE_KEY_ACTIVE] as { slug: string; tableId: number; from: number } | undefined;
+  const now = Date.now();
+  const sessions: TimeSession[] = active ? [...stored, [active.slug, active.tableId, active.from, now]] : stored;
+  const dayRange = currentBucketRange("day", now, dayStart, weekStart);
+  const weekRange = currentBucketRange("week", now, dayStart, weekStart);
+  const counts: Record<SessionFilter, number | null> = {
+    off: null,
+    today: sessionsOverlapping(sessions, dayRange.start, dayRange.end).length,
+    week: sessionsOverlapping(sessions, weekRange.start, weekRange.end).length,
+    all: sessions.length,
+  };
+  const filterValue = loadSetting<SessionFilter>(KEY_STATS_SESSION_FILTER, "all");
+  const filterOptions = (Object.keys(SESSION_FILTER_LABELS) as SessionFilter[]).map((value) => {
+    const count = counts[value];
+    const text = count === null ? SESSION_FILTER_LABELS[value] : `${SESSION_FILTER_LABELS[value]} (${count})`;
+    return `<option value="${value}"${value === filterValue ? " selected" : ""}>${text}</option>`;
+  }).join("");
+  const filterLabel = document.createElement("label");
+  filterLabel.className = "stats-setting";
+  filterLabel.innerHTML = `<span>Show sessions</span><select id="setting-session-filter">${filterOptions}</select>`;
+  panel.appendChild(filterLabel);
+
+  dayLabel.querySelector("select")!.addEventListener("change", (event) => {
+    saveSetting(KEY_STATS_DAY_START, Number((event.target as HTMLSelectElement).value));
+    refreshStatsView();
+  });
+  weekLabel.querySelector("select")!.addEventListener("change", (event) => {
+    saveSetting(KEY_STATS_WEEK_START, Number((event.target as HTMLSelectElement).value));
+    refreshStatsView();
+  });
+  filterLabel.querySelector("select")!.addEventListener("change", (event) => {
+    saveSetting(KEY_STATS_SESSION_FILTER, (event.target as HTMLSelectElement).value);
+    refreshStatsView();
   });
 }
 

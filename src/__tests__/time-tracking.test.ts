@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { parseGameTableUrl, extractDisplayName, SessionTracker, exportSessionsCsv, importSessionsCsv, aggregateSessions, STORAGE_KEY_SESSIONS, STORAGE_KEY_GAMES, type TimeSession } from "../time-tracking";
+import { parseGameTableUrl, extractDisplayName, SessionTracker, exportSessionsCsv, importSessionsCsv, aggregateSessions, formatDuration, formatDurationClock, minutesInCurrentBucket, currentBucketRange, sessionsOverlapping, STORAGE_KEY_SESSIONS, STORAGE_KEY_GAMES, type TimeSession } from "../time-tracking";
 
 describe("parseGameTableUrl", () => {
   it("parses a standard game table URL", () => {
@@ -508,6 +508,20 @@ describe("aggregateSessions", () => {
     expect(chart.buckets[1].totalMinutes).toBe(5);
   });
 
+  it("respects a custom week start day", () => {
+    // 2026-05-24 is a Sunday, 2026-05-25 the following Monday.
+    const sessions = [
+      session("x", at(2026, 4, 24, 10), 10), // Sunday
+      session("x", at(2026, 4, 25, 10), 20), // Monday
+    ];
+    // Default Monday start splits them across two weeks.
+    expect(aggregateSessions(sessions, {}, "week").buckets).toHaveLength(2);
+    // Sunday start (0) groups them into one week.
+    const sundayStart = aggregateSessions(sessions, {}, "week", undefined, 0);
+    expect(sundayStart.buckets).toHaveLength(1);
+    expect(sundayStart.buckets[0].totalMinutes).toBe(30);
+  });
+
   it("groups sessions by month", () => {
     const sessions = [
       session("x", at(2026, 4, 3, 10), 10),
@@ -552,5 +566,140 @@ describe("aggregateSessions", () => {
     // Day starts at 3am: 2am → previous day (5/27), 5am → 5/28.
     const chart = aggregateSessions(sessions, {}, "day", 3);
     expect(chart.buckets.map((b) => b.label)).toEqual(["5/27", "5/28"]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// formatDuration
+// ---------------------------------------------------------------------------
+
+describe("formatDuration", () => {
+  it("formats hours and minutes", () => expect(formatDuration(75)).toBe("1h 15m"));
+  it("drops minutes for whole hours", () => expect(formatDuration(120)).toBe("2h"));
+  it("formats sub-hour durations as minutes only", () => expect(formatDuration(45)).toBe("45m"));
+  it("rounds fractional minutes", () => expect(formatDuration(5.6)).toBe("6m"));
+  it("rounds up into the next hour", () => expect(formatDuration(119.7)).toBe("2h"));
+  it("formats zero as 0m", () => expect(formatDuration(0)).toBe("0m"));
+});
+
+// ---------------------------------------------------------------------------
+// formatDurationClock
+// ---------------------------------------------------------------------------
+
+describe("formatDurationClock", () => {
+  const ms = (h: number, m: number, s: number) => ((h * 3600 + m * 60 + s) * 1000);
+  it("formats hours as H:mm:ss", () => expect(formatDurationClock(ms(1, 22, 7))).toBe("1:22:07"));
+  it("zero-pads inner fields when hours are present", () => expect(formatDurationClock(ms(2, 3, 5))).toBe("2:03:05"));
+  it("formats sub-hour durations as mm:ss", () => expect(formatDurationClock(ms(0, 22, 7))).toBe("22:07"));
+  it("drops a leading-zero minute", () => expect(formatDurationClock(ms(0, 5, 17))).toBe("5:17"));
+  it("drops the minutes and separator when minutes are zero", () => expect(formatDurationClock(ms(0, 0, 17))).toBe("17"));
+  it("drops the leading zero of a single-digit second", () => expect(formatDurationClock(ms(0, 0, 5))).toBe("5"));
+  it("formats zero as 0", () => expect(formatDurationClock(0)).toBe("0"));
+  it("rounds milliseconds to the nearest second", () => expect(formatDurationClock(59600)).toBe("1:00"));
+});
+
+// ---------------------------------------------------------------------------
+// minutesInCurrentBucket
+// ---------------------------------------------------------------------------
+
+describe("minutesInCurrentBucket", () => {
+  const at = (y: number, mo: number, d: number, h: number) => new Date(y, mo, d, h).getTime();
+  const session = (start: number, minutes: number): TimeSession => ["x", 1, start, start + minutes * 60000];
+
+  it("sums only today's sessions (default 6am day start)", () => {
+    const now = at(2026, 4, 27, 15); // Wed May 27, 3pm
+    const sessions = [
+      session(at(2026, 4, 27, 10), 30), // today
+      session(at(2026, 4, 27, 14), 20), // today
+      session(at(2026, 4, 26, 10), 99), // yesterday
+    ];
+    expect(minutesInCurrentBucket(sessions, "day", now)).toBe(50);
+  });
+
+  it("sums this week's sessions with default Monday start", () => {
+    const now = at(2026, 4, 27, 15); // Wed May 27
+    const sessions = [
+      session(at(2026, 4, 25, 10), 10), // Mon May 25 (same week)
+      session(at(2026, 4, 27, 10), 20), // Wed May 27 (same week)
+      session(at(2026, 4, 24, 10), 99), // Sun May 24 (previous Mon-week)
+    ];
+    expect(minutesInCurrentBucket(sessions, "week", now)).toBe(30);
+  });
+
+  it("honors a custom week start day", () => {
+    const now = at(2026, 4, 27, 15); // Wed May 27
+    const sessions = [
+      session(at(2026, 4, 24, 10), 99), // Sun May 24
+      session(at(2026, 4, 27, 10), 20), // Wed May 27
+    ];
+    // Sunday-start week includes the Sunday session too.
+    expect(minutesInCurrentBucket(sessions, "week", now, undefined, 0)).toBe(119);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// currentBucketRange
+// ---------------------------------------------------------------------------
+
+describe("currentBucketRange", () => {
+  const at = (y: number, mo: number, d: number, h: number) => new Date(y, mo, d, h).getTime();
+
+  it("returns the day boundaries honoring the day-start hour", () => {
+    const now = at(2026, 4, 27, 15); // Wed May 27, 3pm
+    const { start, end } = currentBucketRange("day", now); // default 6am start
+    expect(start).toBe(at(2026, 4, 27, 6)); // 6am May 27
+    expect(end).toBe(at(2026, 4, 28, 6)); // 6am May 28
+  });
+
+  it("counts pre-dawn time toward the previous day", () => {
+    const now = at(2026, 4, 28, 2); // 2am May 28 — still May 27's play-day
+    const { start, end } = currentBucketRange("day", now);
+    expect(start).toBe(at(2026, 4, 27, 6));
+    expect(end).toBe(at(2026, 4, 28, 6));
+  });
+
+  it("returns the week boundaries with default Monday start", () => {
+    const now = at(2026, 4, 27, 15); // Wed May 27
+    const { start, end } = currentBucketRange("week", now);
+    expect(start).toBe(at(2026, 4, 25, 6)); // Mon May 25, 6am
+    expect(end).toBe(at(2026, 5, 1, 6)); // Mon Jun 1, 6am
+  });
+
+  it("returns the week boundaries with a custom Sunday start", () => {
+    const now = at(2026, 4, 27, 15); // Wed May 27
+    const { start, end } = currentBucketRange("week", now, undefined, 0);
+    expect(start).toBe(at(2026, 4, 24, 6)); // Sun May 24, 6am
+    expect(end).toBe(at(2026, 4, 31, 6)); // Sun May 31, 6am
+  });
+});
+
+// ---------------------------------------------------------------------------
+// sessionsOverlapping
+// ---------------------------------------------------------------------------
+
+describe("sessionsOverlapping", () => {
+  const span = (from: number, to: number): TimeSession => ["x", 1, from, to];
+
+  it("includes sessions that partially overlap either edge or span the whole range", () => {
+    const start = 1000;
+    const end = 2000;
+    const sessions = [
+      span(500, 1500), // starts before, ends inside
+      span(1800, 2500), // starts inside, ends after
+      span(1200, 1400), // entirely inside
+      span(500, 2500), // spans the whole range
+      span(0, 500), // entirely before
+      span(2500, 3000), // entirely after
+    ];
+    const result = sessionsOverlapping(sessions, start, end);
+    expect(result.map((s) => s[2])).toEqual([500, 1800, 1200, 500]);
+  });
+
+  it("treats the boundaries as half-open (touching edges do not count)", () => {
+    const sessions = [
+      span(0, 1000), // ends exactly at start
+      span(2000, 3000), // starts exactly at end
+    ];
+    expect(sessionsOverlapping(sessions, 1000, 2000)).toEqual([]);
   });
 });

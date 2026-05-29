@@ -260,7 +260,30 @@ export async function importSessionsCsv(text: string): Promise<number> {
 /** Hour (0–23) at which a play-time "day" begins; sessions before it count toward the previous day. */
 export const DAY_START_HOUR = 6;
 
+/** Day of the week (0 = Sunday … 6 = Saturday) on which a play-time "week" begins. */
+export const WEEK_START_DAY = 1;
+
 export type Granularity = "day" | "week" | "month";
+
+/** Format a duration given in minutes as hours and minutes (e.g. 75 → "1h 15m", 45 → "45m", 120 → "2h", 0 → "0m"). */
+export function formatDuration(minutes: number): string {
+  const totalMinutes = Math.round(minutes);
+  const hours = Math.floor(totalMinutes / 60);
+  const mins = totalMinutes % 60;
+  if (hours > 0 && mins > 0) return `${hours}h ${mins}m`;
+  if (hours > 0) return `${hours}h`;
+  return `${mins}m`;
+}
+
+/** Format a duration given in milliseconds as a clock string with no leading zeros or separator: "1:22:07", "22:07", "17", "0". */
+export function formatDurationClock(ms: number): string {
+  const totalSeconds = Math.round(ms / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  const clock = hours > 0 ? `${hours}:${pad2(minutes)}:${pad2(seconds)}` : `${pad2(minutes)}:${pad2(seconds)}`;
+  return clock.replace(/^[0:]+/, "") || "0";
+}
 
 export interface ChartBucket {
   key: string;
@@ -281,7 +304,7 @@ function pad2(n: number): string {
   return n < 10 ? `0${n}` : String(n);
 }
 
-function bucketFor(ts: number, granularity: Granularity, dayStartHour: number): { key: string; label: string } {
+function bucketFor(ts: number, granularity: Granularity, dayStartHour: number, weekStartDay: number): { key: string; label: string } {
   // Shift back by the day-start hour so e.g. a 2am session counts toward the previous day.
   const d = new Date(ts - dayStartHour * 3600000);
   if (granularity === "month") {
@@ -290,21 +313,21 @@ function bucketFor(ts: number, granularity: Granularity, dayStartHour: number): 
   }
   let target = d;
   if (granularity === "week") {
-    const mondayOffset = (d.getDay() + 6) % 7;
-    target = new Date(d.getFullYear(), d.getMonth(), d.getDate() - mondayOffset);
+    const weekOffset = (d.getDay() - weekStartDay + 7) % 7;
+    target = new Date(d.getFullYear(), d.getMonth(), d.getDate() - weekOffset);
   }
   const key = `${target.getFullYear()}-${pad2(target.getMonth() + 1)}-${pad2(target.getDate())}`;
   return { key, label: `${target.getMonth() + 1}/${target.getDate()}` };
 }
 
-/** Group sessions into time buckets, summing minutes per game. Used to render the stacked-column chart. `dayStartHour` shifts the day boundary (e.g. 6 = a day runs 6am–6am). */
-export function aggregateSessions(sessions: TimeSession[], gameMap: GameMap, granularity: Granularity, dayStartHour = DAY_START_HOUR): ChartData {
+/** Group sessions into time buckets, summing minutes per game. Used to render the stacked-column chart. `dayStartHour` shifts the day boundary (e.g. 6 = a day runs 6am–6am); `weekStartDay` sets which weekday a week begins on. */
+export function aggregateSessions(sessions: TimeSession[], gameMap: GameMap, granularity: Granularity, dayStartHour = DAY_START_HOUR, weekStartDay = WEEK_START_DAY): ChartData {
   const buckets = new Map<string, ChartBucket>();
   const gameTotals = new Map<string, number>();
   for (const [slug, , from, to] of sessions) {
     const game = gameMap[slug] ?? slug;
     const minutes = (to - from) / 60000;
-    const { key, label } = bucketFor(from, granularity, dayStartHour);
+    const { key, label } = bucketFor(from, granularity, dayStartHour, weekStartDay);
     let bucket = buckets.get(key);
     if (!bucket) {
       bucket = { key, label, minutesByGame: {}, totalMinutes: 0 };
@@ -318,4 +341,36 @@ export function aggregateSessions(sessions: TimeSession[], gameMap: GameMap, gra
   const games = [...gameTotals.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([game]) => game);
   const maxTotalMinutes = orderedBuckets.reduce((max, bucket) => Math.max(max, bucket.totalMinutes), 0);
   return { buckets: orderedBuckets, games, maxTotalMinutes };
+}
+
+/** Total minutes across sessions falling in the same time bucket as `now` — used for the "today" and "this week" summary figures. */
+export function minutesInCurrentBucket(sessions: TimeSession[], granularity: Granularity, now: number, dayStartHour = DAY_START_HOUR, weekStartDay = WEEK_START_DAY): number {
+  const targetKey = bucketFor(now, granularity, dayStartHour, weekStartDay).key;
+  let total = 0;
+  for (const [, , from, to] of sessions) {
+    if (bucketFor(from, granularity, dayStartHour, weekStartDay).key === targetKey) total += (to - from) / 60000;
+  }
+  return total;
+}
+
+/** Which sessions to list on the stats page: nothing, the current day, the current week, or everything. */
+export type SessionFilter = "off" | "today" | "week" | "all";
+
+/** Start (inclusive) and end (exclusive) timestamps of the day/week bucket that `now` falls into, honoring the day-start hour and week-start day. */
+export function currentBucketRange(granularity: "day" | "week", now: number, dayStartHour = DAY_START_HOUR, weekStartDay = WEEK_START_DAY): { start: number; end: number } {
+  const shifted = new Date(now - dayStartHour * 3600000);
+  let date = shifted.getDate();
+  let span = 1;
+  if (granularity === "week") {
+    date -= (shifted.getDay() - weekStartDay + 7) % 7;
+    span = 7;
+  }
+  const start = new Date(shifted.getFullYear(), shifted.getMonth(), date, dayStartHour).getTime();
+  const end = new Date(shifted.getFullYear(), shifted.getMonth(), date + span, dayStartHour).getTime();
+  return { start, end };
+}
+
+/** Sessions that overlap [start, end) — any session whose span intersects the range, even partially (starts before and ends inside, or starts inside and ends after). */
+export function sessionsOverlapping(sessions: TimeSession[], start: number, end: number): TimeSession[] {
+  return sessions.filter(([, , from, to]) => from < end && to > start);
 }
