@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { readFileSync } from "fs";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
@@ -70,7 +70,7 @@ const copyListeners = () => {
   Object.assign(listeners, (globalThis as any).__chromeMockListeners);
 };
 
-import { classifyNavigation, shouldAutoClose, shouldShowLoading, watcherFunction, type NavigationAction, type PinMode } from "../background";
+import { classifyNavigation, shouldAutoClose, shouldShowLoading, watcherFunction, probeTableTypeFn, type NavigationAction, type PinMode } from "../background";
 import { runPipeline, isValidPlayerCount, type PipelineResults } from "../pipeline";
 import { CardDatabase } from "../models/types";
 import type { PlayerInfo, RawExtractionData } from "../models/types";
@@ -737,6 +737,49 @@ describe("watcherFunction", () => {
   it("is exported and can be serialized by executeScript", () => {
     expect(typeof watcherFunction).toBe("function");
     expect(watcherFunction.name).toBe("watcherFunction");
+  });
+});
+
+describe("probeTableTypeFn (table category classification)", () => {
+  // Drive the injected probe by faking the page globals it reads: window.location (table id) and
+  // gameui (tournament_id + ajaxcall). ajaxcall fires its success callback synchronously with `data`.
+  function runProbe(payload: unknown, opts: { tournamentId?: number | null; tableId?: number; fail?: boolean } = {}): Promise<string | null> {
+    const { tournamentId = null, tableId = 858993521, fail = false } = opts;
+    (globalThis as any).window = { location: { search: `?table=${tableId}` } };
+    (globalThis as any).gameui = {
+      tournament_id: tournamentId,
+      ajaxcall: (_url: string, _args: unknown, _ctx: unknown, ok: (r: unknown) => void, err: () => void) => { if (fail) err(); else ok({ data: payload }); },
+    };
+    return probeTableTypeFn();
+  }
+
+  afterEach(() => { delete (globalThis as any).window; delete (globalThis as any).gameui; });
+
+  // Regression: a matchmade "Play now" real-time game (table 858993521, The Gang) is NOT arena. The old
+  // table_matchmaking heuristic mislabeled it "arena"; Game mode option 201 = "0" (Normal) is the truth.
+  it("classifies a matchmade Normal-mode table as regular, not arena", async () => {
+    const payload = { has_tournament: "0", players: { "1": { table_matchmaking: "1" } }, options: { "201": { name: "Game mode", value: "0" } } };
+    expect(await runProbe(payload)).toBe("regular");
+  });
+
+  it("classifies a table with Game mode option 201 = 2 as arena", async () => {
+    const payload = { has_tournament: "0", players: { "1": {} }, options: { "201": { name: "Game mode", value: "2" } } };
+    expect(await runProbe(payload)).toBe("arena");
+  });
+
+  it("classifies a tournament table from has_tournament", async () => {
+    const payload = { has_tournament: "1", players: { "1": {} }, options: { "201": { value: "0" } } };
+    expect(await runProbe(payload)).toBe("tournament");
+  });
+
+  it("treats a table without the Game mode option as regular", async () => {
+    const payload = { has_tournament: "0", players: { "1": {} }, options: {} };
+    expect(await runProbe(payload)).toBe("regular");
+  });
+
+  it("returns null on an error/unauthorized response (no players)", async () => {
+    expect(await runProbe({ players: 0 })).toBe(null);
+    expect(await runProbe(null, { fail: true })).toBe(null);
   });
 });
 

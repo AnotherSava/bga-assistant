@@ -81,7 +81,7 @@ const probedTableTypes = new Set<number>();
  * unauthorized. Self-contained (no external refs). Resolves "tournament" | "arena" | "regular", or null
  * when it can't be determined. Never throws/hangs (times out to null), so it can't disrupt anything.
  */
-function probeTableTypeFn(): Promise<string | null> {
+export function probeTableTypeFn(): Promise<string | null> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const gui = (globalThis as any).gameui;
   const match = window.location.search.match(/table=(\d+)/);
@@ -103,9 +103,11 @@ function probeTableTypeFn(): Promise<string | null> {
           const info = r && r.data && typeof r.data === "object" ? r.data : r;
           if (!info || typeof info !== "object" || !info.players) { finish(null); return; }
           if (info.has_tournament === "1") { finish("tournament"); return; }
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const matchmade = Object.values(info.players).some((p: any) => p && p.table_matchmaking === "1");
-          finish(matchmade ? "arena" : "regular");
+          // BGA framework option 201 ("Game mode") selects 0=Normal, 1=Friendly, 2=Arena. Its value is the
+          // authoritative arena signal. (table_matchmaking only means "matchmade" — also true for "Play now"
+          // quick games, which are regular, not arena — so it over-matched.)
+          const gameMode = info.options && info.options["201"] ? String(info.options["201"].value) : "";
+          finish(gameMode === "2" ? "arena" : "regular");
         },
         () => finish(null),
       );
