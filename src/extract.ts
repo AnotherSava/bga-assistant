@@ -66,7 +66,12 @@ export async function extractGameData(): Promise<Record<string, unknown>> {
 
         // gameui.bRealtime is the framework-level real-time flag (1/0), present on every game.
         const realTime = typeof gui.bRealtime === "number" ? gui.bRealtime === 1 : typeof gui.bRealtime === "boolean" ? gui.bRealtime : null;
-        resolve({ gameName: parts[2], players, gamedatas, packets: result.data, currentPlayerId, realTime });
+        // gameui.tournament_id is a positive number on tournament tables. Arena vs regular can't be told
+        // apart from gameui (both null) and the table-info API isn't reachable from this injected script,
+        // so arena classification is handled elsewhere; here tableType is "tournament" or left undetermined.
+        const tournamentId = typeof gui.tournament_id === "number" ? gui.tournament_id : null;
+        const tableType: "tournament" | "arena" | "regular" | null = tournamentId !== null && tournamentId > 0 ? "tournament" : null;
+        resolve({ gameName: parts[2], players, gamedatas, packets: result.data, currentPlayerId, realTime, tableType });
       },
       (_isError: boolean, errorMsg: string) => {
         resolve({ error: true, msg: errorMsg });

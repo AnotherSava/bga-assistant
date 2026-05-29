@@ -719,9 +719,14 @@ const KEY_STATS_GRANULARITY = "bgaa_stats_granularity";
 const KEY_STATS_DAY_START = "bgaa_stats_day_start";
 const KEY_STATS_WEEK_START = "bgaa_stats_week_start";
 const KEY_STATS_SESSION_FILTER = "bgaa_stats_session_filter";
+const KEY_STATS_TABLE_VIEW = "bgaa_stats_table_view";
+type TableView = "sessions" | "tables";
+const TABLE_VIEW_LABELS: Record<TableView, string> = { sessions: "Sessions", tables: "Tables" };
 const CHART_PALETTE = ["#4a9eff", "#ff6b6b", "#51cf66", "#ffd43b", "#cc5de8", "#ff922b", "#22b8cf", "#f06595", "#94d82d", "#a78bfa", "#ffa94d", "#63e6be"];
 const CHART_HEIGHT = 140;
 const STOPWATCH_SVG = '<svg class="stats-rt" viewBox="0 0 24 24" width="11" height="11" aria-label="real-time"><path fill="currentColor" d="M15 1H9v2h6V1zm-4 13h2V8h-2v6zm8.03-6.61l1.42-1.42c-.43-.51-.9-.99-1.41-1.41l-1.42 1.42A8.962 8.962 0 0012 4c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-2.12-.74-4.07-1.97-5.61zM12 20c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg>';
+const TROPHY_SVG = '<svg class="stats-trophy" viewBox="0 0 24 24" width="11" height="11" aria-label="tournament"><title>Tournament</title><path fill="currentColor" d="M19 5h-2V3H7v2H5C3.9 5 3 5.9 3 7v1c0 2.55 1.92 4.63 4.39 4.94A5.01 5.01 0 0011 16.9V19H7v2h10v-2h-4v-2.1a5.01 5.01 0 003.61-3.96C19.08 12.63 21 10.55 21 8V7c0-1.1-.9-2-2-2zM5 8V7h2v3.82C5.84 10.4 5 9.3 5 8zm14 0c0 1.3-.84 2.4-2 2.82V7h2v1z"/></svg>';
+const ARENA_SVG = '<svg class="stats-arena" viewBox="0 0 24 24" width="11" height="11" fill="currentColor" aria-label="arena"><title>Arena</title><path fill-rule="evenodd" d="M1.5 6A10.5 4.2 0 0 0 22.5 6L22.5 15A10.5 4 0 0 1 1.5 15ZM2.5 6.4a9.5 3.7 0 0 0 19 0a9.5 3.7 0 0 0 -19 0ZM4.35 13.8V13.15a0.85 0.85 0 0 1 1.7 0V13.8ZM4.45 11.7V11.15a0.75 0.75 0 0 1 1.5 0V11.7ZM7.75 13.8V13.15a0.85 0.85 0 0 1 1.7 0V13.8ZM7.85 11.7V11.15a0.75 0.75 0 0 1 1.5 0V11.7ZM11.15 13.8V13.15a0.85 0.85 0 0 1 1.7 0V13.8ZM11.25 11.7V11.15a0.75 0.75 0 0 1 1.5 0V11.7ZM14.55 13.8V13.15a0.85 0.85 0 0 1 1.7 0V13.8ZM14.65 11.7V11.15a0.75 0.75 0 0 1 1.5 0V11.7ZM17.95 13.8V13.15a0.85 0.85 0 0 1 1.7 0V13.8ZM18.05 11.7V11.15a0.75 0.75 0 0 1 1.5 0V11.7Z"/></svg>';
 
 function escapeHtml(text: string): string {
   return text.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c] as string));
@@ -764,12 +769,13 @@ function axisScale(maxMinutes: number): { axisMaxMinutes: number; ticks: { minut
 async function showStats(): Promise<void> {
   const contentEl = document.getElementById("content");
   if (!contentEl) return;
-  const { exportSessionsCsv, aggregateSessions, minutesInCurrentBucket, currentBucketRange, sessionsOverlapping, formatDuration, formatDurationClock, DAY_START_HOUR, WEEK_START_DAY, STORAGE_KEY_SESSIONS, STORAGE_KEY_GAMES, STORAGE_KEY_ACTIVE, STORAGE_KEY_MODES } = await import("../time-tracking.js");
+  const { exportSessionsCsv, aggregateSessions, aggregateByTable, minutesInCurrentBucket, currentBucketRange, sessionsOverlapping, formatDuration, formatDurationClock, DAY_START_HOUR, WEEK_START_DAY, STORAGE_KEY_SESSIONS, STORAGE_KEY_GAMES, STORAGE_KEY_ACTIVE, STORAGE_KEY_MODES, STORAGE_KEY_TYPES } = await import("../time-tracking.js");
   cachedExportFn = exportSessionsCsv;
-  const result = await chrome.storage.local.get([STORAGE_KEY_SESSIONS, STORAGE_KEY_GAMES, STORAGE_KEY_MODES, STORAGE_KEY_ACTIVE]);
+  const result = await chrome.storage.local.get([STORAGE_KEY_SESSIONS, STORAGE_KEY_GAMES, STORAGE_KEY_MODES, STORAGE_KEY_TYPES, STORAGE_KEY_ACTIVE]);
   const stored: TimeSession[] = result[STORAGE_KEY_SESSIONS] ?? [];
   const gameMap: Record<string, string> = result[STORAGE_KEY_GAMES] ?? {};
   const modeMap: Record<string, boolean> = result[STORAGE_KEY_MODES] ?? {};
+  const typeMap: Record<string, "tournament" | "arena" | "regular"> = result[STORAGE_KEY_TYPES] ?? {};
   const active = result[STORAGE_KEY_ACTIVE] as { slug: string; tableId: number; from: number } | undefined;
   const now = Date.now();
   // Fold the in-progress session (if any) in as a synthetic [slug, table, from, now] tuple — newest, so it sorts first.
@@ -779,6 +785,7 @@ async function showStats(): Promise<void> {
   const dayStartHour = loadSetting<number>(KEY_STATS_DAY_START, DAY_START_HOUR);
   const weekStartDay = loadSetting<number>(KEY_STATS_WEEK_START, WEEK_START_DAY);
   const sessionFilter = loadSetting<SessionFilter>(KEY_STATS_SESSION_FILTER, "all");
+  const tableView = loadSetting<TableView>(KEY_STATS_TABLE_VIEW, "sessions");
   const dayRange = currentBucketRange("day", now, dayStartHour, weekStartDay);
   const weekRange = currentBucketRange("week", now, dayStartHour, weekStartDay);
   const tableSessions = sessionFilter === "off" ? [] : sessionFilter === "today" ? sessionsOverlapping(sessions, dayRange.start, dayRange.end) : sessionFilter === "week" ? sessionsOverlapping(sessions, weekRange.start, weekRange.end) : sessions;
@@ -789,14 +796,30 @@ async function showStats(): Promise<void> {
   if (turnHistoryEl) turnHistoryEl.innerHTML = "";
   chrome.runtime.sendMessage({ type: "pauseLive" }).catch(() => {});
 
+  // Unified "Table" cell for both views: table id + stopwatch (real-time) + trophy (tournament) /
+  // crossed swords (arena) + a pulsing green dot for the in-progress table.
+  const tableCell = (tableId: number, isActive: boolean): string => {
+    const rt = modeMap[tableId] ? ` ${STOPWATCH_SVG}` : "";
+    const typeIcon = typeMap[tableId] === "tournament" ? ` ${TROPHY_SVG}` : typeMap[tableId] === "arena" ? ` ${ARENA_SVG}` : "";
+    const live = isActive ? ' <span class="stats-live" title="in progress"></span>' : "";
+    return `${tableId}${rt}${typeIcon}${live}`;
+  };
+
   const rows = tableSessions.slice().reverse().map(([slug, tableId, from, to]) => {
     const duration = formatDurationClock(to - from);
     const date = new Date(from).toLocaleDateString();
     const time = new Date(from).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-    const rt = modeMap[tableId] ? ` ${STOPWATCH_SVG}` : "";
     const isActive = activeTuple !== null && from === activeTuple[2];
-    const live = isActive ? ' <span class="stats-live" title="in progress"></span>' : "";
-    return `<tr${isActive ? ' class="stats-active"' : ""}><td>${escapeHtml(gameMap[slug] ?? slug)}</td><td>${tableId}${rt}${live}</td><td>${date} ${time}</td><td>${duration}</td></tr>`;
+    return `<tr${isActive ? ' class="stats-active"' : ""}><td>${escapeHtml(gameMap[slug] ?? slug)}</td><td>${tableCell(tableId, isActive)}</td><td>${date} ${time}</td><td>${duration}</td></tr>`;
+  }).join("");
+
+  const tableRows = aggregateByTable(tableSessions).map(({ slug, tableId, lastTo, totalMinutes, sessionCount }) => {
+    const date = new Date(lastTo).toLocaleDateString();
+    const time = new Date(lastTo).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    const isActive = activeTuple !== null && activeTuple[1] === tableId;
+    // Average per session is only meaningful for turn-based play (many short sittings); real-time games run in one continuous session, so leave it blank.
+    const avg = modeMap[tableId] === true ? "" : formatDurationClock((totalMinutes * 60000) / sessionCount);
+    return `<tr${isActive ? ' class="stats-active"' : ""}><td>${escapeHtml(gameMap[slug] ?? slug)}</td><td>${tableCell(tableId, isActive)}</td><td>${date} ${time}</td><td class="stats-num">${avg}</td><td>${formatDuration(totalMinutes)}</td></tr>`;
   }).join("");
 
   const chart = aggregateSessions(sessions, gameMap, granularity, dayStartHour, weekStartDay);
@@ -824,11 +847,19 @@ async function showStats(): Promise<void> {
   const weekMinutes = minutesInCurrentBucket(sessions, "week", now, dayStartHour, weekStartDay);
   const summary = `Today: ${formatDuration(todayMinutes)}<span class="stats-sep">·</span>This week: ${formatDuration(weekMinutes)}`;
   const emptyMessage = sessionFilter === "all" ? "No sessions recorded yet" : "No sessions in this period";
-  const tableHtml = sessionFilter === "off" ? "" : `<div class="stats-table-wrap"><table class="stats-table"><thead><tr><th>Game</th><th>Table</th><th>Date</th><th>Duration</th></tr></thead><tbody>${rows || `<tr><td colspan="4" class="stats-empty">${emptyMessage}</td></tr>`}</tbody></table></div>`;
+  const viewSwitchHtml = (["sessions", "tables"] as TableView[]).map((view) => `<button class="stats-gran${view === tableView ? " active" : ""}" data-view="${view}">${TABLE_VIEW_LABELS[view]}</button>`).join("");
+  const headerCells = tableView === "tables" ? '<th>Game</th><th>Table</th><th>Last played</th><th class="stats-num">Avg</th><th>Total</th>' : "<th>Game</th><th>Table</th><th>Date</th><th>Duration</th>";
+  const bodyRows = tableView === "tables" ? tableRows : rows;
+  const colCount = tableView === "tables" ? 5 : 4;
+  const tableHtml = sessionFilter === "off" ? "" : `<div class="stats-gran-switch">${viewSwitchHtml}</div><div class="stats-table-wrap"><table class="stats-table"><thead><tr>${headerCells}</tr></thead><tbody>${bodyRows || `<tr><td colspan="${colCount}" class="stats-empty">${emptyMessage}</td></tr>`}</tbody></table></div>`;
   contentEl.innerHTML = `<div class="stats-page"><h2>Play time</h2><div class="stats-summary"><span>${summary}</span><span class="stats-actions"><button class="stats-btn" id="btn-stats-refresh">Refresh</button><button class="stats-btn" id="btn-stats-export">Export</button><button class="stats-btn" id="btn-stats-import">Import</button><button class="stats-btn stats-btn-danger" id="btn-stats-clear">Clear</button></span></div><div class="stats-gran-switch">${switchHtml}</div>${chartHtml}${tableHtml}</div>`;
 
-  document.querySelectorAll<HTMLElement>(".stats-gran").forEach((btn) => btn.addEventListener("click", () => {
+  document.querySelectorAll<HTMLElement>("[data-gran]").forEach((btn) => btn.addEventListener("click", () => {
     saveSetting(KEY_STATS_GRANULARITY, btn.getAttribute("data-gran"));
+    showStats();
+  }));
+  document.querySelectorAll<HTMLElement>("[data-view]").forEach((btn) => btn.addEventListener("click", () => {
+    saveSetting(KEY_STATS_TABLE_VIEW, btn.getAttribute("data-view"));
     showStats();
   }));
   document.getElementById("btn-stats-refresh")?.addEventListener("click", () => showStats());
@@ -854,7 +885,7 @@ async function showStats(): Promise<void> {
   });
   document.getElementById("btn-stats-clear")?.addEventListener("click", async () => {
     if (!window.confirm("Delete all recorded play time? This cannot be undone.")) return;
-    await chrome.storage.local.remove([STORAGE_KEY_SESSIONS, STORAGE_KEY_GAMES, STORAGE_KEY_ACTIVE, STORAGE_KEY_MODES]);
+    await chrome.storage.local.remove([STORAGE_KEY_SESSIONS, STORAGE_KEY_GAMES, STORAGE_KEY_ACTIVE, STORAGE_KEY_MODES, STORAGE_KEY_TYPES]);
     chrome.runtime.sendMessage({ type: "resetTimeTracking" }).catch(() => {});
     showStats();
   });
@@ -1033,8 +1064,8 @@ if (typeof chrome !== "undefined" && chrome.runtime?.onMessage) {
 if (typeof chrome !== "undefined" && chrome.storage?.onChanged) {
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area !== "local" || !statsPageOpen()) return;
-    // Keys mirror time-tracking.ts (STORAGE_KEY_SESSIONS / _ACTIVE / _MODES).
-    if (changes["bgaa_time_sessions"] || changes["bgaa_time_active"] || changes["bgaa_time_modes"]) {
+    // Keys mirror time-tracking.ts (STORAGE_KEY_SESSIONS / _ACTIVE / _MODES / _TYPES).
+    if (changes["bgaa_time_sessions"] || changes["bgaa_time_active"] || changes["bgaa_time_modes"] || changes["bgaa_time_types"]) {
       showStats();
     }
   });

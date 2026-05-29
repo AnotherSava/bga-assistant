@@ -51,6 +51,8 @@ export interface RawExtractionData {
   currentPlayerId?: string;
   /** Whether the table is real-time (vs turn-based); null when unknown. */
   realTime?: boolean | null;
+  /** Table category — orthogonal to realTime; null when undetermined (e.g. table info unavailable). */
+  tableType?: "tournament" | "arena" | "regular" | null;
   gamedatas?: {
     my_hand?: Array<{ id: number | string }>;
     cards?: Record<string, { name?: string; age?: string | number; is_relic?: string | number | boolean; type?: string | number }>;

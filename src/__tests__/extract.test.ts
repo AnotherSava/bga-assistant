@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { extractGameData } from "../extract";
 
 describe("extractGameData", () => {
@@ -26,6 +26,15 @@ describe("extractGameData", () => {
     });
   }
 
+  // extractGameData makes a single ajaxcall to the game's notificationHistory endpoint.
+  // `notif` is passed to its success cb (use { __fail: msg } to trigger the error cb instead).
+  function ajaxFor(notif: any) {
+    return (_endpoint: string, _params: any, _ctx: any, successCb: (r: any) => void, errorCb: (e: boolean, m: string) => void) => {
+      if (notif && notif.__fail !== undefined) { errorCb(true, notif.__fail); return; }
+      successCb(notif);
+    };
+  }
+
   it("returns error when no table= param in URL", async () => {
     setLocation("", "/123/innovation");
     const result = await extractGameData();
@@ -49,9 +58,7 @@ describe("extractGameData", () => {
     setLocation("?table=456", "/123/innovation");
     (globalThis as any).gameui = {
       gamedatas: { players: {} },
-      ajaxcall: (_endpoint: string, _params: any, _context: any, successCb: (r: any) => void) => {
-        successCb({ data: null });
-      },
+      ajaxcall: ajaxFor({ data: null }),
     };
     const result = await extractGameData();
     expect(result).toEqual({ error: true, msg: "BGA API returned no notification data" });
@@ -61,9 +68,7 @@ describe("extractGameData", () => {
     setLocation("?table=456", "/123/innovation");
     (globalThis as any).gameui = {
       gamedatas: { players: {} },
-      ajaxcall: (_endpoint: string, _params: any, _context: any, _successCb: any, errorCb: (e: boolean, msg: string) => void) => {
-        errorCb(true, "Network failure");
-      },
+      ajaxcall: ajaxFor({ __fail: "Network failure" }),
     };
     const result = await extractGameData();
     expect(result).toEqual({ error: true, msg: "Network failure" });
@@ -82,9 +87,7 @@ describe("extractGameData", () => {
         my_hand: [],
         cards: {},
       },
-      ajaxcall: (_endpoint: string, _params: any, _context: any, successCb: (r: any) => void) => {
-        successCb({ data: mockPackets });
-      },
+      ajaxcall: ajaxFor({ data: mockPackets }),
     };
     const result = await extractGameData();
     expect(result.error).toBeUndefined();
@@ -103,9 +106,7 @@ describe("extractGameData", () => {
         my_hand: [],
         cards: {},
       },
-      ajaxcall: (_endpoint: string, _params: any, _context: any, successCb: (r: any) => void) => {
-        successCb({ data: [] });
-      },
+      ajaxcall: ajaxFor({ data: [] }),
     };
     const result = await extractGameData();
     expect(result.error).toBe(true);
@@ -118,9 +119,7 @@ describe("extractGameData", () => {
     const cards = { "1": { name: "Pottery" }, "2": { name: "Tools" } };
     (globalThis as any).gameui = {
       gamedatas: { players: {}, my_hand: hand, cards },
-      ajaxcall: (_endpoint: string, _params: any, _context: any, successCb: (r: any) => void) => {
-        successCb({ data: [{ move_id: 1, data: [] }] });
-      },
+      ajaxcall: ajaxFor({ data: [{ move_id: 1, data: [] }] }),
     };
     const result = await extractGameData();
     expect(result.gamedatas).toEqual({ my_hand: hand, cards });
@@ -130,9 +129,7 @@ describe("extractGameData", () => {
     setLocation("?table=789", "/42/innovation");
     (globalThis as any).gameui = {
       gamedatas: null,
-      ajaxcall: (_endpoint: string, _params: any, _context: any, successCb: (r: any) => void) => {
-        successCb({ data: [{ move_id: 1, data: [] }] });
-      },
+      ajaxcall: ajaxFor({ data: [{ move_id: 1, data: [] }] }),
     };
     const result = await extractGameData();
     expect(result.gamedatas).toBeNull();
@@ -144,7 +141,7 @@ describe("extractGameData", () => {
     let capturedEndpoint = "";
     (globalThis as any).gameui = {
       gamedatas: { players: {} },
-      ajaxcall: (endpoint: string, _params: any, _context: any, successCb: (r: any) => void) => {
+      ajaxcall: (endpoint: string, _params: any, _ctx: any, successCb: (r: any) => void) => {
         capturedEndpoint = endpoint;
         successCb({ data: [{ move_id: 1, data: [] }] });
       },
@@ -159,7 +156,7 @@ describe("extractGameData", () => {
     let capturedParams: any = null;
     (globalThis as any).gameui = {
       gamedatas: { players: {} },
-      ajaxcall: (_endpoint: string, params: any, _context: any, successCb: (r: any) => void) => {
+      ajaxcall: (_endpoint: string, params: any, _ctx: any, successCb: (r: any) => void) => {
         capturedParams = params;
         successCb({ data: [{ move_id: 1, data: [] }] });
       },
@@ -173,12 +170,38 @@ describe("extractGameData", () => {
     let capturedParams: any = null;
     (globalThis as any).gameui = {
       gamedatas: { players: {} },
-      ajaxcall: (_endpoint: string, params: any, _context: any, successCb: (r: any) => void) => {
+      ajaxcall: (_endpoint: string, params: any, _ctx: any, successCb: (r: any) => void) => {
         capturedParams = params;
         successCb({ data: [{ move_id: 1, data: [] }] });
       },
     };
     await extractGameData();
     expect(capturedParams.table).toBe(555);
+  });
+
+  it("derives realTime and classifies a tournament table from gameui.tournament_id", async () => {
+    setLocation("?table=789", "/42/innovation");
+    (globalThis as any).gameui = {
+      bRealtime: 0,
+      tournament_id: 517526,
+      gamedatas: { players: {} },
+      ajaxcall: ajaxFor({ data: [{ move_id: 1, data: [] }] }),
+    };
+    const result = await extractGameData();
+    expect(result.realTime).toBe(false);
+    expect(result.tableType).toBe("tournament");
+  });
+
+  // Arena vs regular is determined in the background (from the table-info API), not during extraction;
+  // a non-tournament table leaves tableType undetermined here.
+  it("leaves tableType null for a non-tournament table", async () => {
+    setLocation("?table=789", "/42/innovation");
+    (globalThis as any).gameui = {
+      tournament_id: null,
+      gamedatas: { players: {} },
+      ajaxcall: ajaxFor({ data: [{ move_id: 1, data: [] }] }),
+    };
+    const result = await extractGameData();
+    expect(result.tableType).toBeNull();
   });
 });

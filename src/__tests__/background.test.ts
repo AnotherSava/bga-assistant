@@ -774,10 +774,10 @@ describe("live tracking", () => {
   it("injects watcher after successful extraction", async () => {
     await clickExtract(42);
 
-    // executeScript called twice: once for extract.js, once for watcher
-    expect(mockExecuteScript).toHaveBeenCalledTimes(2);
-    const watcherCall = mockExecuteScript.mock.calls[1];
-    expect(watcherCall[0]).toMatchObject({
+    // executeScript runs for extract.js, the table-type probe, and the watcher — find the watcher call.
+    const watcherCall = mockExecuteScript.mock.calls.find((call) => call[0]?.func === watcherFunction);
+    expect(watcherCall).toBeDefined();
+    expect(watcherCall![0]).toMatchObject({
       target: { tabId: 42 },
       func: watcherFunction,
     });

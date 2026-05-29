@@ -54,9 +54,17 @@ export function parseGameTableUrl(url: string): GameTableInfo | null {
 
 export const STORAGE_KEY_ACTIVE = "bgaa_time_active";
 export const STORAGE_KEY_MODES = "bgaa_time_modes";
+export const STORAGE_KEY_TYPES = "bgaa_time_types";
 
 /** Map of table ID → true when the table is a real-time game (vs turn-based). */
 export type ModeMap = Record<string, boolean>;
+
+/** Table category — orthogonal to real-time mode. */
+export type TableType = "tournament" | "arena" | "regular";
+const VALID_TABLE_TYPES: ReadonlySet<string> = new Set<TableType>(["tournament", "arena", "regular"]);
+
+/** Map of table ID → its category. */
+export type TableTypeMap = Record<string, TableType>;
 
 interface ActiveSession {
   slug: string;
@@ -68,6 +76,7 @@ export class SessionTracker {
   private active: ActiveSession | null = null;
   private knownSlugs = new Set<string>();
   private tableModes = new Map<number, boolean>();
+  private tableTypes = new Map<number, TableType>();
   private loaded = false;
   private writeQueue: Promise<void> = Promise.resolve();
 
@@ -87,24 +96,44 @@ export class SessionTracker {
     });
   }
 
+  /** Record a table's category (tournament/arena/regular). Fixed for the table's lifetime, so the first known value wins and is never overwritten (classification is done once, then remembered). Non-enum values (e.g. null when undetermined) are ignored. */
+  setTableType(tableId: number, type: unknown): void {
+    if (typeof type !== "string" || !VALID_TABLE_TYPES.has(type)) return;
+    this.writeQueue = this.writeQueue.then(async () => {
+      await this.ensureLoaded();
+      if (this.tableTypes.has(tableId)) return;
+      this.tableTypes.set(tableId, type as TableType);
+      await this.persistTableType(tableId, type as TableType);
+    });
+  }
+
+  /** Whether this table's category is already classified, so callers can skip re-probing it. */
+  async isTableTypeKnown(tableId: number): Promise<boolean> {
+    await this.ensureLoaded();
+    return this.tableTypes.has(tableId);
+  }
+
   /** Drop in-memory state so the next focus change reloads from (now-cleared) storage. */
   reset(): void {
     this.writeQueue = this.writeQueue.then(() => {
       this.active = null;
       this.knownSlugs.clear();
       this.tableModes.clear();
+      this.tableTypes.clear();
       this.loaded = false;
     });
   }
 
   private async ensureLoaded(): Promise<void> {
     if (this.loaded) return;
-    const result = await chrome.storage.local.get([STORAGE_KEY_ACTIVE, STORAGE_KEY_GAMES, STORAGE_KEY_MODES]);
+    const result = await chrome.storage.local.get([STORAGE_KEY_ACTIVE, STORAGE_KEY_GAMES, STORAGE_KEY_MODES, STORAGE_KEY_TYPES]);
     this.active = (result[STORAGE_KEY_ACTIVE] as ActiveSession | undefined) ?? null;
     const map = (result[STORAGE_KEY_GAMES] as GameMap | undefined) ?? {};
     for (const slug in map) this.knownSlugs.add(slug);
     const modes = (result[STORAGE_KEY_MODES] as ModeMap | undefined) ?? {};
     for (const id in modes) this.tableModes.set(Number(id), modes[id]);
+    const types = (result[STORAGE_KEY_TYPES] as TableTypeMap | undefined) ?? {};
+    for (const id in types) this.tableTypes.set(Number(id), types[id]);
     this.loaded = true;
   }
 
@@ -128,28 +157,19 @@ export class SessionTracker {
     }
   }
 
-  async readSessions(): Promise<TimeSession[]> {
-    const result = await chrome.storage.local.get(STORAGE_KEY_SESSIONS);
-    return (result[STORAGE_KEY_SESSIONS] as TimeSession[] | undefined) ?? [];
-  }
-
-  async readGameMap(): Promise<GameMap> {
-    const result = await chrome.storage.local.get(STORAGE_KEY_GAMES);
-    return (result[STORAGE_KEY_GAMES] as GameMap | undefined) ?? {};
-  }
-
   async backupToBga(tabId: number): Promise<void> {
-    const sessions = await this.readSessions();
-    const games = await this.readGameMap();
-    await writeBgaLocalStorage(tabId, sessions, games);
+    // Reuse the CSV export so the backup carries everything export does (sessions, game names,
+    // real-time modes, table types) through a single serialization path.
+    const csv = await exportSessionsCsv();
+    await writeBgaLocalStorage(tabId, csv);
   }
 
   async restoreFromBga(tabId: number): Promise<void> {
     const result = await chrome.storage.local.get(STORAGE_KEY_SESSIONS);
     if ((result[STORAGE_KEY_SESSIONS] as TimeSession[] | undefined)?.length) return;
-    const bgaData = await readBgaLocalStorage(tabId);
-    if (!bgaData) return;
-    await chrome.storage.local.set({ [STORAGE_KEY_SESSIONS]: bgaData.sessions, [STORAGE_KEY_GAMES]: bgaData.games });
+    const raw = await readBgaLocalStorage(tabId);
+    if (!raw) return;
+    await importSessionsCsv(raw);
   }
 
   private async writeActive(): Promise<void> {
@@ -181,75 +201,101 @@ export class SessionTracker {
     modes[tableId] = realTime;
     await chrome.storage.local.set({ [STORAGE_KEY_MODES]: modes });
   }
+
+  private async persistTableType(tableId: number, type: TableType): Promise<void> {
+    const result = await chrome.storage.local.get(STORAGE_KEY_TYPES);
+    const types: TableTypeMap = (result[STORAGE_KEY_TYPES] as TableTypeMap | undefined) ?? {};
+    types[tableId] = type;
+    await chrome.storage.local.set({ [STORAGE_KEY_TYPES]: types });
+  }
 }
 
 // ---------------------------------------------------------------------------
 // BGA page localStorage backup/restore helpers
 // ---------------------------------------------------------------------------
 
-interface BgaStorageData {
-  sessions: TimeSession[];
-  games: GameMap;
-}
-
-function readBgaScript(): BgaStorageData | null {
-  const raw = localStorage.getItem("bgaa_time_sessions");
-  if (!raw) return null;
-  return JSON.parse(raw) as BgaStorageData;
+// The backup payload is the CSV produced by exportSessionsCsv, stored under the BGA page's localStorage
+// so it survives extension reinstalls.
+function readBgaScript(): string | null {
+  return localStorage.getItem("bgaa_time_sessions");
 }
 
 function writeBgaScript(data: string): void {
   localStorage.setItem("bgaa_time_sessions", data);
 }
 
-async function readBgaLocalStorage(tabId: number): Promise<BgaStorageData | null> {
+async function readBgaLocalStorage(tabId: number): Promise<string | null> {
   const results = await chrome.scripting.executeScript({ target: { tabId }, func: readBgaScript, world: "MAIN" });
   return results[0]?.result ?? null;
 }
 
-async function writeBgaLocalStorage(tabId: number, sessions: TimeSession[], games: GameMap): Promise<void> {
-  const data = JSON.stringify({ sessions, games });
-  await chrome.scripting.executeScript({ target: { tabId }, func: writeBgaScript, args: [data], world: "MAIN" } as chrome.scripting.ScriptInjection);
+async function writeBgaLocalStorage(tabId: number, payload: string): Promise<void> {
+  await chrome.scripting.executeScript({ target: { tabId }, func: writeBgaScript, args: [payload], world: "MAIN" } as chrome.scripting.ScriptInjection);
 }
 
 // ---------------------------------------------------------------------------
 // CSV export
 // ---------------------------------------------------------------------------
 
-const CSV_HEADER = "game,table_id,from,to,minutes";
+// game = display name, game_id = the URL slug (so export→import is lossless: the original session slug
+// and the slug→name map are both recoverable). realtime: "1"/"0"/"" ; type: tournament|arena|regular|"".
+// realtime + type are per-table, inlined on every row like the game name. Parsed by column name on import,
+// so adding/reordering columns stays backward-compatible.
+const CSV_HEADER = "game,game_id,table_id,from,to,minutes,realtime,type";
 
 export async function exportSessionsCsv(): Promise<string> {
-  const result = await chrome.storage.local.get([STORAGE_KEY_SESSIONS, STORAGE_KEY_GAMES]);
+  const result = await chrome.storage.local.get([STORAGE_KEY_SESSIONS, STORAGE_KEY_GAMES, STORAGE_KEY_MODES, STORAGE_KEY_TYPES]);
   const sessions: TimeSession[] = (result[STORAGE_KEY_SESSIONS] as TimeSession[] | undefined) ?? [];
   const gameMap: GameMap = (result[STORAGE_KEY_GAMES] as GameMap | undefined) ?? {};
+  const modeMap: ModeMap = (result[STORAGE_KEY_MODES] as ModeMap | undefined) ?? {};
+  const typeMap: TableTypeMap = (result[STORAGE_KEY_TYPES] as TableTypeMap | undefined) ?? {};
+  const clean = (value: string): string => value.replace(/,/g, " ");
   const rows = sessions.map(([slug, tableId, from, to]) => {
     const minutes = ((to - from) / 60000).toFixed(1);
-    const game = (gameMap[slug] ?? slug).replace(/,/g, " ");
-    return `${game},${tableId},${new Date(from).toISOString()},${new Date(to).toISOString()},${minutes}`;
+    const game = clean(gameMap[slug] ?? slug);
+    const realtime = modeMap[tableId] === true ? "1" : modeMap[tableId] === false ? "0" : "";
+    const type = typeMap[tableId] ?? "";
+    return `${game},${clean(slug)},${tableId},${new Date(from).toISOString()},${new Date(to).toISOString()},${minutes},${realtime},${type}`;
   });
   return [CSV_HEADER, ...rows].join("\n") + "\n";
 }
 
-/** Parse a previously exported CSV and merge its sessions into storage, deduplicating by start timestamp. Returns the number of newly added sessions. */
+/** Parse a CSV produced by exportSessionsCsv and merge it into storage, deduplicating sessions by start timestamp. Restores the session slug + game name and each table's real-time mode and category (first value wins, so live data isn't clobbered). Columns are read by header name; game/game_id/table_id/from/to are required, realtime/type optional. Returns the number of newly added sessions. */
 export async function importSessionsCsv(text: string): Promise<number> {
   const lines = text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
   if (lines.length <= 1) return 0;
-  const result = await chrome.storage.local.get(STORAGE_KEY_SESSIONS);
+  const header = lines[0].split(",");
+  const col = (name: string): number => header.indexOf(name);
+  const iGame = col("game"), iGameId = col("game_id"), iTable = col("table_id"), iFrom = col("from"), iTo = col("to"), iRealtime = col("realtime"), iType = col("type");
+  if (iGame < 0 || iGameId < 0 || iTable < 0 || iFrom < 0 || iTo < 0) return 0;
+  const result = await chrome.storage.local.get([STORAGE_KEY_SESSIONS, STORAGE_KEY_GAMES, STORAGE_KEY_MODES, STORAGE_KEY_TYPES]);
   const sessions: TimeSession[] = (result[STORAGE_KEY_SESSIONS] as TimeSession[] | undefined) ?? [];
+  const gameMap: GameMap = (result[STORAGE_KEY_GAMES] as GameMap | undefined) ?? {};
+  const modeMap: ModeMap = (result[STORAGE_KEY_MODES] as ModeMap | undefined) ?? {};
+  const typeMap: TableTypeMap = (result[STORAGE_KEY_TYPES] as TableTypeMap | undefined) ?? {};
   const seen = new Set(sessions.map((session) => session[2]));
   let added = 0;
   for (const line of lines.slice(1)) {
-    const [game, tableIdStr, fromStr, toStr] = line.split(",");
-    const tableId = Number(tableIdStr);
-    const from = Date.parse(fromStr);
-    const to = Date.parse(toStr);
-    if (!game || Number.isNaN(tableId) || Number.isNaN(from) || Number.isNaN(to) || seen.has(from)) continue;
+    const fields = line.split(",");
+    const name = fields[iGame];
+    const slug = fields[iGameId];
+    const tableId = Number(fields[iTable]);
+    const from = Date.parse(fields[iFrom]);
+    const to = Date.parse(fields[iTo]);
+    if (!name || !slug || Number.isNaN(tableId) || Number.isNaN(from) || Number.isNaN(to)) continue;
+    // Per-table / per-game data (handled for every valid row, even duplicate sessions); first value wins.
+    if (name !== slug && !(slug in gameMap)) gameMap[slug] = name;
+    const realtimeStr = iRealtime >= 0 ? fields[iRealtime] : "";
+    const typeStr = iType >= 0 ? fields[iType] : "";
+    if (!(tableId in modeMap) && (realtimeStr === "1" || realtimeStr === "0")) modeMap[tableId] = realtimeStr === "1";
+    if (!(tableId in typeMap) && (typeStr === "tournament" || typeStr === "arena" || typeStr === "regular")) typeMap[tableId] = typeStr;
+    if (seen.has(from)) continue;
     seen.add(from);
-    sessions.push([game, tableId, from, to]);
+    sessions.push([slug, tableId, from, to]);
     added++;
   }
   sessions.sort((a, b) => a[2] - b[2]);
-  await chrome.storage.local.set({ [STORAGE_KEY_SESSIONS]: sessions });
+  await chrome.storage.local.set({ [STORAGE_KEY_SESSIONS]: sessions, [STORAGE_KEY_GAMES]: gameMap, [STORAGE_KEY_MODES]: modeMap, [STORAGE_KEY_TYPES]: typeMap });
   return added;
 }
 
@@ -265,14 +311,14 @@ export const WEEK_START_DAY = 1;
 
 export type Granularity = "day" | "week" | "month";
 
-/** Format a duration given in minutes as hours and minutes (e.g. 75 → "1h 15m", 45 → "45m", 120 → "2h", 0 → "0m"). */
+/** Format a duration given in minutes as hours and minutes, with a thin space (U+2009) separating each value from its unit letter, e.g. "1 h 15 m", "45 m", "2 h", "0 m". */
 export function formatDuration(minutes: number): string {
   const totalMinutes = Math.round(minutes);
   const hours = Math.floor(totalMinutes / 60);
   const mins = totalMinutes % 60;
-  if (hours > 0 && mins > 0) return `${hours}h ${mins}m`;
-  if (hours > 0) return `${hours}h`;
-  return `${mins}m`;
+  if (hours > 0 && mins > 0) return `${hours} h ${mins} m`;
+  if (hours > 0) return `${hours} h`;
+  return `${mins} m`;
 }
 
 /** Format a duration given in milliseconds as a clock string with no leading zeros or separator: "1:22:07", "22:07", "17", "0". */
@@ -341,6 +387,31 @@ export function aggregateSessions(sessions: TimeSession[], gameMap: GameMap, gra
   const games = [...gameTotals.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([game]) => game);
   const maxTotalMinutes = orderedBuckets.reduce((max, bucket) => Math.max(max, bucket.totalMinutes), 0);
   return { buckets: orderedBuckets, games, maxTotalMinutes };
+}
+
+export interface TablePlaytime {
+  slug: string;
+  tableId: number;
+  /** End timestamp (ms) of the most recent session at this table. */
+  lastTo: number;
+  totalMinutes: number;
+  sessionCount: number;
+}
+
+/** Group sessions by game table, summing total minutes, counting sessions, and tracking the end of the most recent session. Tables are ordered by most-recent-session end, descending. A table is always one game, so the slug is invariant per table. */
+export function aggregateByTable(sessions: TimeSession[]): TablePlaytime[] {
+  const byTable = new Map<number, TablePlaytime>();
+  for (const [slug, tableId, from, to] of sessions) {
+    let entry = byTable.get(tableId);
+    if (!entry) {
+      entry = { slug, tableId, lastTo: to, totalMinutes: 0, sessionCount: 0 };
+      byTable.set(tableId, entry);
+    }
+    entry.totalMinutes += (to - from) / 60000;
+    entry.sessionCount++;
+    if (to > entry.lastTo) entry.lastTo = to;
+  }
+  return [...byTable.values()].sort((a, b) => b.lastTo - a.lastTo);
 }
 
 /** Total minutes across sessions falling in the same time bucket as `now` — used for the "today" and "this week" summary figures. */

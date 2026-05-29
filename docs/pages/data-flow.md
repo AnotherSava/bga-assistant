@@ -299,26 +299,30 @@ not only supported ones.
 
 | Tier | Key(s) | Written when | Purpose |
 |------|---------|--------------|---------|
-| `chrome.storage.local` | `bgaa_time_sessions`, `bgaa_time_games` | Every session end | Primary durable store |
-| BGA page `localStorage` | `bgaa_time_sessions` | On backup (throttled) | Cross-reinstall backup |
+| `chrome.storage.local` | `bgaa_time_sessions`, `bgaa_time_games`, `bgaa_time_modes` (real-time), `bgaa_time_types` (tournament/arena/regular) | Every session end / on classification | Primary durable store |
+| BGA page `localStorage` | `bgaa_time_sessions` (the CSV export string) | On backup (throttled) | Cross-reinstall backup |
 
 ### BGA localStorage backup/restore
 
-Triggered when navigating to any BGA page, throttled to once per 5 minutes.
+Triggered when navigating to any BGA page, throttled to once per 5 minutes. Backup/restore reuse the
+CSV export/import, so the backup carries everything export does — sessions, game names, real-time modes,
+and table types — through one serialization path.
 
-- **Restore** (once per SW lifetime): if `chrome.storage.local` is empty, read from
-  BGA page localStorage and populate it. Handles the fresh-install-after-reinstall case.
-- **Backup**: copy current sessions from `chrome.storage.local` to BGA page localStorage
-  via `chrome.scripting.executeScript` (MAIN world).
+- **Restore** (once per SW lifetime): if `chrome.storage.local` is empty, read the backup string from
+  BGA page localStorage and `importSessionsCsv()` it. Handles the fresh-install-after-reinstall case.
+- **Backup**: write `exportSessionsCsv()` to BGA page localStorage via `chrome.scripting.executeScript`
+  (MAIN world).
 
-### CSV export
+### CSV export / import
 
 ***Side Panel***
 
-1. User clicks the time export button (clock icon)
-2. `exportSessionsCsv()` reads sessions and game map from `chrome.storage.local`
-3. Produces CSV with columns: `game_id, game_name, table_id, from, to, minutes`
+1. User clicks Export
+2. `exportSessionsCsv()` reads sessions, game map, real-time modes, and table types from `chrome.storage.local`
+3. Produces CSV with columns: `game, game_id, table_id, from, to, minutes, realtime, type`. `game` is the display name and `game_id` the URL slug (both stored so the round-trip is lossless); `realtime` (`1`/`0`/empty) and `type` (`tournament`/`arena`/`regular`/empty) are per-table classifications. All are inlined on every session row.
 4. Downloads as `bgaa_playtime_YYYY-MM-DD.csv`
+
+`importSessionsCsv()` reads columns by header name (`game`, `game_id`, `table_id`, `from`, `to` required; `realtime`/`type` optional), merges sessions (dedup by start timestamp), and restores the session slug, the slug→name map, and each table's `realtime` mode and `type` (first value wins, so live data isn't clobbered). Export→import reproduces the stored data exactly.
 
 Key files:
 - `src/time-tracking.ts` — types, URL parser, SessionTracker class, sync logic, export

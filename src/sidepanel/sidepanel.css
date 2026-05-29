@@ -509,8 +509,11 @@ body:has(.stats-page) #content { height: 100%; }
 .stats-table td { padding: 4px 8px; color: #ccc; border-bottom: 1px solid #333; }
 .stats-table tr:hover td { background: #2a2a2a; }
 .stats-table th:last-child, .stats-table td:last-child:not(.stats-empty) { text-align: right; }
+.stats-table th.stats-num, .stats-table td.stats-num { text-align: right; }
 .stats-empty { text-align: center; color: #666; padding: 20px 8px; }
 .stats-rt { vertical-align: -1px; margin-left: 3px; color: #7db8f0; opacity: 0.85; }
+.stats-trophy { vertical-align: -1px; margin-left: 3px; color: #d4b24a; opacity: 0.9; }
+.stats-arena { vertical-align: -1px; margin-left: 3px; color: #d99a5b; opacity: 0.9; }
 .stats-active td { color: #cfe; }
 .stats-live { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #4ad06a; margin-left: 4px; vertical-align: 0; animation: stats-pulse 1.6s ease-in-out infinite; }
 @keyframes stats-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }

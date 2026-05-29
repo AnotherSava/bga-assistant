@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { parseGameTableUrl, extractDisplayName, SessionTracker, exportSessionsCsv, importSessionsCsv, aggregateSessions, formatDuration, formatDurationClock, minutesInCurrentBucket, currentBucketRange, sessionsOverlapping, STORAGE_KEY_SESSIONS, STORAGE_KEY_GAMES, type TimeSession } from "../time-tracking";
+import { parseGameTableUrl, extractDisplayName, SessionTracker, exportSessionsCsv, importSessionsCsv, aggregateSessions, aggregateByTable, formatDuration, formatDurationClock, minutesInCurrentBucket, currentBucketRange, sessionsOverlapping, STORAGE_KEY_SESSIONS, STORAGE_KEY_GAMES, type TimeSession } from "../time-tracking";
 
 describe("parseGameTableUrl", () => {
   it("parses a standard game table URL", () => {
@@ -138,6 +138,35 @@ describe("SessionTracker", () => {
     expect(chrome.storage.local.set).not.toHaveBeenCalledWith(expect.objectContaining({ "bgaa_time_modes": expect.anything() }));
   });
 
+  it("records a table's category via setTableType", async () => {
+    tracker.setTableType(100, "arena");
+    await vi.waitFor(() => expect(storage["bgaa_time_types"]).toEqual({ 100: "arena" }));
+  });
+
+  it("records tournament/regular and ignores invalid or non-string types", async () => {
+    tracker.setTableType(200, "tournament");
+    tracker.setTableType(210, "regular");
+    tracker.setTableType(300, "ranked"); // not an enum value
+    tracker.setTableType(400, null);
+    tracker.setTableType(500, undefined);
+    await vi.waitFor(() => expect(storage["bgaa_time_types"]).toEqual({ 200: "tournament", 210: "regular" }));
+  });
+
+  it("keeps the first recorded type and never overwrites it (classify once, remember)", async () => {
+    tracker.setTableType(100, "arena");
+    await vi.waitFor(() => expect(storage["bgaa_time_types"]).toEqual({ 100: "arena" }));
+    tracker.setTableType(100, "regular");
+    await new Promise((r) => setTimeout(r, 10));
+    expect(storage["bgaa_time_types"]).toEqual({ 100: "arena" });
+  });
+
+  it("isTableTypeKnown reflects whether a table has been classified", async () => {
+    expect(await tracker.isTableTypeKnown(100)).toBe(false);
+    tracker.setTableType(100, "arena");
+    await vi.waitFor(() => expect(storage["bgaa_time_types"]).toEqual({ 100: "arena" }));
+    expect(await tracker.isTableTypeKnown(100)).toBe(true);
+  });
+
   it("starts and ends a session on focus change away", async () => {
     tracker.handleFocusChange("https://boardgamearena.com/8/innovation?table=100");
     nowMs = 1005000;
@@ -227,22 +256,6 @@ describe("SessionTracker", () => {
     expect(chrome.storage.local.set).not.toHaveBeenCalled();
   });
 
-  it("readSessions returns stored sessions", async () => {
-    storage[STORAGE_KEY_SESSIONS] = [["innovation", 100, 1000, 2000]];
-    const sessions = await tracker.readSessions();
-    expect(sessions).toEqual([["innovation", 100, 1000, 2000]]);
-  });
-
-  it("readSessions returns empty array when no data", async () => {
-    const sessions = await tracker.readSessions();
-    expect(sessions).toEqual([]);
-  });
-
-  it("readGameMap returns stored map", async () => {
-    storage[STORAGE_KEY_GAMES] = { innovation: "Innovation" };
-    const map = await tracker.readGameMap();
-    expect(map).toEqual({ innovation: "Innovation" });
-  });
 });
 
 // ---------------------------------------------------------------------------
@@ -281,12 +294,14 @@ describe("SessionTracker BGA backup/restore", () => {
     delete (globalThis as any).chrome;
   });
 
-  it("restoreFromBga populates empty extension storage from BGA localStorage", async () => {
-    const bgaData = { sessions: [["innovation", 1, 1000, 2000] as TimeSession], games: { innovation: "Innovation" } };
-    (chrome.scripting.executeScript as ReturnType<typeof vi.fn>).mockResolvedValueOnce([{ result: bgaData }]);
+  it("restoreFromBga populates empty extension storage from a CSV backup (incl. slug, name, mode, type)", async () => {
+    const csv = "game,game_id,table_id,from,to,minutes,realtime,type\nInnovation,innovation,1,1970-01-01T00:00:01.000Z,1970-01-01T00:00:02.000Z,0.0,0,tournament\n";
+    (chrome.scripting.executeScript as ReturnType<typeof vi.fn>).mockResolvedValueOnce([{ result: csv }]);
     await tracker.restoreFromBga(1);
     expect(storage[STORAGE_KEY_SESSIONS]).toEqual([["innovation", 1, 1000, 2000]]);
     expect(storage[STORAGE_KEY_GAMES]).toEqual({ innovation: "Innovation" });
+    expect(storage["bgaa_time_modes"]).toEqual({ 1: false });
+    expect(storage["bgaa_time_types"]).toEqual({ 1: "tournament" });
   });
 
   it("restoreFromBga skips when extension storage already has sessions", async () => {
@@ -301,14 +316,18 @@ describe("SessionTracker BGA backup/restore", () => {
     expect(chrome.storage.local.set).not.toHaveBeenCalled();
   });
 
-  it("backupToBga writes current sessions to BGA page localStorage", async () => {
+  it("backupToBga writes the CSV export to BGA page localStorage (incl. mode + type)", async () => {
     storage[STORAGE_KEY_SESSIONS] = [["innovation", 1, 1000, 2000]];
     storage[STORAGE_KEY_GAMES] = { innovation: "Innovation" };
+    storage["bgaa_time_modes"] = { 1: true };
+    storage["bgaa_time_types"] = { 1: "tournament" };
     await tracker.backupToBga(5);
     expect(chrome.scripting.executeScript).toHaveBeenCalledTimes(1);
     const call = (chrome.scripting.executeScript as ReturnType<typeof vi.fn>).mock.calls[0];
     expect(call[0].target).toEqual({ tabId: 5 });
-    expect(call[0].args[0]).toBe(JSON.stringify({ sessions: [["innovation", 1, 1000, 2000]], games: { innovation: "Innovation" } }));
+    const csv: string = call[0].args[0];
+    expect(csv).toContain("game,game_id,table_id,from,to,minutes,realtime,type");
+    expect(csv).toContain("Innovation,innovation,1,1970-01-01T00:00:01.000Z,1970-01-01T00:00:02.000Z,0.0,1,tournament");
   });
 });
 
@@ -347,8 +366,17 @@ describe("exportSessionsCsv", () => {
     storage[STORAGE_KEY_GAMES] = { innovation: "Innovation" };
     const csv = await exportSessionsCsv();
     const lines = csv.trimEnd().split("\n");
-    expect(lines[0]).toBe("game,table_id,from,to,minutes");
-    expect(lines[1]).toMatch(/^Innovation,100,\d{4}-.*,\d{4}-.*,60\.0$/);
+    expect(lines[0]).toBe("game,game_id,table_id,from,to,minutes,realtime,type");
+    expect(lines[1]).toMatch(/^Innovation,innovation,100,\d{4}-.*,\d{4}-.*,60\.0,,$/);
+  });
+
+  it("inlines slug, real-time mode, and category on every row", async () => {
+    storage[STORAGE_KEY_SESSIONS] = [["arknova", 555, 0, 60000]];
+    storage[STORAGE_KEY_GAMES] = { arknova: "Ark Nova" };
+    storage["bgaa_time_modes"] = { 555: false };
+    storage["bgaa_time_types"] = { 555: "arena" };
+    const csv = await exportSessionsCsv();
+    expect(csv.trimEnd().split("\n")[1]).toBe("Ark Nova,arknova,555,1970-01-01T00:00:00.000Z,1970-01-01T00:01:00.000Z,1.0,0,arena");
   });
 
   it("falls back to the slug for games without a display name", async () => {
@@ -356,26 +384,26 @@ describe("exportSessionsCsv", () => {
     storage[STORAGE_KEY_GAMES] = {};
     const csv = await exportSessionsCsv();
     const lines = csv.trimEnd().split("\n");
-    expect(lines[1]).toMatch(/^mysterygame,200,/);
+    expect(lines[1]).toMatch(/^mysterygame,mysterygame,200,/);
   });
 
   it("returns header only when no sessions", async () => {
     const csv = await exportSessionsCsv();
-    expect(csv.trimEnd()).toBe("game,table_id,from,to,minutes");
+    expect(csv.trimEnd()).toBe("game,game_id,table_id,from,to,minutes,realtime,type");
   });
 
   it("calculates minutes correctly", async () => {
     storage[STORAGE_KEY_SESSIONS] = [["test", 1, 0, 90000]];
     storage[STORAGE_KEY_GAMES] = { test: "Test" };
     const csv = await exportSessionsCsv();
-    expect(csv).toContain(",1.5\n");
+    expect(csv).toContain(",1.5,,\n");
   });
 
   it("sanitizes commas in game names", async () => {
     storage[STORAGE_KEY_SESSIONS] = [["x", 1, 0, 60000]];
     storage[STORAGE_KEY_GAMES] = { x: "A,B,C" };
     const csv = await exportSessionsCsv();
-    expect(csv.trimEnd().split("\n")[1]).toMatch(/^A B C,1,/);
+    expect(csv.trimEnd().split("\n")[1]).toMatch(/^A B C,x,1,/);
   });
 });
 
@@ -411,27 +439,65 @@ describe("importSessionsCsv", () => {
   });
 
   it("imports sessions from a CSV produced by export", async () => {
-    const csv = "game,table_id,from,to,minutes\nInnovation,100,2026-05-27T19:00:00.000Z,2026-05-27T19:30:00.000Z,30.0\n";
+    const csv = "game,game_id,table_id,from,to,minutes\nInnovation,innovation,100,2026-05-27T19:00:00.000Z,2026-05-27T19:30:00.000Z,30.0\n";
     const added = await importSessionsCsv(csv);
     expect(added).toBe(1);
-    expect(storage[STORAGE_KEY_SESSIONS]).toEqual([["Innovation", 100, Date.parse("2026-05-27T19:00:00.000Z"), Date.parse("2026-05-27T19:30:00.000Z")]]);
+    expect(storage[STORAGE_KEY_SESSIONS]).toEqual([["innovation", 100, Date.parse("2026-05-27T19:00:00.000Z"), Date.parse("2026-05-27T19:30:00.000Z")]]);
+    expect(storage[STORAGE_KEY_GAMES]).toEqual({ innovation: "Innovation" });
+  });
+
+  it("ignores a CSV without a game_id column (no name-as-slug fallback)", async () => {
+    const csv = "game,table_id,from,to,minutes\nInnovation,100,2026-05-27T19:00:00.000Z,2026-05-27T19:30:00.000Z,30.0\n";
+    expect(await importSessionsCsv(csv)).toBe(0);
+    expect(storage[STORAGE_KEY_SESSIONS]).toBeUndefined();
+  });
+
+  it("round-trips losslessly: export then import reproduces slug, name, mode, and type", async () => {
+    storage[STORAGE_KEY_SESSIONS] = [["arknova", 555, 1000, 2000]];
+    storage[STORAGE_KEY_GAMES] = { arknova: "Ark Nova" };
+    storage["bgaa_time_modes"] = { 555: false };
+    storage["bgaa_time_types"] = { 555: "arena" };
+    const csv = await exportSessionsCsv();
+    storage[STORAGE_KEY_SESSIONS] = [];
+    storage[STORAGE_KEY_GAMES] = {};
+    storage["bgaa_time_modes"] = {};
+    storage["bgaa_time_types"] = {};
+    await importSessionsCsv(csv);
+    expect(storage[STORAGE_KEY_SESSIONS]).toEqual([["arknova", 555, 1000, 2000]]);
+    expect(storage[STORAGE_KEY_GAMES]).toEqual({ arknova: "Ark Nova" });
+    expect(storage["bgaa_time_modes"]).toEqual({ 555: false });
+    expect(storage["bgaa_time_types"]).toEqual({ 555: "arena" });
+  });
+
+  it("restores real-time mode and category from the new columns", async () => {
+    const csv = "game,game_id,table_id,from,to,minutes,realtime,type\nArk Nova,arknova,555,2026-05-27T19:00:00.000Z,2026-05-27T19:30:00.000Z,30.0,0,arena\nInnov,innov,777,2026-05-27T20:00:00.000Z,2026-05-27T20:30:00.000Z,30.0,1,tournament\n";
+    await importSessionsCsv(csv);
+    expect(storage["bgaa_time_modes"]).toEqual({ 555: false, 777: true });
+    expect(storage["bgaa_time_types"]).toEqual({ 555: "arena", 777: "tournament" });
+  });
+
+  it("does not clobber existing classification on import (first value wins)", async () => {
+    storage["bgaa_time_types"] = { 555: "tournament" };
+    const csv = "game,game_id,table_id,from,to,minutes,realtime,type\nArk Nova,arknova,555,2026-05-27T19:00:00.000Z,2026-05-27T19:30:00.000Z,30.0,0,arena\n";
+    await importSessionsCsv(csv);
+    expect(storage["bgaa_time_types"]).toEqual({ 555: "tournament" });
   });
 
   it("merges with existing sessions and dedups by start timestamp", async () => {
     const from = Date.parse("2026-05-27T19:00:00.000Z");
     storage[STORAGE_KEY_SESSIONS] = [["Innovation", 100, from, from + 1000]];
-    const csv = `game,table_id,from,to,minutes\nInnovation,100,${new Date(from).toISOString()},${new Date(from + 1000).toISOString()},0.0\nAzul,200,2026-05-27T20:00:00.000Z,2026-05-27T20:10:00.000Z,10.0\n`;
+    const csv = `game,game_id,table_id,from,to,minutes\nInnovation,innovation,100,${new Date(from).toISOString()},${new Date(from + 1000).toISOString()},0.0\nAzul,azul,200,2026-05-27T20:00:00.000Z,2026-05-27T20:10:00.000Z,10.0\n`;
     const added = await importSessionsCsv(csv);
     expect(added).toBe(1);
     expect((storage[STORAGE_KEY_SESSIONS] as TimeSession[]).length).toBe(2);
   });
 
   it("sorts sessions chronologically after import", async () => {
-    const csv = "game,table_id,from,to,minutes\nLater,1,2026-05-27T20:00:00.000Z,2026-05-27T20:01:00.000Z,1.0\nEarlier,2,2026-05-27T18:00:00.000Z,2026-05-27T18:01:00.000Z,1.0\n";
+    const csv = "game,game_id,table_id,from,to,minutes\nLater,later,1,2026-05-27T20:00:00.000Z,2026-05-27T20:01:00.000Z,1.0\nEarlier,earlier,2,2026-05-27T18:00:00.000Z,2026-05-27T18:01:00.000Z,1.0\n";
     await importSessionsCsv(csv);
     const sessions = storage[STORAGE_KEY_SESSIONS] as TimeSession[];
-    expect(sessions[0][0]).toBe("Earlier");
-    expect(sessions[1][0]).toBe("Later");
+    expect(sessions[0][0]).toBe("earlier");
+    expect(sessions[1][0]).toBe("later");
   });
 
   it("returns 0 for header-only or empty input", async () => {
@@ -440,10 +506,10 @@ describe("importSessionsCsv", () => {
   });
 
   it("skips malformed rows", async () => {
-    const csv = "game,table_id,from,to,minutes\n,100,2026-05-27T19:00:00.000Z,2026-05-27T19:30:00.000Z,30.0\nGood,1,2026-05-27T19:00:00.000Z,2026-05-27T19:30:00.000Z,30.0\nBad,notanumber,x,y,z\n";
+    const csv = "game,game_id,table_id,from,to,minutes\n,,100,2026-05-27T19:00:00.000Z,2026-05-27T19:30:00.000Z,30.0\nGood,good,1,2026-05-27T19:00:00.000Z,2026-05-27T19:30:00.000Z,30.0\nBad,bad,notanumber,x,y,z\n";
     const added = await importSessionsCsv(csv);
     expect(added).toBe(1);
-    expect((storage[STORAGE_KEY_SESSIONS] as TimeSession[])[0][0]).toBe("Good");
+    expect((storage[STORAGE_KEY_SESSIONS] as TimeSession[])[0][0]).toBe("good");
   });
 });
 
@@ -570,16 +636,65 @@ describe("aggregateSessions", () => {
 });
 
 // ---------------------------------------------------------------------------
+// aggregateByTable
+// ---------------------------------------------------------------------------
+
+describe("aggregateByTable", () => {
+  const at = (y: number, mo: number, d: number, h: number) => new Date(y, mo, d, h).getTime();
+  const session = (slug: string, tableId: number, start: number, minutes: number): TimeSession => [slug, tableId, start, start + minutes * 60000];
+
+  it("returns empty result for no sessions", () => {
+    expect(aggregateByTable([])).toEqual([]);
+  });
+
+  it("sums minutes per table and tracks the most recent session end", () => {
+    const sessions = [
+      session("innovation", 100, at(2026, 4, 27, 10), 30),
+      session("innovation", 100, at(2026, 4, 28, 10), 20),
+      session("azul", 200, at(2026, 4, 27, 12), 15),
+    ];
+    const result = aggregateByTable(sessions);
+    expect(result).toHaveLength(2);
+    const table100 = result.find((row) => row.tableId === 100)!;
+    expect(table100.slug).toBe("innovation");
+    expect(table100.totalMinutes).toBe(50);
+    expect(table100.sessionCount).toBe(2);
+    expect(table100.lastTo).toBe(at(2026, 4, 28, 10) + 20 * 60000);
+  });
+
+  it("orders tables by most-recent-session end, descending", () => {
+    const sessions = [
+      session("a", 1, at(2026, 4, 27, 10), 10),
+      session("b", 2, at(2026, 4, 28, 10), 10),
+      session("c", 3, at(2026, 4, 26, 10), 10),
+    ];
+    expect(aggregateByTable(sessions).map((row) => row.tableId)).toEqual([2, 1, 3]);
+  });
+
+  it("keeps the most recent end even when a later-listed session is older", () => {
+    const sessions = [
+      session("x", 5, at(2026, 4, 28, 10), 10),
+      session("x", 5, at(2026, 4, 27, 10), 10),
+    ];
+    const [row] = aggregateByTable(sessions);
+    expect(row.lastTo).toBe(at(2026, 4, 28, 10) + 10 * 60000);
+    expect(row.totalMinutes).toBe(20);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // formatDuration
 // ---------------------------------------------------------------------------
 
 describe("formatDuration", () => {
-  it("formats hours and minutes", () => expect(formatDuration(75)).toBe("1h 15m"));
-  it("drops minutes for whole hours", () => expect(formatDuration(120)).toBe("2h"));
-  it("formats sub-hour durations as minutes only", () => expect(formatDuration(45)).toBe("45m"));
-  it("rounds fractional minutes", () => expect(formatDuration(5.6)).toBe("6m"));
-  it("rounds up into the next hour", () => expect(formatDuration(119.7)).toBe("2h"));
-  it("formats zero as 0m", () => expect(formatDuration(0)).toBe("0m"));
+  // A thin space (U+2009) sits between each value and its unit letter.
+  const thin = String.fromCharCode(0x2009);
+  it("formats hours and minutes", () => expect(formatDuration(75)).toBe(`1${thin}h 15${thin}m`));
+  it("drops minutes for whole hours", () => expect(formatDuration(120)).toBe(`2${thin}h`));
+  it("formats sub-hour durations as minutes only", () => expect(formatDuration(45)).toBe(`45${thin}m`));
+  it("rounds fractional minutes", () => expect(formatDuration(5.6)).toBe(`6${thin}m`));
+  it("rounds up into the next hour", () => expect(formatDuration(119.7)).toBe(`2${thin}h`));
+  it("formats zero as 0m", () => expect(formatDuration(0)).toBe(`0${thin}m`));
 });
 
 // ---------------------------------------------------------------------------

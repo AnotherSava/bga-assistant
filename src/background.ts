@@ -65,7 +65,73 @@ let restoredFromBga = false;
 
 function recordTableMode(tableNumber: string, rawData: RawExtractionData): void {
   const tableId = Number(tableNumber);
-  if (Number.isFinite(tableId)) timeTracker.setTableMode(tableId, rawData.realTime);
+  if (!Number.isFinite(tableId)) return;
+  timeTracker.setTableMode(tableId, rawData.realTime);
+  // Extraction detects "tournament" (from gameui.tournament_id) or null. Arena vs regular isn't on
+  // gameui, so it's probed separately via recordTableType().
+  timeTracker.setTableType(tableId, rawData.tableType);
+}
+
+/** Tables already probed for their category this SW lifetime — avoids re-probing on every live re-extraction. */
+const probedTableTypes = new Set<number>();
+
+/**
+ * Probe function injected into the page (MAIN world) to read the table category. Uses gameui.ajaxcall —
+ * which carries BGA's session request token — because a plain service-worker fetch is rejected as
+ * unauthorized. Self-contained (no external refs). Resolves "tournament" | "arena" | "regular", or null
+ * when it can't be determined. Never throws/hangs (times out to null), so it can't disrupt anything.
+ */
+function probeTableTypeFn(): Promise<string | null> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const gui = (globalThis as any).gameui;
+  const match = window.location.search.match(/table=(\d+)/);
+  if (!gui || !gui.ajaxcall || !match) return Promise.resolve(null);
+  const tableId = parseInt(match[1]);
+  const tournamentId = typeof gui.tournament_id === "number" ? gui.tournament_id : null;
+  if (tournamentId !== null && tournamentId > 0) return Promise.resolve("tournament");
+  return new Promise((resolve) => {
+    let done = false;
+    const finish = (value: string | null): void => { if (!done) { done = true; resolve(value); } };
+    setTimeout(() => finish(null), 4000);
+    try {
+      gui.ajaxcall(
+        "/table/table/tableinfos.html",
+        { id: tableId },
+        gui,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (r: any) => {
+          const info = r && r.data && typeof r.data === "object" ? r.data : r;
+          if (!info || typeof info !== "object" || !info.players) { finish(null); return; }
+          if (info.has_tournament === "1") { finish("tournament"); return; }
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const matchmade = Object.values(info.players).some((p: any) => p && p.table_matchmaking === "1");
+          finish(matchmade ? "arena" : "regular");
+        },
+        () => finish(null),
+      );
+    } catch { finish(null); }
+  });
+}
+
+/** Best-effort: inject probeTableTypeFn to classify the table, then record its category. Decoupled from extraction — its failure never disrupts extraction or tracking. Classification is done once per table (first-write-wins), then skipped on future opens. */
+async function recordTableType(tableId: number, tabId: number): Promise<void> {
+  if (!Number.isFinite(tableId) || probedTableTypes.has(tableId)) return;
+  probedTableTypes.add(tableId);
+  try {
+    if (await timeTracker.isTableTypeKnown(tableId)) return; // already classified — first-write-wins keeps it
+    const results = await Promise.race([
+      chrome.scripting.executeScript({ target: { tabId }, func: probeTableTypeFn, world: "MAIN" }),
+      timeout(EXTRACTION_TIMEOUT_MS, "table type probe timed out"),
+    ]);
+    const type = (results as chrome.scripting.InjectionResult[])[0]?.result as string | undefined;
+    if (type === "tournament" || type === "arena" || type === "regular") {
+      timeTracker.setTableType(tableId, type);
+    } else {
+      probedTableTypes.delete(tableId); // null/undefined = probe failed; allow a retry on the next extraction
+    }
+  } catch {
+    probedTableTypes.delete(tableId);
+  }
 }
 
 function maybeBgaSync(tabId: number, url: string | undefined): void {
@@ -454,6 +520,7 @@ async function extractFromTab(tabId: number, url: string, gameName: GameName, ta
   const tblNum = tableNumber ?? url.match(/table=(\d+)/)?.[1] ?? "unknown";
   const rawData = extractResult as RawExtractionData;
   recordTableMode(tblNum, rawData);
+  recordTableType(Number(tblNum), tabId);
   try {
     lastResults = runPipeline(rawData, cardDb, tblNum, gameName);
   } catch (err) {
@@ -494,6 +561,7 @@ async function extractRawDataAsResults(tabId: number, tableNumber: string, gameN
     if (extractResult && !(extractResult as Record<string, unknown>).error) {
       const rawData = extractResult as RawExtractionData;
       recordTableMode(tableNumber, rawData);
+      recordTableType(Number(tableNumber), tabId);
       lastResults = { gameName, tableNumber, rawData, gameLog: null, gameState: null };
     } else {
       lastResults = null;
