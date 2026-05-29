@@ -299,7 +299,7 @@ not only supported ones.
 
 | Tier | Key(s) | Written when | Purpose |
 |------|---------|--------------|---------|
-| `chrome.storage.local` | `bgaa_time_sessions`, `bgaa_time_games`, `bgaa_time_modes` (real-time), `bgaa_time_types` (tournament/arena/regular) | Every session end / on classification | Primary durable store |
+| `chrome.storage.local` | `bgaa_time_sessions`, `bgaa_time_games`, `bgaa_time_modes` (real-time), `bgaa_time_types` (tournament/arena/regular) | Every session end / on classification / on stats-page deletion | Primary durable store |
 | BGA page `localStorage` | `bgaa_time_sessions` (the CSV export string) | On backup (throttled) | Cross-reinstall backup |
 
 ### BGA localStorage backup/restore
@@ -323,6 +323,15 @@ and table types — through one serialization path.
 4. Downloads as `bgaa_playtime_YYYY-MM-DD.csv`
 
 `importSessionsCsv()` reads columns by header name (`game`, `game_id`, `table_id`, `from`, `to` required; `realtime`/`type` optional), merges sessions (dedup by start timestamp), and restores the session slug, the slug→name map, and each table's `realtime` mode and `type` (first value wins, so live data isn't clobbered). Export→import reproduces the stored data exactly.
+
+### Session deletion
+
+***Side Panel*** — each finished row in the Sessions / Tables stats view exposes an X on hover (the in-progress row has none, since the live tracker would re-append it). After a `window.confirm`, the side panel calls:
+
+- `deleteSession(from)` — drops the single session whose start timestamp matches (the same key used for import dedup).
+- `deleteTableSessions(tableId)` — drops every session for the table and prunes that table's now-orphaned `bgaa_time_modes` / `bgaa_time_types` entries.
+
+Both rewrite `bgaa_time_sessions` in `chrome.storage.local`; the `storage.onChanged` listener re-renders the stats page.
 
 Key files:
 - `src/time-tracking.ts` — types, URL parser, SessionTracker class, sync logic, export

@@ -300,6 +300,33 @@ export async function importSessionsCsv(text: string): Promise<number> {
 }
 
 // ---------------------------------------------------------------------------
+// Session deletion
+// ---------------------------------------------------------------------------
+
+/** Remove a single recorded session, identified by its start timestamp (unique per session, as used for import dedup). Returns true if a session was removed. */
+export async function deleteSession(from: number): Promise<boolean> {
+  const result = await chrome.storage.local.get(STORAGE_KEY_SESSIONS);
+  const sessions: TimeSession[] = (result[STORAGE_KEY_SESSIONS] as TimeSession[] | undefined) ?? [];
+  const remaining = sessions.filter((session) => session[2] !== from);
+  if (remaining.length === sessions.length) return false;
+  await chrome.storage.local.set({ [STORAGE_KEY_SESSIONS]: remaining });
+  return true;
+}
+
+/** Remove every recorded session for a table, along with that table's now-orphaned real-time mode and category metadata. Returns the number of sessions removed. */
+export async function deleteTableSessions(tableId: number): Promise<number> {
+  const result = await chrome.storage.local.get([STORAGE_KEY_SESSIONS, STORAGE_KEY_MODES, STORAGE_KEY_TYPES]);
+  const sessions: TimeSession[] = (result[STORAGE_KEY_SESSIONS] as TimeSession[] | undefined) ?? [];
+  const remaining = sessions.filter((session) => session[1] !== tableId);
+  const modeMap: ModeMap = (result[STORAGE_KEY_MODES] as ModeMap | undefined) ?? {};
+  const typeMap: TableTypeMap = (result[STORAGE_KEY_TYPES] as TableTypeMap | undefined) ?? {};
+  delete modeMap[tableId];
+  delete typeMap[tableId];
+  await chrome.storage.local.set({ [STORAGE_KEY_SESSIONS]: remaining, [STORAGE_KEY_MODES]: modeMap, [STORAGE_KEY_TYPES]: typeMap });
+  return sessions.length - remaining.length;
+}
+
+// ---------------------------------------------------------------------------
 // Chart aggregation
 // ---------------------------------------------------------------------------
 

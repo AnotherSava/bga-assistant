@@ -508,9 +508,14 @@ body:has(.stats-page) #content { height: 100%; }
 .stats-table th { text-align: left; color: #999; padding: 4px 8px; border-bottom: 1px solid #444; }
 .stats-table td { padding: 4px 8px; color: #ccc; border-bottom: 1px solid #333; }
 .stats-table tr:hover td { background: #2a2a2a; }
-.stats-table th:last-child, .stats-table td:last-child:not(.stats-empty) { text-align: right; }
+.stats-table th:last-child, .stats-table td:last-child:not(.stats-empty) { text-align: right; padding-right: 30px; }
 .stats-table th.stats-num, .stats-table td.stats-num { text-align: right; }
 .stats-empty { text-align: center; color: #666; padding: 20px 8px; }
+/* Delete affordance: reserve space at the far right of the last cell (padding-right above) and reveal an X there on row hover. */
+.stats-table tbody td:last-child { position: relative; }
+.stats-del { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); display: none; align-items: center; justify-content: center; width: 18px; height: 18px; padding: 0; background: none; border: none; border-radius: 3px; color: #888; cursor: pointer; line-height: 0; }
+.stats-table tbody tr:hover .stats-del { display: flex; }
+.stats-del:hover { color: #ecc; background: #533; }
 .stats-rt { vertical-align: -1px; margin-left: 3px; color: #7db8f0; opacity: 0.85; }
 .stats-trophy { vertical-align: -1px; margin-left: 3px; color: #d4b24a; opacity: 0.9; }
 .stats-arena { vertical-align: -1px; margin-left: 3px; color: #d99a5b; opacity: 0.9; }

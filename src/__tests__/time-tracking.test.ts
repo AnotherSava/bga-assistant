@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { parseGameTableUrl, extractDisplayName, SessionTracker, exportSessionsCsv, importSessionsCsv, aggregateSessions, aggregateByTable, formatDuration, formatDurationClock, minutesInCurrentBucket, currentBucketRange, sessionsOverlapping, STORAGE_KEY_SESSIONS, STORAGE_KEY_GAMES, type TimeSession } from "../time-tracking";
+import { parseGameTableUrl, extractDisplayName, SessionTracker, exportSessionsCsv, importSessionsCsv, deleteSession, deleteTableSessions, aggregateSessions, aggregateByTable, formatDuration, formatDurationClock, minutesInCurrentBucket, currentBucketRange, sessionsOverlapping, STORAGE_KEY_SESSIONS, STORAGE_KEY_GAMES, STORAGE_KEY_MODES, STORAGE_KEY_TYPES, type TimeSession } from "../time-tracking";
 
 describe("parseGameTableUrl", () => {
   it("parses a standard game table URL", () => {
@@ -510,6 +510,68 @@ describe("importSessionsCsv", () => {
     const added = await importSessionsCsv(csv);
     expect(added).toBe(1);
     expect((storage[STORAGE_KEY_SESSIONS] as TimeSession[])[0][0]).toBe("good");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// deleteSession / deleteTableSessions
+// ---------------------------------------------------------------------------
+
+describe("session deletion", () => {
+  let storage: Record<string, unknown>;
+
+  beforeEach(() => {
+    storage = {};
+    (globalThis as any).chrome = {
+      storage: {
+        local: {
+          get: vi.fn((keys: string | string[]) => {
+            const keyArr = Array.isArray(keys) ? keys : [keys];
+            const result: Record<string, unknown> = {};
+            for (const key of keyArr) {
+              if (storage[key] !== undefined) result[key] = storage[key];
+            }
+            return Promise.resolve(result);
+          }),
+          set: vi.fn((items: Record<string, unknown>) => { Object.assign(storage, items); return Promise.resolve(); }),
+        },
+      },
+    };
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    delete (globalThis as any).chrome;
+  });
+
+  it("deleteSession removes the session with the matching start timestamp", async () => {
+    storage[STORAGE_KEY_SESSIONS] = [["innovation", 100, 1000, 2000], ["azul", 200, 3000, 4000]];
+    expect(await deleteSession(1000)).toBe(true);
+    expect(storage[STORAGE_KEY_SESSIONS]).toEqual([["azul", 200, 3000, 4000]]);
+  });
+
+  it("deleteSession leaves other tables' metadata intact and returns false when nothing matches", async () => {
+    storage[STORAGE_KEY_SESSIONS] = [["azul", 200, 3000, 4000]];
+    storage[STORAGE_KEY_MODES] = { 200: false };
+    expect(await deleteSession(9999)).toBe(false);
+    expect(storage[STORAGE_KEY_SESSIONS]).toEqual([["azul", 200, 3000, 4000]]);
+    expect(storage[STORAGE_KEY_MODES]).toEqual({ 200: false });
+  });
+
+  it("deleteTableSessions removes every session for the table and its orphaned mode/type", async () => {
+    storage[STORAGE_KEY_SESSIONS] = [["azul", 200, 1000, 2000], ["azul", 200, 3000, 4000], ["innovation", 100, 5000, 6000]];
+    storage[STORAGE_KEY_MODES] = { 200: false, 100: true };
+    storage[STORAGE_KEY_TYPES] = { 200: "arena", 100: "tournament" };
+    expect(await deleteTableSessions(200)).toBe(2);
+    expect(storage[STORAGE_KEY_SESSIONS]).toEqual([["innovation", 100, 5000, 6000]]);
+    expect(storage[STORAGE_KEY_MODES]).toEqual({ 100: true });
+    expect(storage[STORAGE_KEY_TYPES]).toEqual({ 100: "tournament" });
+  });
+
+  it("deleteTableSessions returns 0 when no session matches the table", async () => {
+    storage[STORAGE_KEY_SESSIONS] = [["innovation", 100, 5000, 6000]];
+    expect(await deleteTableSessions(999)).toBe(0);
+    expect(storage[STORAGE_KEY_SESSIONS]).toEqual([["innovation", 100, 5000, 6000]]);
   });
 });
 

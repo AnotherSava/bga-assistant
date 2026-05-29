@@ -727,6 +727,7 @@ const CHART_HEIGHT = 140;
 const STOPWATCH_SVG = '<svg class="stats-rt" viewBox="0 0 24 24" width="11" height="11" aria-label="real-time"><path fill="currentColor" d="M15 1H9v2h6V1zm-4 13h2V8h-2v6zm8.03-6.61l1.42-1.42c-.43-.51-.9-.99-1.41-1.41l-1.42 1.42A8.962 8.962 0 0012 4c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-2.12-.74-4.07-1.97-5.61zM12 20c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg>';
 const TROPHY_SVG = '<svg class="stats-trophy" viewBox="0 0 24 24" width="11" height="11" aria-label="tournament"><title>Tournament</title><path fill="currentColor" d="M19 5h-2V3H7v2H5C3.9 5 3 5.9 3 7v1c0 2.55 1.92 4.63 4.39 4.94A5.01 5.01 0 0011 16.9V19H7v2h10v-2h-4v-2.1a5.01 5.01 0 003.61-3.96C19.08 12.63 21 10.55 21 8V7c0-1.1-.9-2-2-2zM5 8V7h2v3.82C5.84 10.4 5 9.3 5 8zm14 0c0 1.3-.84 2.4-2 2.82V7h2v1z"/></svg>';
 const ARENA_SVG = '<svg class="stats-arena" viewBox="0 0 24 24" width="11" height="11" fill="currentColor" aria-label="arena"><title>Arena</title><path fill-rule="evenodd" d="M1.5 6A10.5 4.2 0 0 0 22.5 6L22.5 15A10.5 4 0 0 1 1.5 15ZM2.5 6.4a9.5 3.7 0 0 0 19 0a9.5 3.7 0 0 0 -19 0ZM4.35 13.8V13.15a0.85 0.85 0 0 1 1.7 0V13.8ZM4.45 11.7V11.15a0.75 0.75 0 0 1 1.5 0V11.7ZM7.75 13.8V13.15a0.85 0.85 0 0 1 1.7 0V13.8ZM7.85 11.7V11.15a0.75 0.75 0 0 1 1.5 0V11.7ZM11.15 13.8V13.15a0.85 0.85 0 0 1 1.7 0V13.8ZM11.25 11.7V11.15a0.75 0.75 0 0 1 1.5 0V11.7ZM14.55 13.8V13.15a0.85 0.85 0 0 1 1.7 0V13.8ZM14.65 11.7V11.15a0.75 0.75 0 0 1 1.5 0V11.7ZM17.95 13.8V13.15a0.85 0.85 0 0 1 1.7 0V13.8ZM18.05 11.7V11.15a0.75 0.75 0 0 1 1.5 0V11.7Z"/></svg>';
+const CLOSE_SVG = '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
 
 function escapeHtml(text: string): string {
   return text.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c] as string));
@@ -805,12 +806,16 @@ async function showStats(): Promise<void> {
     return `${tableId}${rt}${typeIcon}${live}`;
   };
 
+  // The in-progress session/table has no delete affordance — removing it from storage is meaningless while the live tracker holds it in memory and would re-append it.
+  const delButton = (attr: string, label: string): string => `<button class="stats-del" ${attr} title="${label}" aria-label="${label}">${CLOSE_SVG}</button>`;
+
   const rows = tableSessions.slice().reverse().map(([slug, tableId, from, to]) => {
     const duration = formatDurationClock(to - from);
     const date = new Date(from).toLocaleDateString();
     const time = new Date(from).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     const isActive = activeTuple !== null && from === activeTuple[2];
-    return `<tr${isActive ? ' class="stats-active"' : ""}><td>${escapeHtml(gameMap[slug] ?? slug)}</td><td>${tableCell(tableId, isActive)}</td><td>${date} ${time}</td><td>${duration}</td></tr>`;
+    const del = isActive ? "" : delButton(`data-del-session="${from}"`, "Remove this session");
+    return `<tr${isActive ? ' class="stats-active"' : ""}><td>${escapeHtml(gameMap[slug] ?? slug)}</td><td>${tableCell(tableId, isActive)}</td><td>${date} ${time}</td><td>${duration}${del}</td></tr>`;
   }).join("");
 
   const tableRows = aggregateByTable(tableSessions).map(({ slug, tableId, lastTo, totalMinutes, sessionCount }) => {
@@ -819,7 +824,8 @@ async function showStats(): Promise<void> {
     const isActive = activeTuple !== null && activeTuple[1] === tableId;
     // Average per session is only meaningful for turn-based play (many short sittings); real-time games run in one continuous session, so leave it blank.
     const avg = modeMap[tableId] === true ? "" : formatDurationClock((totalMinutes * 60000) / sessionCount);
-    return `<tr${isActive ? ' class="stats-active"' : ""}><td>${escapeHtml(gameMap[slug] ?? slug)}</td><td>${tableCell(tableId, isActive)}</td><td>${date} ${time}</td><td class="stats-num">${avg}</td><td>${formatDuration(totalMinutes)}</td></tr>`;
+    const del = isActive ? "" : delButton(`data-del-table="${tableId}"`, "Remove all sessions for this table");
+    return `<tr${isActive ? ' class="stats-active"' : ""}><td>${escapeHtml(gameMap[slug] ?? slug)}</td><td>${tableCell(tableId, isActive)}</td><td>${date} ${time}</td><td class="stats-num">${avg}</td><td>${formatDuration(totalMinutes)}${del}</td></tr>`;
   }).join("");
 
   const chart = aggregateSessions(sessions, gameMap, granularity, dayStartHour, weekStartDay);
@@ -861,6 +867,17 @@ async function showStats(): Promise<void> {
   document.querySelectorAll<HTMLElement>("[data-view]").forEach((btn) => btn.addEventListener("click", () => {
     saveSetting(KEY_STATS_TABLE_VIEW, btn.getAttribute("data-view"));
     showStats();
+  }));
+  // Deletion rewrites bgaa_time_sessions; the storage.onChanged listener re-renders the page once the write lands.
+  document.querySelectorAll<HTMLElement>("[data-del-session]").forEach((btn) => btn.addEventListener("click", async () => {
+    if (!window.confirm("Remove this session?")) return;
+    const { deleteSession } = await import("../time-tracking.js");
+    await deleteSession(Number(btn.getAttribute("data-del-session")));
+  }));
+  document.querySelectorAll<HTMLElement>("[data-del-table]").forEach((btn) => btn.addEventListener("click", async () => {
+    if (!window.confirm("Remove all sessions for this table?")) return;
+    const { deleteTableSessions } = await import("../time-tracking.js");
+    await deleteTableSessions(Number(btn.getAttribute("data-del-table")));
   }));
   document.getElementById("btn-stats-refresh")?.addEventListener("click", () => showStats());
   document.getElementById("btn-stats-export")?.addEventListener("click", async () => {
