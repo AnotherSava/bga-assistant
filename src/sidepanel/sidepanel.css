@@ -521,4 +521,5 @@ body:has(.stats-page) #content { height: 100%; }
 .stats-arena { vertical-align: -1px; margin-left: 3px; color: #d99a5b; opacity: 0.9; }
 .stats-active td { color: #cfe; }
 .stats-live { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #4ad06a; margin-left: 4px; vertical-align: 0; animation: stats-pulse 1.6s ease-in-out infinite; }
+.stats-live.idle { background: #e0b53a; }
 @keyframes stats-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }

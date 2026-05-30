@@ -2,7 +2,7 @@
 
 import { runPipeline, isValidPlayerCount, type PipelineResults } from "./pipeline.js";
 import { CardDatabase, type GameName, type RawExtractionData } from "./models/types.js";
-import { SessionTracker, parseGameTableUrl } from "./time-tracking.js";
+import { SessionTracker, parseGameTableUrl, IDLE_DETECTION_SECONDS, IDLE_GRACE_MS, HEARTBEAT_MS } from "./time-tracking.js";
 import cardInfoRaw from "../assets/bga/innovation/card_info.json";
 
 // ---------------------------------------------------------------------------
@@ -14,6 +14,8 @@ const EXTRACTION_TIMEOUT_MS = 60000;
 const LIVE_MIN_INTERVAL_MS = 5000;
 const SUPPORTED_GAMES: GameName[] = ["innovation", "azul", "thecrewdeepsea"];
 const BGA_DOMAIN_PATTERN = /^https:\/\/([a-z0-9]+\.)?boardgamearena\.com\//;
+const HEARTBEAT_ALARM = "bgaTimeHeartbeat";
+const IDLE_FINALIZE_ALARM = "bgaTimeIdleFinalize";
 // ---------------------------------------------------------------------------
 // State
 // ---------------------------------------------------------------------------
@@ -148,16 +150,86 @@ function maybeBgaSync(tabId: number, url: string | undefined): void {
 }
 
 // Initialize activeTabId and icon on service worker startup
-chrome.tabs.query({ active: true, currentWindow: true }).then((tabs) => {
+chrome.tabs.query({ active: true, currentWindow: true }).then(async (tabs) => {
+  // Close out any session orphaned by a crash/quit before re-establishing the current one, so a long
+  // offline gap is bounded at the last confirmed-active moment instead of stretching the session to now.
+  await timeTracker.recoverStaleSession();
   const tab = tabs[0];
   if (tab?.id) {
     activeTabId = tab.id;
     updateIcon(tab.id, tab.url);
-    // Start/restore the time-tracking session for the already-focused tab — no tab/window
-    // event fires when the SW (re)starts while the user is already sitting on a game table.
-    timeTracker.handleFocusChange(tab.url ?? null, tab.title);
+    // Start the session for the already-focused tab — no tab/window event fires when the SW (re)starts
+    // while the user is already sitting on a game table. Two guards:
+    // - Only when recovery left no session running: a session that survived recovery (e.g. one mid-grace)
+    //   must keep its pending-idle state, or the grace finalize would never fire.
+    // - Only when the user is actually active. The SW cold-restarts repeatedly (heartbeat alarm) while the
+    //   user is away; chrome.idle.onStateChanged won't replay the already-past idle transition to this fresh
+    //   instance, so a session started here would never learn it's idle. It would freeze (no touch while
+    //   idle) and be finalized as a 0-length stale session on the next restart, looping once per restart.
+    //   Querying the live idle state instead starts a session only when warranted; the "active" transition
+    //   on the user's return starts it otherwise.
+    if (!(await timeTracker.hasActiveSession()) && (await chrome.idle.queryState(IDLE_DETECTION_SECONDS)) === "active") {
+      timeTracker.handleFocusChange(tab.url ?? null, tab.title);
+    }
+  }
+  syncHeartbeatAlarm();
+});
+
+// Idle / liveness wiring -----------------------------------------------------
+// chrome.idle reports "idle" after IDLE_DETECTION_SECONDS without input, and "locked" on screen
+// lock/sleep. We don't end the session immediately; we mark the idle onset and arm a grace alarm.
+chrome.idle.setDetectionInterval(IDLE_DETECTION_SECONDS);
+chrome.idle.onStateChanged.addListener(async (state) => {
+  if (state === "active") {
+    // User is back. Cancel the pending grace finalize, then re-apply the focused tab. handleFocusChange
+    // makes this do the right thing in both cases: if the session survived (returned within grace) the
+    // same table is a no-op continuation; if the grace already finalized it during the away period, a
+    // fresh session starts — so a long absence yields two separate sessions, not one stretched one.
+    // Gate on a Chrome window actually holding focus so a stray "active" (e.g. input racing an alt-tab
+    // away) can't resurrect a session the focus handlers already ended.
+    chrome.alarms.clear(IDLE_FINALIZE_ALARM);
+    let url: string | null = null;
+    let title: string | undefined;
+    try {
+      const win = await chrome.windows.getLastFocused({ populate: true });
+      if (win.focused) {
+        const activeTab = win.tabs?.find((tab) => tab.active);
+        url = activeTab?.url ?? null;
+        title = activeTab?.title;
+      }
+    } catch { /* no focused window — leave the session ended */ }
+    timeTracker.handleFocusChange(url, title);
+    syncHeartbeatAlarm();
+  } else {
+    // "idle" or "locked": begin the grace countdown if one isn't already pending.
+    timeTracker.markAway();
+    if (!(await chrome.alarms.get(IDLE_FINALIZE_ALARM))) {
+      chrome.alarms.create(IDLE_FINALIZE_ALARM, { delayInMinutes: IDLE_GRACE_MS / 60000 });
+    }
   }
 });
+
+chrome.alarms.onAlarm.addListener(async (alarm) => {
+  if (alarm.name === IDLE_FINALIZE_ALARM) {
+    timeTracker.finalizeIdle();
+    syncHeartbeatAlarm();
+  } else if (alarm.name === HEARTBEAT_ALARM) {
+    const state = await chrome.idle.queryState(IDLE_DETECTION_SECONDS);
+    if (state === "active") timeTracker.touch();
+    syncHeartbeatAlarm();
+  }
+});
+
+/** Run the heartbeat alarm only while a session is open, so the service worker isn't woken every minute when nothing is being tracked. */
+async function syncHeartbeatAlarm(): Promise<void> {
+  if (await timeTracker.hasActiveSession()) {
+    if (!(await chrome.alarms.get(HEARTBEAT_ALARM))) {
+      chrome.alarms.create(HEARTBEAT_ALARM, { periodInMinutes: HEARTBEAT_MS / 60000 });
+    }
+  } else {
+    chrome.alarms.clear(HEARTBEAT_ALARM);
+  }
+}
 
 // Pin mode is loaded from sidepanel localStorage and pushed via setPinMode on connect.
 
@@ -778,6 +850,7 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
     updateIcon(activeInfo.tabId, tab.url);
     timeTracker.handleFocusChange(tab.url ?? null, tab.title);
     maybeBgaSync(activeInfo.tabId, tab.url);
+    syncHeartbeatAlarm();
   } catch { /* tab may have been closed */ }
   if (!sidePanelOpen) { console.log("[nav] onActivated: panel closed, skip"); return; }
   if (extracting) {
@@ -804,6 +877,7 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
     updateIcon(tabId, tab.url);
     timeTracker.handleFocusChange(tab.url ?? null, tab.title);
     maybeBgaSync(tabId, tab.url);
+    syncHeartbeatAlarm();
   }).catch(() => {});
   if (!sidePanelOpen) { console.log("[nav] onUpdated: panel closed, skip. sidePanelOpen=", sidePanelOpen, "tabId=", tabId, "activeTabId=", activeTabId); return; }
   if (extracting) {
@@ -816,13 +890,17 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
 });
 
 chrome.tabs.onRemoved.addListener((tabId) => {
-  if (tabId === activeTabId) timeTracker.handleFocusChange(null);
+  if (tabId === activeTabId) {
+    timeTracker.handleFocusChange(null);
+    syncHeartbeatAlarm();
+  }
 });
 
 // React to window focus changes (switching between Chrome windows)
 chrome.windows.onFocusChanged.addListener(async (windowId) => {
   if (windowId === chrome.windows.WINDOW_ID_NONE) {
     timeTracker.handleFocusChange(null);
+    syncHeartbeatAlarm();
     return;
   }
   let tabs: chrome.tabs.Tab[];
@@ -834,6 +912,7 @@ chrome.windows.onFocusChanged.addListener(async (windowId) => {
   activeTabId = tab.id;
   updateIcon(tab.id, tab.url);
   timeTracker.handleFocusChange(tab.url ?? null, tab.title);
+  syncHeartbeatAlarm();
   if (!sidePanelOpen) return;
   if (extracting) {
     pendingNavTabId = tab.id;
@@ -863,6 +942,8 @@ chrome.runtime.onMessage.addListener(
       triggerLiveExtraction();
     } else if (message.type === "resetTimeTracking") {
       timeTracker.reset();
+      chrome.alarms.clear(HEARTBEAT_ALARM);
+      chrome.alarms.clear(IDLE_FINALIZE_ALARM);
     }
     return undefined;
   },

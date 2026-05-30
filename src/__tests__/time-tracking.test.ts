@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { parseGameTableUrl, extractDisplayName, SessionTracker, exportSessionsCsv, importSessionsCsv, deleteSession, deleteTableSessions, aggregateSessions, aggregateByTable, formatDuration, formatDurationClock, minutesInCurrentBucket, currentBucketRange, sessionsOverlapping, STORAGE_KEY_SESSIONS, STORAGE_KEY_GAMES, STORAGE_KEY_MODES, STORAGE_KEY_TYPES, type TimeSession } from "../time-tracking";
+import { parseGameTableUrl, extractDisplayName, SessionTracker, exportSessionsCsv, importSessionsCsv, deleteSession, deleteTableSessions, aggregateSessions, aggregateByTable, formatDuration, formatDurationClock, minutesInCurrentBucket, currentBucketRange, sessionsOverlapping, STORAGE_KEY_SESSIONS, STORAGE_KEY_GAMES, STORAGE_KEY_MODES, STORAGE_KEY_TYPES, STORAGE_KEY_ACTIVE, IDLE_GRACE_MS, STALE_SESSION_MS, type TimeSession } from "../time-tracking";
 
 describe("parseGameTableUrl", () => {
   it("parses a standard game table URL", () => {
@@ -104,7 +104,10 @@ describe("SessionTracker", () => {
     tracker = new SessionTracker();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
+    // Drain any in-flight write queue before tearing down the chrome mock, so a fire-and-forget
+    // mutation (markAway/touch/etc.) can't settle into a "chrome is not defined" unhandled rejection.
+    await tracker.hasActiveSession();
     vi.restoreAllMocks();
     delete (globalThis as any).chrome;
   });
@@ -254,6 +257,159 @@ describe("SessionTracker", () => {
   it("does nothing for non-BGA URLs", () => {
     tracker.handleFocusChange("https://example.com/page");
     expect(chrome.storage.local.set).not.toHaveBeenCalled();
+  });
+
+  // --- Idle / liveness ------------------------------------------------------
+  // These tests start the clock at t=0 (overriding the beforeEach default) so timestamps read as
+  // minutes-from-session-start, matching the spec's worked example.
+
+  const MIN = 60000;
+  const startAtZero = (url = "https://boardgamearena.com/8/innovation?table=100"): void => { nowMs = 0; tracker.handleFocusChange(url); };
+
+  it("ends the session at the idle onset, not the confirmation time, when idleness is confirmed", async () => {
+    // Spec: play to 3 min, idle detected at 4 min, confirmed still idle at 9 min → session length 4 min.
+    startAtZero();
+    nowMs = 4 * MIN; // idle detected (1 min after the last input at 3 min)
+    tracker.markAway();
+    nowMs = 9 * MIN; // grace elapsed, still idle
+    tracker.finalizeIdle();
+    await vi.waitFor(() => expect(storage[STORAGE_KEY_SESSIONS]).toBeDefined());
+    expect(storage[STORAGE_KEY_SESSIONS]).toEqual([["innovation", 100, 0, 4 * MIN]]);
+    expect(storage[STORAGE_KEY_ACTIVE]).toBeUndefined();
+  });
+
+  it("resumes the session with no break when activity returns within the grace window", async () => {
+    const sameTable = "https://boardgamearena.com/8/innovation?table=100";
+    startAtZero();
+    nowMs = 4 * MIN;
+    tracker.markAway();
+    nowMs = 6 * MIN;
+    tracker.handleFocusChange(sameTable); // back to the same table before grace elapsed (idle "active" re-applies the focused tab)
+    nowMs = 10 * MIN;
+    tracker.handleFocusChange(null); // leave for real
+    await vi.waitFor(() => expect(storage[STORAGE_KEY_SESSIONS]).toBeDefined());
+    // One continuous session start→leave; the idle dip leaves no gap and no extra session.
+    expect(storage[STORAGE_KEY_SESSIONS]).toEqual([["innovation", 100, 0, 10 * MIN]]);
+  });
+
+  it("splits into two sessions when the user returns after the grace already finalized the first", async () => {
+    // User's scenario: open a table, play ~1 min, walk away ~15 min, come back and play ~1 min more.
+    // Expect TWO short sessions with the away time excluded — not one long session, and not a lost second stint.
+    const sameTable = "https://boardgamearena.com/8/innovation?table=100";
+    startAtZero();
+    nowMs = 1 * MIN; // last input ~1 min in
+    tracker.markAway(); // idle detected → onset at 1 min
+    nowMs = 1 * MIN + IDLE_GRACE_MS; // grace elapses, still away
+    tracker.finalizeIdle(); // session 1 closed at the idle onset
+    await vi.waitFor(() => expect((storage[STORAGE_KEY_SESSIONS] as TimeSession[])?.length).toBe(1));
+    expect(storage[STORAGE_KEY_SESSIONS]).toEqual([["innovation", 100, 0, 1 * MIN]]);
+    expect(storage[STORAGE_KEY_ACTIVE]).toBeUndefined();
+    // ~15 min after opening the user returns to the same table → a brand-new session starts.
+    nowMs = 16 * MIN;
+    tracker.handleFocusChange(sameTable);
+    await vi.waitFor(() => expect(storage[STORAGE_KEY_ACTIVE]).toBeDefined());
+    nowMs = 17 * MIN; // plays ~1 more min, then leaves
+    tracker.handleFocusChange(null);
+    await vi.waitFor(() => expect((storage[STORAGE_KEY_SESSIONS] as TimeSession[]).length).toBe(2));
+    expect(storage[STORAGE_KEY_SESSIONS]).toEqual([["innovation", 100, 0, 1 * MIN], ["innovation", 100, 16 * MIN, 17 * MIN]]);
+  });
+
+  it("first idle wins: a later markAway does not move the recorded end forward", async () => {
+    startAtZero();
+    nowMs = 4 * MIN;
+    tracker.markAway(); // idle
+    nowMs = 4.5 * MIN;
+    tracker.markAway(); // e.g. idle → locked; must keep the earlier onset
+    nowMs = 9 * MIN;
+    tracker.finalizeIdle();
+    await vi.waitFor(() => expect(storage[STORAGE_KEY_SESSIONS]).toBeDefined());
+    expect(storage[STORAGE_KEY_SESSIONS]).toEqual([["innovation", 100, 0, 4 * MIN]]);
+  });
+
+  it("ends at the idle onset when focus leaves while idle", async () => {
+    startAtZero();
+    nowMs = 4 * MIN;
+    tracker.markAway();
+    nowMs = 6 * MIN;
+    tracker.handleFocusChange(null); // leaves while still idle, before grace
+    await vi.waitFor(() => expect(storage[STORAGE_KEY_SESSIONS]).toBeDefined());
+    expect(storage[STORAGE_KEY_SESSIONS]).toEqual([["innovation", 100, 0, 4 * MIN]]);
+  });
+
+  it("markAway and finalizeIdle do nothing when no session is active", async () => {
+    tracker.markAway();
+    tracker.finalizeIdle();
+    await new Promise((r) => setTimeout(r, 10));
+    expect(storage[STORAGE_KEY_SESSIONS]).toBeUndefined();
+  });
+
+  it("touch refreshes liveness without creating a session", async () => {
+    startAtZero();
+    nowMs = 1 * MIN;
+    tracker.touch();
+    await vi.waitFor(() => expect((storage[STORAGE_KEY_ACTIVE] as any)?.lastSeen).toBe(1 * MIN));
+    expect(storage[STORAGE_KEY_SESSIONS]).toBeUndefined();
+  });
+
+  it("does not record a zero-length session when leaving at the same instant it started", async () => {
+    startAtZero(); // from = 0
+    tracker.handleFocusChange(null); // leave at the same now (0) → 0-length, must be dropped
+    await vi.waitFor(() => expect(storage[STORAGE_KEY_ACTIVE]).toBeUndefined());
+    expect(storage[STORAGE_KEY_SESSIONS]).toBeUndefined();
+  });
+
+  it("does not record a zero-length session when idle is finalized at the start instant", async () => {
+    startAtZero(); // from = 0
+    tracker.markAway(); // idleSince = 0 (idle detected at the very start)
+    tracker.finalizeIdle(); // would finalize [0, 0] → dropped
+    await vi.waitFor(() => expect(storage[STORAGE_KEY_ACTIVE]).toBeUndefined());
+    expect(storage[STORAGE_KEY_SESSIONS]).toBeUndefined();
+  });
+
+  it("recoverStaleSession clamps an orphaned session to its last confirmed-active time", async () => {
+    startAtZero();
+    nowMs = 1 * MIN;
+    tracker.touch(); // lastSeen = 1 min
+    await vi.waitFor(() => expect((storage[STORAGE_KEY_ACTIVE] as any)?.lastSeen).toBe(1 * MIN));
+    // Simulate a crash/quit: long gap, then a fresh tracker (new service worker) recovers on startup.
+    nowMs = 1 * MIN + STALE_SESSION_MS + 5 * MIN;
+    const fresh = new SessionTracker();
+    await fresh.recoverStaleSession();
+    expect(storage[STORAGE_KEY_SESSIONS]).toEqual([["innovation", 100, 0, 1 * MIN]]);
+    expect(storage[STORAGE_KEY_ACTIVE]).toBeUndefined();
+  });
+
+  it("recoverStaleSession leaves a fresh session running (normal short restart)", async () => {
+    startAtZero();
+    await vi.waitFor(() => expect(storage[STORAGE_KEY_ACTIVE]).toBeDefined());
+    nowMs = 30000; // well within STALE_SESSION_MS
+    const fresh = new SessionTracker();
+    await fresh.recoverStaleSession();
+    expect(storage[STORAGE_KEY_SESSIONS]).toBeUndefined();
+    expect(storage[STORAGE_KEY_ACTIVE]).toBeDefined();
+  });
+
+  it("recoverStaleSession ends an idle session at the onset once the grace has elapsed offline", async () => {
+    startAtZero();
+    nowMs = 4 * MIN;
+    tracker.markAway();
+    await vi.waitFor(() => expect((storage[STORAGE_KEY_ACTIVE] as any)?.idleSince).toBe(4 * MIN));
+    nowMs = 4 * MIN + IDLE_GRACE_MS + MIN; // grace passed while offline
+    const fresh = new SessionTracker();
+    await fresh.recoverStaleSession();
+    expect(storage[STORAGE_KEY_SESSIONS]).toEqual([["innovation", 100, 0, 4 * MIN]]);
+  });
+
+  it("recoverStaleSession leaves an idle session running if the grace has not yet elapsed", async () => {
+    startAtZero();
+    nowMs = 4 * MIN;
+    tracker.markAway();
+    await vi.waitFor(() => expect((storage[STORAGE_KEY_ACTIVE] as any)?.idleSince).toBe(4 * MIN));
+    nowMs = 4 * MIN + IDLE_GRACE_MS - MIN; // still within grace
+    const fresh = new SessionTracker();
+    await fresh.recoverStaleSession();
+    expect(storage[STORAGE_KEY_SESSIONS]).toBeUndefined();
+    expect(storage[STORAGE_KEY_ACTIVE]).toBeDefined();
   });
 
 });

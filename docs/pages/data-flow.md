@@ -295,6 +295,19 @@ not only supported ones.
 3. Completed sessions are written to `chrome.storage.local` as compact tuples `[gameId, tableId, from, to]`
 4. A game-name map (`gameId → gameName`) is maintained alongside sessions
 
+The open session additionally carries `lastSeen` (last confirmed-active timestamp) and `idleSince` (start of the current idle stretch, or `null` when active); both are dropped when the session is finalized to the `[slug, tableId, from, to]` tuple.
+
+### Idle, heartbeat, and recovery
+
+Focus events alone can't catch the cases where *no* event fires: the user walks away with the game tab still focused, the screen locks, the machine sleeps, or the browser is killed before it can write the session end. `chrome.idle` plus a `chrome.alarms` heartbeat close those gaps. Tuning constants live in `time-tracking.ts` (`IDLE_DETECTION_SECONDS`, `IDLE_GRACE_MS`, `HEARTBEAT_MS`, `STALE_SESSION_MS`).
+
+- **Idle onset** (`chrome.idle.onStateChanged` → `"idle"`/`"locked"`, after `IDLE_DETECTION_SECONDS` of no input): `timeTracker.markAway()` records `idleSince` but does **not** end the session, and a one-shot `IDLE_FINALIZE_ALARM` is armed for `IDLE_GRACE_MS` later. First idle wins, so the recorded onset isn't pushed forward.
+- **Return to activity** (`"active"`): the finalize alarm is cancelled, then the focused tab is re-applied via `handleFocusChange` (reading the focused window's active tab; if no Chrome window holds focus, nothing is resumed). This one path covers both cases — if the session survived (returned within grace) the same table is a no-op continuation with no break; if the grace already finalized it during the away period, a fresh session starts. So a long absence yields two separate sessions, not one stretched across the gap.
+- **Grace elapsed while still idle** (`IDLE_FINALIZE_ALARM` fires): `finalizeIdle()` ends the session at `idleSince`, so the detection interval counts as play but the grace wait does not. (Leaving via a focus change while idle ends it at `idleSince` too.)
+- **Heartbeat** (`HEARTBEAT_ALARM`, every `HEARTBEAT_MS` while a session is open and the user is active): `touch()` advances `lastSeen` so an abrupt shutdown can be bounded. `syncHeartbeatAlarm()` creates the alarm only while a session is active and clears it otherwise, so the service worker isn't woken when nothing is being tracked.
+- **Crash/quit recovery** (service-worker startup): `recoverStaleSession()` runs first. A session that was idle past the grace is closed at `idleSince`; one whose `lastSeen` is older than `STALE_SESSION_MS` is closed at `lastSeen`; a session still fresh (normal short SW restart) or idle-within-grace is left running. The startup re-apply of the focused tab is then **skipped when a session survived recovery** — otherwise the ~60s heartbeat-driven SW wake/restart cycle would re-run `handleFocusChange` and keep clearing `idleSince`, so a walk-away would never finalize. The re-apply is **also gated on `chrome.idle.queryState()` being `"active"`**: the SW cold-restarts repeatedly while the user is away, and `onStateChanged` won't replay the already-past idle transition to a fresh instance — so a session started blindly at startup would never learn it's idle and would be finalized as a 0-length stale session on the next restart, looping once per restart. Querying the live idle state starts a session only when the user is genuinely present; the `"active"` transition on their return starts it otherwise. This keeps a single session from ballooning across the entire time the browser was shut.
+- **Zero-length guard**: `appendSession` drops any session whose end is not strictly after its start. The recovery rules above make this rare, but it cleanly absorbs residual races (open-then-immediately-leave, or a startup/crash that finalizes at the same instant it began) so history never accrues meaningless 0-duration rows.
+
 ### Storage architecture (two tiers)
 
 | Tier | Key(s) | Written when | Purpose |
@@ -334,7 +347,7 @@ and table types — through one serialization path.
 Both rewrite `bgaa_time_sessions` in `chrome.storage.local`; the `storage.onChanged` listener re-renders the stats page.
 
 Key files:
-- `src/time-tracking.ts` — types, URL parser, SessionTracker class, sync logic, export
+- `src/time-tracking.ts` — types, URL parser, SessionTracker class (focus + idle/liveness lifecycle), idle/heartbeat tuning constants, sync logic, export
 
 ## Message Protocol
 

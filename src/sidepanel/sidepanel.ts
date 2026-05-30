@@ -777,10 +777,12 @@ async function showStats(): Promise<void> {
   const gameMap: Record<string, string> = result[STORAGE_KEY_GAMES] ?? {};
   const modeMap: Record<string, boolean> = result[STORAGE_KEY_MODES] ?? {};
   const typeMap: Record<string, "tournament" | "arena" | "regular"> = result[STORAGE_KEY_TYPES] ?? {};
-  const active = result[STORAGE_KEY_ACTIVE] as { slug: string; tableId: number; from: number } | undefined;
+  const active = result[STORAGE_KEY_ACTIVE] as { slug: string; tableId: number; from: number; idleSince?: number | null } | undefined;
   const now = Date.now();
   // Fold the in-progress session (if any) in as a synthetic [slug, table, from, now] tuple — newest, so it sorts first.
   const activeTuple: TimeSession | null = active ? [active.slug, active.tableId, active.from, now] : null;
+  // The in-progress session is "idle" once the user has gone away (idleSince set) but the grace window hasn't yet ended it; its live dot turns yellow instead of green.
+  const activeIdle = active?.idleSince != null;
   const sessions: TimeSession[] = activeTuple ? [...stored, activeTuple] : stored;
   const granularity = loadSetting<Granularity>(KEY_STATS_GRANULARITY, "day");
   const dayStartHour = loadSetting<number>(KEY_STATS_DAY_START, DAY_START_HOUR);
@@ -798,11 +800,11 @@ async function showStats(): Promise<void> {
   chrome.runtime.sendMessage({ type: "pauseLive" }).catch(() => {});
 
   // Unified "Table" cell for both views: table id + stopwatch (real-time) + trophy (tournament) /
-  // crossed swords (arena) + a pulsing green dot for the in-progress table.
+  // crossed swords (arena) + a pulsing dot for the in-progress table (green when active, yellow when idle).
   const tableCell = (tableId: number, isActive: boolean): string => {
     const rt = modeMap[tableId] ? ` ${STOPWATCH_SVG}` : "";
     const typeIcon = typeMap[tableId] === "tournament" ? ` ${TROPHY_SVG}` : typeMap[tableId] === "arena" ? ` ${ARENA_SVG}` : "";
-    const live = isActive ? ' <span class="stats-live" title="in progress"></span>' : "";
+    const live = isActive ? ` <span class="stats-live${activeIdle ? " idle" : ""}" title="${activeIdle ? "in progress (idle)" : "in progress"}"></span>` : "";
     return `${tableId}${rt}${typeIcon}${live}`;
   };
 

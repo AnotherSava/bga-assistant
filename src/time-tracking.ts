@@ -56,6 +56,23 @@ export const STORAGE_KEY_ACTIVE = "bgaa_time_active";
 export const STORAGE_KEY_MODES = "bgaa_time_modes";
 export const STORAGE_KEY_TYPES = "bgaa_time_types";
 
+// Idle / liveness tuning. The clock keeps running through short pauses (thinking on your turn) and only
+// stops once you've genuinely walked away.
+//
+// - IDLE_DETECTION_SECONDS: how long with no keyboard/mouse input before the OS/browser reports "idle".
+// - IDLE_GRACE_MS: how long to stay idle (after the idle report) before the session is actually ended.
+//   Coming back to activity within this window resumes the session with no break recorded.
+// - When a session ends for idleness, its end timestamp is the moment idle was *detected* (idleSince) —
+//   so the detection interval counts as play but the grace window does not.
+// - HEARTBEAT_MS: while active, a periodic tick refreshes the session's lastSeen stamp so an abrupt
+//   shutdown can be detected and bounded on the next start (the clamp below), not stretched to "now".
+// - STALE_SESSION_MS: on startup, an active session whose lastSeen is older than this (with no idle on
+//   record) is treated as orphaned by a crash/quit and ended at lastSeen rather than extended to now.
+export const IDLE_DETECTION_SECONDS = 60;
+export const IDLE_GRACE_MS = 5 * 60 * 1000;
+export const HEARTBEAT_MS = 60 * 1000;
+export const STALE_SESSION_MS = 2 * HEARTBEAT_MS;
+
 /** Map of table ID → true when the table is a real-time game (vs turn-based). */
 export type ModeMap = Record<string, boolean>;
 
@@ -70,6 +87,10 @@ interface ActiveSession {
   slug: string;
   tableId: number;
   from: number;
+  /** Last timestamp the user was confirmed present (focus landed, activity, or a heartbeat tick). */
+  lastSeen: number;
+  /** When the current idle stretch began, or null while the user is active. Used as the session end if idleness is confirmed. */
+  idleSince: number | null;
 }
 
 export class SessionTracker {
@@ -128,6 +149,11 @@ export class SessionTracker {
     if (this.loaded) return;
     const result = await chrome.storage.local.get([STORAGE_KEY_ACTIVE, STORAGE_KEY_GAMES, STORAGE_KEY_MODES, STORAGE_KEY_TYPES]);
     this.active = (result[STORAGE_KEY_ACTIVE] as ActiveSession | undefined) ?? null;
+    if (this.active) {
+      // Backfill fields absent from sessions persisted before idle/liveness tracking existed.
+      if (typeof this.active.lastSeen !== "number") this.active.lastSeen = this.active.from;
+      if (this.active.idleSince === undefined) this.active.idleSince = null;
+    }
     const map = (result[STORAGE_KEY_GAMES] as GameMap | undefined) ?? {};
     for (const slug in map) this.knownSlugs.add(slug);
     const modes = (result[STORAGE_KEY_MODES] as ModeMap | undefined) ?? {};
@@ -145,16 +171,101 @@ export class SessionTracker {
       if (displayName) await this.persistGameName(info.gameName, displayName);
     }
     if (this.active) {
-      if (info && info.gameName === this.active.slug && info.tableId === this.active.tableId) return;
-      const session: TimeSession = [this.active.slug, this.active.tableId, this.active.from, now];
+      if (info && info.gameName === this.active.slug && info.tableId === this.active.tableId) {
+        // Re-focusing the same table means the user is back — clear any pending idle and refresh liveness.
+        let changed = false;
+        if (this.active.idleSince !== null) { this.active.idleSince = null; changed = true; }
+        if (now > this.active.lastSeen) { this.active.lastSeen = now; changed = true; }
+        if (changed) await this.writeActive();
+        return;
+      }
+      // Leaving while idle ends the session at the moment idleness was detected, not "now".
+      const endAt = this.active.idleSince ?? now;
+      const session: TimeSession = [this.active.slug, this.active.tableId, this.active.from, endAt];
       this.active = null;
       await this.writeActive();
       await this.appendSession(session);
     }
     if (info) {
-      this.active = { slug: info.gameName, tableId: info.tableId, from: now };
+      this.active = { slug: info.gameName, tableId: info.tableId, from: now, lastSeen: now, idleSince: null };
       await this.writeActive();
     }
+  }
+
+  /** The user went idle or locked the screen. Marks the start of an idle stretch without ending the session (it ends only if idleness persists past the grace window — see finalizeIdle). First idle wins, so the recorded end stays at the true onset. */
+  markAway(): void {
+    const now = Date.now();
+    this.writeQueue = this.writeQueue.then(() => this.doMarkAway(now));
+  }
+
+  /** Periodic liveness tick while active — refreshes lastSeen so an abrupt shutdown can be bounded later. No-op while idle. */
+  touch(): void {
+    const now = Date.now();
+    this.writeQueue = this.writeQueue.then(() => this.doTouch(now));
+  }
+
+  /** Grace window elapsed while still idle: end the active session at the moment idleness was detected. */
+  finalizeIdle(): void {
+    this.writeQueue = this.writeQueue.then(() => this.doFinalizeIdle());
+  }
+
+  /** On startup, close out a session orphaned by a crash/quit: end it at the idle onset (if it was idle past the grace) or at its last confirmed-active stamp, rather than extending it to now. Normal short service-worker restarts (lastSeen still fresh, no idle) leave the session running. */
+  async recoverStaleSession(): Promise<void> {
+    const now = Date.now();
+    this.writeQueue = this.writeQueue.then(() => this.doRecoverStaleSession(now));
+    return this.writeQueue;
+  }
+
+  /** Whether a session is currently open. Settles the write queue first so the answer reflects all queued mutations. */
+  async hasActiveSession(): Promise<boolean> {
+    await this.writeQueue;
+    await this.ensureLoaded();
+    return this.active !== null;
+  }
+
+  private async doMarkAway(now: number): Promise<void> {
+    await this.ensureLoaded();
+    if (!this.active || this.active.idleSince !== null) return;
+    this.active.idleSince = now;
+    await this.writeActive();
+  }
+
+  private async doTouch(now: number): Promise<void> {
+    await this.ensureLoaded();
+    if (!this.active || this.active.idleSince !== null) return;
+    if (now > this.active.lastSeen) {
+      this.active.lastSeen = now;
+      await this.writeActive();
+    }
+  }
+
+  private async doFinalizeIdle(): Promise<void> {
+    await this.ensureLoaded();
+    if (!this.active || this.active.idleSince === null) return;
+    const session: TimeSession = [this.active.slug, this.active.tableId, this.active.from, this.active.idleSince];
+    this.active = null;
+    await this.writeActive();
+    await this.appendSession(session);
+  }
+
+  private async doRecoverStaleSession(now: number): Promise<void> {
+    await this.ensureLoaded();
+    if (!this.active) return;
+    if (this.active.idleSince !== null) {
+      // Was idle when interrupted — end it only if the grace window already elapsed during the downtime.
+      if (now - this.active.idleSince < IDLE_GRACE_MS) return;
+      const session: TimeSession = [this.active.slug, this.active.tableId, this.active.from, this.active.idleSince];
+      this.active = null;
+      await this.writeActive();
+      await this.appendSession(session);
+      return;
+    }
+    // Never went idle: a fresh lastSeen means a normal restart (leave it running); a stale one means a crash/quit.
+    if (now - this.active.lastSeen < STALE_SESSION_MS) return;
+    const session: TimeSession = [this.active.slug, this.active.tableId, this.active.from, this.active.lastSeen];
+    this.active = null;
+    await this.writeActive();
+    await this.appendSession(session);
   }
 
   async backupToBga(tabId: number): Promise<void> {
@@ -181,6 +292,9 @@ export class SessionTracker {
   }
 
   private async appendSession(session: TimeSession): Promise<void> {
+    // A session with no elapsed time is not real play (e.g. open-then-immediately-leave, or a startup/crash
+    // race that finalizes at the same instant it began) — drop it rather than litter history with 0-length rows.
+    if (session[3] <= session[2]) return;
     const result = await chrome.storage.local.get(STORAGE_KEY_SESSIONS);
     const sessions: TimeSession[] = (result[STORAGE_KEY_SESSIONS] as TimeSession[] | undefined) ?? [];
     sessions.push(session);

@@ -53,7 +53,19 @@ vi.hoisted(() => {
     },
     windows: {
       onFocusChanged: { addListener: (cb: Function) => { _listeners.onFocusChanged = cb; } },
+      getLastFocused: vi.fn(() => Promise.resolve({ focused: false, tabs: [] })),
       WINDOW_ID_NONE: -1,
+    },
+    idle: {
+      setDetectionInterval: vi.fn(),
+      queryState: vi.fn(() => Promise.resolve("active")),
+      onStateChanged: { addListener: (cb: Function) => { _listeners.onIdleStateChanged = cb; } },
+    },
+    alarms: {
+      create: vi.fn(),
+      get: vi.fn(() => Promise.resolve(undefined)),
+      clear: vi.fn(() => Promise.resolve(true)),
+      onAlarm: { addListener: (cb: Function) => { _listeners.onAlarm = cb; } },
     },
     storage: {
       local: {
