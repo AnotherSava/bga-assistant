@@ -520,6 +520,11 @@ body:has(.stats-page) #content { height: 100%; }
 .stats-trophy { vertical-align: -1px; margin-left: 3px; color: #d4b24a; opacity: 0.9; }
 .stats-arena { vertical-align: -1px; margin-left: 3px; color: #d99a5b; opacity: 0.9; }
 .stats-active td { color: #cfe; }
+/* Turn-based sessions far above the game's average length: yellow at >3x, red at >10x. */
+.stats-table tr.stats-outlier td { background: rgba(212, 178, 74, 0.14); }
+.stats-table tr.stats-outlier:hover td { background: rgba(212, 178, 74, 0.24); }
+.stats-table tr.stats-outlier-extreme td { background: rgba(224, 82, 82, 0.15); }
+.stats-table tr.stats-outlier-extreme:hover td { background: rgba(224, 82, 82, 0.25); }
 .stats-live { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #4ad06a; margin-left: 4px; vertical-align: 0; animation: stats-pulse 1.6s ease-in-out infinite; }
 .stats-live.idle { background: #e0b53a; }
 @keyframes stats-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }

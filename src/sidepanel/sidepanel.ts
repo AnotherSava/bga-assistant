@@ -811,13 +811,31 @@ async function showStats(): Promise<void> {
   // The in-progress session/table has no delete affordance — removing it from storage is meaningless while the live tracker holds it in memory and would re-append it.
   const delButton = (attr: string, label: string): string => `<button class="stats-del" ${attr} title="${label}" aria-label="${label}">${CLOSE_SVG}</button>`;
 
+  // Per-game average length of finished turn-based sessions — the baseline for flagging unusually long
+  // sittings. Real-time sessions are excluded: they run continuously and would inflate the baseline.
+  const turnBasedTotals = new Map<string, { totalMs: number; count: number }>();
+  for (const [slug, tableId, from, to] of stored) {
+    if (modeMap[tableId] === true) continue;
+    const entry = turnBasedTotals.get(slug) ?? { totalMs: 0, count: 0 };
+    entry.totalMs += to - from;
+    entry.count += 1;
+    turnBasedTotals.set(slug, entry);
+  }
+  const avgDurationByGame = new Map<string, number>([...turnBasedTotals].map(([slug, { totalMs, count }]) => [slug, totalMs / count]));
+
   const rows = tableSessions.slice().reverse().map(([slug, tableId, from, to]) => {
     const duration = formatDurationClock(to - from);
     const date = new Date(from).toLocaleDateString();
     const time = new Date(from).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     const isActive = activeTuple !== null && from === activeTuple[2];
     const del = isActive ? "" : delButton(`data-del-session="${from}"`, "Remove this session");
-    return `<tr${isActive ? ' class="stats-active"' : ""}><td>${escapeHtml(gameMap[slug] ?? slug)}</td><td>${tableCell(tableId, isActive)}</td><td>${date} ${time}</td><td>${duration}${del}</td></tr>`;
+    // Flag turn-based sessions far above the game's average: yellow at >3x, red at >10x.
+    const avgDuration = avgDurationByGame.get(slug);
+    const ratio = modeMap[tableId] !== true && avgDuration ? (to - from) / avgDuration : 0;
+    const outlierClass = ratio > 10 ? " stats-outlier-extreme" : ratio > 3 ? " stats-outlier" : "";
+    const rowClass = `${isActive ? "stats-active" : ""}${outlierClass}`.trim();
+    const outlierTitle = outlierClass ? ` title="${ratio.toFixed(1)}× this game's average session length"` : "";
+    return `<tr${rowClass ? ` class="${rowClass}"` : ""}${outlierTitle}><td>${escapeHtml(gameMap[slug] ?? slug)}</td><td>${tableCell(tableId, isActive)}</td><td>${date} ${time}</td><td>${duration}${del}</td></tr>`;
   }).join("");
 
   const tableRows = aggregateByTable(tableSessions).map(({ slug, tableId, lastTo, totalMinutes, sessionCount }) => {
