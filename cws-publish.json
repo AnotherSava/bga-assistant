@@ -1,0 +1,30 @@
+{
+  "extensionId": "idjijmafngfkkbppkgopldomfhdcedig",
+  "privacyPolicyUrl": "https://anothersava.github.io/bga-assistant/pages/privacy",
+  "singlePurpose": "A Chrome extension for Board Game Arena that keeps track of your games so you don't have to.\n\nTurn-based games on BGA can stretch across days or weeks — by the time it's your turn, you may have forgotten what was drawn, returned, transferred, or scored several moves ago. BGA Assistant reads the game log and reconstructs the complete picture for you. It also keeps local statistics of how much time you spend playing, per game and table.",
+  "permissionJustifications": {
+    "activeTab": "Reads the currently active BGA game page to extract game log data when the user clicks the toolbar icon.",
+    "alarms": "Schedules periodic heartbeats for the play-time tracker so sessions are finalized correctly even when the extension's service worker is suspended.",
+    "idle": "Detects when the user steps away from the keyboard so play-time tracking pauses instead of counting idle time.",
+    "scripting": "Injects a content script into BGA game pages to extract game log notification data from the page's JavaScript context.",
+    "sidePanel": "Displays a visual game state summary in a Chrome side panel alongside the BGA game page.",
+    "storage": "Stores reconstructed game state, user display preferences (section visibility, zoom, toggles), and the play-time session history locally so they persist across browser sessions. No data is transmitted anywhere.",
+    "tabs": "Detects when the user navigates to or switches between BGA game tabs to automatically update the side panel content.",
+    "host:boardgamearena.com": "Accesses game log data on boardgamearena.com pages to reconstruct and display game state."
+  },
+  "storeListing": {
+    "category": "Games",
+    "language": "English",
+    "description": "A Chrome extension for Board Game Arena that keeps track of your games so you don't have to.\n\nTurn-based games on BGA can stretch across days or weeks — by the time it's your turn, you may have forgotten what was drawn, returned, transferred, or scored several moves ago. BGA Assistant reads the game log and reconstructs the complete picture for you. It also keeps local statistics of how much time you spend playing, per game and table.",
+    "officialUrl": "https://anothersava.github.io/bga-assistant/",
+    "homepageUrl": "https://anothersava.github.io/bga-assistant/",
+    "supportUrl": "https://github.com/AnotherSava/bga-assistant/issues",
+    "matureContent": false
+  },
+  "dataUsage": {
+    "remoteCode": false,
+    "collectedDataTypes": [],
+    "certifiedDisclosures": true
+  },
+  "lastPublished": { "version": "1.2.0", "date": "2026-06-06" }
+}
