@@ -12,6 +12,8 @@ Turn-based games on BGA can stretch across days or weeks — by the time it's yo
 
 **[The Crew: Mission Deep Sea](https://anothersava.github.io/bga-assistant/pages/crew)** — Tracks played cards and communication signals to deduce remaining cards in players' hands for The Crew: Mission Deep Sea tables with any player count. The side panel displays three sections — a card grid, a player-suit matrix, and a trick history — all updating live as cards are played.
 
+**[Play-time tracking](https://anothersava.github.io/bga-assistant/pages/time-tracking)** — Automatically tracks how much time you spend playing on BGA — for every game and table, not just the supported ones. The clock runs only while a game table tab is focused, pauses when you step away, and a stats page shows daily, weekly, and monthly charts per game with session and per-table summaries.
+
 ---
 
 Install from [Chrome Web Store](https://chromewebstore.google.com/detail/bga-assistant/idjijmafngfkkbppkgopldomfhdcedig)
@@ -22,4 +24,6 @@ See full project documentation at **[anothersava.github.io/bga-assistant](https:
   - [Innovation](https://anothersava.github.io/bga-assistant/pages/innovation)
   - [Azul](https://anothersava.github.io/bga-assistant/pages/azul)
   - [The Crew](https://anothersava.github.io/bga-assistant/pages/crew)
+  - [Play-time tracking](https://anothersava.github.io/bga-assistant/pages/time-tracking)
 - [Developer guide](https://anothersava.github.io/bga-assistant/pages/development)
+- [Privacy policy](https://anothersava.github.io/bga-assistant/pages/privacy)

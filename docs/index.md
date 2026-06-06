@@ -3,7 +3,7 @@ layout: default
 title: BGA Assistant
 ---
 
-[Home](.) | [Innovation](pages/innovation) | [Azul](pages/azul) | [Crew](pages/crew) | [Development](pages/development) | [Privacy](pages/privacy)
+[Home](.) | [Innovation](pages/innovation) | [Azul](pages/azul) | [Crew](pages/crew) | [Play time](pages/time-tracking) | [Development](pages/development) | [Privacy](pages/privacy)
 
 ---
 
@@ -36,6 +36,10 @@ Tracks the tile bag and discard pile (box lid) for Azul tables with any player c
 Tracks played cards and communication signals to deduce remaining cards in players' hands for The Crew: Mission Deep Sea tables with any player count. The side panel displays three sections — a card grid, a player-suit matrix, and a trick history — all updating live as cards are played.
 
 ![Crew card grid](screenshots/crew-cards.png)
+
+## [Play-time tracking](pages/time-tracking)
+
+Automatically tracks how much time you spend playing on BGA — for every game and table, not just the supported ones. The clock runs only while a game table tab is focused, pauses when you step away, and a stats page shows daily, weekly, and monthly charts per game with session and per-table summaries.
 
 ## Usage
 

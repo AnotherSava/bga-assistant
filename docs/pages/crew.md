@@ -3,7 +3,7 @@ layout: default
 title: The Crew — Mission Deep Sea
 ---
 
-[Home](..) | [Innovation](innovation) | [Azul](azul) | [Crew](crew) | [Development](development) | [Privacy](privacy)
+[Home](..) | [Innovation](innovation) | [Azul](azul) | [Crew](crew) | [Play time](time-tracking) | [Development](development) | [Privacy](privacy)
 
 ---
 

@@ -1,6 +1,6 @@
 // Help page content for the side panel.
 
-import { escapeHtml, ICON_ZOOM_OUT, ICON_ZOOM_IN, ICON_EYE, ICON_DOWNLOAD, ICON_DOT_GREEN, ICON_DOT_RED, ICON_PANEL, ICON_PANEL_1, ICON_PANEL_2 } from "./icons.js";
+import { escapeHtml, ICON_ZOOM_OUT, ICON_ZOOM_IN, ICON_EYE, ICON_DOWNLOAD, ICON_STOPWATCH, ICON_DOT_GREEN, ICON_DOT_RED, ICON_PANEL, ICON_PANEL_1, ICON_PANEL_2 } from "./icons.js";
 import type { GameName } from "../models/types.js";
 
 export function renderHelp(errorMessage?: string, gameName?: GameName): string {
@@ -37,7 +37,15 @@ export function renderHelp(errorMessage?: string, gameName?: GameName): string {
       <div class="help-grid-item"><span class="help-grid-label"><span class="help-btn">${ICON_EYE}</span></span><span> Toggle visible sections (settings persist across sessions)</span></div>
       <div class="help-grid-item"><span class="help-grid-label"><span class="help-btn">${ICON_PANEL}</span><span style="color:#888;margin:0 1px">/</span><span class="help-btn">${ICON_PANEL_1}</span><span style="color:#888;margin:0 1px">/</span><span class="help-btn">${ICON_PANEL_2}</span></span><span> Auto-hide side bar: never/when leaving BGA/leaving supported game tables</span></div>
       <div class="help-grid-item"><span class="help-grid-label"><span class="help-btn">${ICON_DOWNLOAD}</span></span><span> Download a ZIP archive with raw packets, game log, game state, and summary</span></div>
+      <div class="help-grid-item"><span class="help-grid-label"><span class="help-btn">${ICON_STOPWATCH}</span></span><span> Play time stats (see below); click again to return to the game summary</span></div>
       <div class="help-grid-item"><span class="help-grid-label"><span class="help-btn help-btn-text">?</span></span><span> This help page</span></div>
+    </div>
+  </div>
+
+  <div class="help-section">
+    <div class="help-section-title">Play time</div>
+    <div class="help-sections-grid">
+      <div class="help-grid-item"><span>Time spent on BGA is tracked automatically for every game and table, not just the supported ones. The clock runs only while a game table tab is focused and pauses when you step away. The stats page shows daily, weekly, and monthly charts per game, plus a session list and per-table totals — turn-based sessions far above the game's average length are tinted yellow (over 3&times;) or red (over 10&times;). A stopwatch marks real-time tables, a trophy tournaments, crossed swords arena games. The ${ICON_EYE} menu holds display settings, and sessions can be exported to and imported from CSV.</span></div>
     </div>
   </div>
 
