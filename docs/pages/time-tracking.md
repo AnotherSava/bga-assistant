@@ -16,6 +16,7 @@ Open the stats page with the stopwatch icon in the side panel's top bar; click i
 - **Focused tab only**: time counts while a BGA game table tab is the active, focused tab — switching tabs, windows, or apps stops the clock
 - **Idle handling**: short pauses (thinking on your turn) keep counting; after about a minute without keyboard or mouse input the session is marked idle, and if you stay away past a grace period it ends retroactively at the moment idleness began
 - **Sessions split across breaks**: each return to a table starts a new session, so turn-based games naturally accumulate many short sittings
+- **Stray glances dropped**: revisiting a forgotten table for a few seconds before heading back to the lobby leaves a tiny session next to the real one; when consecutive sessions for the same table include such a glance (under 20 seconds) alongside a sitting at least 5× longer, the glance is dropped from the stats so it doesn't clutter the list or skew the table's average
 - **Per-table classification**: each table is remembered as real-time or turn-based, and as a tournament, arena, or regular table
 
 ### The stats page

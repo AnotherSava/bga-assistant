@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { parseGameTableUrl, extractDisplayName, SessionTracker, exportSessionsCsv, importSessionsCsv, deleteSession, deleteTableSessions, aggregateSessions, aggregateByTable, formatDuration, formatDurationClock, minutesInCurrentBucket, currentBucketRange, sessionsOverlapping, STORAGE_KEY_SESSIONS, STORAGE_KEY_GAMES, STORAGE_KEY_MODES, STORAGE_KEY_TYPES, STORAGE_KEY_ACTIVE, IDLE_GRACE_MS, STALE_SESSION_MS, type TimeSession } from "../time-tracking";
+import { parseGameTableUrl, extractDisplayName, SessionTracker, exportSessionsCsv, importSessionsCsv, deleteSession, deleteTableSessions, aggregateSessions, aggregateByTable, mergeStrayGlances, formatDuration, formatDurationClock, minutesInCurrentBucket, currentBucketRange, sessionsOverlapping, STORAGE_KEY_SESSIONS, STORAGE_KEY_GAMES, STORAGE_KEY_MODES, STORAGE_KEY_TYPES, STORAGE_KEY_ACTIVE, IDLE_GRACE_MS, STALE_SESSION_MS, type TimeSession } from "../time-tracking";
 
 describe("parseGameTableUrl", () => {
   it("parses a standard game table URL", () => {
@@ -897,6 +897,82 @@ describe("aggregateByTable", () => {
     const [row] = aggregateByTable(sessions);
     expect(row.lastTo).toBe(at(2026, 4, 28, 10) + 10 * 60000);
     expect(row.totalMinutes).toBe(20);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// mergeStrayGlances
+// ---------------------------------------------------------------------------
+
+describe("mergeStrayGlances", () => {
+  const base = new Date(2026, 4, 27, 10).getTime();
+  // start/length given in seconds for readability; offset keeps sessions chronological and adjacent.
+  const sec = (slug: string, tableId: number, startSec: number, lengthSec: number): TimeSession => [slug, tableId, base + startSec * 1000, base + (startSec + lengthSec) * 1000];
+
+  it("returns an empty array unchanged", () => {
+    expect(mergeStrayGlances([])).toEqual([]);
+  });
+
+  it("drops a short glance next to a much longer same-table session", () => {
+    const long = sec("innovation", 100, 0, 1800); // 30 min
+    const glance = sec("innovation", 100, 2000, 10); // 10 s, same table, right after
+    expect(mergeStrayGlances([long, glance])).toEqual([long]);
+  });
+
+  it("drops the glance regardless of order (long before or after)", () => {
+    const glance = sec("innovation", 100, 0, 10);
+    const long = sec("innovation", 100, 100, 1800);
+    expect(mergeStrayGlances([glance, long])).toEqual([long]);
+  });
+
+  it("keeps a lone short session with no longer companion", () => {
+    const glance = sec("innovation", 100, 0, 10);
+    expect(mergeStrayGlances([glance])).toEqual([glance]);
+  });
+
+  it("keeps two short sessions when neither is 5x the other", () => {
+    const a = sec("innovation", 100, 0, 10);
+    const b = sec("innovation", 100, 100, 12);
+    expect(mergeStrayGlances([a, b])).toEqual([a, b]);
+  });
+
+  it("keeps a short session that is not below the 20s threshold", () => {
+    const long = sec("innovation", 100, 0, 1800);
+    const notShort = sec("innovation", 100, 2000, 25); // 25 s ≥ 20 s threshold
+    expect(mergeStrayGlances([long, notShort])).toEqual([long, notShort]);
+  });
+
+  it("keeps a glance when the longer session is under 5x its duration", () => {
+    const longish = sec("innovation", 100, 0, 60); // 60 s
+    const glance = sec("innovation", 100, 100, 15); // 15 s; 60 < 15*5 = 75
+    expect(mergeStrayGlances([longish, glance])).toEqual([longish, glance]);
+  });
+
+  it("does not merge across a different table's session breaking the run", () => {
+    const long = sec("innovation", 100, 0, 1800);
+    const other = sec("azul", 200, 2000, 600); // different table between
+    const glance = sec("innovation", 100, 3000, 10); // same table as long, but not consecutive
+    expect(mergeStrayGlances([long, other, glance])).toEqual([long, other, glance]);
+  });
+
+  it("drops multiple glances in the same run alongside one long session", () => {
+    const long = sec("innovation", 100, 0, 1800);
+    const g1 = sec("innovation", 100, 2000, 8);
+    const g2 = sec("innovation", 100, 2100, 12);
+    expect(mergeStrayGlances([long, g1, g2])).toEqual([long]);
+  });
+
+  it("keeps both long sessions and drops the glance between them", () => {
+    const a = sec("innovation", 100, 0, 1800);
+    const glance = sec("innovation", 100, 2000, 10);
+    const b = sec("innovation", 100, 2100, 1500);
+    expect(mergeStrayGlances([a, glance, b])).toEqual([a, b]);
+  });
+
+  it("sorts the result chronologically by start", () => {
+    const a = sec("azul", 200, 5000, 600);
+    const b = sec("innovation", 100, 0, 600);
+    expect(mergeStrayGlances([a, b])).toEqual([b, a]);
   });
 });
 

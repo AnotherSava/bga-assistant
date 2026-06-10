@@ -441,6 +441,38 @@ export async function deleteTableSessions(tableId: number): Promise<number> {
 }
 
 // ---------------------------------------------------------------------------
+// Session normalization
+// ---------------------------------------------------------------------------
+
+/** Duration (ms) below which a session counts as a "stray glance" — a forgotten table reopened and immediately closed on the way back to the lobby. */
+export const STRAY_GLANCE_MS = 20 * 1000;
+
+/** A real sitting is at least this many times longer than a stray glance that belongs to it. */
+export const STRAY_GLANCE_RATIO = 5;
+
+/** Drop stray glances: sub-{@link STRAY_GLANCE_MS} sessions sitting in a run of consecutive same-table sessions that also contains a session at least {@link STRAY_GLANCE_RATIO}× longer. These come from revisiting a forgotten table for a few seconds before returning to the lobby; left in, they litter the session list and dilute a table's per-session average. Sessions are walked in chronological order — a different table's session between two same-table sessions breaks the run, so only back-to-back same-table sessions are grouped. A lone short session, or a cluster of short sessions with no much-longer sitting alongside, is kept untouched. Read-time only: storage and export stay raw. */
+export function mergeStrayGlances(sessions: TimeSession[]): TimeSession[] {
+  const sorted = sessions.slice().sort((a, b) => a[2] - b[2]);
+  const kept: TimeSession[] = [];
+  let runStart = 0;
+  const flushRun = (runEnd: number): void => {
+    const run = sorted.slice(runStart, runEnd);
+    const longest = Math.max(...run.map(([, , from, to]) => to - from));
+    for (const session of run) {
+      const duration = session[3] - session[2];
+      const isStray = run.length > 1 && duration < STRAY_GLANCE_MS && longest >= duration * STRAY_GLANCE_RATIO;
+      if (!isStray) kept.push(session);
+    }
+    runStart = runEnd;
+  };
+  for (let i = 1; i < sorted.length; i++) {
+    if (sorted[i][1] !== sorted[i - 1][1]) flushRun(i);
+  }
+  if (sorted.length > 0) flushRun(sorted.length);
+  return kept;
+}
+
+// ---------------------------------------------------------------------------
 // Chart aggregation
 // ---------------------------------------------------------------------------
 
