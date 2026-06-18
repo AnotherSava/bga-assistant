@@ -146,3 +146,4 @@ Three subprojects in `D:\projects\bga`:
 - [Innovation candidate per-pool classes](project_innovation_candidate_invariant.md) — candidates are per-pool-equivalence-class, not per-group; explains why naked-N is dead code in Innovation
 - [Innovation deck-order handling](project_innovation_deck_order.md) — deck is ordered; meld-filter uses discard-aware pooling (May 2026 rewrite) to preserve keeps' resolutions
 - [Innovation opponent-knowledge merge](project_innovation_opponent_merge.md) — mergeSuspects pools only partial-kind cards; exact/none stay; suspect set must contain its true card
+- [Innovation relic anonymous-pooling exclusion](project_innovation_relic_anon_pooling.md) — relics are public/named-only; exclude from takeFromSource grouped pooling+selection or named *→relics throws "not found"

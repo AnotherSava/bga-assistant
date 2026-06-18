@@ -1173,6 +1173,35 @@ describe("processLog", () => {
     expect(bobHand.some(c => c.resolvedName === "philosophy")).toBe(true);
   });
 
+  it("does not pool a resolved relic into an anonymous same-group return (bgaa_868117803)", () => {
+    // Bob holds the Timbuktu relic (age 3 cities) AND a non-relic age-3 cities card
+    // (Cordoba). In one move he returns the non-relic age-3 cities card to the deck
+    // anonymously (grouped) and then returns Timbuktu to the relics pool by name.
+    // The grouped hand→deck removal used to pool ALL same-group hand cards' candidates
+    // into a union, dissolving Timbuktu's resolved {timbuktu} identity. The subsequent
+    // named Timbuktu→relics transfer then failed with "Relic 'timbuktu' not found in hand".
+    // Relics are public, individually identified cards — they must never be drawn into
+    // an anonymous same-group pool.
+    const { state, engine } = createGS();
+    engine.initGame(state, { echoes: false, artifacts: true, relics: true }, ["Timbuktu"]);
+
+    const log: GameLogEntry[] = [
+      { type: "transfer", move: 1, cardSet: "cities", source: "relics", dest: "achievements", cardName: "Timbuktu", cardAge: 3, sourceOwner: null, destOwner: "Bob", meldKeyword: false, topOfDeck: false },
+      { type: "transfer", move: 2, cardSet: "cities", source: "achievements", dest: "hand", cardName: "Timbuktu", cardAge: 3, sourceOwner: "Bob", destOwner: "Bob", meldKeyword: false, topOfDeck: false },
+      { type: "transfer", move: 3, cardSet: "cities", source: "deck", dest: "hand", cardName: "Cordoba", cardAge: 3, sourceOwner: null, destOwner: "Bob", meldKeyword: false, topOfDeck: false },
+      { type: "transfer", move: 4, cardSet: "cities", source: "hand", dest: "deck", cardName: null, cardAge: 3, sourceOwner: "Bob", destOwner: null, meldKeyword: false, topOfDeck: false },
+      { type: "transfer", move: 4, cardSet: "cities", source: "hand", dest: "relics", cardName: "Timbuktu", cardAge: 3, sourceOwner: "Bob", destOwner: null, meldKeyword: false, topOfDeck: false },
+    ];
+    const myHand = ["Agriculture", "Archery"];
+
+    expect(() => engine.processLog(state, log, myHand)).not.toThrow();
+
+    // Timbuktu is back in the public relics pool, still resolved.
+    expect(state.relics.some(c => c.resolvedName === "timbuktu")).toBe(true);
+    // The non-relic age-3 cities card went to the deck; Bob no longer holds Timbuktu.
+    expect(state.hands.get("Bob")!.some(c => c.candidates.has("timbuktu"))).toBe(false);
+  });
+
   it("preserves kept cards and pools discards separately when meld filter has both", () => {
     const { state, engine } = createInitializedGS();
 

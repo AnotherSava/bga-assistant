@@ -463,6 +463,13 @@ export class GameEngine {
   // Internal mutation helpers
   // ------------------------------------------------------------------
 
+  /** A card whose resolved identity is a relic. Relics are public, individually
+   *  identified cards: they always move by name, so an anonymous same-group transfer
+   *  can never refer to one — they must be excluded from candidate pooling/selection. */
+  private isRelicCard(card: Card): boolean {
+    return card.isResolved && (this.cardDb.get(card.resolvedName!)?.isRelic ?? false);
+  }
+
   /** Find, resolve, remove, and merge at the source location. */
   private takeFromSource(state: GameState, action: Action, groupKey: AgeSetKey): Card {
     let sourceCards: Card[];
@@ -493,7 +500,7 @@ export class GameEngine {
       const inMeldFilterReturn = action.type !== "named" && (action.source === "hand" || action.source === "score" || action.source === "forecast") && action.dest === "deck" && this.remainingReturns > 0;
       const isDiscardCandidate = (c: Card): boolean => c.candidates.size > 0 && [...c.candidates].every(name => this.discardNames.has(name));
       if (action.type !== "named" && (action.source === "hand" || action.source === "score" || action.source === "forecast")) {
-        const sameGroup = sourceCards.filter(c => ageSetKey(c.age, c.cardSet) === groupKey);
+        const sameGroup = sourceCards.filter(c => ageSetKey(c.age, c.cardSet) === groupKey && !this.isRelicCard(c));
         const toPool = inMeldFilterReturn ? sameGroup.filter(isDiscardCandidate) : sameGroup;
         if (toPool.length > 1) {
           const union = new Set<string>();
@@ -517,7 +524,7 @@ export class GameEngine {
         if (inMeldFilterReturn) {
           found = sourceCards.find(c => ageSetKey(c.age, c.cardSet) === groupKey && isDiscardCandidate(c));
         }
-        if (!found) found = sourceCards.find(c => ageSetKey(c.age, c.cardSet) === groupKey);
+        if (!found) found = sourceCards.find(c => ageSetKey(c.age, c.cardSet) === groupKey && !this.isRelicCard(c));
         if (!found) throw new Error(`No card with groupKey "${groupKey}" found in ${action.source}`);
         card = found;
       }
