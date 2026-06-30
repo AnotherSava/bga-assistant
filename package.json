@@ -4,7 +4,7 @@
   "private": true,
   "description": "Chrome extension — game assistant for Board Game Arena",
   "type": "module",
-  "packageManager": "npm@11.12.1",
+  "packageManager": "npm@11.18.0",
   "engines": {
     "node": ">=24"
   },
