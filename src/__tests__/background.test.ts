@@ -51,6 +51,9 @@ vi.hoisted(() => {
       get: vi.fn(() => Promise.resolve({})),
       query: vi.fn(() => Promise.resolve([])),
     },
+    webNavigation: {
+      onCompleted: { addListener: (cb: Function) => { _listeners.onCompleted = cb; } },
+    },
     windows: {
       onFocusChanged: { addListener: (cb: Function) => { _listeners.onFocusChanged = cb; } },
       getLastFocused: vi.fn(() => Promise.resolve({ focused: false, tabs: [] })),
@@ -82,7 +85,7 @@ const copyListeners = () => {
   Object.assign(listeners, (globalThis as any).__chromeMockListeners);
 };
 
-import { classifyNavigation, shouldAutoClose, shouldShowLoading, watcherFunction, probeTableTypeFn, type NavigationAction, type PinMode } from "../background";
+import { classifyNavigation, shouldAutoClose, shouldShowLoading, watcherFunction, probeTableTypeFn, isPotentialTablePage, selectGameFrame, type NavigationAction, type PinMode, type FrameProbe } from "../background";
 import { runPipeline, isValidPlayerCount, type PipelineResults } from "../pipeline";
 import { CardDatabase } from "../models/types";
 import type { PlayerInfo, RawExtractionData } from "../models/types";
@@ -142,6 +145,11 @@ function transferPair(
       data: [{ type: "transferedCard_spectator", args: spectatorArgs }],
     },
   ];
+}
+
+/** A per-frame probe result for a loaded game board, matching what probeGameTable returns and selectGameFrame consumes. The board is found in whichever frame reports a loaded BGA framework (players > 0) with a parseable slug + table id. */
+function gameFrameProbe(players: number = 2, slug: string = "innovation", tableNumber: string = "123"): FrameProbe {
+  return { players, slug, tableNumber, href: `https://boardgamearena.com/1/${slug}?table=${tableNumber}` };
 }
 
 describe("runPipeline", () => {
@@ -612,6 +620,68 @@ describe("classifyNavigation", () => {
   it("returns extract for an azul table URL", () => {
     const result = classifyNavigation("https://boardgamearena.com/1/azul?table=789");
     expect(result).toEqual({ action: "extract", tableNumber: "789", gameName: "azul" });
+  });
+});
+
+describe("isPotentialTablePage", () => {
+  it("accepts the classic top-level game URL", () => {
+    expect(isPotentialTablePage("https://boardgamearena.com/8/innovation?table=123")).toBe(true);
+  });
+
+  it("accepts the modern /tableview shell URL (board iframed within)", () => {
+    expect(isPotentialTablePage("https://boardgamearena.com/tableview?table=847667119")).toBe(true);
+  });
+
+  it("accepts the classic /table shell URL", () => {
+    expect(isPotentialTablePage("https://boardgamearena.com/table?table=123")).toBe(true);
+  });
+
+  it("accepts BGA subdomain table URLs", () => {
+    expect(isPotentialTablePage("https://en.boardgamearena.com/tableview?table=999")).toBe(true);
+  });
+
+  it("rejects a BGA page without a table id", () => {
+    expect(isPotentialTablePage("https://boardgamearena.com/lobby")).toBe(false);
+    expect(isPotentialTablePage("https://boardgamearena.com/gameinprogress")).toBe(false);
+  });
+
+  it("rejects non-BGA URLs even with a table param", () => {
+    expect(isPotentialTablePage("https://example.com/tableview?table=123")).toBe(false);
+  });
+
+  it("rejects undefined", () => {
+    expect(isPotentialTablePage(undefined)).toBe(false);
+  });
+});
+
+describe("selectGameFrame", () => {
+  const board: FrameProbe = { players: 3, slug: "thecrewdeepsea", tableNumber: "847667119", href: "https://boardgamearena.com/3/thecrewdeepsea?table=847667119" };
+  const shell: FrameProbe = { players: 0, slug: null, tableNumber: "847667119", href: "https://boardgamearena.com/tableview?table=847667119" };
+  const loader: FrameProbe = { players: 0, slug: null, tableNumber: "847667119", href: "https://boardgamearena.com/blank?gsgameurl=/thecrewdeepsea?table=847667119" };
+
+  it("picks the board frame out of the /tableview shell + loader frames", () => {
+    expect(selectGameFrame([shell, board, loader])).toEqual({
+      gameName: "thecrewdeepsea", tableNumber: "847667119", playerCount: 3, url: "https://boardgamearena.com/3/thecrewdeepsea?table=847667119",
+    });
+  });
+
+  it("returns the top frame for a legacy top-level game page", () => {
+    const topBoard: FrameProbe = { players: 2, slug: "innovation", tableNumber: "555", href: "https://boardgamearena.com/8/innovation?table=555" };
+    expect(selectGameFrame([topBoard])).toEqual({ gameName: "innovation", tableNumber: "555", playerCount: 2, url: "https://boardgamearena.com/8/innovation?table=555" });
+  });
+
+  it("returns null when no frame has the framework loaded (board iframe not ready yet)", () => {
+    expect(selectGameFrame([shell, loader])).toBeNull();
+  });
+
+  it("ignores a frame with a slug but zero players (framework not yet initialized)", () => {
+    const notReady: FrameProbe = { players: 0, slug: "innovation", tableNumber: "555", href: "https://boardgamearena.com/8/innovation?table=555" };
+    expect(selectGameFrame([notReady])).toBeNull();
+  });
+
+  it("tolerates undefined frame results", () => {
+    expect(selectGameFrame([undefined, board])).not.toBeNull();
+    expect(selectGameFrame([undefined])).toBeNull();
   });
 });
 
@@ -1197,8 +1267,10 @@ describe("unified extraction flow", () => {
     vi.clearAllMocks();
     mockSendMessage.mockImplementation(() => Promise.resolve());
 
-    const rawData = makeRawData({ "1": "Alice", "2": "Bob" }, []);
-    mockExecuteScript.mockResolvedValueOnce([{ result: rawData }]);
+    const rawData = makeRawData({ "1": "Alice", "2": "Bob" }, [], undefined, "carcassonne");
+    mockExecuteScript
+      .mockResolvedValueOnce([{ result: gameFrameProbe(2, "carcassonne") }])
+      .mockResolvedValueOnce([{ result: rawData }]);
     const tab = { id: 1, url: "https://boardgamearena.com/1/carcassonne?table=123", status: "complete", windowId: 10 };
     mockTabsGet.mockResolvedValueOnce(tab).mockResolvedValueOnce(tab);
     listeners.onActivated({ tabId: 1 });
@@ -1218,8 +1290,10 @@ describe("unified extraction flow", () => {
     vi.clearAllMocks();
     mockSendMessage.mockImplementation(() => Promise.resolve());
 
-    const rawData = makeRawData({ "1": "Alice", "2": "Bob" }, []);
-    mockExecuteScript.mockResolvedValueOnce([{ result: rawData }]);
+    const rawData = makeRawData({ "1": "Alice", "2": "Bob" }, [], undefined, "carcassonne");
+    mockExecuteScript
+      .mockResolvedValueOnce([{ result: gameFrameProbe(2, "carcassonne") }])
+      .mockResolvedValueOnce([{ result: rawData }]);
     const tab = { id: 1, url: "https://boardgamearena.com/1/carcassonne?table=123", status: "complete", windowId: 10 };
     mockTabsGet.mockResolvedValueOnce(tab).mockResolvedValueOnce(tab);
     listeners.onActivated({ tabId: 1 });
@@ -1278,8 +1352,12 @@ describe("unified extraction flow", () => {
     vi.clearAllMocks();
     mockSendMessage.mockImplementation(() => Promise.resolve());
 
-    // Set active tab
+    // Set active tab (probe + extract so the game-board resolution completes before navigating away)
+    const rawData = makeRawData({ "1": "Alice", "2": "Bob" }, []);
     const gameTab = { id: 1, url: "https://boardgamearena.com/8/innovation?table=123", status: "complete", windowId: 10 };
+    mockExecuteScript
+      .mockResolvedValueOnce([{ result: gameFrameProbe() }])
+      .mockResolvedValueOnce([{ result: rawData }]);
     mockTabsGet.mockResolvedValueOnce(gameTab).mockResolvedValueOnce(gameTab);
     listeners.onActivated({ tabId: 1 });
     await new Promise((r) => setTimeout(r, 50));
@@ -1305,7 +1383,7 @@ describe("unified extraction flow", () => {
     const rawData = makeRawData({ "1": "Alice", "2": "Bob" }, []);
     // First executeScript call is updateIcon's probe, second is the extraction
     mockExecuteScript
-      .mockResolvedValueOnce([{ result: 2 }])
+      .mockResolvedValueOnce([{ result: gameFrameProbe() }])
       .mockResolvedValueOnce([{ result: rawData }]);
     const tab = { id: 1, url: "https://boardgamearena.com/8/innovation?table=456", status: "complete", windowId: 10 };
     mockTabsGet.mockResolvedValueOnce(tab).mockResolvedValueOnce(tab);
@@ -1324,6 +1402,36 @@ describe("unified extraction flow", () => {
     conn.triggerDisconnect();
   });
 
+  it("extracts the game board from the iframe under a /tableview shell URL", async () => {
+    const conn = connectSidePanel();
+    vi.clearAllMocks();
+    mockSendMessage.mockImplementation(() => Promise.resolve());
+
+    // BGA's modern layout: top frame is the /tableview shell (no gameui); the board runs in a child
+    // frame at the classic /<id>/<slug>?table= URL. Probe + extract both run with allFrames and return
+    // one result per frame; detection must pick the board frame, not the top shell frame.
+    const rawData = makeRawData({ "1": "Alice", "2": "Bob" }, []);
+    const shellProbe: FrameProbe = { players: 0, slug: null, tableNumber: "456", href: "https://boardgamearena.com/tableview?table=456" };
+    mockExecuteScript
+      .mockResolvedValueOnce([{ result: shellProbe }, { result: gameFrameProbe(2, "innovation", "456") }])
+      .mockResolvedValueOnce([{ result: { error: true, msg: "gameui not available" } }, { result: rawData }]);
+    const tab = { id: 1, url: "https://boardgamearena.com/tableview?table=456", status: "complete", windowId: 10 };
+    mockTabsGet.mockResolvedValueOnce(tab).mockResolvedValueOnce(tab);
+    listeners.onActivated({ tabId: 1 });
+    await new Promise((r) => setTimeout(r, 50));
+
+    const resultsCalls = mockSendMessage.mock.calls.filter((c: any[]) => c[0]?.type === "resultsReady");
+    expect(resultsCalls.length).toBe(1);
+    const result = resultsCalls[0][0].results as PipelineResults;
+    expect(result.gameName).toBe("innovation");
+    expect(result.tableNumber).toBe("456"); // from the shell URL's table= param
+    expect(result.gameState).not.toBeNull();
+    const notAGameCalls = mockSendMessage.mock.calls.filter((c: any[]) => c[0]?.type === "notAGame");
+    expect(notAGameCalls.length).toBe(0);
+
+    conn.triggerDisconnect();
+  });
+
   it("does not send loading on window focus change for same table", async () => {
     const conn = connectSidePanel();
     vi.clearAllMocks();
@@ -1332,7 +1440,7 @@ describe("unified extraction flow", () => {
     // Extract a game table via tab activation
     const rawData = makeRawData({ "1": "Alice", "2": "Bob" }, []);
     mockExecuteScript
-      .mockResolvedValueOnce([{ result: 2 }])
+      .mockResolvedValueOnce([{ result: gameFrameProbe() }])
       .mockResolvedValueOnce([{ result: rawData }]);
     const gameTab = { id: 1, url: "https://boardgamearena.com/8/innovation?table=456", status: "complete", windowId: 10 };
     mockTabsGet.mockResolvedValueOnce(gameTab).mockResolvedValueOnce(gameTab);
@@ -1344,7 +1452,7 @@ describe("unified extraction flow", () => {
     // Window focus change back to same window/tab — should NOT send loading
     const mockTabsQuery = chrome.tabs.query as ReturnType<typeof vi.fn>;
     mockTabsQuery.mockResolvedValueOnce([gameTab]);
-    mockExecuteScript.mockResolvedValueOnce([{ result: 2 }]);
+    mockExecuteScript.mockResolvedValueOnce([{ result: gameFrameProbe() }]);
     mockTabsGet.mockResolvedValueOnce(gameTab);
     mockExecuteScript.mockResolvedValueOnce([{ result: rawData }]);
     listeners.onFocusChanged(10);
@@ -1384,7 +1492,7 @@ describe("onConnect pushes cached results", () => {
     const rawData = makeRawData({ "1": "Alice", "2": "Bob" }, []);
     // probe + extraction
     mockExecuteScript
-      .mockResolvedValueOnce([{ result: 2 }])
+      .mockResolvedValueOnce([{ result: gameFrameProbe() }])
       .mockResolvedValueOnce([{ result: rawData }]);
     const tab = { id: 1, url: "https://boardgamearena.com/8/innovation?table=789", status: "complete", windowId: 10 };
     mockTabsGet.mockResolvedValueOnce(tab).mockResolvedValueOnce(tab);
@@ -1516,7 +1624,7 @@ describe("onConnect pushes cached results", () => {
 
     const rawData = makeRawData({ "1": "Alice", "2": "Bob" }, []);
     mockExecuteScript
-      .mockResolvedValueOnce([{ result: 2 }])
+      .mockResolvedValueOnce([{ result: gameFrameProbe() }])
       .mockResolvedValueOnce([{ result: rawData }]);
     const tab789 = { id: 1, url: "https://boardgamearena.com/8/innovation?table=789", status: "complete", windowId: 10 };
     mockTabsGet.mockResolvedValueOnce(tab789).mockResolvedValueOnce(tab789);
@@ -1555,7 +1663,7 @@ describe("onConnect pushes cached results", () => {
 
     const rawData = makeRawData({ "1": "Alice", "2": "Bob" }, []);
     mockExecuteScript
-      .mockResolvedValueOnce([{ result: 2 }])
+      .mockResolvedValueOnce([{ result: gameFrameProbe() }])
       .mockResolvedValueOnce([{ result: rawData }]);
     const gameTab = { id: 1, url: "https://boardgamearena.com/8/innovation?table=789", status: "complete", windowId: 10 };
     mockTabsGet.mockResolvedValueOnce(gameTab).mockResolvedValueOnce(gameTab);
@@ -1611,8 +1719,8 @@ describe("icon swap behavior", () => {
     triggerDisconnect();
     vi.clearAllMocks();
     mockSendMessage.mockImplementation(() => Promise.resolve());
-    // Probe returns 2 for game tabs (2-player game detected)
-    mockExecuteScript.mockResolvedValue([{ result: 2 }]);
+    // Probe reports a 2-player innovation board in the (single) frame
+    mockExecuteScript.mockResolvedValue([{ result: gameFrameProbe(2) }]);
   });
 
   afterEach(() => {
@@ -1670,7 +1778,7 @@ describe("icon swap behavior", () => {
   });
 
   it("sets normal icon on game URL when probe returns invalid player count", async () => {
-    mockExecuteScript.mockResolvedValueOnce([{ result: 3 }]);
+    mockExecuteScript.mockResolvedValueOnce([{ result: gameFrameProbe(3) }]);
     mockTabsGet.mockResolvedValueOnce({ id: 1, url: "https://boardgamearena.com/8/innovation?table=123", status: "complete" });
     listeners.onActivated({ tabId: 1 });
     await flushFlash();
@@ -1754,6 +1862,41 @@ describe("icon swap behavior", () => {
     await flushFlash();
 
     // Should not trigger any icon change
+    expect(mockSetIcon).not.toHaveBeenCalled();
+  });
+
+  it("lights the icon when the board iframe finishes loading (board missing at nav time)", async () => {
+    vi.clearAllMocks();
+    // Active tab is the /tableview shell; the board iframe hasn't loaded yet, so the probe finds no game
+    // and the icon is left dark (displayFrame 0).
+    const shellTab = { id: 7, url: "https://boardgamearena.com/tableview?table=123", status: "complete" };
+    mockTabsGet.mockResolvedValue(shellTab);
+    mockExecuteScript.mockResolvedValue([{ result: { players: 0, slug: null, tableNumber: "123", href: shellTab.url } }]);
+    listeners.onActivated({ tabId: 7 });
+    await flushFlash();
+
+    // Board iframe finishes loading — webNavigation.onCompleted fires for the board frame; the probe now
+    // finds the game in that frame, so the icon lights even though no tabs.onUpdated fired for the iframe.
+    mockExecuteScript.mockReset();
+    mockExecuteScript.mockResolvedValue([{ result: gameFrameProbe(2, "innovation", "123") }]);
+    mockSetIcon.mockClear();
+    listeners.onCompleted({ tabId: 7, frameId: 1, url: "https://boardgamearena.com/8/innovation?table=123" });
+    await flushFlash();
+    expectLastIconLit();
+  });
+
+  it("ignores board-frame load on a non-active tab", async () => {
+    vi.clearAllMocks();
+    // Make tab 7 active, on a non-table page so the icon is dark.
+    mockTabsGet.mockResolvedValue({ id: 7, url: "https://example.com", status: "complete" });
+    listeners.onActivated({ tabId: 7 });
+    await flushFlash();
+    mockSetIcon.mockClear();
+    mockExecuteScript.mockResolvedValue([{ result: gameFrameProbe(2, "innovation", "999") }]);
+
+    // A board frame finishes loading in a DIFFERENT (background) tab — must not touch the global icon.
+    listeners.onCompleted({ tabId: 99, frameId: 1, url: "https://boardgamearena.com/8/innovation?table=999" });
+    await flushFlash();
     expect(mockSetIcon).not.toHaveBeenCalled();
   });
 });

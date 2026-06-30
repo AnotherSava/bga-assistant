@@ -149,6 +149,18 @@ function maybeBgaSync(tabId: number, url: string | undefined): void {
   timeTracker.backupToBga(tabId).catch(() => {});
 }
 
+/**
+ * Drive the time tracker from a resolved game board. The board's frame URL carries the game slug that
+ * the /tableview shell URL lacks, so feeding it (rather than the top-frame URL) attributes the session
+ * to the right game. When no board resolved: on a non-table page pass the raw URL (so leaving a game
+ * ends its session); on a table page whose board hasn't resolved yet, leave the session untouched —
+ * passing the slug-less shell URL would chop the session on a transient probe miss.
+ */
+function trackTime(game: GameFrame | null, tabUrl: string | undefined, title: string | undefined): void {
+  if (game) timeTracker.handleFocusChange(game.url, title);
+  else if (!isPotentialTablePage(tabUrl)) timeTracker.handleFocusChange(tabUrl ?? null, title);
+}
+
 // Initialize activeTabId and icon on service worker startup
 chrome.tabs.query({ active: true, currentWindow: true }).then(async (tabs) => {
   // Close out any session orphaned by a crash/quit before re-establishing the current one, so a long
@@ -157,7 +169,7 @@ chrome.tabs.query({ active: true, currentWindow: true }).then(async (tabs) => {
   const tab = tabs[0];
   if (tab?.id) {
     activeTabId = tab.id;
-    updateIcon(tab.id, tab.url);
+    const game = await updateIcon(tab.id, tab.url);
     // Start the session for the already-focused tab — no tab/window event fires when the SW (re)starts
     // while the user is already sitting on a game table. Two guards:
     // - Only when recovery left no session running: a session that survived recovery (e.g. one mid-grace)
@@ -169,7 +181,7 @@ chrome.tabs.query({ active: true, currentWindow: true }).then(async (tabs) => {
     //   Querying the live idle state instead starts a session only when warranted; the "active" transition
     //   on the user's return starts it otherwise.
     if (!(await timeTracker.hasActiveSession()) && (await chrome.idle.queryState(IDLE_DETECTION_SECONDS)) === "active") {
-      timeTracker.handleFocusChange(tab.url ?? null, tab.title);
+      trackTime(game, tab.url, tab.title);
     }
   }
   syncHeartbeatAlarm();
@@ -188,17 +200,22 @@ chrome.idle.onStateChanged.addListener(async (state) => {
     // Gate on a Chrome window actually holding focus so a stray "active" (e.g. input racing an alt-tab
     // away) can't resurrect a session the focus handlers already ended.
     chrome.alarms.clear(IDLE_FINALIZE_ALARM);
-    let url: string | null = null;
-    let title: string | undefined;
+    let handled = false;
     try {
       const win = await chrome.windows.getLastFocused({ populate: true });
       if (win.focused) {
         const activeTab = win.tabs?.find((tab) => tab.active);
-        url = activeTab?.url ?? null;
-        title = activeTab?.title;
+        if (activeTab?.id != null) {
+          // Resolve the board frame so a /tableview table resumes its session — the slug-less shell URL
+          // can't continue it and would instead end it. updateIcon also re-lights the icon, matching the
+          // other focus handlers.
+          const game = await updateIcon(activeTab.id, activeTab.url);
+          trackTime(game, activeTab.url, activeTab.title);
+          handled = true;
+        }
       }
     } catch { /* no focused window — leave the session ended */ }
-    timeTracker.handleFocusChange(url, title);
+    if (!handled) timeTracker.handleFocusChange(null);
     syncHeartbeatAlarm();
   } else {
     // "idle" or "locked": begin the grace countdown if one isn't already pending.
@@ -260,19 +277,84 @@ function timeout(ms: number, message: string): Promise<never> {
   return new Promise((_resolve, reject) => setTimeout(() => reject(new Error(message)), ms));
 }
 
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// ---------------------------------------------------------------------------
+// Game-frame discovery
+// ---------------------------------------------------------------------------
+
+// BGA's modern layout serves the table at a /tableview?table=<id> shell page and embeds the actual
+// game board in a same-origin iframe (the classic /<gameId>/<gameslug>?table=<id> page). The game
+// framework global `gameui` lives only in that iframe, so detection and injection target *frames*:
+// the probe runs in every frame and the one with `gameui` loaded is the game board. Legacy direct
+// game URLs and replays are just the special case where the board is the top frame.
+
+/** Per-frame probe result (one per frame when probeGameTable is injected with allFrames). */
+export interface FrameProbe {
+  players: number;
+  slug: string | null;
+  tableNumber: string | null;
+  href: string;
+}
+
+/** A resolved game board — whichever frame (top or iframe) actually hosts the BGA game framework. */
+export interface GameFrame {
+  gameName: string;
+  tableNumber: string;
+  playerCount: number;
+  /** The board frame's own URL (always a classic /<gameId>/<slug>?table= URL, even when iframed under /tableview). */
+  url: string;
+}
+
+// Retry delay between probes: the board iframe loads after the /tableview shell, so the game frame
+// may not exist (or gameui may not be ready) on the first probe.
+const PROBE_RETRY_MS = 700;
+const ICON_PROBE_RETRIES = 1;
+const EXTRACT_RETRIES = 2;
+
 // ---------------------------------------------------------------------------
 // Icon helpers
 // ---------------------------------------------------------------------------
 
 /**
- * Probe function injected into the page to check if a game table is active.
- * Must be self-contained (no closures or external references).
- * Returns the number of players if gameui is loaded, 0 otherwise.
+ * Probe injected into every frame (MAIN world) to report that frame's BGA framework state.
+ * Must be self-contained (no closures or external references) — it is serialized for injection.
+ * Returns the player count (0 when gameui isn't loaded in this frame), the game slug and table id
+ * parsed from this frame's own URL, and the frame's href.
  */
-function probeGameTable(): number {
+function probeGameTable(): { players: number; slug: string | null; tableNumber: string | null; href: string } {
   const gui = (globalThis as any).gameui;
-  if (!gui?.ajaxcall || !gui.gamedatas?.players) return 0;
-  return Object.keys(gui.gamedatas.players).length;
+  const pathMatch = location.pathname.match(/^\/\d+\/(\w+)/);
+  const tableMatch = location.search.match(/[?&]table=(\d+)/);
+  const players = gui?.ajaxcall && gui.gamedatas?.players ? Object.keys(gui.gamedatas.players).length : 0;
+  return { players, slug: pathMatch ? pathMatch[1] : null, tableNumber: tableMatch ? tableMatch[1] : null, href: location.href };
+}
+
+/** Pick the game board from per-frame probe results: the frame with the BGA framework loaded (players > 0) and a parseable game slug + table id. Pure for testability. */
+export function selectGameFrame(frames: (FrameProbe | undefined)[]): GameFrame | null {
+  for (const frame of frames) {
+    if (frame && frame.players > 0 && frame.slug && frame.tableNumber) {
+      return { gameName: frame.slug, tableNumber: frame.tableNumber, playerCount: frame.players, url: frame.href };
+    }
+  }
+  return null;
+}
+
+/** Inject the all-frames probe and return the resolved game board, or null if none is found (after a few retries to let the board iframe finish loading). Returns null — never throws — on non-injectable pages (e.g. chrome://). */
+async function probeGameFrame(tabId: number, retries: number): Promise<GameFrame | null> {
+  for (let attempt = 0; ; attempt++) {
+    let results: chrome.scripting.InjectionResult[];
+    try {
+      results = await chrome.scripting.executeScript({ target: { tabId, allFrames: true }, func: probeGameTable, world: "MAIN" });
+    } catch {
+      return null;
+    }
+    const game = selectGameFrame(results.map((result) => result.result as FrameProbe | undefined));
+    if (game || attempt >= retries) return game;
+    await delay(PROBE_RETRY_MS);
+  }
 }
 
 // Icon frame paths: 0 = normal (dark), 1–8 = intermediate, 9 = fully lit
@@ -413,29 +495,28 @@ class IconController {
 
 const iconController = new IconController();
 
-/** Show lit icon when the tab has a supported game table open with a valid player count. */
-async function updateIcon(tabId: number, url: string | undefined): Promise<void> {
-  const nav = classifyNavigation(url);
-  if (nav.action !== "extract") {
+/**
+ * Light the icon when the tab has a supported game board (in any frame) with a valid player count.
+ * Returns the resolved game board (or null) so callers can also drive time tracking from its URL —
+ * the board's frame URL carries the game slug that the /tableview shell URL lacks.
+ */
+async function updateIcon(tabId: number, url: string | undefined): Promise<GameFrame | null> {
+  if (!isPotentialTablePage(url)) {
     iconController.run(tabId, iconController.getFrame() > 0 ? FADE_OUT : INSTANT_NORMAL);
-    return;
+    return null;
   }
-  try {
-    const results = await chrome.scripting.executeScript({ target: { tabId }, func: probeGameTable, world: "MAIN" });
-    const playerCount = (results?.[0]?.result as number) ?? 0;
-    const isGame = isValidPlayerCount(nav.gameName, playerCount);
-    if (isGame) {
-      if (iconController.getTabFrame(tabId) > 0) {
-        iconController.run(tabId, INSTANT_LIT);
-      } else {
-        iconController.run(tabId, sidePanelOpen ? FLASH_SHORT : FLASH_FULL);
-      }
+  const game = await probeGameFrame(tabId, ICON_PROBE_RETRIES);
+  const isGame = !!game && (SUPPORTED_GAMES as readonly string[]).includes(game.gameName) && isValidPlayerCount(game.gameName as GameName, game.playerCount);
+  if (isGame) {
+    if (iconController.getTabFrame(tabId) > 0) {
+      iconController.run(tabId, INSTANT_LIT);
     } else {
-      iconController.run(tabId, iconController.getFrame() > 0 ? FADE_OUT : INSTANT_NORMAL);
+      iconController.run(tabId, sidePanelOpen ? FLASH_SHORT : FLASH_FULL);
     }
-  } catch {
-    iconController.run(tabId, INSTANT_NORMAL);
+  } else {
+    iconController.run(tabId, iconController.getFrame() > 0 ? FADE_OUT : INSTANT_NORMAL);
   }
+  return game;
 }
 
 // ---------------------------------------------------------------------------
@@ -465,7 +546,10 @@ export function watcherFunction(): void {
 }
 
 function injectWatcher(tabId: number): void {
-  chrome.scripting.executeScript({ target: { tabId }, func: watcherFunction, world: "ISOLATED" as any });
+  // All frames: the live log container (#logs / #game_play_area) lives in the board iframe under the
+  // /tableview shell. watcherFunction self-bails in frames without a log container, so only the board
+  // frame ends up observing.
+  chrome.scripting.executeScript({ target: { tabId, allFrames: true }, func: watcherFunction, world: "ISOLATED" as any });
   liveTabId = tabId;
   chrome.runtime.sendMessage({ type: "liveStatus", active: true }).catch(() => {});
 }
@@ -506,7 +590,7 @@ function triggerLiveExtraction(): void {
   const previousPacketCount = lastResults?.rawData?.packets?.length ?? 0;
   clearDeferredExtraction();
   extracting = true;
-  extractFromTab(liveTabId, "", liveGameName as GameName, liveTableNumber, true)
+  extractFromTab(liveTabId, liveTableNumber, true)
     .then(() => {
       const newPacketCount = lastResults?.rawData?.packets?.length ?? 0;
       if (newPacketCount !== previousPacketCount) {
@@ -550,6 +634,22 @@ export function classifyNavigation(url: string | undefined): NavigationAction {
 }
 
 /**
+ * Whether a URL could host a BGA game board — a BGA page carrying a table id. Covers the classic game
+ * URL (/<gameId>/<slug>?table=) and the modern shell pages (/tableview?table=, /table?table=) that
+ * embed the board in an iframe. The game slug isn't knowable from a shell URL, so the actual game is
+ * resolved by probing the tab's frames; this gate just decides when that probe is worth doing.
+ */
+export function isPotentialTablePage(url: string | undefined): boolean {
+  return !!url && BGA_DOMAIN_PATTERN.test(url) && /[?&]table=\d+/.test(url);
+}
+
+/** The table id from a BGA URL's query string, or null. */
+function tableNumberFromUrl(url: string | undefined): string | null {
+  const match = url?.match(/[?&]table=(\d+)/);
+  return match ? match[1] : null;
+}
+
+/**
  * Determine whether the side panel should auto-close for a given URL and pin mode.
  * Pure function — no side effects, easy to test.
  */
@@ -567,115 +667,90 @@ export function shouldAutoClose(url: string | undefined, mode: PinMode): boolean
 // Extraction helper
 // ---------------------------------------------------------------------------
 
+/** Pick the game board's extraction (the frame whose script found the BGA framework) from per-frame results; null when no frame had it loaded. */
+function pickExtraction(results: chrome.scripting.InjectionResult[]): RawExtractionData | null {
+  for (const result of results) {
+    const value = result.result as Record<string, unknown> | undefined;
+    if (value && !value.error && typeof value.gameName === "string") return value as unknown as RawExtractionData;
+  }
+  return null;
+}
+
 /**
- * Inject extract.js, run the pipeline, and notify the side panel.
- * Shared by click handler and navigation listeners.
+ * Inject extract.js into every frame, pick the game board's data, run the pipeline (for supported
+ * games), and notify the side panel. The board is iframed under the /tableview shell in BGA's modern
+ * layout, so injection targets all frames and the game frame is the one whose script finds the BGA
+ * framework; the game slug comes from that frame's data, not the (slug-less) shell URL. Retries a few
+ * times to let the board iframe finish loading. Shared by click, navigation, and live paths.
+ *
+ * Returns false when no game board is found in any frame (a non-game page, or a table shell whose
+ * board hasn't loaded) — callers fall back to the help view. Throws only when the pipeline rejects a
+ * supported game (e.g. an invalid player count); lastResults then holds the raw data for download.
  */
-async function extractFromTab(tabId: number, url: string, gameName: GameName, tableNumber?: string, skipNotify = false): Promise<void> {
-  const extractionPromise = chrome.scripting.executeScript({
-    target: { tabId },
-    files: ["dist/extract.js"],
-    world: "MAIN",
-  });
-  // Suppress unhandled rejection if extraction settles after timeout
-  extractionPromise.catch(() => {});
-
-  const results = await Promise.race([
-    extractionPromise,
-    timeout(EXTRACTION_TIMEOUT_MS, "Extraction timed out"),
-  ]);
-
-  const extractResult = (results as chrome.scripting.InjectionResult[])[0]?.result;
-  if (!extractResult || (extractResult as Record<string, unknown>).error) {
-    const msg = (extractResult as Record<string, unknown>)?.msg ?? "No result from extraction";
-    throw new Error("Extraction failed: " + msg);
+async function extractFromTab(tabId: number, tableNumber: string, skipNotify = false): Promise<boolean> {
+  let rawData: RawExtractionData | null = null;
+  for (let attempt = 0; attempt <= EXTRACT_RETRIES; attempt++) {
+    const extractionPromise = chrome.scripting.executeScript({ target: { tabId, allFrames: true }, files: ["dist/extract.js"], world: "MAIN" });
+    extractionPromise.catch(() => {}); // suppress unhandled rejection if it settles after the timeout
+    const results = await Promise.race([extractionPromise, timeout(EXTRACTION_TIMEOUT_MS, "Extraction timed out")]) as chrome.scripting.InjectionResult[];
+    rawData = pickExtraction(results);
+    if (rawData) break;
+    if (attempt < EXTRACT_RETRIES) await delay(PROBE_RETRY_MS);
   }
+  if (!rawData) { console.log("[extract] no game board found in any frame"); return false; }
 
-  const tblNum = tableNumber ?? url.match(/table=(\d+)/)?.[1] ?? "unknown";
-  const rawData = extractResult as RawExtractionData;
-  recordTableMode(tblNum, rawData);
-  recordTableType(Number(tblNum), tabId);
-  try {
-    lastResults = runPipeline(rawData, cardDb, tblNum, gameName);
-  } catch (err) {
-    // Preserve raw data for download even when the pipeline fails
-    lastResults = { gameName, tableNumber: tblNum, rawData, gameLog: null, gameState: null };
-    throw err;
+  const gameName = rawData.gameName;
+  recordTableMode(tableNumber, rawData);
+  recordTableType(Number(tableNumber), tabId);
+
+  if ((SUPPORTED_GAMES as readonly string[]).includes(gameName)) {
+    try {
+      lastResults = runPipeline(rawData, cardDb, tableNumber, gameName as GameName);
+    } catch (err) {
+      // Preserve raw data for download even when the pipeline fails.
+      lastResults = { gameName, tableNumber, rawData, gameLog: null, gameState: null };
+      throw err;
+    }
+    console.log("Pipeline complete:", Object.keys(lastResults));
+    if (sidePanelOpen) injectWatcher(tabId);
+  } else {
+    lastResults = { gameName, tableNumber, rawData, gameLog: null, gameState: null };
+    stopLiveTracking("unsupported game");
   }
-  console.log("Pipeline complete:", Object.keys(lastResults));
 
   lastExtractionTime = Date.now();
-
-  // Inject watcher for live tracking after successful extraction
-  if (sidePanelOpen) {
-    injectWatcher(tabId);
-  }
-
-  // Notify side panel of new results
-  if (!skipNotify) {
-    chrome.runtime.sendMessage({ type: "resultsReady", results: lastResults }).catch(() => {});
-  }
+  if (!skipNotify) chrome.runtime.sendMessage({ type: "resultsReady", results: lastResults }).catch(() => {});
+  return true;
 }
 
 // ---------------------------------------------------------------------------
-// Content resolution helpers
+// Content resolution
 // ---------------------------------------------------------------------------
-
-/** Extract raw data from a tab for unsupported games (no pipeline processing). */
-async function extractRawDataAsResults(tabId: number, tableNumber: string, gameName: string): Promise<void> {
-  try {
-    const extractionPromise = chrome.scripting.executeScript({ target: { tabId }, files: ["dist/extract.js"], world: "MAIN" });
-    // Suppress unhandled rejection if extraction settles after timeout
-    extractionPromise.catch(() => {});
-    const results = await Promise.race([
-      extractionPromise,
-      timeout(EXTRACTION_TIMEOUT_MS, "Extraction timed out"),
-    ]);
-    const extractResult = (results as chrome.scripting.InjectionResult[])[0]?.result;
-    if (extractResult && !(extractResult as Record<string, unknown>).error) {
-      const rawData = extractResult as RawExtractionData;
-      recordTableMode(tableNumber, rawData);
-      recordTableType(Number(tableNumber), tabId);
-      lastResults = { gameName, tableNumber, rawData, gameLog: null, gameState: null };
-    } else {
-      lastResults = null;
-    }
-  } catch {
-    lastResults = null;
-  }
-}
 
 /**
- * Evaluate a tab and update side panel content accordingly.
- * Handles extract, unsupported game, and help actions.
- * Throws on extraction errors — callers handle error display.
+ * Evaluate a tab and update side panel content accordingly: extract and process a game board (in any
+ * frame), or fall back to the help view. Throws only on a pipeline error for a supported game —
+ * callers handle that error display.
  */
 async function resolveContent(tabId: number, tabUrl: string, source: ExtractionSource): Promise<void> {
-  const nav = classifyNavigation(tabUrl);
-
-  if (nav.action === "extract") {
-    if (shouldShowLoading(source) && lastResults?.tableNumber !== nav.tableNumber) {
-      chrome.runtime.sendMessage({ type: "loading" }).catch(() => {});
-    }
-    await extractFromTab(tabId, tabUrl, nav.gameName, nav.tableNumber);
+  if (!isPotentialTablePage(tabUrl)) {
+    lastResults = null;
+    stopLiveTracking(source + ": not a game");
+    chrome.runtime.sendMessage({ type: "notAGame" }).catch(() => {});
     return;
   }
 
-  if (nav.action === "unsupportedGame") {
-    stopLiveTracking(source + ": unsupported game");
-    await extractRawDataAsResults(tabId, nav.tableNumber, nav.gameName);
-    if (lastResults) {
-      chrome.runtime.sendMessage({ type: "resultsReady", results: lastResults }).catch(() => {});
-    } else {
-      chrome.runtime.sendMessage({ type: "notAGame" }).catch(() => {});
-    }
-    return;
+  const tableNumber = tableNumberFromUrl(tabUrl) ?? "unknown";
+  if (shouldShowLoading(source) && lastResults?.tableNumber !== tableNumber) {
+    chrome.runtime.sendMessage({ type: "loading" }).catch(() => {});
   }
 
-  // showHelp
-  lastResults = null;
-  stopLiveTracking(source + ": not a game");
-  chrome.runtime.sendMessage({ type: "notAGame" }).catch(() => {});
+  const found = await extractFromTab(tabId, tableNumber);
+  if (!found) {
+    lastResults = null;
+    stopLiveTracking(source + ": no game board");
+    chrome.runtime.sendMessage({ type: "notAGame" }).catch(() => {});
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -696,8 +771,7 @@ chrome.runtime.onConnect.addListener((port: chrome.runtime.Port) => {
     activeTabId = tab.id;
 
     // If cached results match the active tab's table, push them immediately
-    const nav = classifyNavigation(tab.url);
-    const activeTable = nav.action === "extract" || nav.action === "unsupportedGame" ? nav.tableNumber : null;
+    const activeTable = tableNumberFromUrl(tab.url);
     if (lastResults && lastResults.tableNumber === activeTable) {
       chrome.runtime.sendMessage({ type: "resultsReady", results: lastResults }).catch(() => {});
       return;
@@ -759,14 +833,13 @@ async function togglePanel(tabId: number): Promise<void> {
       tab = await chrome.tabs.get(tabId);
     } catch { return; }
 
-    // Non-game pages resolve immediately without badge
-    const clickNav = classifyNavigation(tab.url);
-    if (clickNav.action === "showHelp") {
+    // Non-table pages resolve immediately without badge
+    if (!isPotentialTablePage(tab.url)) {
       await resolveContent(tabId, tab.url ?? "", "click");
       return;
     }
 
-    // Extraction needed (supported or unsupported game)
+    // A table page — extract (the board may be a supported game, an unsupported game, or still loading)
     setBadge(tabId, "...", "#1976D2");
     await resolveContent(tabId, tab.url ?? "", "click");
     if (lastResults) setBadge(tabId, "\u2713", "#388E3C");
@@ -847,8 +920,9 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
   // Update lit icon based on whether tab is a supported game
   try {
     const tab = await chrome.tabs.get(activeInfo.tabId);
-    updateIcon(activeInfo.tabId, tab.url);
-    timeTracker.handleFocusChange(tab.url ?? null, tab.title);
+    const game = await updateIcon(activeInfo.tabId, tab.url);
+    if (activeInfo.tabId !== activeTabId) return; // a newer activation superseded this one while probing
+    trackTime(game, tab.url, tab.title);
     maybeBgaSync(activeInfo.tabId, tab.url);
     syncHeartbeatAlarm();
   } catch { /* tab may have been closed */ }
@@ -873,9 +947,10 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
   if (!isPageLoadComplete && !isSpaNavigation) return;
   console.log("[nav] onUpdated: triggered", isPageLoadComplete ? "pageLoad" : "SPA", changeInfo.url ?? "");
   // Update lit icon based on whether tab is a supported game
-  chrome.tabs.get(tabId).then((tab) => {
-    updateIcon(tabId, tab.url);
-    timeTracker.handleFocusChange(tab.url ?? null, tab.title);
+  chrome.tabs.get(tabId).then(async (tab) => {
+    const game = await updateIcon(tabId, tab.url);
+    if (tabId !== activeTabId) return; // the active tab changed while the board was resolving
+    trackTime(game, tab.url, tab.title);
     maybeBgaSync(tabId, tab.url);
     syncHeartbeatAlarm();
   }).catch(() => {});
@@ -888,6 +963,25 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
   console.log("[nav] onUpdated: handleNavigation tab", tabId);
   handleNavigation(tabId);
 });
+
+// React to a game board FRAME finishing load. BGA embeds the board in an iframe under the /tableview
+// shell page, and sub-frame loads do NOT fire chrome.tabs.onUpdated — so without this the toolbar icon
+// would miss the late-loading iframe and stay dark (until the next focus/activate re-probes), most
+// noticeably while the side panel is closed. When the active tab's board frame finishes loading, the
+// probe can finally see gameui, so re-light the icon.
+chrome.webNavigation.onCompleted.addListener((details) => {
+  if (details.tabId !== activeTabId) return;
+  if (!parseGameTableUrl(details.url)) return; // only the real game-board frame, not the /tableview shell or loader
+  chrome.tabs.get(details.tabId).then(async (tab) => {
+    const game = await updateIcon(details.tabId, tab.url);
+    if (details.tabId !== activeTabId) return; // tab switched while the board was resolving
+    // This is also the only event that fires when a board iframe finishes loading after its /tableview
+    // shell, so it's where a late-resolving board must (re)attribute the play-time session — otherwise the
+    // tracker stays on the previous table while the new one is played.
+    trackTime(game, tab.url, tab.title);
+    syncHeartbeatAlarm();
+  }).catch(() => {});
+}, { url: [{ hostSuffix: "boardgamearena.com" }] });
 
 chrome.tabs.onRemoved.addListener((tabId) => {
   if (tabId === activeTabId) {
@@ -910,8 +1004,9 @@ chrome.windows.onFocusChanged.addListener(async (windowId) => {
   const tab = tabs[0];
   if (!tab?.id) return;
   activeTabId = tab.id;
-  updateIcon(tab.id, tab.url);
-  timeTracker.handleFocusChange(tab.url ?? null, tab.title);
+  const game = await updateIcon(tab.id, tab.url);
+  if (tab.id !== activeTabId) return; // focus moved again while the board was resolving
+  trackTime(game, tab.url, tab.title);
   syncHeartbeatAlarm();
   if (!sidePanelOpen) return;
   if (extracting) {

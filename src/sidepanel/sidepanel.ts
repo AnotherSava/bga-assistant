@@ -1059,9 +1059,11 @@ if (typeof chrome !== "undefined" && chrome.runtime?.onMessage) {
         }
       }
     } else if (message.type === "loading") {
-      // "loading" is only sent when navigating to a different *supported* table, so it should
-      // leave the stats page (with feedback). It never fires during idle same-table revival.
+      // "loading" precedes extraction on any table page (a different supported table, or a still-resolving
+      // /tableview shell whose game isn't known yet), so — like notAGame/gameError — it must not tear down
+      // an open stats page. It never fires during idle same-table revival.
       currentResults = null;
+      if (statsPageOpen()) return;
       closeMenus();
       const btnSections = document.getElementById("btn-sections");
       if (btnSections) btnSections.classList.add("disabled");

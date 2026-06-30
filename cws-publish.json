@@ -10,6 +10,7 @@
     "sidePanel": "Displays a visual game state summary in a Chrome side panel alongside the BGA game page.",
     "storage": "Stores reconstructed game state, user display preferences (section visibility, zoom, toggles), and the play-time session history locally so they persist across browser sessions. No data is transmitted anywhere.",
     "tabs": "Detects when the user navigates to or switches between BGA game tabs to automatically update the side panel content.",
+    "webNavigation": "Detects when the in-page game board finishes loading inside BGA's iframe-based table layout, so the toolbar icon lights up and the side panel updates at the right moment.",
     "host:boardgamearena.com": "Accesses game log data on boardgamearena.com pages to reconstruct and display game state."
   },
   "storeListing": {
@@ -26,5 +27,5 @@
     "collectedDataTypes": [],
     "certifiedDisclosures": true
   },
-  "lastPublished": { "version": "1.2.0", "date": "2026-06-06" }
+  "lastPublished": { "version": "1.3.0", "date": "2026-06-18" }
 }

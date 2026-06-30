@@ -1,10 +1,10 @@
 {
   "manifest_version": 3,
   "name": "BGA Assistant",
-  "version": "1.3.0",
+  "version": "1.3.1",
   "description": "Game assistant for Board Game Arena.",
   "homepage_url": "https://anothersava.github.io/bga-assistant/",
-  "permissions": ["activeTab", "alarms", "idle", "scripting", "sidePanel", "storage", "tabs"],
+  "permissions": ["activeTab", "alarms", "idle", "scripting", "sidePanel", "storage", "tabs", "webNavigation"],
   "host_permissions": ["https://boardgamearena.com/*", "https://*.boardgamearena.com/*"],
   "action": {
     "default_icon": {

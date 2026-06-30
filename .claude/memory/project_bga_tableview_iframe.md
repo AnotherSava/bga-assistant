@@ -1,0 +1,18 @@
+---
+name: project_bga_tableview_iframe
+description: BGA serves the game board in an iframe under a /tableview shell; detection+injection must be all-frames
+metadata:
+  type: project
+---
+
+BGA's 2025–2026 Svelte modernization changed how a table opens: the top-level page is now a shell at `https://boardgamearena.com/tableview?table=<id>` (no `gameui`), and the actual playable board runs in a **same-origin iframe** whose `src` is the classic `https://boardgamearena.com/<gameId>/<gameslug>?table=<id>` page. `gameui` (and `gameui.ajaxcall`, `gamedatas`, etc.) live **only in that iframe**. There's also a `…/blank?gsgameurl=…` loader frame. `/table?table=<id>` redirects to `/tableview`. Confirmed live (table 847667119, The Crew) June 2026 — top frame `gameui:undefined`, child frame `gameui:object`.
+
+This silently broke the extension: it detected/injected against the **top** frame, so `tab.url` (`/tableview?table=`) failed the `/<digits>/<slug>?table=` URL regex (→ help page, dark icon) and any top-frame injection found no `gameui`. **No BGA URL-string change and no Chrome change** — verified by research; the in-iframe board URL is unchanged, it just moved into an iframe.
+
+Fix (commit on this work): detection + injection are **all-frames**. `extract.js`, the icon probe (`probeGameTable`), and the live watcher inject with `target: { tabId, allFrames: true }`; the game is whichever frame reports `gameui` loaded. The game slug comes from that frame's data, not the shell URL. Background helpers: `isPotentialTablePage(url)` (BGA + `table=` gate, covers `/tableview` `/table` and legacy), `selectGameFrame(frames)` (pure picker), `probeGameFrame(tabId, retries)` (retries because the iframe loads after the top frame and sub-frame loads don't re-fire `tabs.onUpdated`). Time tracking is fed the **board frame's** URL so `/tableview` sessions still attribute to the right game. `classifyNavigation` is kept (pure, for legacy URLs + `shouldAutoClose`).
+
+The toolbar icon was still missing the late-loading iframe when the side panel was closed (the nav-time probe ran before the board existed and nothing re-fired). Fix: a `chrome.webNavigation.onCompleted` listener (new `webNavigation` permission — same "Read your browsing history" warning bucket as `tabs`, so no new user-facing warning) re-runs `updateIcon` for the active tab when a game-board **frame** (`parseGameTableUrl(url)` non-null — not the `/tableview` shell or `/blank` loader) finishes loading. Justification added to `cws-publish.json`.
+
+That `onCompleted` event is also the only signal when a board iframe finishes after its shell, so it must drive **time tracking** too (not just the icon): it calls `trackTime` + `syncHeartbeatAlarm`, or a late-resolving board never (re)attributes its session. Related time-tracking fixes from the same review: the three focus handlers re-check `tabId === activeTabId` after awaiting `updateIcon` (a slow probe could otherwise resurrect a session for a tab the user already left), and the idle→active handler resolves the board frame and routes through `trackTime` (the raw `/tableview` shell URL would end the session instead of resuming it). The sidepanel `loading` handler is guarded with `statsPageOpen()` so a tab switch to a table page can't wipe an open stats page. Deferred LOW findings tracked in `.claude/memos.md` (lobby loading flash, autohide-game on unsupported `/tableview`, swallowed board errors). Shipped in 1.3.1.
+
+See also [[project_bga_mode_detection]], [[project_bga_table_type]]. General gotcha captured in `~/.claude/learnings/chrome-extension.md` (Content Scripts — MAIN vs ISOLATED World).

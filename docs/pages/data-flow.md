@@ -23,8 +23,19 @@ on the receiving side.
 
 ### Content Script
 
-Runs in the **MAIN world** of the BGA game page. Returns raw extraction data to the
+Runs in the **MAIN world** of the BGA game board. Returns raw extraction data to the
 *Background Service Worker*.
+
+BGA's modern layout serves a table at a `/tableview?table=<id>` shell page and embeds the actual
+board in a same-origin **iframe** (the classic `/<gameId>/<slug>?table=<id>` page); the `gameui`
+global lives only in that frame. So extraction (and the icon probe and live watcher) inject into
+**all frames** of the tab — the board is whichever frame finds `gameui` loaded. Legacy direct game
+URLs and replays are the special case where the board is the top frame.
+
+The board iframe loads *after* the shell, and sub-frame loads don't fire `chrome.tabs.onUpdated`, so a
+`chrome.webNavigation.onCompleted` listener (requires the `webNavigation` permission) re-runs the icon
+probe for the active tab once a game-board frame finishes loading — otherwise the toolbar icon would
+miss the late iframe and stay dark, most visibly while the side panel is closed.
 
 Must be fully self-contained — injected via `chrome.scripting.executeScript()`, so any
 references to module-level code are undefined after Chrome serializes the function.
@@ -94,13 +105,10 @@ Triggers:
 
 ***Background Service Worker***
 
-1. Classify the current tab URL via `background.classifyNavigation()`:
-   - `"extract"` — supported game, continue below
-   - `"unsupportedGame"` — BGA game table but unsupported game, continue below
-   - `"showHelp"` — not a BGA game page, send `"notAGame"` to *Side Panel*
-2. Determine gameName and tableNumber, lock against concurrent extractions
-3. Send `"loading"` message to *Side Panel* (supported games only)
-4. Inject `dist/extract.js` into the BGA page
+1. Gate on `background.isPotentialTablePage()` — a BGA URL carrying a `table=` id. This covers the classic `/<gameId>/<slug>?table=` board URL and the modern `/tableview?table=` / `/table?table=` shell pages (which embed the board in an iframe). If it isn't one, send `"notAGame"` to the *Side Panel* (help page) and stop.
+2. Read the table number from the URL's `table=` param — the slug-less `/tableview` shell URL still carries it. Lock against concurrent extractions.
+3. Send `"loading"` message to *Side Panel*
+4. Inject `dist/extract.js` into **all frames** of the tab (MAIN world). Retry a few times to let the board iframe finish loading. The game slug isn't knowable from the shell URL, so it comes from the resolved board frame's data (next), not the tab URL.
 
 ```
 ⇩   (no data passed to Content Script)
@@ -108,9 +116,9 @@ Triggers:
 
 ***Content Script***
 
-1. Read player info (id, name, BGA color hex, observer flag) and current hand contents from `gameui.gamedatas`
+1. Read player info (id, name, BGA color hex, observer flag) and current hand contents from `gameui.gamedatas` (frames without `gameui` — the shell and loader frames — return `{ error }` instead)
 2. Fetch full notification history via `gameui.ajaxcall()`
-3. Extract game name from page URL pathname
+3. Extract game name from this frame's URL pathname
 4. Package results as `RawExtractionData`
 
 ```
@@ -119,7 +127,7 @@ Triggers:
 ⇩   PlayerInfo: { id, name, colorHex (BGA hex, no `#`), isCurrent }
 ```
 
-***Background Service Worker*** — branches here based on classification:
+***Background Service Worker*** — picks the successful (non-`error`) frame result as the board's `RawExtractionData`; the game slug it reports decides the branch. (No board frame after the retries — the iframe never loaded, or it isn't a game — falls back to `"notAGame"` / the help page.) Branches on whether that game is supported:
 
 <table>
 <tr>
@@ -194,7 +202,7 @@ and re-running the extraction pipeline. Initiated by the watcher injection in
 
 ***Content Script*** (watcher)
 
-1. Observe DOM mutations on `#logs` / `#game_play_area` via `MutationObserver`
+1. Observe DOM mutations on `#logs` / `#game_play_area` via `MutationObserver` (injected into all frames; self-bails where no log container exists, so only the board frame observes)
 2. Wait for changes to settle (2000ms quiet period) before notifying
 
 ```
@@ -238,7 +246,7 @@ Triggers:
 
 ***Background Service Worker***
 
-1. Query the active tab and classify its URL via `background.classifyNavigation()`
+1. Query the active tab and read its table number via `background.tableNumberFromUrl()`
 2. Compare the active tab's table number against `lastResults?.tableNumber`:
    - **Same table**: push cached `"resultsReady"` immediately (no loading flash)
    - **Different table** (user navigated while panel was closed): run `background.resolveContent()` with `source: "reopen"` — shows `"loading"`, then extracts fresh results
