@@ -635,12 +635,16 @@ export function classifyNavigation(url: string | undefined): NavigationAction {
 
 /**
  * Whether a URL could host a BGA game board — a BGA page carrying a table id. Covers the classic game
- * URL (/<gameId>/<slug>?table=) and the modern shell pages (/tableview?table=, /table?table=) that
- * embed the board in an iframe. The game slug isn't knowable from a shell URL, so the actual game is
+ * URL (/<gameId>/<slug>?table=) and the modern /tableview?table= shell that embeds the board in an
+ * iframe. Excludes the classic /table?table= page: that's the pre-game lobby/management view, which
+ * never hosts a board, so it resolves to help immediately instead of flashing a spinner and burning
+ * extraction retries. The game slug isn't knowable from the /tableview shell URL, so the actual game is
  * resolved by probing the tab's frames; this gate just decides when that probe is worth doing.
  */
 export function isPotentialTablePage(url: string | undefined): boolean {
-  return !!url && BGA_DOMAIN_PATTERN.test(url) && /[?&]table=\d+/.test(url);
+  if (!url || !BGA_DOMAIN_PATTERN.test(url) || !/[?&]table=\d+/.test(url)) return false;
+  if (/^https:\/\/[^/]+\/table\?/.test(url)) return false; // /table?table= is the lobby, not a board
+  return true;
 }
 
 /** The table id from a BGA URL's query string, or null. */
@@ -667,13 +671,20 @@ export function shouldAutoClose(url: string | undefined, mode: PinMode): boolean
 // Extraction helper
 // ---------------------------------------------------------------------------
 
-/** Pick the game board's extraction (the frame whose script found the BGA framework) from per-frame results; null when no frame had it loaded. */
-function pickExtraction(results: chrome.scripting.InjectionResult[]): RawExtractionData | null {
+/**
+ * Pick the game board's extraction (the frame whose script found the BGA framework) from per-frame
+ * results. Returns the board's rawData when a frame succeeded; otherwise reports a real board error
+ * (gameui present but extraction failed) if one was seen, so the caller can distinguish that from
+ * "no frame was the board" (the shell/loader frames return { notGame } and are skipped silently).
+ */
+function pickExtraction(results: chrome.scripting.InjectionResult[]): { rawData: RawExtractionData | null; boardError: string | null } {
+  let boardError: string | null = null;
   for (const result of results) {
     const value = result.result as Record<string, unknown> | undefined;
-    if (value && !value.error && typeof value.gameName === "string") return value as unknown as RawExtractionData;
+    if (value && !value.error && !value.notGame && typeof value.gameName === "string") return { rawData: value as unknown as RawExtractionData, boardError };
+    if (value?.error && typeof value.msg === "string") boardError = value.msg;
   }
-  return null;
+  return { rawData: null, boardError };
 }
 
 /**
@@ -689,15 +700,29 @@ function pickExtraction(results: chrome.scripting.InjectionResult[]): RawExtract
  */
 async function extractFromTab(tabId: number, tableNumber: string, skipNotify = false): Promise<boolean> {
   let rawData: RawExtractionData | null = null;
+  let boardError: string | null = null;
   for (let attempt = 0; attempt <= EXTRACT_RETRIES; attempt++) {
     const extractionPromise = chrome.scripting.executeScript({ target: { tabId, allFrames: true }, files: ["dist/extract.js"], world: "MAIN" });
     extractionPromise.catch(() => {}); // suppress unhandled rejection if it settles after the timeout
     const results = await Promise.race([extractionPromise, timeout(EXTRACTION_TIMEOUT_MS, "Extraction timed out")]) as chrome.scripting.InjectionResult[];
-    rawData = pickExtraction(results);
-    if (rawData) break;
+    const picked = pickExtraction(results);
+    if (picked.rawData) { rawData = picked.rawData; break; }
+    boardError = picked.boardError ?? boardError; // sticky: a later all-notGame attempt can't erase a real error
     if (attempt < EXTRACT_RETRIES) await delay(PROBE_RETRY_MS);
   }
-  if (!rawData) { console.log("[extract] no game board found in any frame"); return false; }
+  if (!rawData) {
+    // A board frame that reported a real error (gameui present but extraction failed) is surfaced so the
+    // click/live paths show it (ERR badge / gameError); every frame merely "not the board" (shell/loader)
+    // falls back to the help view.
+    if (boardError) {
+      // No frame produced data, so there's nothing to offer for download — clear lastResults so the click
+      // path's gameError can't forward (and re-offer the download of) a *previous* table's stale results.
+      lastResults = null;
+      throw new Error("Extraction failed: " + boardError);
+    }
+    console.log("[extract] no game board found in any frame");
+    return false;
+  }
 
   const gameName = rawData.gameName;
   recordTableMode(tableNumber, rawData);
@@ -899,6 +924,21 @@ async function handleNavigation(initialTabId: number, source: ExtractionSource =
       }
 
       await resolveContent(tabId, tab.url ?? "", source);
+
+      // autohide-game also closes on an unsupported game whose identity only became known after extraction:
+      // the slug-less /tableview shell URL doesn't reveal it, so the pre-extraction check above (which keys
+      // off the URL) can't. lastResults holds the game resolved by resolveContent.
+      if (pinMode === "autohide-game" && lastResults && !(SUPPORTED_GAMES as readonly string[]).includes(lastResults.gameName)) {
+        try {
+          await chrome.sidePanel.close({ windowId: tab.windowId });
+        } catch (err) {
+          console.warn("Could not close side panel:", err);
+        }
+        // extractFromTab already stopped live tracking for the unsupported game before lastResults was set.
+        lastResults = null;
+        updateIcon(tabId, tab.url);
+        break;
+      }
     } catch (err) {
       console.warn("Navigation error:", err);
       lastResults = null;

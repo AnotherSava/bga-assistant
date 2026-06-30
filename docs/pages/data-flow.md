@@ -105,7 +105,7 @@ Triggers:
 
 ***Background Service Worker***
 
-1. Gate on `background.isPotentialTablePage()` — a BGA URL carrying a `table=` id. This covers the classic `/<gameId>/<slug>?table=` board URL and the modern `/tableview?table=` / `/table?table=` shell pages (which embed the board in an iframe). If it isn't one, send `"notAGame"` to the *Side Panel* (help page) and stop.
+1. Gate on `background.isPotentialTablePage()` — a BGA URL carrying a `table=` id. This covers the classic `/<gameId>/<slug>?table=` board URL and the modern `/tableview?table=` shell that embeds the board in an iframe. It excludes the classic `/table?table=` page — the board-less pre-game lobby (which redirects to `/tableview`) — so that resolves to help immediately instead of flashing a spinner and burning extraction retries. If it isn't a potential table page, send `"notAGame"` to the *Side Panel* (help page) and stop.
 2. Read the table number from the URL's `table=` param — the slug-less `/tableview` shell URL still carries it. Lock against concurrent extractions.
 3. Send `"loading"` message to *Side Panel*
 4. Inject `dist/extract.js` into **all frames** of the tab (MAIN world). Retry a few times to let the board iframe finish loading. The game slug isn't knowable from the shell URL, so it comes from the resolved board frame's data (next), not the tab URL.
@@ -116,7 +116,7 @@ Triggers:
 
 ***Content Script***
 
-1. Read player info (id, name, BGA color hex, observer flag) and current hand contents from `gameui.gamedatas` (frames without `gameui` — the shell and loader frames — return `{ error }` instead)
+1. Read player info (id, name, BGA color hex, observer flag) and current hand contents from `gameui.gamedatas` (frames that aren't the board — the shell and loader frames — return `{ notGame: true }` instead, which the background skips silently; a frame that *has* `gameui` but fails returns `{ error, msg }`, which surfaces as an error rather than the help page)
 2. Fetch full notification history via `gameui.ajaxcall()`
 3. Extract game name from this frame's URL pathname
 4. Package results as `RawExtractionData`

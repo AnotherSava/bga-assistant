@@ -17,8 +17,11 @@
 export async function extractGameData(): Promise<Record<string, unknown>> {
   // Resolves with { error, msg } instead of rejecting because Chrome's
   // executeScript wraps rejections in generic errors, losing the message.
+  // `notGame` (vs `error`) marks "this frame simply isn't the game board" — when injected into all
+  // frames, the shell and loader frames return it and the caller skips them silently, whereas a real
+  // `error` (gameui present but extraction failed) must surface to the user.
   const tableMatch = window.location.search.match(/table=(\d+)/);
-  if (!tableMatch) return { error: true, msg: "No table= param in URL" };
+  if (!tableMatch) return { notGame: true };
   const tableId = parseInt(tableMatch[1]);
 
   // BGA URLs: /<N>/<game> or /<N>/<game>/<game> — endpoint always uses /<N>/<game>/<game>/
@@ -28,7 +31,7 @@ export async function extractGameData(): Promise<Record<string, unknown>> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const gui = (globalThis as any).gameui;
   if (!gui || !gui.ajaxcall) {
-    return { error: true, msg: "gameui not available — is this a BGA game page?" };
+    return { notGame: true };
   }
 
   return new Promise<Record<string, unknown>>((resolve) => {

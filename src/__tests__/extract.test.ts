@@ -35,23 +35,23 @@ describe("extractGameData", () => {
     };
   }
 
-  it("returns error when no table= param in URL", async () => {
+  it("returns notGame when no table= param in URL", async () => {
     setLocation("", "/123/innovation");
     const result = await extractGameData();
-    expect(result).toEqual({ error: true, msg: "No table= param in URL" });
+    expect(result).toEqual({ notGame: true });
   });
 
-  it("returns error when gameui is not available", async () => {
+  it("returns notGame when gameui is not available", async () => {
     setLocation("?table=456", "/123/innovation");
     const result = await extractGameData();
-    expect(result).toEqual({ error: true, msg: "gameui not available — is this a BGA game page?" });
+    expect(result).toEqual({ notGame: true });
   });
 
-  it("returns error when gameui has no ajaxcall", async () => {
+  it("returns notGame when gameui has no ajaxcall", async () => {
     setLocation("?table=456", "/123/innovation");
     (globalThis as any).gameui = { gamedatas: {} };
     const result = await extractGameData();
-    expect(result).toEqual({ error: true, msg: "gameui not available — is this a BGA game page?" });
+    expect(result).toEqual({ notGame: true });
   });
 
   it("returns error when ajaxcall returns no data", async () => {

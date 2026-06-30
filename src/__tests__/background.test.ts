@@ -632,8 +632,9 @@ describe("isPotentialTablePage", () => {
     expect(isPotentialTablePage("https://boardgamearena.com/tableview?table=847667119")).toBe(true);
   });
 
-  it("accepts the classic /table shell URL", () => {
-    expect(isPotentialTablePage("https://boardgamearena.com/table?table=123")).toBe(true);
+  it("rejects the classic /table lobby URL (pre-game page, never hosts a board)", () => {
+    expect(isPotentialTablePage("https://boardgamearena.com/table?table=123")).toBe(false);
+    expect(isPotentialTablePage("https://en.boardgamearena.com/table?table=123")).toBe(false);
   });
 
   it("accepts BGA subdomain table URLs", () => {
@@ -1244,6 +1245,27 @@ describe("auto-close in handleNavigation", () => {
     expect(mockSidePanelClose).toHaveBeenCalledWith({ windowId: 10 });
     conn.triggerDisconnect();
   });
+
+  it("auto-closes in autohide-game mode on an unsupported game inside the /tableview iframe", async () => {
+    const conn = connectSidePanel();
+    listeners.onMessage({ type: "setPinMode", mode: "autohide-game" }, {}, () => {});
+    vi.clearAllMocks();
+    mockSendMessage.mockImplementation(() => Promise.resolve());
+
+    // The /tableview shell URL doesn't reveal the game, so the pre-extraction URL check can't close it;
+    // the game is only known to be unsupported after extraction resolves the board iframe.
+    const mockExecuteScript = chrome.scripting.executeScript as ReturnType<typeof vi.fn>;
+    mockExecuteScript
+      .mockResolvedValueOnce([{ result: gameFrameProbe(2, "carcassonne", "456") }]) // updateIcon probe
+      .mockResolvedValueOnce([{ result: makeRawData({ "1": "A", "2": "B" }, [], undefined, "carcassonne") }]); // extract
+    const tab = { id: 1, url: "https://boardgamearena.com/tableview?table=456", status: "complete", windowId: 10 };
+    mockTabsGet.mockResolvedValueOnce(tab).mockResolvedValueOnce(tab);
+    listeners.onActivated({ tabId: 1 });
+    await new Promise((r) => setTimeout(r, 50));
+
+    expect(mockSidePanelClose).toHaveBeenCalledWith({ windowId: 10 });
+    conn.triggerDisconnect();
+  });
 });
 
 describe("unified extraction flow", () => {
@@ -1430,6 +1452,49 @@ describe("unified extraction flow", () => {
     expect(notAGameCalls.length).toBe(0);
 
     conn.triggerDisconnect();
+  });
+
+  it("surfaces a real board error as gameError on click, without forwarding a prior table's data", async () => {
+    // Seed lastResults with a *different* table's successful extraction, so we can prove the board error
+    // doesn't re-offer that table's download in its gameError payload.
+    const conn = connectSidePanel();
+    vi.clearAllMocks();
+    mockSendMessage.mockImplementation(() => Promise.resolve());
+    mockExecuteScript.mockReset();
+    mockExecuteScript.mockResolvedValue([]);
+    mockExecuteScript
+      .mockResolvedValueOnce([{ result: gameFrameProbe(2, "innovation", "111") }]) // probe table 111
+      .mockResolvedValueOnce([{ result: makeRawData({ "1": "A", "2": "B" }, []) }]); // extract table 111 (innovation)
+    const tabA = { id: 2, url: "https://boardgamearena.com/8/innovation?table=111", status: "complete", windowId: 10 };
+    mockTabsGet.mockResolvedValueOnce(tabA).mockResolvedValueOnce(tabA);
+    listeners.onActivated({ tabId: 2 });
+    await new Promise((r) => setTimeout(r, 50));
+    conn.triggerDisconnect(); // panel closed; lastResults stays = table 111
+    vi.clearAllMocks();
+    mockSendMessage.mockImplementation(() => Promise.resolve());
+
+    // Now click a DIFFERENT table whose board found gameui but failed to extract (a real error). The shell
+    // and loader frames return notGame; pickExtraction must surface the error rather than treat it as a
+    // non-game — and the error report must NOT carry table 111's stale results.
+    mockExecuteScript.mockReset();
+    mockExecuteScript.mockResolvedValue([
+      { result: { notGame: true } },
+      { result: { error: true, msg: "BGA API returned no notification data" } },
+    ]);
+    const tabB = { id: 1, url: "https://boardgamearena.com/tableview?table=222", status: "complete", windowId: 10 };
+    mockTabsGet.mockResolvedValueOnce(tabB);
+    await listeners.onClicked(tabB); // awaits the full extract (retries the board error before throwing)
+    await new Promise((r) => setTimeout(r, 50));
+
+    const errorCalls = mockSendMessage.mock.calls.filter((c: any[]) => c[0]?.type === "gameError");
+    expect(errorCalls.length).toBeGreaterThanOrEqual(1);
+    const last = errorCalls[errorCalls.length - 1][0];
+    expect(String(last.error)).toContain("no notification data");
+    expect(last.results).toBeFalsy(); // must not forward table 111's stale results
+
+    // Restore a benign executeScript default so the board-error mock doesn't leak into later tests.
+    mockExecuteScript.mockReset();
+    mockExecuteScript.mockResolvedValue([]);
   });
 
   it("does not send loading on window focus change for same table", async () => {
@@ -1753,6 +1818,12 @@ describe("icon swap behavior", () => {
   }
 
   it("sets lit icon when switching to game tab", async () => {
+    // Start from a known-dark state — the global icon frame persists across tests, so without this the
+    // assertion is order-dependent (a prior test leaving the icon already lit skips the setIcon call).
+    mockTabsGet.mockResolvedValueOnce({ id: 99, url: "https://example.com", status: "complete" });
+    listeners.onActivated({ tabId: 99 });
+    await flushFlash();
+
     mockTabsGet.mockResolvedValueOnce({ id: 1, url: "https://boardgamearena.com/8/innovation?table=123", status: "complete" });
     listeners.onActivated({ tabId: 1 });
     await flushFlash();
