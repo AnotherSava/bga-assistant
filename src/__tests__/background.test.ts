@@ -17,7 +17,9 @@ vi.hoisted(() => {
     _getImageDataCallCount++;
     return { width: 16, height: 16, data: new Uint8ClampedArray(16 * 16 * 4), _frame: frame };
   }) };
-  (globalThis as any).OffscreenCanvas = vi.fn(() => ({ getContext: () => mockCtx }));
+  // Regular function (not an arrow) so it's constructable — Vitest 4 invokes the mock implementation
+  // via `new` when the mock is constructed (`new OffscreenCanvas(...)`), and arrow functions can't be.
+  (globalThis as any).OffscreenCanvas = vi.fn(function () { return { getContext: () => mockCtx }; });
   (globalThis as any).createImageBitmap = vi.fn(() => Promise.resolve({}));
   (globalThis as any).__origFetch = globalThis.fetch;
   (globalThis as any).fetch = vi.fn(() => Promise.resolve({ blob: () => Promise.resolve(new Blob()) }));
