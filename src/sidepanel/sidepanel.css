@@ -76,6 +76,8 @@ body {
 .cb-bl   { grid-row: 2; grid-column: 1; }
 .cb-mid  { grid-row: 2; grid-column: 2; display: flex; gap: 1px; justify-self: start; }
 .card-base > .card-age { grid-row: 2; grid-column: 3; align-self: center; justify-self: end; }
+/* Unknown-card candidate count: top-center, smaller and paler than the age number. */
+.cb-count { grid-row: 1; grid-column: 1 / 4; align-self: center; justify-self: center; font-family: 'Russo One', sans-serif; font-size: 11px; color: rgba(255, 255, 255, 0.45); pointer-events: none; }
 
 /* Set 2 (cities) — 2x2 CSS grid, icons only */
 .card-cities {
@@ -114,7 +116,8 @@ body {
   left: anchor(left);
   position-try-fallbacks: flip-block, flip-inline, flip-block flip-inline;
 }
-.card-tip img { width: 375px; height: auto; border-radius: 6px; }
+/* Face image as a background (not <img>) so display:none defers the ~60KB WebP until hover. */
+.card-tip { width: 375px; height: 275px; background-size: contain; background-repeat: no-repeat; border-radius: 6px; }
 .card-tip-text {
   background: #222;
   color: #ccc;
@@ -127,6 +130,26 @@ body {
   line-height: 1.4;
 }
 .card:hover > .card-tip, .card:hover > .card-tip-text { display: block; }
+
+/* Unknown-card tooltip: mini card icons for every remaining candidate.
+ * Uses its own class (not .card-tip) so the fixed 375x275 face-image box sizing
+ * never applies to this candidate grid. */
+.card-tip-list {
+  display: none;
+  position: fixed;
+  z-index: 10;
+  pointer-events: none;
+  position-anchor: --card-anchor;
+  top: calc(anchor(bottom) + 4px);
+  left: anchor(left);
+  position-try-fallbacks: flip-block, flip-inline, flip-block flip-inline;
+  background: #222;
+  border: 1px solid #555;
+  border-radius: 6px;
+  padding: 3px;
+  max-width: 320px;
+}
+.card:hover > .card-tip-list { display: flex; flex-wrap: wrap; }
 
 /* Layout */
 .section-row {

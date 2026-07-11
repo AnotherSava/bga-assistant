@@ -11,7 +11,7 @@ Reads the full game log from [Innovation](https://boardgamegeek.com/boardgame/63
 
 ### Hands, forecast and score
 
-Each of those sections shows known cards with their name, icons, and age, while unknown cards appear as placeholders with just the age number and set. An eye icon represents opponent's knowledge:
+Each of those sections shows known cards with their name, icons, and age, while unknown cards appear as placeholders with just the age number and set. Once an unknown card has been narrowed below its full age group, it also shows the number of remaining candidates, and hovering reveals every card it could still be as mini icons. An eye icon represents opponent's knowledge:
 
 ![Innovation hand and forecast view](../screenshots/innovation-hand.png)
 
@@ -42,7 +42,7 @@ The deck section shows remaining cards per age, with known cards revealed by nam
 - **Turn history**: compact chronological display of recent actions (meld, draw, dogma, endorse, achieve, promote) with card name tooltips; compound actions (e.g. meld → promote → dogma) render as indented sub-action lines; pre-turn Artifact decisions (pass, return, or dogma) render as an italicized line above the turn's actions; each player's row uses their actual BGA-assigned color, with the observer's row tinted for distinction
 - **Player labels**: "Show player names" toggle in the display menu switches turn-history labels between "you/opp" (default) and full BGA player names; coloring applies in either mode
 - **Section selector**: eye button to show/hide entire sections (including turn history visibility)
-- **Hover tooltips**: card face images with full card details on hover
+- **Hover tooltips**: known cards show their full face image on hover; narrowed unknown cards display their candidate count and show every remaining candidate as mini card icons on hover
 
 ### Standard features
 

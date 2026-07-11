@@ -284,6 +284,64 @@ describe("bug: forecast cards shown as unresolved in Cards section", () => {
 });
 
 // ---------------------------------------------------------------------------
+// unknown-card candidate tooltip
+// ---------------------------------------------------------------------------
+
+describe("unknown-card candidate tooltip", () => {
+  it("renders a candidate list tooltip and count when the card is narrowed", () => {
+    const engine = new GameEngine(cardDb);
+    const gs = createGameState(PLAYERS, PERSPECTIVE);
+    engine.initGame(gs);
+
+    // Opponent holds one unknown age-1 base card that could be Agriculture or Archery.
+    const unknown = new Card(1, CardSet.BASE, [cardIndex("agriculture"), cardIndex("archery")]);
+    gs.hands.set("Bob", [unknown]);
+
+    const html = renderSummary(gs, engine, cardDb, PERSPECTIVE, PLAYERS, "test", { textTooltips: true });
+    const handSection = html.match(/data-section="hand-opponent"[\s\S]*?(?=<div class="section"|$)/)![0];
+
+    expect(handSection).toContain('class="card-tip-list"');
+    expect(handSection).toContain("Agriculture");
+    expect(handSection).toContain("Archery");
+    // Candidate count is shown on the card (2 candidates, below the full age-1 group size).
+    expect(handSection).toContain('<div class="cb-count">2</div>');
+  });
+
+  it("omits the candidate tooltip for resolved cards", () => {
+    const engine = new GameEngine(cardDb);
+    const gs = createGameState(PLAYERS, PERSPECTIVE);
+    engine.initGame(gs);
+
+    const resolved = new Card(1, CardSet.BASE, [cardIndex("agriculture")]);
+    gs.hands.set("Bob", [resolved]);
+
+    const html = renderSummary(gs, engine, cardDb, PERSPECTIVE, PLAYERS, "test", { textTooltips: true });
+    const handSection = html.match(/data-section="hand-opponent"[\s\S]*?(?=<div class="section"|$)/)![0];
+
+    expect(handSection).not.toContain("card-tip-list");
+    expect(handSection).not.toContain("cb-count");
+  });
+
+  it("omits both the count and tooltip when the candidate set spans the full group", () => {
+    const engine = new GameEngine(cardDb);
+    const gs = createGameState(PLAYERS, PERSPECTIVE);
+    engine.initGame(gs);
+
+    // Candidate set == the entire age-1 base group: no information gained.
+    const fullGroup = cardDb.groupInfos(1, CardSet.BASE).map(info => info.indexName);
+    expect(fullGroup.length).toBeGreaterThan(1);
+    const unknown = new Card(1, CardSet.BASE, fullGroup);
+    gs.hands.set("Bob", [unknown]);
+
+    const html = renderSummary(gs, engine, cardDb, PERSPECTIVE, PLAYERS, "test", { textTooltips: true });
+    const handSection = html.match(/data-section="hand-opponent"[\s\S]*?(?=<div class="section"|$)/)![0];
+
+    expect(handSection).not.toContain("card-tip-list");
+    expect(handSection).not.toContain("cb-count");
+  });
+});
+
+// ---------------------------------------------------------------------------
 // bug: relic cards appear as extra unknowns in Cards section
 // ---------------------------------------------------------------------------
 

@@ -82,6 +82,7 @@ export function renderHelp(errorMessage?: string, gameName?: GameName): string {
     <div class="help-section-title">Card tooltips</div>
     <div class="help-sections-grid">
       <div class="help-grid-item">Hover over any known card to see its full image.</div>
+      <div class="help-grid-item">Once an unknown card is narrowed below its full age group, it shows the number of remaining candidates; hover to see them as mini card icons.</div>
     </div>
   </div>
 

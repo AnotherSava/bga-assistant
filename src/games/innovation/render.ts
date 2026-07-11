@@ -73,15 +73,22 @@ function iconImg(iconName: string, color: string, spriteIndex: number): string {
 
 /** Hover tooltip for a known card.
  *  Image tooltip by default; text-only for ZIP exports (useTextTooltips) to
- *  keep file size down — otherwise every known card would inline its ~50KB WebP face. */
+ *  keep file size down — otherwise every known card would inline its ~50KB WebP face.
+ *
+ *  The face is a CSS `background-image` on the (display:none) tooltip, NOT an `<img>`:
+ *  browsers download `<img>` elements even inside display:none containers, so an `<img>`
+ *  face would eagerly fetch ~400 full-res WebPs (~25MB) on every render. Background images
+ *  of display:none elements are not fetched until the element is shown, so each ~60KB face
+ *  now loads only on first hover. */
 function renderCardTip(info: CardInfo): string {
   if (useTextTooltips) return `<div class="card-tip-text">${escapeHtml(info.name)}</div>`;
-  return `<div class="card-tip"><img src="${resolveAssetUrl(`assets/bga/innovation/cards/card_${info.spriteIndex}.webp`)}"></div>`;
+  return `<div class="card-tip" style="background-image:url('${resolveAssetUrl(`assets/bga/innovation/cards/card_${info.spriteIndex}.webp`)}')"></div>`;
 }
 
-function renderKnownCard(info: CardInfo, markResolved: boolean): string {
+function renderKnownCard(info: CardInfo, markResolved: boolean, includeTip: boolean = true): string {
   const color = colorLabel(info.color);
   const resolvedAttr = markResolved ? " data-known" : "";
+  const tip = includeTip ? renderCardTip(info) : "";
 
   if (info.cardSet === CardSet.BASE || info.cardSet === CardSet.ECHOES || info.cardSet === CardSet.ARTIFACTS || info.cardSet === CardSet.FIGURES) {
     return `<div class="card card-base b-${color}"${resolvedAttr}>`
@@ -90,7 +97,7 @@ function renderKnownCard(info: CardInfo, markResolved: boolean): string {
       + `<div class="cb-bl">${iconImg(info.icons[1], color, info.spriteIndex)}</div>`
       + `<div class="cb-mid">${iconImg(info.icons[2], color, info.spriteIndex)}${iconImg(info.icons[3], color, info.spriteIndex)}</div>`
       + `<div class="card-age">${info.age}</div>`
-      + renderCardTip(info)
+      + tip
       + `</div>`;
   }
 
@@ -102,14 +109,23 @@ function renderKnownCard(info: CardInfo, markResolved: boolean): string {
       + `<div class="cc-top">${topIcons}</div>`
       + `<div class="cc-bot">${botIcons}</div>`
       + `<div class="card-age">${info.age}</div>`
-      + renderCardTip(info)
+      + tip
       + `</div>`;
   }
 
   return `<div class="card b-${color}"${resolvedAttr}><div class="card-name">${escapeHtml(info.name)}</div><div class="card-body"><div class="card-age">${info.age}</div></div></div>`;
 }
 
-function renderUnknownCard(age: number | null, cardSet: CardSet): string {
+/** Hover tooltip for an unknown card: a mini card icon for every remaining candidate,
+ *  sorted by (age, color, name). Candidate cards carry no nested tooltips of their own. */
+function renderCandidateTip(candidates: Set<string>, cardDb: CardDatabase): string {
+  const infos = [...candidates].map(name => cardDb.get(name)).filter((info): info is CardInfo => info !== undefined);
+  infos.sort((a, b) => a.age - b.age || a.color - b.color || a.indexName.localeCompare(b.indexName));
+  return `<div class="card-tip-list">${infos.map(info => renderKnownCard(info, false, false)).join("")}</div>`;
+}
+
+function renderUnknownCard(card: Card, cardDb: CardDatabase): string {
+  const cardSet = card.cardSet;
   let cls: string;
   if (cardSet === CardSet.BASE) cls = "b-gray-base";
   else if (cardSet === CardSet.CITIES) cls = "b-gray-cities";
@@ -117,7 +133,13 @@ function renderUnknownCard(age: number | null, cardSet: CardSet): string {
   else if (cardSet === CardSet.ARTIFACTS) cls = "b-gray-artifacts";
   else cls = "b-gray";
 
-  return `<div class="card card-base ${cls}"><div class="cb-tl"></div><div class="cb-name"></div><div class="cb-bl"></div><div class="cb-mid"></div><div class="card-age">${age ?? ""}</div></div>`;
+  // "Narrowed" = we've learned something: fewer candidates than the full group. When the candidate
+  // set still spans the whole group (no information), showing a count or a candidate list is noise.
+  const maxCandidates = cardDb.groupInfos(card.age, cardSet).length;
+  const narrowed = card.candidates.size > 1 && card.candidates.size < maxCandidates;
+  const count = narrowed ? `<div class="cb-count">${card.candidates.size}</div>` : "";
+  const tip = narrowed ? renderCandidateTip(card.candidates, cardDb) : "";
+  return `<div class="card card-base ${cls}"><div class="cb-tl"></div><div class="cb-name"></div><div class="cb-bl"></div><div class="cb-mid"></div>${count}<div class="card-age">${card.age}</div>${tip}</div>`;
 }
 
 function renderCard(card: Card, cardDb: CardDatabase, markResolved: boolean): string {
@@ -125,7 +147,7 @@ function renderCard(card: Card, cardDb: CardDatabase, markResolved: boolean): st
     const info = cardDb.get(card.resolvedName!)!;
     return renderKnownCard(info, markResolved);
   }
-  return renderUnknownCard(card.age, card.cardSet);
+  return renderUnknownCard(card, cardDb);
 }
 
 // ---------------------------------------------------------------------------
