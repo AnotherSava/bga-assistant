@@ -19,6 +19,11 @@ import { fromJSON as azulFromJSON } from "../games/azul/game_state.js";
 import type { PipelineResults } from "../pipeline.js";
 import type { PinMode } from "../background.js";
 import type { Granularity, SessionFilter, TimeSession } from "../time-tracking.js";
+// Static import (not dynamic import()) is deliberate: a dynamic import of time-tracking — which
+// background.ts also imports statically — makes Rolldown build a namespace object whose __exportAll
+// runtime helper it parks in the sidepanel entry chunk, which time-tracking.js then imports, dragging
+// the DOM-touching sidepanel entry into the service worker and breaking its registration (Rolldown #8809).
+import { exportSessionsCsv, aggregateSessions, aggregateByTable, mergeStrayGlances, minutesInCurrentBucket, currentBucketRange, sessionsOverlapping, formatDuration, formatDurationClock, deleteSession, deleteTableSessions, importSessionsCsv, DAY_START_HOUR, WEEK_START_DAY, STORAGE_KEY_SESSIONS, STORAGE_KEY_GAMES, STORAGE_KEY_ACTIVE, STORAGE_KEY_MODES, STORAGE_KEY_TYPES } from "../time-tracking.js";
 import { loadSetting, saveSetting } from "./settings.js";
 
 // ---------------------------------------------------------------------------
@@ -770,7 +775,6 @@ function axisScale(maxMinutes: number): { axisMaxMinutes: number; ticks: { minut
 async function showStats(): Promise<void> {
   const contentEl = document.getElementById("content");
   if (!contentEl) return;
-  const { exportSessionsCsv, aggregateSessions, aggregateByTable, mergeStrayGlances, minutesInCurrentBucket, currentBucketRange, sessionsOverlapping, formatDuration, formatDurationClock, DAY_START_HOUR, WEEK_START_DAY, STORAGE_KEY_SESSIONS, STORAGE_KEY_GAMES, STORAGE_KEY_ACTIVE, STORAGE_KEY_MODES, STORAGE_KEY_TYPES } = await import("../time-tracking.js");
   cachedExportFn = exportSessionsCsv;
   const result = await chrome.storage.local.get([STORAGE_KEY_SESSIONS, STORAGE_KEY_GAMES, STORAGE_KEY_MODES, STORAGE_KEY_TYPES, STORAGE_KEY_ACTIVE]);
   // Collapse stray glances (forgotten tables briefly reopened) before anything derives display rows, averages, or chart data — the live session is folded in afterwards and never merged.
@@ -892,12 +896,10 @@ async function showStats(): Promise<void> {
   // Deletion rewrites bgaa_time_sessions; the storage.onChanged listener re-renders the page once the write lands.
   document.querySelectorAll<HTMLElement>("[data-del-session]").forEach((btn) => btn.addEventListener("click", async () => {
     if (!window.confirm("Remove this session?")) return;
-    const { deleteSession } = await import("../time-tracking.js");
     await deleteSession(Number(btn.getAttribute("data-del-session")));
   }));
   document.querySelectorAll<HTMLElement>("[data-del-table]").forEach((btn) => btn.addEventListener("click", async () => {
     if (!window.confirm("Remove all sessions for this table?")) return;
-    const { deleteTableSessions } = await import("../time-tracking.js");
     await deleteTableSessions(Number(btn.getAttribute("data-del-table")));
   }));
   document.getElementById("btn-stats-refresh")?.addEventListener("click", () => showStats());
@@ -914,7 +916,6 @@ async function showStats(): Promise<void> {
     input.addEventListener("change", async () => {
       const file = input.files?.[0];
       if (!file) return;
-      const { importSessionsCsv } = await import("../time-tracking.js");
       const added = await importSessionsCsv(await file.text());
       window.alert(`Imported ${added} session${added === 1 ? "" : "s"}.`);
       showStats();
@@ -941,7 +942,6 @@ function refreshStatsView(): void {
 
 /** Populate the eye-icon menu with the play-time tracking settings (day-start hour, week-start day, session-list filter), persisted to localStorage. */
 async function buildStatsSettingsMenu(panel: HTMLElement): Promise<void> {
-  const { DAY_START_HOUR, WEEK_START_DAY, currentBucketRange, sessionsOverlapping, STORAGE_KEY_SESSIONS, STORAGE_KEY_ACTIVE } = await import("../time-tracking.js");
   panel.innerHTML = "";
 
   const header = document.createElement("div");
