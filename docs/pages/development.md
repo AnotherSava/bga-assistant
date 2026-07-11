@@ -1,10 +1,8 @@
 ---
 layout: default
 title: Development
----
-
-[Home](..) | [Innovation](innovation) | [Azul](azul) | [Crew](crew) | [Play time](time-tracking) | [Development](development) | [Privacy](privacy)
-
+nav_order: 4
+has_children: true
 ---
 
 ## Setup

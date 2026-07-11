@@ -2,15 +2,15 @@
 
 *A Chrome extension for [Board Game Arena](https://boardgamearena.com) that keeps track of your games so you don't have to.*
 
-Turn-based games on BGA can stretch across days or weeks — by the time it's your turn, you may have forgotten what was drawn, returned, transferred, or scored several moves ago. BGA Assistant reads the game log and reconstructs the complete picture for you. It also keeps local statistics of how much time you spend playing, per game and table. The side panel includes a built-in help page — click ? for a detailed guide on each game's features.
+Turn-based games on BGA can stretch across days or weeks — by the time it's your turn, you may have forgotten what was drawn, returned, transferred, or scored several moves ago. BGA Assistant reads the game log and reconstructs the complete picture for you. It also keeps local statistics of how much time you spend playing, per game and table. The side panel includes a built-in help page — click "?" for a detailed guide on each game's features.
 
 ![BGA Assistant](docs/screenshots/cover.png)
 
-**[Innovation](https://anothersava.github.io/bga-assistant/pages/innovation)** — Reads the full game log from Innovation 2-player tables and reconstructs the game state — hand contents and score piles according to revealed cards, and deck stack order with returned cards — displayed as a visual summary in a side panel. Supports the base game and the Echoes of the Past, Cities of Destiny, and Artifacts of History expansions (including the Relics variant).
+**[Innovation](https://anothersava.github.io/bga-assistant/pages/games/innovation)** — Reads the full game log from Innovation 2-player tables and reconstructs the game state — hand contents and score piles according to revealed cards, and deck stack order with returned cards — displayed as a visual summary in a side panel. Supports the base game and the Echoes of the Past, Cities of Destiny, and Artifacts of History expansions (including the Relics variant).
 
-**[Azul](https://anothersava.github.io/bga-assistant/pages/azul)** — Tracks the tile bag and discard pile (box lid) for Azul tables with any player count. Particularly helpful in 2-player games where the full bag is depleted in exactly 5 rounds. Displays remaining tile counts per color in a compact table so you always know what's left to draw.
+**[Azul](https://anothersava.github.io/bga-assistant/pages/games/azul)** — Tracks the tile bag and discard pile (box lid) for Azul tables with any player count. Particularly helpful in 2-player games where the full bag is depleted in exactly 5 rounds. Displays remaining tile counts per color in a compact table so you always know what's left to draw.
 
-**[The Crew: Mission Deep Sea](https://anothersava.github.io/bga-assistant/pages/crew)** — Tracks played cards and communication signals to deduce remaining cards in players' hands for The Crew: Mission Deep Sea tables with any player count. The side panel displays three sections — a card grid, a player-suit matrix, and a trick history — all updating live as cards are played.
+**[The Crew: Mission Deep Sea](https://anothersava.github.io/bga-assistant/pages/games/crew)** — Tracks played cards and communication signals to deduce remaining cards in players' hands for The Crew: Mission Deep Sea tables with any player count. The side panel displays three sections — a card grid, a player-suit matrix, and a trick history — all updating live as cards are played.
 
 **[Play-time tracking](https://anothersava.github.io/bga-assistant/pages/time-tracking)** — Automatically tracks how much time you spend playing on BGA — for every game and table, not just the supported ones. The clock runs only while a game table tab is focused, pauses when you step away, and a stats page shows daily, weekly, and monthly charts per game with session and per-table summaries.
 
@@ -20,10 +20,11 @@ Install from [Chrome Web Store](https://chromewebstore.google.com/detail/bga-ass
 
 See full project documentation at **[anothersava.github.io/bga-assistant](https://anothersava.github.io/bga-assistant/)**:
 
-- [Installation and usage](https://anothersava.github.io/bga-assistant/)
-  - [Innovation](https://anothersava.github.io/bga-assistant/pages/innovation)
-  - [Azul](https://anothersava.github.io/bga-assistant/pages/azul)
-  - [The Crew](https://anothersava.github.io/bga-assistant/pages/crew)
-  - [Play-time tracking](https://anothersava.github.io/bga-assistant/pages/time-tracking)
+- [Games](https://anothersava.github.io/bga-assistant/pages/games)
+  - [Innovation](https://anothersava.github.io/bga-assistant/pages/games/innovation)
+  - [Azul](https://anothersava.github.io/bga-assistant/pages/games/azul)
+  - [The Crew](https://anothersava.github.io/bga-assistant/pages/games/crew)
+- [Play-time tracking](https://anothersava.github.io/bga-assistant/pages/time-tracking)
 - [Developer guide](https://anothersava.github.io/bga-assistant/pages/development)
+  - [Data flow architecture](https://anothersava.github.io/bga-assistant/pages/data-flow)
 - [Privacy policy](https://anothersava.github.io/bga-assistant/pages/privacy)

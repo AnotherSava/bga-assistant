@@ -1,33 +1,31 @@
 ---
 layout: default
 title: The Crew — Mission Deep Sea
----
-
-[Home](..) | [Innovation](innovation) | [Azul](azul) | [Crew](crew) | [Play time](time-tracking) | [Development](development) | [Privacy](privacy)
-
+parent: Games
+nav_order: 3
 ---
 
 Tracks played cards and communication signals to deduce remaining cards in players' hands for [The Crew: Mission Deep Sea](https://boardgamegeek.com/boardgame/324856/the-crew-mission-deep-sea) tables with any player count. The side panel displays three sections — a card grid, a player-suit matrix, and a trick history — all updating live as cards are played.
 
-### Card grid
+## Card grid
 
 Shows all 40 cards (9 cards of each of the 4 coloured suits and 4 submarine trumps) with visual states: dimmed for played cards, neutral for cards in your hand, and bright for cards still in opponents' hands:
 
-![Crew card grid](../screenshots/crew-cards.png)
+![Crew card grid](../../screenshots/crew-cards.png)
 
-### Player-suit matrix
+## Player-suit matrix
 
 Shows what information we know about players having different suits: "X" (the player has no cards of that suit), "!" (confirmed holding), or "?" (unknown) per player per suit. Each player's name renders in their actual BGA-assigned color, and your own row is highlighted with a subtle background tint of that color so you stay distinguishable at a glance. Suit absence is detected automatically from trick-following behavior, and communication data narrows down holdings further:
 
-![Crew player-suit matrix](../screenshots/crew-suits.png)
+![Crew player-suit matrix](../../screenshots/crew-suits.png)
 
-### Trick history
+## Trick history
 
 Chronological table of all tricks with lead and winner highlights. Each player's column header renders in their BGA color, and your own column is tinted to keep you distinguishable. The current in-progress trick appears below a dashed separator:
 
-![Crew trick history](../screenshots/crew-history.png)
+![Crew trick history](../../screenshots/crew-history.png)
 
-### Game features
+## Game features
 
 - **Card grid**: summary of the cards information, both played and in players' hands
 - **Suit absence detection**: automatically detects when a player has no cards of a suit from trick-following behavior
@@ -37,7 +35,7 @@ Chronological table of all tricks with lead and winner highlights. Each player's
 - **Distress signal**: when a distress signal card exchange occurs, tracks the card you gave (resolving it in the recipient's hand) and the card you received
 - **Per-mission state**: automatically resets tracking on each new mission
 
-### Standard features
+## Standard features
 
 - **Live tracking**: while the side panel is open, the display automatically updates when the game progresses — a green status dot appears in the status bar
 - **Auto-update**: while the side panel is open, switching to another supported game tab automatically extracts and displays its state

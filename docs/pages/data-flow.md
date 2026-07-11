@@ -1,10 +1,8 @@
 ---
 layout: default
-title: Data Flow Architecture
----
-
-[Home](..) | [Innovation](innovation) | [Azul](azul) | [Crew](crew) | [Play time](time-tracking) | [Development](development) | [Privacy](privacy)
-
+title: Data flow architecture
+parent: Development
+nav_order: 1
 ---
 
 # Data Flow Architecture

@@ -1,10 +1,7 @@
 ---
 layout: default
 title: Privacy Policy
----
-
-[Home](..) | [Innovation](innovation) | [Azul](azul) | [Crew](crew) | [Play time](time-tracking) | [Development](development) | [Privacy](privacy)
-
+nav_order: 5
 ---
 
 # Privacy Policy

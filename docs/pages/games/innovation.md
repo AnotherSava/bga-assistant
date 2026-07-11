@@ -1,39 +1,37 @@
 ---
 layout: default
 title: Innovation
----
-
-[Home](..) | [Innovation](innovation) | [Azul](azul) | [Crew](crew) | [Play time](time-tracking) | [Development](development) | [Privacy](privacy)
-
+parent: Games
+nav_order: 1
 ---
 
 Reads the full game log from [Innovation](https://boardgamegeek.com/boardgame/63888/innovation) 2-player tables and reconstructs the game state — hand contents and score piles according to revealed cards, and deck stack order with returned cards — displayed as a visual summary in a side panel. Supports the base game and the Echoes of the Past, Cities of Destiny, and Artifacts of History expansions (including the Relics variant).
 
-### Hands, forecast and score
+## Hands, forecast and score
 
 Each of those sections shows known cards with their name, icons, and age, while unknown cards appear as placeholders with just the age number and set. Once an unknown card has been narrowed below its full age group, it also shows the number of remaining candidates, and hovering reveals every card it could still be as mini icons. An eye icon represents opponent's knowledge:
 
-![Innovation hand and forecast view](../screenshots/innovation-hand.png)
+![Innovation hand and forecast view](../../screenshots/innovation-hand.png)
 
-### Turn history
+## Turn history
 
 A compact sidebar shows recent actions — meld, draw, dogma, endorse, achieve, promote — with timestamps and player attribution. Each player's row is rendered in their actual BGA-assigned color, and your own ("you") row is highlighted with a subtle background tint of that color so it stays distinguishable regardless of which color BGA gave you. Compound actions (e.g. meld → promote → dogma) render as indented sub-action lines. Turns that begin with an Artifact on display show the pre-turn choice (pass, return, or dogma of that Artifact) as an italicized line above the regular actions:
 
-![Innovation turn history](../screenshots/innovation-history.png)
+![Innovation turn history](../../screenshots/innovation-history.png)
 
-### Card list
+## Card list
 
 The card list lays out all cards in the game across ages, showing which cards have been identified and which remain unknown. Toggle between Base, Echoes, Cities, and Artifacts sets, filter to show only unaccounted cards, and switch between wide and tall layouts:
 
-<a href="../screenshots/innovation-cards.png"><img src="../screenshots/innovation-cards.png" alt="Innovation card list" width="1000"></a>
+<a href="../../screenshots/innovation-cards.png"><img src="../../screenshots/innovation-cards.png" alt="Innovation card list" width="1000"></a>
 
-### Deck
+## Deck
 
 The deck section shows remaining cards per age, with known cards revealed by name and unknown cards as placeholders:
 
-<a href="../screenshots/innovation-deck.png"><img src="../screenshots/innovation-deck.png" alt="Innovation deck view" width="1000"></a>
+<a href="../../screenshots/innovation-deck.png"><img src="../../screenshots/innovation-deck.png" alt="Innovation deck view" width="1000"></a>
 
-### Game features
+## Game features
 
 - **Card grids**: hands, scores, deck, full card list, achievements
 - **Set toggle**: switch between Base, Echoes, Cities, and Artifacts card sets for deck and card list
@@ -44,7 +42,7 @@ The deck section shows remaining cards per age, with known cards revealed by nam
 - **Section selector**: eye button to show/hide entire sections (including turn history visibility)
 - **Hover tooltips**: known cards show their full face image on hover; narrowed unknown cards display their candidate count and show every remaining candidate as mini card icons on hover
 
-### Standard features
+## Standard features
 
 - **Live tracking**: while the side panel is open, the display automatically updates when the game progresses — a green status dot appears in the status bar
 - **Auto-update**: while the side panel is open, switching to another supported game tab automatically extracts and displays its state

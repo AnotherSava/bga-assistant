@@ -1,4 +1,12 @@
 title: BGA Assistant
 description: A Chrome extension for Board Game Arena that keeps track of your games so you don't have to
-theme: jekyll-theme-hacker
+remote_theme: just-the-docs/just-the-docs
 baseurl: /bga-assistant
+plugins:
+  - jekyll-remote-theme
+color_scheme: light
+search_enabled: true
+heading_anchors: true
+
+exclude:
+  - plans/
