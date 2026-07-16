@@ -33,7 +33,11 @@ URLs and replays are the special case where the board is the top frame.
 The board iframe loads *after* the shell, and sub-frame loads don't fire `chrome.tabs.onUpdated`, so a
 `chrome.webNavigation.onCompleted` listener (requires the `webNavigation` permission) re-runs the icon
 probe for the active tab once a game-board frame finishes loading — otherwise the toolbar icon would
-miss the late iframe and stay dark, most visibly while the side panel is closed.
+miss the late iframe and stay dark, most visibly while the side panel is closed. The same listener also
+re-resolves the **panel content** when the board frame arrives, unless it's already resolved for that
+table: the `onUpdated`-driven extraction fires when the shell completes and can give up (after its retry
+window) before `gameui` exists in the iframe, which would otherwise strand an open panel on the
+help/not-a-game view until the user clicked the icon.
 
 Must be fully self-contained — injected via `chrome.scripting.executeScript()`, so any
 references to module-level code are undefined after Chrome serializes the function.

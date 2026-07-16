@@ -1011,7 +1011,8 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
 // probe can finally see gameui, so re-light the icon.
 chrome.webNavigation.onCompleted.addListener((details) => {
   if (details.tabId !== activeTabId) return;
-  if (!parseGameTableUrl(details.url)) return; // only the real game-board frame, not the /tableview shell or loader
+  const boardInfo = parseGameTableUrl(details.url);
+  if (!boardInfo) return; // only the real game-board frame, not the /tableview shell or loader
   chrome.tabs.get(details.tabId).then(async (tab) => {
     const game = await updateIcon(details.tabId, tab.url);
     if (details.tabId !== activeTabId) return; // tab switched while the board was resolving
@@ -1020,6 +1021,16 @@ chrome.webNavigation.onCompleted.addListener((details) => {
     // tracker stays on the previous table while the new one is played.
     trackTime(game, tab.url, tab.title);
     syncHeartbeatAlarm();
+    // Same story for the panel's content: the board iframe loads after its /tableview shell reports
+    // complete, so the tabs.onUpdated-driven extraction can run (and give up ~1.4s later) before gameui
+    // exists — leaving an open panel stuck on the help/not-a-game view even as the icon lights from this
+    // very event. Now that the board frame is actually ready, re-resolve the panel content too, unless it's
+    // already resolved for this table. Mirrors the onUpdated/onActivated queueing so it can't race a
+    // concurrent extraction.
+    if (!sidePanelOpen) return;
+    if (lastResults?.tableNumber === String(boardInfo.tableId)) return;
+    if (extracting) { pendingNavTabId = details.tabId; return; }
+    handleNavigation(details.tabId);
   }).catch(() => {});
 }, { url: [{ hostSuffix: "boardgamearena.com" }] });
 

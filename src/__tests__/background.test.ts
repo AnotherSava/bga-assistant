@@ -1958,6 +1958,57 @@ describe("icon swap behavior", () => {
     expectLastIconLit();
   });
 
+  it("refreshes the panel content when the board iframe finishes loading (extraction gave up at nav time)", async () => {
+    vi.clearAllMocks();
+    const conn = connectSidePanel();
+    mockSendMessage.mockImplementation(() => Promise.resolve());
+
+    // Active tab is the /tableview shell; the board iframe hasn't loaded yet, so both the probe and the
+    // extraction find no game — the open panel resolves to the help/not-a-game view.
+    const shellTab = { id: 7, url: "https://boardgamearena.com/tableview?table=123", status: "complete", windowId: 10 };
+    mockTabsGet.mockResolvedValue(shellTab);
+    mockExecuteScript.mockImplementation((opts: any) => Promise.resolve([{ result: opts.func ? { players: 0, slug: null, tableNumber: "123", href: shellTab.url } : { notGame: true } }]));
+    listeners.onActivated({ tabId: 7 });
+    await flushFlash();
+    expect(mockSendMessage.mock.calls.filter((c: any[]) => c[0]?.type === "notAGame").length).toBeGreaterThan(0);
+
+    // Board iframe finishes loading — webNavigation.onCompleted fires; the probe and extraction now find the
+    // innovation board, so the panel content is refreshed off this event (not just the icon), with no click.
+    vi.clearAllMocks();
+    mockSendMessage.mockImplementation(() => Promise.resolve());
+    const rawData = makeRawData({ "1": "Alice", "2": "Bob" }, []);
+    mockExecuteScript.mockImplementation((opts: any) => Promise.resolve([{ result: opts.func ? gameFrameProbe(2, "innovation", "123") : rawData }]));
+    listeners.onCompleted({ tabId: 7, frameId: 1, url: "https://boardgamearena.com/8/innovation?table=123" });
+    await flushFlash();
+
+    const resultsCalls = mockSendMessage.mock.calls.filter((c: any[]) => c[0]?.type === "resultsReady");
+    expect(resultsCalls.length).toBe(1);
+    expect((resultsCalls[0][0].results as PipelineResults).gameName).toBe("innovation");
+    conn.triggerDisconnect();
+  });
+
+  it("does not re-extract on board-frame load when the panel already resolved this table", async () => {
+    vi.clearAllMocks();
+    const conn = connectSidePanel();
+    mockSendMessage.mockImplementation(() => Promise.resolve());
+
+    // Panel opens on a game tab and extraction succeeds up front (board frame already loaded).
+    const gameTab = { id: 7, url: "https://boardgamearena.com/8/innovation?table=123", status: "complete", windowId: 10 };
+    mockTabsGet.mockResolvedValue(gameTab);
+    const rawData = makeRawData({ "1": "Alice", "2": "Bob" }, []);
+    mockExecuteScript.mockImplementation((opts: any) => Promise.resolve([{ result: opts.func ? gameFrameProbe(2, "innovation", "123") : rawData }]));
+    listeners.onActivated({ tabId: 7 });
+    await flushFlash();
+    vi.clearAllMocks();
+    mockSendMessage.mockImplementation(() => Promise.resolve());
+
+    // A late board-frame onCompleted for the SAME already-resolved table must not trigger a redundant extraction.
+    listeners.onCompleted({ tabId: 7, frameId: 1, url: "https://boardgamearena.com/8/innovation?table=123" });
+    await flushFlash();
+    expect(mockExecuteScript.mock.calls.some((call) => call[0]?.files)).toBe(false);
+    conn.triggerDisconnect();
+  });
+
   it("ignores board-frame load on a non-active tab", async () => {
     vi.clearAllMocks();
     // Make tab 7 active, on a non-table page so the icon is dark.
