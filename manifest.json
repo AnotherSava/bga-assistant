@@ -31,5 +31,11 @@
   },
   "side_panel": {
     "default_path": "dist/sidepanel.html"
-  }
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["assets/bga/innovation/cards/*.webp"],
+      "matches": ["https://boardgamearena.com/*", "https://*.boardgamearena.com/*"]
+    }
+  ]
 }

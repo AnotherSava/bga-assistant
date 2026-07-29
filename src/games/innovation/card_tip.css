@@ -1,0 +1,37 @@
+/* Card tooltip geometry, shared by the side panel's `.card` tooltips and the turn history's
+ * `.th-card` tooltips — and by the in-page log, which cannot load the side panel stylesheet.
+ *
+ * Anchored via CSS anchor positioning: below the anchor, aligned to its left edge.
+ * position-try-fallbacks flips to the opposite side(s) when the default position would
+ * overflow. Chrome 125+ native behavior; no JS positioning needed.
+ *
+ * `.card-tip` (image) is the default. `.card-tip-text` (name-only label) is emitted for ZIP
+ * exports (useTextTooltips) to keep file size down.
+ *
+ * Each surface supplies its own reveal rule — the side panel reveals on `:hover`, the in-page
+ * log promotes the tip to the top layer via the popover API. Only appearance is shared here. */
+.card-tip, .card-tip-text {
+  display: none;
+  position: fixed;
+  z-index: 10;
+  pointer-events: none;
+  position-anchor: --card-anchor;
+  top: calc(anchor(bottom) + 4px);
+  left: anchor(left);
+  position-try-fallbacks: flip-block, flip-inline, flip-block flip-inline;
+}
+
+/* Face image as a background (not <img>) so display:none defers the ~60KB WebP until hover. */
+.card-tip { width: 375px; height: 275px; background-size: contain; background-repeat: no-repeat; border-radius: 6px; }
+
+.card-tip-text {
+  background: #222;
+  color: #ccc;
+  padding: 8px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  white-space: pre-wrap;
+  max-width: 320px;
+  border: 1px solid #555;
+  line-height: 1.4;
+}

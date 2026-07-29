@@ -45,3 +45,36 @@ describe("smoke tests", () => {
     expect(existsSync(resolve(distDir, "sidepanel.html"))).toBe(true);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Manifest
+// ---------------------------------------------------------------------------
+
+describe("manifest web_accessible_resources", () => {
+  const manifest = JSON.parse(readFileSync(resolve(thisDir, "../../manifest.json"), "utf-8"));
+
+  it("exposes Innovation card faces to BGA pages", () => {
+    // The in-page game log renders card tooltips inside BGA's document, so the face images are
+    // fetched by boardgamearena.com rather than by an extension page. Without this the tooltip
+    // silently shows an empty box.
+    const entry = manifest.web_accessible_resources?.find((e: { resources: string[] }) =>
+      e.resources.some((r: string) => r.includes("innovation/cards")));
+    expect(entry).toBeDefined();
+    expect(entry.matches).toContain("https://boardgamearena.com/*");
+    expect(entry.matches).toContain("https://*.boardgamearena.com/*");
+  });
+
+  it("matches the cards subdirectory, not just the innovation directory", () => {
+    // Regression guard for the glob removed in 0c699b7: `assets/bga/innovation/*` does not
+    // match subdirectories, so it would never have exposed the card faces.
+    const resources = manifest.web_accessible_resources.flatMap((e: { resources: string[] }) => e.resources);
+    expect(resources).toContain("assets/bga/innovation/cards/*.webp");
+    expect(resources).not.toContain("assets/bga/innovation/*");
+  });
+
+  it("exposes card faces and nothing else", () => {
+    // Every additional glob widens the page-reachable surface; keep this deliberate.
+    const resources = manifest.web_accessible_resources.flatMap((e: { resources: string[] }) => e.resources);
+    expect(resources).toEqual(["assets/bga/innovation/cards/*.webp"]);
+  });
+});

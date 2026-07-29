@@ -34,7 +34,7 @@ vi.hoisted(() => {
       setIcon: vi.fn(),
       setTitle: vi.fn(),
     },
-    scripting: { executeScript: vi.fn(() => Promise.resolve([])) },
+    scripting: { executeScript: vi.fn(() => Promise.resolve([])), insertCSS: vi.fn(() => Promise.resolve()) },
     sidePanel: { open: vi.fn(() => Promise.resolve()), close: vi.fn(() => Promise.resolve()) },
     runtime: {
       onMessage: { addListener: (cb: Function) => { _listeners.onMessage = cb; } },
@@ -55,6 +55,7 @@ vi.hoisted(() => {
     },
     webNavigation: {
       onCompleted: { addListener: (cb: Function) => { _listeners.onCompleted = cb; } },
+      onCommitted: { addListener: (cb: Function) => { _listeners.onCommitted = cb; } },
     },
     windows: {
       onFocusChanged: { addListener: (cb: Function) => { _listeners.onFocusChanged = cb; } },
@@ -78,6 +79,7 @@ vi.hoisted(() => {
         set: vi.fn(() => Promise.resolve()),
         remove: vi.fn(() => Promise.resolve()),
       },
+      onChanged: { addListener: (cb: Function) => { _listeners.onStorageChanged = cb; } },
     },
   };
 });
@@ -87,9 +89,11 @@ const copyListeners = () => {
   Object.assign(listeners, (globalThis as any).__chromeMockListeners);
 };
 
-import { classifyNavigation, shouldAutoClose, shouldShowLoading, watcherFunction, probeTableTypeFn, isPotentialTablePage, selectGameFrame, type NavigationAction, type PinMode, type FrameProbe } from "../background";
+import { classifyNavigation, shouldAutoClose, shouldShowLoading, watcherFunction, probeTableTypeFn, hideBgaLogEarlyFunction, isPotentialTablePage, selectGameFrame, type NavigationAction, type PinMode, type FrameProbe } from "../background";
 import { runPipeline, isValidPlayerCount, type PipelineResults } from "../pipeline";
 import { CardDatabase } from "../models/types";
+import { inPageLogFunction } from "../games/innovation/inpage_log";
+import { INPAGE_LOG_KEY, INPAGE_LOG_DEFAULTS, INPAGE_LOG_HALF_TURNS } from "../sidepanel/inpage_settings";
 import type { PlayerInfo, RawExtractionData } from "../models/types";
 import { type GameState, createGameState, cardsAt } from "../games/innovation/game_state";
 import { GameEngine } from "../games/innovation/game_engine";
@@ -2022,5 +2026,327 @@ describe("icon swap behavior", () => {
     listeners.onCompleted({ tabId: 99, frameId: 1, url: "https://boardgamearena.com/8/innovation?table=999" });
     await flushFlash();
     expect(mockSetIcon).not.toHaveBeenCalled();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// In-page game log
+// ---------------------------------------------------------------------------
+
+describe("in-page game log", () => {
+  const mockExecuteScript = chrome.scripting.executeScript as ReturnType<typeof vi.fn>;
+  const mockInsertCSS = chrome.scripting.insertCSS as ReturnType<typeof vi.fn>;
+
+  /** Flip the stored setting and drive the storage.onChanged listener the SW subscribed to. */
+  async function setInPageLog(patch: Record<string, unknown>): Promise<void> {
+    const next = { ...INPAGE_LOG_DEFAULTS, ...patch };
+    (chrome.storage.local.get as ReturnType<typeof vi.fn>).mockResolvedValue({ [INPAGE_LOG_KEY]: next });
+    listeners.onStorageChanged({ [INPAGE_LOG_KEY]: { newValue: next } }, "local");
+    await new Promise((r) => setTimeout(r, 0));
+  }
+
+  // A persistent implementation, not mockImplementationOnce: a click that never reaches
+  // sidePanel.open would leave its once-impl queued and hijack a later test's connection.
+  let lastConn: ReturnType<typeof connectSidePanel> | null = null;
+
+  async function clickExtract(tabId: number): Promise<void> {
+    const rawData = makeRawData({ "1": "Alice", "2": "Bob" }, []);
+    mockExecuteScript.mockResolvedValueOnce([{ result: rawData }]);
+    const tab = { id: tabId, url: "https://boardgamearena.com/8/innovation?table=123", windowId: 1 };
+    (chrome.tabs.get as ReturnType<typeof vi.fn>).mockResolvedValue(tab);
+    await listeners.onClicked(tab);
+  }
+
+  function inPageCalls() {
+    return mockExecuteScript.mock.calls.filter((call) => call[0]?.func === inPageLogFunction);
+  }
+
+  function inPageCallsFor(tabId: number) {
+    return inPageCalls().filter((call) => call[0]?.target?.tabId === tabId);
+  }
+
+  /** Click-to-extract that hands back the panel port opened by the click. */
+  async function clickExtractWithPort(tabId: number): Promise<{ triggerDisconnect: () => void }> {
+    lastConn = null;
+    await clickExtract(tabId);
+    if (!lastConn) throw new Error("side panel never opened — extraction state leaked from a previous test");
+    return lastConn;
+  }
+
+  beforeEach(async () => {
+    // Let a previous test's extraction chain finish, so `extracting` is clear before the click.
+    await new Promise((r) => setTimeout(r, 100));
+    const { triggerDisconnect } = connectSidePanel();
+    triggerDisconnect();
+    await setInPageLog({ enabled: false });
+    await new Promise((r) => setTimeout(r, 20));
+    vi.clearAllMocks();
+    (chrome.runtime.sendMessage as ReturnType<typeof vi.fn>).mockImplementation(() => Promise.resolve());
+    lastConn = null;
+    (chrome.sidePanel.open as ReturnType<typeof vi.fn>).mockImplementation(() => {
+      lastConn = connectSidePanel();
+      return Promise.resolve();
+    });
+  });
+
+  afterEach(async () => {
+    await setInPageLog({ enabled: false });
+    (chrome.sidePanel.open as ReturnType<typeof vi.fn>).mockReset();
+  });
+
+  it("does not push while disabled", async () => {
+    await clickExtract(42);
+    expect(inPageCalls()).toHaveLength(0);
+  });
+
+  it("pushes rendered rows into all frames when enabled", async () => {
+    await setInPageLog({ enabled: true });
+    await clickExtract(42);
+
+    const call = inPageCallsFor(42)[0];
+    expect(call).toBeDefined();
+    expect(call[0]).toMatchObject({ target: { tabId: 42, allFrames: true }, world: "ISOLATED" });
+    const [rows, opts] = call[0].args;
+    expect(Array.isArray(rows)).toBe(true);
+    expect(opts).toMatchObject({ enabled: true, halfTurns: INPAGE_LOG_HALF_TURNS });
+  });
+
+  it("lands the stylesheet before the rows", async () => {
+    // Rows arriving first render as unstyled text — both player-name spans visible, narration
+    // unindented — until the CSS catches up.
+    const order: string[] = [];
+    mockInsertCSS.mockImplementation(() => new Promise((r) => setTimeout(() => { order.push("css"); r(undefined); }, 20)));
+    mockExecuteScript.mockImplementation(() => { order.push("script"); return Promise.resolve([]); });
+
+    await setInPageLog({ enabled: true });
+    await clickExtract(91);
+    await new Promise((r) => setTimeout(r, 80));
+
+    expect(order.indexOf("css")).toBeGreaterThan(-1);
+    expect(order.indexOf("css")).toBeLessThan(order.lastIndexOf("script"));
+
+    // These are shared mocks and clearAllMocks does not reset implementations.
+    mockInsertCSS.mockImplementation(() => Promise.resolve());
+    mockExecuteScript.mockImplementation(() => Promise.resolve([]));
+  });
+
+  it("re-injects the stylesheet after the tab navigates", async () => {
+    // Injected CSS does not survive a document navigation. Caching it per tab across a
+    // navigation renders the turn history as unstyled text on the way back into a table.
+    await setInPageLog({ enabled: true });
+    const conn = await clickExtractWithPort(92);
+    expect(mockInsertCSS.mock.calls.filter((c) => c[0]?.target?.tabId === 92)).toHaveLength(1);
+    // Close the panel, or the next click would toggle it shut instead of extracting.
+    conn.triggerDisconnect();
+
+    // Leaving the table and coming back replaces the document, taking the CSS with it.
+    listeners.onUpdated(92, { status: "loading" });
+    await clickExtract(92);
+
+    expect(mockInsertCSS.mock.calls.filter((c) => c[0]?.target?.tabId === 92).length).toBeGreaterThan(1);
+  });
+
+  it("injects the stylesheet once per tab", async () => {
+    await setInPageLog({ enabled: true });
+    // Two extractions on the same tab. The panel must be closed in between, or the second
+    // click would just toggle it shut instead of extracting again.
+    const conn = await clickExtractWithPort(71);
+    conn.triggerDisconnect();
+    await clickExtract(71);
+
+    expect(inPageCallsFor(71).length).toBeGreaterThan(1);
+    expect(mockInsertCSS.mock.calls.filter((c) => c[0]?.target?.tabId === 71)).toHaveLength(1);
+  });
+
+  it("never renders the card database into the page", async () => {
+    await setInPageLog({ enabled: true });
+    await clickExtract(42);
+    const [rows] = inPageCalls()[0][0].args;
+    // Rows are finished HTML strings; nothing structural about the card DB crosses the boundary.
+    for (const row of rows) expect(Object.keys(row).sort()).toEqual(["html", "key"]);
+  });
+
+  it("unmounts when the setting is turned off", async () => {
+    await setInPageLog({ enabled: true });
+    await clickExtract(42);
+    vi.clearAllMocks();
+
+    await setInPageLog({ enabled: false });
+    const call = inPageCalls()[0];
+    expect(call).toBeDefined();
+    expect(call[0].args[1]).toMatchObject({ enabled: false });
+  });
+
+  it("keeps live tracking alive when the panel closes but the log is enabled", async () => {
+    const conn = await clickExtractWithPort(72);
+    await setInPageLog({ enabled: true });
+    vi.clearAllMocks();
+
+    conn.triggerDisconnect();
+
+    expect(chrome.runtime.sendMessage).not.toHaveBeenCalledWith(
+      expect.objectContaining({ type: "liveStatus", active: false }),
+    );
+  });
+
+  it("stops live tracking when the panel closes and the log is disabled", async () => {
+    const conn = await clickExtractWithPort(73);
+    vi.clearAllMocks();
+
+    conn.triggerDisconnect();
+
+    expect(chrome.runtime.sendMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ type: "liveStatus", active: false }),
+    );
+  });
+
+  it("setInPageLog message persists the patch", async () => {
+    await listeners.onMessage({ type: "setInPageLog", patch: { enabled: true } }, {}, () => {});
+    await new Promise((r) => setTimeout(r, 0));
+    expect(chrome.storage.local.set).toHaveBeenCalledWith(
+      expect.objectContaining({ [INPAGE_LOG_KEY]: expect.objectContaining({ enabled: true }) }),
+    );
+  });
+
+  it("never persists the view switch — it is a temporary per-tab override", async () => {
+    await setInPageLog({ enabled: true });
+    await clickExtract(81);
+    vi.clearAllMocks();
+
+    await listeners.onMessage({ type: "setInPageLog", patch: { collapsed: true } }, { tab: { id: 81 } }, () => {});
+    await new Promise((r) => setTimeout(r, 0));
+
+    expect(chrome.storage.local.set).not.toHaveBeenCalled();
+    const call = inPageCallsFor(81).at(-1);
+    expect(call![0].args[1]).toMatchObject({ collapsed: true });
+  });
+
+  it("keeps the override to one tab", async () => {
+    await setInPageLog({ enabled: true });
+    const conn = await clickExtractWithPort(82);
+    await listeners.onMessage({ type: "setInPageLog", patch: { collapsed: true } }, { tab: { id: 82 } }, () => {});
+    await new Promise((r) => setTimeout(r, 0));
+    // Close the panel, or the next click would toggle it shut instead of extracting.
+    conn.triggerDisconnect();
+    vi.clearAllMocks();
+
+    await clickExtract(83);
+    expect(inPageCallsFor(83).at(-1)![0].args[1]).toMatchObject({ collapsed: false });
+  });
+
+  it("never persists the window size, and resets it on navigation", async () => {
+    await setInPageLog({ enabled: true });
+    const conn = await clickExtractWithPort(93);
+    vi.clearAllMocks();
+
+    await listeners.onMessage({ type: "setInPageLog", patch: { halfTurns: 6 } }, { tab: { id: 93 } }, () => {});
+    await new Promise((r) => setTimeout(r, 0));
+    expect(chrome.storage.local.set).not.toHaveBeenCalled();
+    expect(inPageCallsFor(93).at(-1)![0].args[1]).toMatchObject({ halfTurns: 6 });
+
+    // Reloading the tab goes back to the stored default.
+    conn.triggerDisconnect();
+    listeners.onUpdated(93, { status: "loading" });
+    vi.clearAllMocks();
+    await clickExtract(93);
+    expect(inPageCallsFor(93).at(-1)![0].args[1]).toMatchObject({ halfTurns: INPAGE_LOG_HALF_TURNS });
+  });
+
+  it("reports the end of the history so the window control can hide", async () => {
+    await setInPageLog({ enabled: true });
+    // The fixture has no packets, so the window trivially covers everything there is.
+    await clickExtract(96);
+    expect(inPageCallsFor(96).at(-1)![0].args[1]).toMatchObject({ hasMore: false });
+  });
+
+  it("keeps the window size to one tab", async () => {
+    await setInPageLog({ enabled: true });
+    const conn = await clickExtractWithPort(94);
+    await listeners.onMessage({ type: "setInPageLog", patch: { halfTurns: 9 } }, { tab: { id: 94 } }, () => {});
+    await new Promise((r) => setTimeout(r, 0));
+    conn.triggerDisconnect();
+    vi.clearAllMocks();
+
+    await clickExtract(95);
+    expect(inPageCallsFor(95).at(-1)![0].args[1]).toMatchObject({ halfTurns: INPAGE_LOG_HALF_TURNS });
+  });
+
+  it("re-applies the stored default when a table is opened", async () => {
+    await setInPageLog({ enabled: true });
+    await clickExtract(84);
+    await listeners.onMessage({ type: "setInPageLog", patch: { collapsed: true } }, { tab: { id: 84 } }, () => {});
+    await new Promise((r) => setTimeout(r, 0));
+    expect(inPageCallsFor(84).at(-1)![0].args[1]).toMatchObject({ collapsed: true });
+
+    // The board-frame handler only acts on the active tab.
+    const tab84 = { id: 84, url: "https://boardgamearena.com/8/innovation?table=123", windowId: 1 };
+    (chrome.tabs.get as ReturnType<typeof vi.fn>).mockResolvedValue(tab84);
+    mockExecuteScript.mockResolvedValue([{ result: gameFrameProbe(2, "innovation", "123") }]);
+    listeners.onActivated({ tabId: 84 });
+    await new Promise((r) => setTimeout(r, 50));
+    vi.clearAllMocks();
+    (chrome.tabs.get as ReturnType<typeof vi.fn>).mockResolvedValue(tab84);
+    mockExecuteScript.mockResolvedValue([{ result: gameFrameProbe(2, "innovation", "123") }]);
+
+    // Opening a table (board frame finishes loading) discards the temporary switch.
+    listeners.onCompleted({ tabId: 84, frameId: 1, url: "https://boardgamearena.com/8/innovation?table=123" });
+    await new Promise((r) => setTimeout(r, 50));
+
+    const call = inPageCallsFor(84).at(-1);
+    expect(call![0].args[1]).toMatchObject({ collapsed: false });
+  });
+});
+
+describe("in-page log flash prevention", () => {
+  const mockExecuteScript = chrome.scripting.executeScript as ReturnType<typeof vi.fn>;
+  const mockInsertCSS = chrome.scripting.insertCSS as ReturnType<typeof vi.fn>;
+  const BOARD = { tabId: 55, frameId: 1, url: "https://boardgamearena.com/8/innovation?table=123" };
+
+  async function setEnabled(enabled: boolean): Promise<void> {
+    const next = { ...INPAGE_LOG_DEFAULTS, enabled };
+    (chrome.storage.local.get as ReturnType<typeof vi.fn>).mockResolvedValue({ [INPAGE_LOG_KEY]: next });
+    listeners.onStorageChanged({ [INPAGE_LOG_KEY]: { newValue: next } }, "local");
+    await new Promise((r) => setTimeout(r, 0));
+  }
+
+  beforeEach(async () => {
+    await new Promise((r) => setTimeout(r, 20));
+    vi.clearAllMocks();
+    (chrome.runtime.sendMessage as ReturnType<typeof vi.fn>).mockImplementation(() => Promise.resolve());
+  });
+
+  afterEach(async () => { await setEnabled(false); });
+
+  it("hides BGA's log as the board frame commits, without waiting for extraction", async () => {
+    await setEnabled(true);
+    vi.clearAllMocks();
+
+    listeners.onCommitted(BOARD);
+
+    const hideCall = mockExecuteScript.mock.calls.find((c) => c[0]?.func === hideBgaLogEarlyFunction);
+    expect(hideCall).toBeDefined();
+    expect(hideCall![0].target).toMatchObject({ tabId: 55, frameIds: [1] });
+    expect(mockInsertCSS).toHaveBeenCalledWith(expect.objectContaining({ target: { tabId: 55, frameIds: [1] } }));
+  });
+
+  it("does nothing while the feature is off", async () => {
+    await setEnabled(false);
+    vi.clearAllMocks();
+    listeners.onCommitted(BOARD);
+    expect(mockExecuteScript.mock.calls.find((c) => c[0]?.func === hideBgaLogEarlyFunction)).toBeUndefined();
+  });
+
+  it("does not hide on non-Innovation tables", async () => {
+    await setEnabled(true);
+    vi.clearAllMocks();
+    listeners.onCommitted({ ...BOARD, url: "https://boardgamearena.com/2/azul?table=123" });
+    expect(mockExecuteScript.mock.calls.find((c) => c[0]?.func === hideBgaLogEarlyFunction)).toBeUndefined();
+  });
+
+  it("does not hide the shell page, only the board frame", async () => {
+    await setEnabled(true);
+    vi.clearAllMocks();
+    listeners.onCommitted({ ...BOARD, url: "https://boardgamearena.com/tableview?table=123" });
+    expect(mockExecuteScript.mock.calls.find((c) => c[0]?.func === hideBgaLogEarlyFunction)).toBeUndefined();
   });
 });

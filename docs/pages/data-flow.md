@@ -12,9 +12,10 @@ gets serialized at each boundary, and the message protocols that connect them.
 
 ## Component Overview
 
-The extension has three components, each running in a separate Chrome extension context
+The extension has four components, each running in a separate Chrome extension context
 (isolated JS environment with its own globals and lifecycle). They communicate via
-Chrome's message passing APIs.
+Chrome's message passing APIs — except the *In-Page Game Log*, which is written to rather than
+messaged (see [In-Page Game Log](#data-flow-in-page-game-log)).
 Chrome **JSON-serializes** all data crossing boundaries between contexts — no class instances,
 Maps, Sets, or functions survive the trip. Game state objects must be explicitly serialized before sending and reconstructed
 on the receiving side.
@@ -88,6 +89,28 @@ Key files:
 - `src/render/help.ts` — help page content
 - `src/sidepanel/settings.ts` — shared localStorage persistence (loadSetting/saveSetting with typed defaults)
 - `src/render/toggle.ts` — shared toggle logic (used by both side panel and ZIP export); tooltips are CSS-only via anchor positioning
+
+### In-Page Game Log
+
+Optional, Innovation only. Runs in the **ISOLATED world** of the board frame and renders the
+turn history into BGA's own log column, in place of BGA's `#logs` list.
+
+Unlike the *Side Panel*, it receives nothing by message: `chrome.runtime.sendMessage` reaches
+extension pages only, never a content script. The *Background Service Worker* renders the HTML
+itself and passes it as `chrome.scripting.executeScript` **arguments**, so the card database never
+enters the BGA page — only finished rows do.
+
+Responsibilities:
+- Mount a container as a sibling of `#logs` inside `#logs_wrap` (never inside `#logs`, which the live watcher observes)
+- Reconcile rows by `data-row-key` so unchanged rows keep their DOM identity across updates
+- Reveal card tooltips through the popover API, escaping the clipping BGA applies to `#logs`
+- Hide or restore BGA's own log via a class on the root element
+- Offer in-page controls, the only way to reach these settings while the side panel is closed
+
+Key files:
+- `src/games/innovation/inpage_log.ts` — the injected mount function; self-contained, since Chrome serializes it
+- `src/games/innovation/inpage_log.css` — in-page-only styling delta
+- `src/sidepanel/inpage_settings.ts` — `chrome.storage.local` settings shared with the service worker
 
 ## Data Flow: Full Extraction
 
@@ -215,14 +238,99 @@ and re-running the extraction pipeline. Initiated by the watcher injection in
 
 1. Validate re-extraction guards:
    - Sender tab matches tracked live tab
-   - *Side Panel* is open
+   - A consumer exists — `background.hasConsumer()`, i.e. the *Side Panel* is open **or** the *In-Page Game Log* is enabled
    - No extraction currently in progress
    - At least 5 seconds since last extraction
 2. If rate-limited (less than 5s since last extraction): schedule a deferred
    re-extraction after the remaining time. Only one deferred timer is active at
    a time; subsequent mutations within the same window are coalesced.
 3. If all guards pass, re-run Full Extraction flow silently (clear any deferred timer)
-4. Only push results to *Side Panel* if packet count increased
+4. Only push results if packet count increased — to the *Side Panel* by message, and to the *In-Page Game Log* by injection
+
+## Data Flow: In-Page Game Log
+
+Renders Innovation turn history into BGA's log column. Runs whenever results are produced and the
+feature is enabled — including with the side panel closed, which is its purpose.
+
+Triggers:
+- `chrome.webNavigation.onCommitted` for an Innovation board frame — hides BGA's log early (below)
+- Extraction completes (full or live)
+- `bgaa_inpage_log` changes in `chrome.storage.local` (either surface's toggles)
+- `chrome.webNavigation.onCompleted` reports the board frame finished loading
+- An in-page control sends `setInPageLog`
+
+### Hiding BGA's log before it paints
+
+Extraction has to fetch and process the whole notification history before it can render anything,
+so waiting for the mount would show BGA's log and swap it out a second later — a visible flash. The
+hide therefore runs at frame-commit, independently of results.
+
+***Background Service Worker***
+
+1. On `webNavigation.onCommitted`, bail unless the feature is enabled, the tab is not currently
+   switched to BGA's log, and `time-tracking.parseGameTableUrl()` reports an Innovation board frame
+2. Inject `EARLY_HIDE_CSS` and `background.hideBgaLogEarlyFunction` into that frame alone
+
+Because this hides before knowing whether a render will succeed, `background.pushInPageLog()`
+**unmounts** rather than bailing when it has no Innovation game log — otherwise BGA's log would stay
+hidden with nothing in its place and no control to bring it back.
+
+---
+
+***Background Service Worker***
+
+1. Bail unless the feature is enabled, the game is Innovation, and a game log exists — otherwise unmount
+2. Narrow the action list to the window via `turn_history.recentTurns()`, using this tab's override or the `INPAGE_LOG_HALF_TURNS` constant
+3. Compare the windowed length against the full action list to decide `hasMore`, which drives the "more..." control
+4. Render keyed rows via `render.renderTurnHistoryRows()` with `newestFirst`, `popoverTips`, `rowKeys` and `timeOnly`; wrapped in try/catch, since the renderer throws on an unknown player id
+5. Await the stylesheet, then push the rows. The two injections are independent promises, so an un-awaited `insertCSS()` lets the DOM land first and render unstyled. The injection promise is cached per tab (not a boolean) so a second push cannot overtake the first one's CSS, and it is dropped on navigation — injected CSS does not survive a new document
+
+```
+⇩   executeScript arguments (JSON-serialized, not a message):
+⇩   [ Array<{ key, html }>, { enabled, collapsed, showPlayerNames, halfTurns, hasMore } ]
+```
+
+***In-Page Game Log***
+
+1. Locate `#logs_wrap`; return silently if absent — non-board frames and any future BGA restructuring
+2. Mount `#bgaa-inpage-log` before `#logs` if not already present and connected; re-mount when BGA has rebuilt the column
+3. Toggle `bgaa-hide-bga-log` on the root element — exactly one log shows at a time. A class, never an inline style on `#logs`: BGA's own `#seemorelogs` handler writes inline `maxHeight` there
+4. Reconcile rows by `data-row-key`: reuse matching nodes, replace those whose content changed, drop the rest, preserving scroll position
+5. Attach delegated `pointerover` / `pointerout` listeners once. On hover, `showPopover()` promotes the tip to the top layer, then it is positioned from JS in viewport coordinates — CSS anchor positioning drives the side panel's tips but does not resolve reliably for a top-layer element nested inside its own anchor
+6. Render the view switch as an inline bulb glyph coloured by CSS — lit while the turn history is up, unlit while BGA's log is — with the action named via `title` / `aria-label`, since the icon alone cannot say which way it goes. Clicking flips `collapsed`, never `enabled`: disabling the feature from here would remove the only control able to bring the turn history back
+
+```
+⇩   "setInPageLog" message (only when the user uses an in-page control)
+⇩   { patch: { collapsed?, halfTurns? } }
+```
+
+***Background Service Worker***
+
+1. Apply `collapsed` / `halfTurns` to this tab's session state and push again; persist anything else
+
+### Session overrides vs stored defaults
+
+The two in-page controls are deliberately absent from the stored settings. `collapsed` (the bulb)
+and `halfTurns` (the "more..." control) are held per-tab in the service worker and never written to
+storage, so switching to BGA's log or widening the history lasts for that table rather than becoming
+a new preference. `background.forgetInPageLogTab()` clears them — together with the cached
+stylesheet injection — from `tabs.onUpdated` at navigation start, `webNavigation.onCompleted`, and
+`tabs.onRemoved`. That is what makes the stored setting the default re-applied whenever a table
+opens, and losing the state to a service-worker eviction is harmless for the same reason.
+
+Clearing all three collections through one helper is deliberate: the stylesheet cache was once
+cleared on only one navigation path, which left the log rendering unstyled on the way back into a
+table.
+
+### Settings storage
+
+The in-page log's settings live in `chrome.storage.local` under `bgaa_inpage_log`
+(`{ enabled, showPlayerNames }`), not in the `localStorage` used by every other display preference.
+Three contexts need them and `localStorage` cannot serve all three: the service worker has none at
+all, and a content script's belongs to `boardgamearena.com` rather than the extension. The panel's
+own "Show player names" toggle mirrors its value into this object so a single checkbox drives both
+surfaces. The starting window is the `INPAGE_LOG_HALF_TURNS` constant rather than a stored field,
+so widening can never become the new starting point.
 
 ## Data Flow: Side Panel Connect
 
@@ -385,11 +493,31 @@ Key files:
 |---------|---------|
 | `"gameLogChanged"` | DOM mutation detected — trigger live re-extraction |
 
+### *In-Page Game Log* &rarr; *Background Service Worker*
+
+| Message | Payload | Purpose |
+|---------|---------|---------|
+| `"setInPageLog"` | `{ patch: Partial<InPageLogSettings> }` | Apply a change from an in-page control ("more...", or the two-way view switch) |
+
+### *Background Service Worker* &rarr; *In-Page Game Log*
+
+Not messages — the service worker injects the mount function and passes data as arguments.
+
+| Channel | Payload | Purpose |
+|---------|---------|---------|
+| `chrome.scripting.executeScript` | `[rows, opts]` | Render or unmount the in-page log (`opts.enabled: false` unmounts and restores BGA's log; `opts.collapsed` switches which log is shown) |
+| `chrome.scripting.insertCSS` | concatenated stylesheet | Inject styling, once per tab per service-worker lifetime |
+
 ## Connection Management
 
 The *Side Panel* maintains a persistent port via `chrome.runtime.connect({name: "sidepanel"})`.
 The *Background Service Worker* uses port connection/disconnection to track whether the
 *Side Panel* is open.
+
+Port disconnection no longer stops live tracking unconditionally: if the *In-Page Game Log*
+is still enabled, tracking continues, because that log consumes the same results with the panel
+closed. Every gate that previously read `sidePanelOpen` directly — live re-extraction, watcher
+injection, and the four navigation handlers — now reads `background.hasConsumer()`.
 
 On port connect, the *Background Service Worker* queries the active tab and compares
 its table number against cached results. If they match, cached results are pushed
@@ -466,7 +594,10 @@ and skips its own extraction.
 | Event | Chrome API | Handler | Side panel effect |
 |-------|-----------|---------|-------------------|
 | Service worker restarts | Port disconnect detected by side panel; reconnects after 1s via `chrome.runtime.connect` | `onConnect` handler — pushes cached results if same table, otherwise re-extracts with source `"reconnect"` | No loading indicator; dedup guard skips render if data unchanged. Disconnected indicator shown after 3s if reconnect hasn't completed |
-| Side panel closes | Port `onDisconnect` | Sets `sidePanelOpen = false`, stops live tracking | N/A (panel gone) |
+| Side panel closes | Port `onDisconnect` | Sets `sidePanelOpen = false`; stops live tracking only when `background.hasConsumer()` is now false | N/A (panel gone) |
+| In-page log settings change | `chrome.storage.onChanged` for `bgaa_inpage_log` | Updates the cached settings, then mounts or unmounts the *In-Page Game Log* in the active tab | None |
+| Board frame commits | `chrome.webNavigation.onCommitted` | Hides BGA's log in that frame before it paints, so the in-page log does not flash BGA's list first | None |
+| Board iframe finishes loading | `chrome.webNavigation.onCompleted` | Re-attributes the play-time session, re-lights the icon, re-resolves panel content, and re-pushes the in-page log — the frame's DOM is new even when cached results still match the table | Content re-resolved unless already correct for this table |
 
 ### Filtering and deduplication
 

@@ -1,0 +1,41 @@
+/* Turn-history row appearance, shared by the side panel overlay and the in-page game log.
+ *
+ * Contains no `url()` reference by design: Chrome resolves relative URLs in injected CSS
+ * against the host page, so any `url()` here would 404 against boardgamearena.com.
+ *
+ * Container positioning lives with each surface — `#turn-history` in sidepanel.css,
+ * `#bgaa-inpage-log` in inpage_log.css — as does the tooltip reveal rule. */
+.turn-action {
+  white-space: nowrap;
+  color: #c0c0f0;
+}
+
+.turn-action .th-name-short,
+.turn-action .th-name-full {
+  color: oklch(from var(--player-color, #c0c0f0) clamp(0.65, l, 0.85) c h);
+}
+
+.th-name-full { display: none; }
+
+.turn-action.th-me {
+  background: color-mix(in srgb, var(--player-color) 12%, transparent);
+  font-weight: bold;
+}
+
+.turn-action.th-sub { padding-left: 12px; }
+.turn-action.th-artifact { font-style: italic; opacity: 0.75; }
+
+.turn-group-sep { height: 4px; }
+.th-time { color: #777; }
+
+.th-card {
+  position: relative;
+  cursor: default;
+  text-decoration: none;
+  pointer-events: auto;
+  anchor-name: --card-anchor;
+  anchor-scope: --card-anchor;
+}
+
+.th-card > .card-tip,
+.th-card > .card-tip-text { display: none; }

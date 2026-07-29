@@ -6,7 +6,7 @@ import { Card, CardDatabase, CardSet, cardIndex } from "../types";
 import type { PlayerInfo } from "../../../models/types";
 import { type GameState, createGameState } from "../game_state";
 import { GameEngine } from "../game_engine";
-import { renderSummary, renderTurnHistory } from "../render";
+import { renderSummary, renderTurnHistory, renderTurnHistoryRows } from "../render";
 import type { TurnAction } from "../turn_history";
 
 const thisDir = dirname(fileURLToPath(import.meta.url));
@@ -380,5 +380,106 @@ describe("bug: relic cards excluded from Cards section when in relics zone", () 
     const cardsSection = html.match(/data-section="cards"[\s\S]*?(?=<div class="section"|$)/);
     expect(cardsSection).not.toBeNull();
     expect(cardsSection![0]).not.toContain(relicInfo.name);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// renderTurnHistory options (in-page log variant)
+// ---------------------------------------------------------------------------
+
+describe("renderTurnHistory options", () => {
+  const alice1: TurnAction = { player: "Alice", actionNumber: 1, time: null, logIndex: 0, actions: [{ actionType: "meld", cardName: "Agriculture", cardAge: 1, cardSet: "base" }] };
+  const alice2: TurnAction = { player: "Alice", actionNumber: 2, time: null, logIndex: 1, actions: [{ actionType: "draw", cardName: null, cardAge: 1, cardSet: "base" }] };
+  const bob1: TurnAction = { player: "Bob", actionNumber: 1, time: null, logIndex: 2, actions: [{ actionType: "dogma", cardName: "Philosophy", cardAge: null, cardSet: null }] };
+
+  it("omits popover attribute by default and emits it when popoverTips is set", () => {
+    expect(renderTurnHistory([alice1], cardDb, PLAYERS)).not.toContain("popover=");
+    expect(renderTurnHistory([alice1], cardDb, PLAYERS, { popoverTips: true })).toContain('popover="manual"');
+  });
+
+  it("keeps the card tip a child of its .th-card anchor when using popovers", () => {
+    const html = renderTurnHistory([alice1], cardDb, PLAYERS, { popoverTips: true });
+    expect(html).toMatch(/<span class="th-card">[^<]*<div class="card-tip" popover="manual"/);
+  });
+
+  it("omits row keys by default and emits them when rowKeys is set", () => {
+    expect(renderTurnHistory([alice1], cardDb, PLAYERS)).not.toContain("data-row-key");
+    expect(renderTurnHistory([alice1], cardDb, PLAYERS, { rowKeys: true })).toContain('data-row-key="0.0:0"');
+  });
+
+  it("produces unique, stable row keys across renders of the same input", () => {
+    const first = renderTurnHistoryRows([alice1, alice2, bob1], cardDb, PLAYERS, { rowKeys: true });
+    const second = renderTurnHistoryRows([alice1, alice2, bob1], cardDb, PLAYERS, { rowKeys: true });
+    expect(first.map(r => r.key)).toEqual(second.map(r => r.key));
+    expect(new Set(first.map(r => r.key)).size).toBe(first.length);
+  });
+
+  it("keeps a row's key stable when the window slides", () => {
+    const wide = renderTurnHistoryRows([alice1, alice2, bob1], cardDb, PLAYERS, { rowKeys: true });
+    const narrow = renderTurnHistoryRows([alice2, bob1], cardDb, PLAYERS, { rowKeys: true });
+    const bobKey = wide[wide.length - 1].key;
+    expect(narrow[narrow.length - 1].key).toBe(bobKey);
+  });
+
+  it("disambiguates actions sharing a logIndex", () => {
+    const artifactA: TurnAction = { player: "Alice", actionNumber: 0, time: null, logIndex: 5, actions: [{ actionType: "artifact_pass", cardName: "Tools", cardAge: 1, cardSet: "artifacts" }] };
+    const artifactB: TurnAction = { player: "Alice", actionNumber: 0, time: null, logIndex: 5, actions: [{ actionType: "artifact_return", cardName: "Oars", cardAge: 1, cardSet: "artifacts" }] };
+    const rows = renderTurnHistoryRows([artifactA, artifactB], cardDb, PLAYERS, { rowKeys: true });
+    expect(new Set(rows.map(r => r.key)).size).toBe(rows.length);
+    expect(rows.map(r => r.key)).toEqual(["5.0:0", "5.1:0"]);
+  });
+
+  it("newestFirst reverses action order", () => {
+    const chronological = renderTurnHistoryRows([alice1, bob1], cardDb, PLAYERS);
+    const reversed = renderTurnHistoryRows([alice1, bob1], cardDb, PLAYERS, { newestFirst: true });
+    expect(chronological[0].html).toContain("Agriculture");
+    expect(reversed[0].html).toContain("Philosophy");
+  });
+
+  it("newestFirst keeps sub-action rows below their parent action", () => {
+    const withSub: TurnAction = { player: "Alice", actionNumber: 1, time: null, logIndex: 0, actions: [
+      { actionType: "dogma", cardName: "Philosophy", cardAge: null, cardSet: null },
+      { actionType: "meld", cardName: "Tools", cardAge: 1, cardSet: "base" },
+    ] };
+    const rows = renderTurnHistoryRows([withSub, bob1], cardDb, PLAYERS, { newestFirst: true });
+    const parentIdx = rows.findIndex(r => r.html.includes("Philosophy"));
+    const subIdx = rows.findIndex(r => r.html.includes("th-sub"));
+    expect(subIdx).toBeGreaterThan(parentIdx);
+  });
+
+  it("places a group separator between half-turns in both orderings", () => {
+    const chronological = renderTurnHistoryRows([alice1, bob1], cardDb, PLAYERS);
+    const reversed = renderTurnHistoryRows([alice1, bob1], cardDb, PLAYERS, { newestFirst: true });
+    expect(chronological.filter(r => r.html.includes("turn-group-sep"))).toHaveLength(1);
+    expect(reversed.filter(r => r.html.includes("turn-group-sep"))).toHaveLength(1);
+    // Separator sits between the two players' chunks, never at the edges.
+    const sepIdx = reversed.findIndex(r => r.html.includes("turn-group-sep"));
+    expect(sepIdx).toBeGreaterThan(0);
+    expect(sepIdx).toBeLessThan(reversed.length - 1);
+  });
+
+  it("renders only actions — BGA's own narration is not folded in", () => {
+    const html = renderTurnHistory([alice1, bob1], cardDb, PLAYERS, { newestFirst: true });
+    expect(html).not.toContain("th-narration");
+  });
+});
+
+describe("timestamp format", () => {
+  const action: TurnAction = { player: "Alice", actionNumber: 1, time: 1710000000, logIndex: 0, actions: [{ actionType: "meld", cardName: "Agriculture", cardAge: 1, cardSet: "base" }] };
+
+  it("includes the date by default, as the side panel expects", () => {
+    const html = renderTurnHistory([action], cardDb, PLAYERS);
+    expect(html).toMatch(/class="th-time">[A-Z][a-z]{2} \d{2}, \d{2}:\d{2}</);
+  });
+
+  it("drops the date when timeOnly is set", () => {
+    const html = renderTurnHistory([action], cardDb, PLAYERS, { timeOnly: true });
+    expect(html).toMatch(/class="th-time">\d{2}:\d{2}</);
+    expect(html).not.toMatch(/class="th-time">[A-Z][a-z]{2} \d{2},/);
+  });
+
+  it("still omits the timestamp entirely when the action has no time", () => {
+    const timeless = { ...action, time: null };
+    expect(renderTurnHistory([timeless], cardDb, PLAYERS, { timeOnly: true })).not.toContain("th-time");
   });
 });

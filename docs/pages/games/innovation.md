@@ -19,6 +19,12 @@ A compact sidebar shows recent actions — meld, draw, dogma, endorse, achieve, 
 
 ![Innovation turn history](../../screenshots/innovation-history.png)
 
+### In the BGA game log
+
+The same turn history can render directly in BGA's own log column instead of the side panel, where it stays visible and keeps updating with the panel closed. Enable it from the eye menu with "Show in BGA game log". The in-page version reads newest-first to match BGA's log, shows the same action lines as the panel, and timestamps them with the time only — rows wrap in BGA's narrow column, and the date would cost a line. Card names keep their hover tooltips.
+
+The column shows one log or the other, never both. A lightbulb in the header switches between them — lit while the turn history is up, dim while BGA's log is — so neither list is out of reach with the side panel closed. "More..." at the foot of the history widens the window beyond the default nine half-turns, and disappears once the whole game is shown. Both that and the switch are temporary: they last for the table you're on, and a reload or a different table starts from the eye-menu setting again.
+
 ## Card list
 
 The card list lays out all cards in the game across ages, showing which cards have been identified and which remain unknown. Toggle between Base, Echoes, Cities, and Artifacts sets, filter to show only unaccounted cards, and switch between wide and tall layouts:
@@ -38,6 +44,7 @@ The deck section shows remaining cards per age, with known cards revealed by nam
 - **Filter toggle**: All / Unknown (show only unaccounted cards)
 - **Layout toggle**: Wide (one row per age) / Tall (color columns)
 - **Turn history**: compact chronological display of recent actions (meld, draw, dogma, endorse, achieve, promote) with card name tooltips; compound actions (e.g. meld → promote → dogma) render as indented sub-action lines; pre-turn Artifact decisions (pass, return, or dogma) render as an italicized line above the turn's actions; each player's row uses their actual BGA-assigned color, with the observer's row tinted for distinction
+- **In-page game log**: render the turn history in BGA's own log column instead of the side panel, newest-first; an in-page switch moves between the two logs without reopening the panel
 - **Player labels**: "Show player names" toggle in the display menu switches turn-history labels between "you/opp" (default) and full BGA player names; coloring applies in either mode
 - **Section selector**: eye button to show/hide entire sections (including turn history visibility)
 - **Hover tooltips**: known cards show their full face image on hover; narrowed unknown cards display their candidate count and show every remaining candidate as mini card icons on hover

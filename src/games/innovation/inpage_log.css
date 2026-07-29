@@ -1,0 +1,148 @@
+/* In-page game log: the delta over card_tip.css + turn_history.css needed to render turn
+ * history inside BGA's own log column. Injected via chrome.scripting.insertCSS, concatenated
+ * after the two shared sheets, so equal-specificity rules here win.
+ *
+ * Contains no `url()` reference — Chrome resolves relative URLs in injected CSS against the
+ * host page, so any `url()` would 404 against boardgamearena.com. */
+
+/* Hide BGA's own log. A class on the root element rather than an inline style on #logs:
+ * BGA's #seemorelogs handler writes inline maxHeight onto #logs, and competing inline writes
+ * on the same element is a fight we would lose intermittently. */
+html.bgaa-hide-bga-log #logs { display: none !important; }
+
+/* BGA's inherited font, size, colour and line-height all reach the container, and the side
+ * panel's `body` rules are deliberately not ported, so state them explicitly. */
+#bgaa-inpage-log {
+  box-sizing: border-box;
+  min-width: 0;
+  font-family: monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  text-align: left;
+  color: #c0c0f0;
+  background: rgba(30, 30, 30, 0.85);
+  padding: 4px 6px;
+  border-radius: 4px;
+  margin-bottom: 4px;
+}
+
+/* Rows wrap here, unlike in the side panel. The shared stylesheet sets `white-space: nowrap`,
+ * which suits a floating overlay that can be as wide as it likes; in BGA's ~300px log column
+ * the same rows run past the right edge and get clipped. Sub-action indentation is left to the
+ * shared `.th-sub` rule — no hanging indent, which would override it. */
+#bgaa-inpage-log .turn-action {
+  white-space: normal;
+  overflow-wrap: break-word;
+}
+
+/* Header carries the view switch alone, so it always sits at the right. */
+#bgaa-inpage-log-header {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  color: #777;
+  font-size: 11px;
+  margin-bottom: 4px;
+}
+
+/* The window control sits after the rows: newest-first means the oldest entries are at the
+ * bottom, so "more..." belongs where the history runs out. */
+#bgaa-inpage-log-footer {
+  display: flex;
+  justify-content: flex-end;
+  color: #777;
+  font-size: 11px;
+  margin-top: 2px;
+}
+
+/* Scoped to the footer, never `#bgaa-inpage-log-header button`: the header holds only the bulb,
+ * and `all: unset` under a (1,0,1) selector would out-specify the bulb's own id rule and strip
+ * its size and artwork. */
+#bgaa-inpage-log-footer button {
+  all: unset;
+  cursor: pointer;
+  color: #999;
+}
+
+#bgaa-inpage-log-footer button:hover { color: #ccc; }
+
+/* The view switch: a bulb glyph, lit while the turn history is up and unlit while BGA's log
+ * is, matching what the toolbar icon means. Colour-only difference, so the shape cannot shift
+ * between states. */
+#bgaa-inpage-log-view {
+  all: unset;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  width: 18px;
+  height: 18px;
+  flex: none;
+  color: #ffd23f;
+}
+
+#bgaa-inpage-log-view svg {
+  width: 100%;
+  height: 100%;
+  fill: currentColor;
+}
+
+#bgaa-inpage-log-view.collapsed { color: #6f6f7d; }
+#bgaa-inpage-log-view:hover { color: #fff08a; }
+#bgaa-inpage-log-view.collapsed:hover { color: #9a9aa8; }
+
+/* Collapsed: BGA's log is showing, so all that remains of ours is the switch back. Rows stay
+ * in the DOM (hidden) so returning to the turn history is instant rather than waiting for the
+ * next push. The header right-aligns because the window control is hidden in this state, and
+ * `space-between` would otherwise strand the lone bulb on the left. */
+/* Only the backdrop changes. Padding must stay identical to the expanded state: the bulb sits
+ * in the header, so dropping it here moved the icon 6px left and 4px up on every switch. */
+#bgaa-inpage-log.collapsed { background: transparent; }
+#bgaa-inpage-log.collapsed #bgaa-inpage-log-rows,
+#bgaa-inpage-log.collapsed #bgaa-inpage-log-footer { display: none; }
+
+/* Nothing further back to show. */
+#bgaa-inpage-log.at-end #bgaa-inpage-log-footer { display: none; }
+#bgaa-inpage-log.collapsed #bgaa-inpage-log-header { margin-bottom: 0; }
+
+/* Player names are toggled per-surface. BGA owns <body>, so this is scoped to the container
+ * rather than the panel's `body.show-player-names`. */
+#bgaa-inpage-log.show-player-names .th-name-short { display: none; }
+#bgaa-inpage-log.show-player-names .th-name-full { display: inline; }
+
+/* Tooltip reveal: top layer, not :hover.
+ *
+ * BGA clips #logs with max-height and applies board-zoom transforms above it, either of which
+ * defeats position:fixed. The popover top layer "cannot be clipped by anything in the
+ * document", so it is a guarantee rather than something to re-verify against BGA's CSS.
+ *
+ * Three ids' worth of specificity, matching `.th-card > .card-tip { display: none }` in the
+ * shared sheet and beating it: relying on source order alone would break the moment the
+ * concatenation order changed.
+ *
+ * There is deliberately no rule cancelling `:hover` here. The hover reveal lives only in
+ * sidepanel.css, which is never injected into the page — and a cancel rule would out-specify
+ * this one, forcing the tip hidden at exactly the moment it is open. */
+.th-card > .card-tip:popover-open { display: block; }
+
+/* Undo the popover UA sheet's decorative defaults — and only those.
+ *
+ * Deliberately does NOT set inset, width or height. The UA sheet's `inset: 0` and
+ * `width/height: fit-content` are already beaten by card_tip.css's author rules, whereas
+ * restating them here would override the anchor-based `top`/`left` and the 375x275 box,
+ * leaving the tip unpositioned. Uses background-color, not the `background` shorthand, which
+ * would wipe the inline background-image carrying the card face. */
+.card-tip[popover] {
+  /* Positioned from JS in viewport coordinates — see placeTip(). The anchor-based insets and
+   * try-fallbacks from card_tip.css are neutralised so they cannot fight the inline styles. */
+  position: fixed;
+  right: auto;
+  bottom: auto;
+  position-anchor: none;
+  position-try-fallbacks: none;
+  margin: 0;
+  border: 0;
+  padding: 0;
+  background-color: transparent;
+  color: inherit;
+  overflow: visible;
+}

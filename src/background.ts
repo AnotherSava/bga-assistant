@@ -4,6 +4,13 @@ import { runPipeline, isValidPlayerCount, type PipelineResults } from "./pipelin
 import { CardDatabase, type GameName, type RawExtractionData } from "./models/types.js";
 import { SessionTracker, parseGameTableUrl, IDLE_DETECTION_SECONDS, IDLE_GRACE_MS, HEARTBEAT_MS } from "./time-tracking.js";
 import cardInfoRaw from "../assets/bga/innovation/card_info.json";
+import { renderTurnHistoryRows, setAssetResolver } from "./games/innovation/render.js";
+import { recentTurns } from "./games/innovation/turn_history.js";
+import { inPageLogFunction } from "./games/innovation/inpage_log.js";
+import { loadInPageSettings, saveInPageSettings, subscribeInPageSettings, INPAGE_LOG_DEFAULTS, INPAGE_LOG_HALF_TURNS, type InPageLogSettings } from "./sidepanel/inpage_settings.js";
+import cardTipCss from "./games/innovation/card_tip.css?raw";
+import turnHistoryCss from "./games/innovation/turn_history.css?raw";
+import inPageLogCss from "./games/innovation/inpage_log.css?raw";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -56,9 +63,24 @@ let liveTabId: number | null = null;
 let lastExtractionTime = 0;
 let deferredExtractionTimer: ReturnType<typeof setTimeout> | null = null;
 
+/**
+ * Whether anything is currently consuming extraction results.
+ *
+ * The side panel used to be the only consumer, so extraction and navigation handling were gated
+ * on `sidePanelOpen` directly. The in-page game log is a second consumer that runs with the panel
+ * closed — which is its whole point — so every one of those gates now asks this instead.
+ */
+function hasConsumer(): boolean {
+  return sidePanelOpen || inPageLogSettings.enabled;
+}
+
 // Load card database once at startup
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const cardDb = new CardDatabase(cardInfoRaw as any[]);
+
+// The in-page log renders card tooltips whose faces are loaded by BGA's document, so asset
+// paths must resolve to absolute chrome-extension:// URLs here just as they do in the panel.
+setAssetResolver(chrome.runtime.getURL);
 
 const timeTracker = new SessionTracker();
 const BACKUP_THROTTLE_MS = 5 * 60 * 1000;
@@ -545,6 +567,125 @@ export function watcherFunction(): void {
   observer.observe(logContainer, { childList: true, subtree: true });
 }
 
+// ---------------------------------------------------------------------------
+// In-page game log
+// ---------------------------------------------------------------------------
+
+/** Concatenated in the order the cascade needs: shared geometry, shared rows, in-page overrides. */
+const INPAGE_LOG_CSS = `${cardTipCss}\n${turnHistoryCss}\n${inPageLogCss}`;
+
+/** Hydrated at startup and kept current by storage.onChanged, so gating can read it synchronously. */
+let inPageLogSettings: InPageLogSettings = { ...INPAGE_LOG_DEFAULTS };
+/** In-flight or completed stylesheet injection per tab, so every push can await the same one. */
+const inPageLogStyles = new Map<number, Promise<unknown>>();
+/**
+ * Tabs currently showing BGA's log instead of the turn history.
+ *
+ * Deliberately in-memory and per-tab rather than in storage: the in-page bulb is a temporary
+ * override, while `inPageLogSettings.enabled` is the default re-applied whenever a table opens.
+ * Losing this to a service-worker eviction is correct — it falls back to the default.
+ */
+const inPageLogCollapsedTabs = new Set<number>();
+/**
+ * Per-tab window size, when widened past the stored default via the in-page "more..." control.
+ *
+ * Session state for the same reason as the collapsed set: widening is a temporary look further
+ * back, not a new preference. Cleared on navigation, so a reload or a different table starts
+ * from `INPAGE_LOG_HALF_TURNS` again.
+ */
+const inPageLogHalfTurns = new Map<number, number>();
+
+/**
+ * Drop every per-tab in-page-log override.
+ *
+ * One helper rather than three deletes at each call site: the stylesheet cache was once cleared
+ * on only one of the navigation paths, which left the log rendering unstyled on the way back
+ * into a table. A fourth per-tab collection would repeat that trap.
+ */
+function forgetInPageLogTab(tabId: number): void {
+  inPageLogStyles.delete(tabId);
+  inPageLogCollapsedTabs.delete(tabId);
+  inPageLogHalfTurns.delete(tabId);
+}
+
+/**
+ * Render turn history in the service worker and push the rows into the page.
+ *
+ * Rendering here rather than in the page keeps the 240 KB card database out of BGA's document —
+ * only finished HTML crosses the boundary, as executeScript arguments.
+ */
+async function pushInPageLog(tabId: number): Promise<void> {
+  if (!inPageLogSettings.enabled) return;
+  if (!lastResults || lastResults.gameName !== "innovation" || !lastResults.gameLog) {
+    // Frame-commit hiding may already have run for this tab, so never just bail — that would
+    // leave BGA's log hidden with nothing in its place and no control to bring it back.
+    unmountInPageLog(tabId);
+    return;
+  }
+
+  const halfTurns = inPageLogHalfTurns.get(tabId) ?? INPAGE_LOG_HALF_TURNS;
+  let rows: { key: string; html: string }[];
+  let atEnd = true;
+  try {
+    const gameLog = lastResults.gameLog;
+    const players = Object.values(gameLog.players);
+    const windowed = recentTurns(gameLog.actions, halfTurns);
+    // recentTurns returns everything once the requested half-turns exceed what was played, so an
+    // equal length means the window already covers the whole history.
+    atEnd = windowed.length === gameLog.actions.length;
+    rows = renderTurnHistoryRows(windowed, cardDb, players, { newestFirst: true, popoverTips: true, rowKeys: true, timeOnly: true });
+  } catch (err) {
+    // renderTurnHistoryRows throws on an action referencing an unknown player id. Never let that
+    // take down the service worker.
+    console.warn("[inpage-log] render failed:", err);
+    return;
+  }
+
+  const opts = { enabled: true, collapsed: inPageLogCollapsedTabs.has(tabId), showPlayerNames: inPageLogSettings.showPlayerNames, halfTurns, hasMore: !atEnd };
+
+  // The stylesheet must land before the rows, or the turn history renders as unstyled text —
+  // both player-name spans visible, narration unindented — until the CSS catches up. Every push
+  // awaits the same injection promise, so a second push cannot overtake the first one's CSS.
+  let styles = inPageLogStyles.get(tabId);
+  if (!styles) {
+    styles = chrome.scripting.insertCSS({ target: { tabId, allFrames: true }, css: INPAGE_LOG_CSS });
+    inPageLogStyles.set(tabId, styles);
+  }
+  try {
+    await styles;
+  } catch {
+    // Let the next push retry rather than leaving the tab permanently unstyled.
+    inPageLogStyles.delete(tabId);
+  }
+
+  // chrome-types declares `func` as `() => void`, so the arg-taking form needs a cast — the same
+  // workaround the world/ISOLATED injections already use.
+  chrome.scripting.executeScript({ target: { tabId, allFrames: true }, func: inPageLogFunction as unknown as () => void, args: [rows, opts], world: "ISOLATED" as chrome.scripting.ExecutionWorld }).catch(() => {});
+}
+
+/** Just the hiding rule, injected at frame-commit time so BGA's log never paints. */
+const EARLY_HIDE_CSS = "html.bgaa-hide-bga-log #logs { display: none !important; }";
+
+/**
+ * Injected at frame-commit to hide BGA's log before it renders. Self-contained.
+ *
+ * Adds the same class the mount function manages, so switching to BGA's log later removes it
+ * and both this rule and the full stylesheet stop applying.
+ */
+export function hideBgaLogEarlyFunction(): void {
+  document.documentElement.classList.add("bgaa-hide-bga-log");
+}
+
+/** Remove the in-page log from a tab, restoring BGA's own log. */
+function unmountInPageLog(tabId: number): void {
+  chrome.scripting.executeScript({
+    target: { tabId, allFrames: true },
+    func: inPageLogFunction as unknown as () => void,
+    args: [[], { enabled: false, collapsed: false, showPlayerNames: false, halfTurns: INPAGE_LOG_HALF_TURNS, hasMore: false }],
+    world: "ISOLATED" as chrome.scripting.ExecutionWorld,
+  }).catch(() => {});
+}
+
 function injectWatcher(tabId: number): void {
   // All frames: the live log container (#logs / #game_play_area) lives in the board iframe under the
   // /tableview shell. watcherFunction self-bails in frames without a log container, so only the board
@@ -571,7 +712,7 @@ function stopLiveTracking(reason: string): void {
 }
 
 function triggerLiveExtraction(): void {
-  if (extracting || !sidePanelOpen || liveTabId === null) return;
+  if (extracting || !hasConsumer() || liveTabId === null) return;
   const elapsed = Date.now() - lastExtractionTime;
   if (elapsed < LIVE_MIN_INTERVAL_MS) {
     if (deferredExtractionTimer === null) {
@@ -595,6 +736,9 @@ function triggerLiveExtraction(): void {
       const newPacketCount = lastResults?.rawData?.packets?.length ?? 0;
       if (newPacketCount !== previousPacketCount) {
         chrome.runtime.sendMessage({ type: "resultsReady", results: lastResults }).catch(() => {});
+        // sendMessage reaches extension pages only, never a content script, so the in-page log
+        // needs its own push.
+        if (liveTabId !== null) void pushInPageLog(liveTabId);
       }
     })
     .catch((err) => {
@@ -607,7 +751,7 @@ function triggerLiveExtraction(): void {
       lastExtractionTime = Date.now();
       const pending = pendingNavTabId;
       pendingNavTabId = null;
-      if (sidePanelOpen && pending !== null) {
+      if (hasConsumer() && pending !== null) {
         handleNavigation(pending);
       }
     });
@@ -737,7 +881,7 @@ async function extractFromTab(tabId: number, tableNumber: string, skipNotify = f
       throw err;
     }
     console.log("Pipeline complete:", Object.keys(lastResults));
-    if (sidePanelOpen) injectWatcher(tabId);
+    if (hasConsumer()) injectWatcher(tabId);
   } else {
     lastResults = { gameName, tableNumber, rawData, gameLog: null, gameState: null };
     stopLiveTracking("unsupported game");
@@ -745,6 +889,7 @@ async function extractFromTab(tabId: number, tableNumber: string, skipNotify = f
 
   lastExtractionTime = Date.now();
   if (!skipNotify) chrome.runtime.sendMessage({ type: "resultsReady", results: lastResults }).catch(() => {});
+  void pushInPageLog(tabId);
   return true;
 }
 
@@ -822,7 +967,10 @@ chrome.runtime.onConnect.addListener((port: chrome.runtime.Port) => {
   port.onDisconnect.addListener(() => {
     console.log("[live] port disconnected");
     sidePanelOpen = false;
-    stopLiveTracking("port disconnect");
+    // The in-page log is still consuming results, so closing the panel must not stop the
+    // tracking it depends on.
+    if (hasConsumer()) console.log("[live] kept alive for in-page log");
+    else stopLiveTracking("port disconnect");
   });
 });
 
@@ -879,7 +1027,7 @@ async function togglePanel(tabId: number): Promise<void> {
     clearBadgeLater(tabId);
     const pending = pendingNavTabId;
     pendingNavTabId = null;
-    if (sidePanelOpen && pending !== null) {
+    if (hasConsumer() && pending !== null) {
       handleNavigation(pending);
     }
   }
@@ -949,7 +1097,7 @@ async function handleNavigation(initialTabId: number, source: ExtractionSource =
     }
     const pending = pendingNavTabId;
     pendingNavTabId = null;
-    if (!sidePanelOpen || pending === null) break;
+    if (!hasConsumer() || pending === null) break;
     tabId = pending;
   }
 }
@@ -966,7 +1114,7 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
     maybeBgaSync(activeInfo.tabId, tab.url);
     syncHeartbeatAlarm();
   } catch { /* tab may have been closed */ }
-  if (!sidePanelOpen) { console.log("[nav] onActivated: panel closed, skip"); return; }
+  if (!hasConsumer()) { console.log("[nav] onActivated: no consumer, skip"); return; }
   if (extracting) {
     console.log("[nav] onActivated: extracting, queued tab", activeInfo.tabId);
     pendingNavTabId = activeInfo.tabId;
@@ -978,6 +1126,13 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
 
 // React to same-tab navigation (page load complete or SPA pushState)
 chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
+  // Injected CSS does not survive a document navigation, and the temporary view switch is
+  // scoped to a table. Both are dropped the moment the tab starts navigating — not only in the
+  // webNavigation path, which does not cover every way back into a table (leaving to the table
+  // list and re-entering would otherwise render unstyled, the stylesheet being wrongly cached).
+  if (changeInfo.status === "loading" || changeInfo.url !== undefined) {
+    forgetInPageLogTab(tabId);
+  }
   if (tabId !== activeTabId) return;
   // Full page load: status goes "loading" → "complete"; react to "complete".
   // SPA navigation (BGA uses pushState): only url changes, no status field.
@@ -994,7 +1149,7 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
     maybeBgaSync(tabId, tab.url);
     syncHeartbeatAlarm();
   }).catch(() => {});
-  if (!sidePanelOpen) { console.log("[nav] onUpdated: panel closed, skip. sidePanelOpen=", sidePanelOpen, "tabId=", tabId, "activeTabId=", activeTabId); return; }
+  if (!hasConsumer()) { console.log("[nav] onUpdated: no consumer, skip. sidePanelOpen=", sidePanelOpen, "inPageLog=", inPageLogSettings.enabled, "tabId=", tabId, "activeTabId=", activeTabId); return; }
   if (extracting) {
     console.log("[nav] onUpdated: extracting, queued tab", tabId);
     pendingNavTabId = tabId;
@@ -1003,6 +1158,18 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
   console.log("[nav] onUpdated: handleNavigation tab", tabId);
   handleNavigation(tabId);
 });
+
+// Hide BGA's log as its board frame commits, before it can paint. Waiting for the mount would
+// show BGA's log first and swap it out a second later — a visible flash, since extraction has to
+// fetch and process the whole notification history before it can render anything.
+chrome.webNavigation.onCommitted.addListener((details) => {
+  if (!inPageLogSettings.enabled || inPageLogCollapsedTabs.has(details.tabId)) return;
+  const boardInfo = parseGameTableUrl(details.url);
+  if (!boardInfo || boardInfo.gameName !== "innovation") return;
+  const target = { tabId: details.tabId, frameIds: [details.frameId] };
+  chrome.scripting.insertCSS({ target, css: EARLY_HIDE_CSS }).catch(() => {});
+  chrome.scripting.executeScript({ target, func: hideBgaLogEarlyFunction, world: "ISOLATED" as chrome.scripting.ExecutionWorld }).catch(() => {});
+}, { url: [{ hostSuffix: "boardgamearena.com" }] });
 
 // React to a game board FRAME finishing load. BGA embeds the board in an iframe under the /tableview
 // shell page, and sub-frame loads do NOT fire chrome.tabs.onUpdated — so without this the toolbar icon
@@ -1027,14 +1194,23 @@ chrome.webNavigation.onCompleted.addListener((details) => {
     // very event. Now that the board frame is actually ready, re-resolve the panel content too, unless it's
     // already resolved for this table. Mirrors the onUpdated/onActivated queueing so it can't race a
     // concurrent extraction.
-    if (!sidePanelOpen) return;
-    if (lastResults?.tableNumber === String(boardInfo.tableId)) return;
+    if (!hasConsumer()) return;
+    // Opening a table re-applies the stored default, discarding any temporary view switch, and
+    // the freshly loaded frame carries none of the previously injected CSS.
+    forgetInPageLogTab(details.tabId);
+    if (lastResults?.tableNumber === String(boardInfo.tableId)) {
+      // Results are still valid, but the board frame just reloaded, so its DOM no longer holds
+      // the in-page log. Re-push before taking the cached-results short-circuit.
+      void pushInPageLog(details.tabId);
+      return;
+    }
     if (extracting) { pendingNavTabId = details.tabId; return; }
     handleNavigation(details.tabId);
   }).catch(() => {});
 }, { url: [{ hostSuffix: "boardgamearena.com" }] });
 
 chrome.tabs.onRemoved.addListener((tabId) => {
+  forgetInPageLogTab(tabId);
   if (tabId === activeTabId) {
     timeTracker.handleFocusChange(null);
     syncHeartbeatAlarm();
@@ -1059,12 +1235,32 @@ chrome.windows.onFocusChanged.addListener(async (windowId) => {
   if (tab.id !== activeTabId) return; // focus moved again while the board was resolving
   trackTime(game, tab.url, tab.title);
   syncHeartbeatAlarm();
-  if (!sidePanelOpen) return;
+  if (!hasConsumer()) return;
   if (extracting) {
     pendingNavTabId = tab.id;
     return;
   }
   handleNavigation(tab.id, "focus");
+});
+
+// Hydrate the in-page log settings and keep them current. Gating (hasConsumer) reads these
+// synchronously, so they are mirrored into a module-level copy rather than awaited per call.
+void loadInPageSettings().then((settings) => {
+  inPageLogSettings = settings;
+  if (settings.enabled && activeTabId !== null) void pushInPageLog(activeTabId);
+});
+
+subscribeInPageSettings((settings) => {
+  const wasEnabled = inPageLogSettings.enabled;
+  inPageLogSettings = settings;
+  if (activeTabId === null) return;
+  if (!settings.enabled) {
+    if (wasEnabled) unmountInPageLog(activeTabId);
+    return;
+  }
+  // Re-inject the stylesheet on re-enable: the tab may have reloaded while it was off.
+  if (!wasEnabled) inPageLogStyles.delete(activeTabId);
+  void pushInPageLog(activeTabId);
 });
 
 // Handle messages from side panel and content scripts
@@ -1083,6 +1279,27 @@ chrome.runtime.onMessage.addListener(
       pinMode = message.mode as PinMode;
       // Persisted by sidepanel via localStorage; background only keeps in-memory copy.
       sendResponse(true);
+    } else if (message.type === "setInPageLog") {
+      // Sent by the in-page header controls, the only way to reach these while the side panel
+      // is closed. The view switch is a temporary per-tab override and never persists; anything
+      // else is a stored default, written to storage so the onChanged listener re-pushes.
+      // collapsed and halfTurns are session-only overrides, not part of the stored settings.
+      const patch = { ...(message.patch ?? {}) } as Partial<InPageLogSettings> & { collapsed?: boolean; halfTurns?: number };
+      const tabId = sender.tab?.id;
+      let pushNeeded = false;
+      if (typeof patch.collapsed === "boolean" && tabId !== undefined) {
+        if (patch.collapsed) inPageLogCollapsedTabs.add(tabId);
+        else inPageLogCollapsedTabs.delete(tabId);
+        pushNeeded = true;
+      }
+      if (typeof patch.halfTurns === "number" && tabId !== undefined) {
+        inPageLogHalfTurns.set(tabId, patch.halfTurns);
+        pushNeeded = true;
+      }
+      if (pushNeeded && tabId !== undefined) void pushInPageLog(tabId);
+      delete patch.collapsed;
+      delete patch.halfTurns;
+      if (Object.keys(patch).length > 0) void saveInPageSettings(patch);
     } else if (message.type === "gameLogChanged") {
       if (sender.tab?.id !== liveTabId) { console.log("[live] ignored: sender tab", sender.tab?.id, "!= liveTabId", liveTabId); return; }
       triggerLiveExtraction();

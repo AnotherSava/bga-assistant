@@ -90,6 +90,7 @@ export function renderHelp(errorMessage?: string, gameName?: GameName): string {
     <div class="help-section-title">Action history</div>
     <div class="help-sections-grid">
       <div class="help-grid-item"><span>Recent player actions (meld, draw, dogma, endorse, achieve) are shown in the top-right corner, newest first. Each player\u2019s row renders in their actual BGA-assigned color, and your own row is highlighted with a subtle background tint of that color so it stays distinguishable. Each action includes a timestamp. Turns that begin with an Artifact on display also show the pre-turn choice (pass, return, or dogma) as an italicized line above the regular actions. Toggle visibility via the ${ICON_EYE} menu.</span></div>
+      <div class="help-grid-item"><span>The same history can render in BGA\u2019s own game log instead, where it stays visible and keeps updating with the side panel closed \u2014 enable \u201CShow in BGA game log\u201D in the ${ICON_EYE} menu. There it reads newest-first to match BGA\u2019s log. The column shows one log or the other, never both. A lightbulb in the header switches between them \u2014 lit while the turn history is up, dim while BGA\u2019s log is. \u201CMore...\u201D below the history widens the window, and disappears once the whole game is shown. Both that and the switch only last for the current table; opening a table starts from the ${ICON_EYE} menu setting again.</span></div>
     </div>
   </div>
   </div>

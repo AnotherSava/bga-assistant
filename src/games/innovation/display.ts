@@ -2,6 +2,7 @@
 
 import { SECTION_IDS, SECTION_LABELS, ECHOES_ONLY_SECTIONS, RELICS_ONLY_SECTIONS } from "./config.js";
 import { loadSetting, saveSetting } from "../../sidepanel/settings.js";
+import { loadInPageSettings, saveInPageSettings } from "../../sidepanel/inpage_settings.js";
 
 export interface InnovationDisplayContext {
   echoes: boolean;
@@ -28,6 +29,9 @@ function loadShowPlayerNames(): boolean {
 
 function saveShowPlayerNames(value: boolean): void {
   saveSetting(SHOW_NAMES_KEY, value);
+  // Mirror into the in-page log's own store so one checkbox drives both surfaces — the
+  // service worker renders that log and cannot read the panel's localStorage.
+  void saveInPageSettings({ showPlayerNames: value });
 }
 
 export function buildInnovationDisplayMenu(panel: HTMLElement, context: InnovationDisplayContext): void {
@@ -63,7 +67,7 @@ export function buildInnovationDisplayMenu(panel: HTMLElement, context: Innovati
   // Show player names toggle (turn-history sub-option)
   {
     const label = document.createElement("label");
-    label.style.paddingLeft = "16px";
+    label.className = "sub-option";
     const checkbox = document.createElement("input");
     checkbox.type = "checkbox";
     checkbox.checked = loadShowPlayerNames();
@@ -74,6 +78,24 @@ export function buildInnovationDisplayMenu(panel: HTMLElement, context: Innovati
     checkbox.addEventListener("change", () => {
       saveShowPlayerNames(checkbox.checked);
       applyShowPlayerNames();
+    });
+  }
+
+  // In-page game log (turn-history sub-options). Stored in chrome.storage.local rather than
+  // localStorage because the service worker renders that log and cannot read the panel's storage.
+  {
+    const logLabel = document.createElement("label");
+    logLabel.className = "sub-option";
+    const logCheckbox = document.createElement("input");
+    logCheckbox.type = "checkbox";
+    logLabel.appendChild(logCheckbox);
+    logLabel.appendChild(document.createTextNode("Show in BGA game log"));
+    panel.appendChild(logLabel);
+
+    void loadInPageSettings().then((settings) => { logCheckbox.checked = settings.enabled; });
+
+    logCheckbox.addEventListener("change", () => {
+      void saveInPageSettings({ enabled: logCheckbox.checked });
     });
   }
 

@@ -15,6 +15,8 @@ import { renderCrewSummary, renderCrewFullPage } from "../games/crew/render.js";
 import { crewFromJSON } from "../games/crew/serialization.js";
 import "../games/azul/styles.css";
 import "../games/crew/styles.css";
+import "../games/innovation/card_tip.css";
+import "../games/innovation/turn_history.css";
 import { fromJSON as azulFromJSON } from "../games/azul/game_state.js";
 import type { PipelineResults } from "../pipeline.js";
 import type { PinMode } from "../background.js";

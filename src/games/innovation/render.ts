@@ -80,9 +80,14 @@ function iconImg(iconName: string, color: string, spriteIndex: number): string {
  *  face would eagerly fetch ~400 full-res WebPs (~25MB) on every render. Background images
  *  of display:none elements are not fetched until the element is shown, so each ~60KB face
  *  now loads only on first hover. */
-function renderCardTip(info: CardInfo): string {
+function renderCardTip(info: CardInfo, popoverTips: boolean = false): string {
   if (useTextTooltips) return `<div class="card-tip-text">${escapeHtml(info.name)}</div>`;
-  return `<div class="card-tip" style="background-image:url('${resolveAssetUrl(`assets/bga/innovation/cards/card_${info.spriteIndex}.webp`)}')"></div>`;
+  // `popover="manual"` promotes the tip to the top layer when shown, so it cannot be clipped
+  // by BGA's max-height on #logs. Manual (not auto) because auto's light-dismiss would swallow
+  // clicks in BGA's chat and log. The tip must stay a child of its anchor either way:
+  // .th-card sets a tree-scoped `anchor-scope`, and top-layer promotion does not move the node.
+  const popoverAttr = popoverTips ? " popover=\"manual\"" : "";
+  return `<div class="card-tip"${popoverAttr} style="background-image:url('${resolveAssetUrl(`assets/bga/innovation/cards/card_${info.spriteIndex}.webp`)}')"></div>`;
 }
 
 function renderKnownCard(info: CardInfo, markResolved: boolean, includeTip: boolean = true): string {
@@ -295,72 +300,129 @@ function renderSection(section: SectionData): string {
 // ---------------------------------------------------------------------------
 
 /** Wrap a card name in a tooltip span if the card exists in the database. */
-function cardTooltipSpan(cardName: string, cardDb: CardDatabase): string {
+function cardTooltipSpan(cardName: string, cardDb: CardDatabase, popoverTips: boolean = false): string {
   const info = cardDb.get(cardIndex(cardName));
   if (!info) return escapeHtml(cardName);
-  return `<span class="th-card">${escapeHtml(info.name)}${renderCardTip(info)}</span>`;
+  return `<span class="th-card">${escapeHtml(info.name)}${renderCardTip(info, popoverTips)}</span>`;
 }
 
 /** Format the action detail text (action type + card/age). */
-function formatActionDetail(detail: ActionDetail, cardDb: CardDatabase): string {
+function formatActionDetail(detail: ActionDetail, cardDb: CardDatabase, popoverTips: boolean = false): string {
   if (detail.actionType === "pending") return "";
   if (detail.actionType === "achieve") return `achieve [${detail.cardAge}]`;
   if (detail.actionType === "draw") {
-    if (detail.cardName) return `draw ${cardTooltipSpan(detail.cardName, cardDb)}`;
+    if (detail.cardName) return `draw ${cardTooltipSpan(detail.cardName, cardDb, popoverTips)}`;
     const setLabel = detail.cardSet && detail.cardSet !== "base" ? ` ${detail.cardSet}` : "";
     return `draw [${detail.cardAge}]${setLabel}`;
   }
   if (detail.actionType === "artifact_pass" || detail.actionType === "artifact_return" || detail.actionType === "artifact_dogma") {
     const verb = detail.actionType === "artifact_pass" ? "pass" : detail.actionType === "artifact_return" ? "return" : "dogma";
-    const card = detail.cardName ? `${cardTooltipSpan(detail.cardName, cardDb)} ` : "";
+    const card = detail.cardName ? `${cardTooltipSpan(detail.cardName, cardDb, popoverTips)} ` : "";
     return `${verb} ${card}artifact`;
   }
   const verb = detail.actionType;
-  if (detail.cardName) return `${verb} ${cardTooltipSpan(detail.cardName, cardDb)}`;
+  if (detail.cardName) return `${verb} ${cardTooltipSpan(detail.cardName, cardDb, popoverTips)}`;
   return verb;
 }
 
-/** Format a unix timestamp using the same locale format as the old top-bar clock. */
-function formatTime(time: number | null): string {
+/** Format a unix timestamp using the same locale format as the old top-bar clock.
+ *  `timeOnly` drops the date for the in-page log, where rows wrap in a narrow column and the
+ *  date costs a whole extra line for information that is redundant across a few half-turns. */
+function formatTime(time: number | null, timeOnly: boolean = false): string {
   if (time === null) return "";
-  return new Date(time * 1000).toLocaleDateString("en-US", { month: "short", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false });
+  const date = new Date(time * 1000);
+  if (timeOnly) return date.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
+  return date.toLocaleDateString("en-US", { month: "short", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false });
 }
 
 /** Render turn history HTML from a list of recent actions (chronological order). */
-export function renderTurnHistory(actions: TurnAction[], cardDb: CardDatabase, players: PlayerInfo[]): string {
-  if (actions.length === 0) return "";
+export interface TurnHistoryOptions {
+  /** Newest half-turn first (BGA log order). Default is chronological (side panel order). */
+  newestFirst?: boolean;
+  /** Emit `popover="manual"` on card tips, for in-page rendering where clipping must be escaped. */
+  popoverTips?: boolean;
+  /** Emit `data-row-key` on every row, so a consumer can reconcile rows instead of replacing them. */
+  rowKeys?: boolean;
+  /** Drop the date from timestamps, keeping the time. For narrow columns where rows wrap. */
+  timeOnly?: boolean;
+}
 
+/** One rendered row plus the stable key identifying it across renders. */
+export interface TurnHistoryRow {
+  key: string;
+  html: string;
+}
+
+/**
+ * Render turn history as individually keyed rows.
+ *
+ * Keys are derived from the action's own position in the game log, never from its index in
+ * `actions` \u2014 the caller passes a sliding window (`recentTurns`), so array indices shift as
+ * the game advances while the rows themselves are unchanged. Actions sharing a `logIndex`
+ * (artifact windows) are disambiguated by their order within that group, which `recentTurns`
+ * preserves because it slices on half-turn boundaries.
+ */
+export function renderTurnHistoryRows(actions: TurnAction[], cardDb: CardDatabase, players: PlayerInfo[], options: TurnHistoryOptions = {}): TurnHistoryRow[] {
+  if (actions.length === 0) return [];
+
+  const { newestFirst = false, popoverTips = false, rowKeys = false, timeOnly = false } = options;
   const playerById = new Map(players.map(p => [p.id, p]));
-  let html = "";
-  let currentPlayer: string | null = null;
+  const keyAttr = (key: string): string => rowKeys ? ` data-row-key="${key}"` : "";
 
-  for (const action of actions) {
-    if (action.player !== currentPlayer && currentPlayer !== null) {
-      html += '<div class="turn-group-sep"></div>';
-    }
-    currentPlayer = action.player;
+  // One chunk per action, chronological. Group separators are applied afterwards, over the
+  // final display order, so they land between half-turns in both orderings.
+  const chunks: { player: string; rows: TurnHistoryRow[] }[] = [];
+  let sameLogIndexRun = 0;
+
+  for (let index = 0; index < actions.length; index++) {
+    const action = actions[index];
+    if (index > 0 && actions[index - 1].logIndex === action.logIndex) sameLogIndexRun++;
+    else sameLogIndexRun = 0;
+    const baseKey = `${action.logIndex}.${sameLogIndexRun}`;
 
     const player = playerById.get(action.player);
     if (!player) throw new Error(`Turn-history action references unknown player id "${action.player}"`);
     const playerCls = player.isCurrent ? " th-me" : "";
     const colorAttr = playerColorAttr(player);
     const artifactCls = action.actionNumber === 0 ? " th-artifact" : "";
-    const timeStr = formatTime(action.time);
+    const timeStr = formatTime(action.time, timeOnly);
     const timePrefix = timeStr ? `<span class="th-time">${timeStr}</span> ` : "";
-    const detail = formatActionDetail(action.actions[0], cardDb);
+    const detail = formatActionDetail(action.actions[0], cardDb, popoverTips);
     const suffix = detail ? ` ${detail}` : "";
     const fullName = escapeHtml(player.name);
     const shortName = player.isCurrent ? "you" : "opp";
-    html += `<div class="turn-action${playerCls}${artifactCls}" ${colorAttr}>${timePrefix}<span class="th-name-short">${shortName}:</span><span class="th-name-full">${fullName}:</span>${suffix}</div>`;
+
+    const rows: TurnHistoryRow[] = [
+      { key: `${baseKey}:0`, html: `<div class="turn-action${playerCls}${artifactCls}"${keyAttr(`${baseKey}:0`)} ${colorAttr}>${timePrefix}<span class="th-name-short">${shortName}:</span><span class="th-name-full">${fullName}:</span>${suffix}</div>` },
+    ];
 
     // Render sub-actions (promote, dogma after promote, etc.)
     for (let i = 1; i < action.actions.length; i++) {
-      const subDetail = formatActionDetail(action.actions[i], cardDb);
-      html += `<div class="turn-action th-sub${playerCls}" ${colorAttr}>  \u2192 ${subDetail}</div>`;
+      const subDetail = formatActionDetail(action.actions[i], cardDb, popoverTips);
+      const key = `${baseKey}:${i}`;
+      rows.push({ key, html: `<div class="turn-action th-sub${playerCls}"${keyAttr(key)} ${colorAttr}>  \u2192 ${subDetail}</div>` });
     }
+
+    chunks.push({ player: action.player, rows });
   }
 
-  return html;
+  if (newestFirst) chunks.reverse();
+
+  const out: TurnHistoryRow[] = [];
+  let currentPlayer: string | null = null;
+  for (const chunk of chunks) {
+    if (chunk.player !== currentPlayer && currentPlayer !== null) {
+      const key = `sep:${chunk.rows[0].key}`;
+      out.push({ key, html: `<div class="turn-group-sep"${keyAttr(key)}></div>` });
+    }
+    currentPlayer = chunk.player;
+    out.push(...chunk.rows);
+  }
+  return out;
+}
+
+export function renderTurnHistory(actions: TurnAction[], cardDb: CardDatabase, players: PlayerInfo[], options: TurnHistoryOptions = {}): string {
+  return renderTurnHistoryRows(actions, cardDb, players, options).map(r => r.html).join("");
 }
 
 // ---------------------------------------------------------------------------

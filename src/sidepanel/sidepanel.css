@@ -99,36 +99,9 @@ body {
   color: #fff;
 }
 
-/* Tooltips anchored to .card / .th-card via CSS anchor positioning.
- * Default: below the anchor, aligned to its left edge. position-try-fallbacks
- * flips to the opposite side(s) when the default position would overflow the
- * viewport. Chrome 125+ native behavior; no JS positioning needed.
- *
- * .card-tip (image) is the default in the sidepanel. .card-tip-text (name-only
- * label) is only emitted for ZIP exports (useTextTooltips) to keep file size down. */
-.card-tip, .card-tip-text {
-  display: none;
-  position: fixed;
-  z-index: 10;
-  pointer-events: none;
-  position-anchor: --card-anchor;
-  top: calc(anchor(bottom) + 4px);
-  left: anchor(left);
-  position-try-fallbacks: flip-block, flip-inline, flip-block flip-inline;
-}
-/* Face image as a background (not <img>) so display:none defers the ~60KB WebP until hover. */
-.card-tip { width: 375px; height: 275px; background-size: contain; background-repeat: no-repeat; border-radius: 6px; }
-.card-tip-text {
-  background: #222;
-  color: #ccc;
-  padding: 8px 10px;
-  border-radius: 4px;
-  font-size: 11px;
-  white-space: pre-wrap;
-  max-width: 320px;
-  border: 1px solid #555;
-  line-height: 1.4;
-}
+/* Tooltip geometry lives in src/games/innovation/card_tip.css, imported from sidepanel.ts —
+ * the in-page game log needs the same rules and cannot load this stylesheet. Only the
+ * side panel's reveal mechanism stays here. */
 .card:hover > .card-tip, .card:hover > .card-tip-text { display: block; }
 
 /* Unknown-card tooltip: mini card icons for every remaining candidate.
@@ -292,6 +265,9 @@ body {
 }
 #section-selector label:hover { color: #fff; }
 #section-selector input[type="checkbox"] { margin-right: 6px; vertical-align: middle; }
+/* Options belonging to the toggle above them. Indents build on the 22px base rather than
+ * replacing it, so a sub-option never sits further left than its parent. */
+#section-selector label.sub-option { padding-left: 38px; }
 #section-selector label.stats-setting { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 4px 10px; }
 #section-selector label.stats-setting select { background: #1e1e1e; color: #ccc; border: 1px solid #555; border-radius: 3px; padding: 1px 4px; font-size: 12px; cursor: pointer; }
 .section.section-hidden { display: none !important; }
@@ -441,7 +417,9 @@ body {
 }
 .pin-shortcut-link:hover { color: #aaa; }
 
-/* Turn history */
+/* Turn history — row appearance lives in src/games/innovation/turn_history.css (shared with
+ * the in-page game log, imported from sidepanel.ts). Only the panel's overlay positioning,
+ * player-name toggle and tooltip reveal stay here. */
 #turn-history {
   position: fixed;
   top: 38px;
@@ -457,35 +435,8 @@ body {
   border-radius: 4px;
 }
 #turn-history:empty { display: none; }
-.turn-action {
-  white-space: nowrap;
-  color: #c0c0f0;
-}
-.turn-action .th-name-short,
-.turn-action .th-name-full {
-  color: oklch(from var(--player-color, #c0c0f0) clamp(0.65, l, 0.85) c h);
-}
-.th-name-full { display: none; }
 body.show-player-names .th-name-short { display: none; }
 body.show-player-names .th-name-full { display: inline; }
-.turn-action.th-me {
-  background: color-mix(in srgb, var(--player-color) 12%, transparent);
-  font-weight: bold;
-}
-.turn-action.th-sub { padding-left: 12px; }
-.turn-action.th-artifact { font-style: italic; opacity: 0.75; }
-.turn-group-sep { height: 4px; }
-.th-time { color: #777; }
-.th-card {
-  position: relative;
-  cursor: default;
-  text-decoration: none;
-  pointer-events: auto;
-  anchor-name: --card-anchor;
-  anchor-scope: --card-anchor;
-}
-.th-card > .card-tip,
-.th-card > .card-tip-text { display: none; }
 .th-card:hover > .card-tip,
 .th-card:hover > .card-tip-text { display: block; }
 

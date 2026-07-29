@@ -16,14 +16,15 @@ BGA Assistant does **not** collect, transmit, or store any personal data. There 
 
 - The extension reads game log data from BGA pages you visit using host permissions (`boardgamearena.com`).
 - All processing happens locally in your browser — game state is computed on your device and never sent anywhere.
-- Display preferences (such as section visibility and toggle states) are saved in your browser's `localStorage` and never leave your device.
+- Display preferences (such as section visibility and toggle states) are saved in your browser's `localStorage` and never leave your device. The in-page game log's settings are saved in `chrome.storage.local`, also local to your browser, because they are shared between the side panel and the extension's background worker.
+- When the optional in-page game log is enabled for Innovation, the extension adds its own turn-history panel to the BGA page and hides BGA's log display. This changes only what you see; nothing is sent anywhere, and turning the option off restores the page.
 
 ## Permissions
 
 | Permission | Purpose |
 |---|---|
 | `activeTab` | Read the current BGA game page when you click the toolbar icon |
-| `scripting` | Inject a content script to extract game log data from BGA pages |
+| `scripting` | Inject a content script to extract game log data from BGA pages, and to render the optional in-page game log |
 | `sidePanel` | Display the game state summary in a Chrome side panel |
 | `tabs` | Detect navigation to BGA game pages and update side panel content based on the table currently open |
 | `host_permissions` (boardgamearena.com) | Access game log data on BGA pages |
