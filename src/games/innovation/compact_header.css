@@ -8,9 +8,35 @@
  * Everything that changes BGA's own elements hangs off the root class the mount function sets, so
  * turning the feature off is a class removal rather than a second stylesheet. */
 
-/* The status bar is empty once both of its wrappers move into the topbar, and hiding it is what
- * reclaims the row. */
-html.bgaa-compact-header #page-title { display: none !important; }
+/* The status bar is empty once both of its wrappers move into the topbar, and emptying its box is
+ * what reclaims the row.
+ *
+ * Collapsed rather than hidden. BGA writes its own end-of-game notice into this bar — the framework
+ * appends `#bga-last-turn-banner` here the moment a game's last turn begins — and `display: none`
+ * took that notice down with it, silently, at the one point in a game where it matters most. With
+ * the padding and background `.roundedbox` gives it stripped instead, the bar measures 0px while it
+ * holds nothing but the placeholders the mount left behind, and anything BGA puts in it later still
+ * draws in its own colours, full width, directly under the compact header.
+ *
+ * The `min-height` is the one part BGA writes on the element itself — 42px, inline, from its own JS —
+ * which no selector outranks without !important. Left at that it is the whole of what an emptied bar
+ * would still measure. */
+html.bgaa-compact-header #page-title {
+  padding: 0;
+  margin: 0;
+  min-height: 0 !important;
+  background: none;
+  box-shadow: none;
+  border: 0;
+}
+
+/* That notice pairs a 5px top margin with a -5px bottom one — the first holding it clear of the
+ * prompt above it in BGA's own bar, the second pulling the board back up by as much so the pair
+ * costs nothing. Once the bar's box is emptied there is nothing left above it to stand clear of, and
+ * the margin collapses through the bar to show as a strip of board between the notice and the
+ * compact header. The negative bottom margin stays: it is what keeps the board where BGA means it to
+ * sit under the notice. */
+html.bgaa-compact-header #bga-last-turn-banner { margin-top: 0; }
 
 /* Innovation's two remaining board buttons. The splay-mode switch only changes how far splayed
  * stacks overlap, and the card browser duplicates what the side panel already shows. */
@@ -354,3 +380,12 @@ html[data-bgaa-game="arknova"] #pagesubtitle {
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
   padding: 2px 8px;
 }
+
+/* Ark Nova keeps that picker's slot in the page whether or not there is a decision to make, and
+ * empty it is still 4px of padding wearing the bar's own colours. Directly under the bar it passes
+ * for the bar's bottom edge — which is why it went unnoticed — but anything drawn below it, BGA's
+ * end-of-game notice above all, is pushed off the bar by a strip that reads as a gap.
+ *
+ * `:not(:has(*))` rather than `:empty`, which a single stray whitespace text node — the sort a
+ * template leaves behind when it clears an element — is enough to defeat. */
+html[data-bgaa-game="arknova"] #pagesubtitle:not(:has(*)) { display: none; }

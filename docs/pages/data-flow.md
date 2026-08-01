@@ -125,12 +125,12 @@ DOM BGA already rendered.
 Responsibilities:
 - Move BGA's own header nodes — never copies of them — into a single row in the topbar, so BGA keeps writing to the elements it created
 - Leave a placeholder at each origin, the only record of where a node belongs once the injection that moved it is gone
-- Hide BGA's status bar via a class on the root element, but only while its content is in the row instead
+- Collapse BGA's status bar via a class on the root element, but only while its content is in the row instead. Collapsed — stripped of its padding and background, so an empty one measures 0px — rather than hidden, because BGA appends its own end-of-game notice (`#bga-last-turn-banner`) to that bar when a game's last turn begins, and `display: none` took the notice with it
 - Freeze the bar at the top of the board as it scrolls (`position: sticky`), which also needs BGA's `#overall-content` switched from `overflow: hidden` to `clip` — `hidden` makes it a scroll container, and a sticky element sticks to its nearest scrollport rather than the viewport; `clip` clips identically without establishing one. Also suppresses the root's `overscroll-behavior-y`, since Chrome visually drags a stuck sticky element along with macOS's elastic scroll-bounce past the top of the page and springs it back — a compositor-level effect invisible to layout, so it needs its own fix independent of the sticky rule
 - Let it go again once the bar grows past a fixed height ceiling, where freezing it would wall off the board instead of saving room. CSS cannot ask how tall an element is, so a `ResizeObserver` measures the bar and publishes the verdict as a root class the sticky rule keys on. The ceiling is fixed rather than learned from the bar's own history: a game whose own bulky content — a piece picker, board art — lives inside what gets folded can be tall from the very first measurement, with nothing smaller ever recorded to compare against, so a "smallest height seen so far" baseline would learn that as normal and never catch it
 - Watch for Innovation's board buttons, which game setup builds after the frame reports loaded
-- Refuse to hide BGA's status bar on a game that still keeps something of its own in it
-- Pull Ark Nova's "choose a building" picker (`#pagesubtitle`) out ahead of the wrapper move, since it is nested inside the same wrapper as the prompt but is itself the permanently-oversized content the height ceiling exists to catch. Dropped after `#topbar` instead, it scrolls with the board in the normal document flow while the actual prompt still folds into the row — styled with the topbar's own background and shadow so the two read as one continuous header rather than the picker floating loose on the board
+- Refuse to collapse BGA's status bar on a game that still keeps something of its own in it — BGA's framework-level end-of-game banner excepted, since it belongs to no one game and the collapsed bar shows it
+- Pull Ark Nova's "choose a building" picker (`#pagesubtitle`) out ahead of the wrapper move, since it is nested inside the same wrapper as the prompt but is itself the permanently-oversized content the height ceiling exists to catch. Dropped after `#topbar` instead, it scrolls with the board in the normal document flow while the actual prompt still folds into the row — styled with the topbar's own background and shadow so the two read as one continuous header rather than the picker floating loose on the board, and hidden outright while the slot holds nothing — Ark Nova keeps it in the page between decisions, where its padding alone is a strip that anything below it reads as a gap under the bar
 
 Key files:
 - `src/games/innovation/compact_header.ts` — the injected mount function; self-contained, since Chrome serializes it
@@ -415,9 +415,12 @@ topbar's height.
 6. Toggle `bgaa-compact-header` on the root element — and `bgaa-progression-only` alongside it when
    asked for, never on its own, since a bare figure in the corner of BGA's untouched header would
    read as a stray number — under two conditions: the prompt is genuinely in
-   the row (hiding a status bar that can no longer be filled would leave the page with no prompt at
-   all), and `#page-title` holds nothing but the wrappers moved out of it and their placeholders —
-   a game nobody here has looked at may keep a banner or a control down there
+   the row (collapsing a status bar that can no longer be filled would leave the page with no prompt
+   at all), and `#page-title` holds nothing but the wrappers moved out of it and their placeholders —
+   a game nobody here has looked at may keep a control down there. BGA's own `#bga-last-turn-banner`
+   is exempt from that second condition: the framework adds it mid-game, with nothing to re-run this
+   decision afterwards, so counting it would cost the compact header to anyone reloading during a
+   last turn
 7. Stamp the game's slug on the root as `data-bgaa-game`, which is what per-game CSS keys on. Games
    write their own art into BGA's title bar — Ark Nova's break cup, card icons — sized for the 62px
    bar this replaces, and no shared rule can anticipate each of them

@@ -84,6 +84,12 @@ export function compactHeaderFunction(opts: { enabled: boolean; progressionOnly:
    * wrapper, folds into the row as usual.
    */
   const ARKNOVA_SUBTITLE_ID = "pagesubtitle";
+  /**
+   * BGA's own end-of-game notice, which the framework appends to the status bar once a game's last
+   * turn begins. It is the framework's rather than any one game's, and the stylesheet collapses the
+   * bar around it instead of hiding it, so it is not a reason to leave the bar alone.
+   */
+  const LAST_TURN_BANNER_ID = "bga-last-turn-banner";
   const MOVED_IDS = [...ROW_IDS, NEXT_TABLE_ID, VIEW_FULL_ID, ARKNOVA_SUBTITLE_ID];
 
   const slotFor = (id: string): Element | null => document.querySelector(`[${SLOT_ATTRIBUTE}="${id}"]`);
@@ -183,19 +189,24 @@ export function compactHeaderFunction(opts: { enabled: boolean; progressionOnly:
       rightMenu.insertBefore(nextTable, rightMenu.firstChild);
     }
 
-    // The class is what hides BGA's status bar, so it goes on under two conditions.
+    // The class is what collapses BGA's status bar, so it goes on under two conditions.
     //
     // The prompt has to be genuinely in the row: were BGA to rebuild its topbar, the moved nodes
-    // would go with it, and hiding a status bar we can no longer fill would leave the page with no
-    // prompt at all.
+    // would go with it, and taking away a status bar we can no longer fill would leave the page with
+    // no prompt at all.
     //
     // And the status bar has to hold nothing but the wrappers we moved out and the placeholders they
     // left behind. This runs on every game BGA hosts, most of which nobody here has ever looked at;
-    // one that keeps a banner or a control of its own down there would otherwise have it hidden with
-    // no way to reach it. Structural rather than measured, so it reads the same once already hidden.
+    // one that keeps a control of its own down there would otherwise have it stripped of the box it
+    // was drawn for. Structural rather than measured, so it reads the same once already collapsed.
+    //
+    // BGA's own end-of-game banner is exempt: it belongs to the framework rather than to a game, it
+    // appears mid-game with nothing to re-run this decision afterwards, and the collapsed bar shows
+    // it perfectly well. Counted, it would mean no compact header at all for anyone who reloads
+    // during a last turn.
     const promptInRow = document.getElementById("pagemaintitle_wrap")?.parentElement === row;
     const titleBar = document.getElementById("page-title");
-    const titleBarIsSpent = !titleBar || Array.from(titleBar.children).every((el) => el.hasAttribute(SLOT_ATTRIBUTE) || (el.children.length === 0 && !el.textContent?.trim()));
+    const titleBarIsSpent = !titleBar || Array.from(titleBar.children).every((el) => el.hasAttribute(SLOT_ATTRIBUTE) || el.id === LAST_TURN_BANNER_ID || (el.children.length === 0 && !el.textContent?.trim()));
     const folded = promptInRow && titleBarIsSpent;
     document.documentElement.classList.toggle(HEADER_CLASS, folded);
     const slug = Array.from(board.classList).find((name) => name.startsWith("bgagame-"))?.slice("bgagame-".length);

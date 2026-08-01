@@ -53,7 +53,7 @@ Keep `docs/pages/data-flow.md` up to date when code changes affect data flow, me
 - `src/games/innovation/display.ts` — Innovation display menu (section visibility, "Show player names" toggle, in-page log toggles, margin updates)
 - `src/games/innovation/inpage_log.ts` — in-page game log mount (ISOLATED-world, self-contained; keyed row reconcile, popover tooltips, BGA log hiding)
 - `src/games/innovation/compact_header.ts` — compact table header mount for every BGA game (ISOLATED-world, self-contained; moves BGA's status bar into the topbar, placeholders for restore)
-- `src/games/innovation/compact_header.css` — one-row header layout (hides BGA's status bar and the two redundant board buttons)
+- `src/games/innovation/compact_header.css` — one-row header layout (collapses BGA's status bar and hides the two redundant board buttons)
 - `src/games/innovation/card_tip.css` — card tooltip geometry shared by the side panel and the in-page log
 - `src/games/innovation/turn_history.css` — turn-history row appearance shared by both surfaces
 - `src/games/innovation/inpage_log.css` — in-page-only delta (popover reveal, BGA log hiding, container box)

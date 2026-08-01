@@ -108,6 +108,7 @@ Three subprojects in `D:\projects\bga`:
 - [BGA mode detection + extraction quirks](project_bga_mode_detection.md) — gameui.bRealtime (1/0) universal; gamedatas.realTime game-specific; title format; my_hand can lag the log
 - [BGA table type detection](project_bga_table_type.md) — tournament via gameui.tournament_id; arena via tableinfos `options["201"]` (Game mode) value==="2" — NOT `table_matchmaking` (also "1" for matchmade "Play now" games); probed by a SEPARATE gameui.ajaxcall page injection (SW fetch rejected w/o session token)
 - [BGA /tableview iframe board](project_bga_tableview_iframe.md) — modern BGA serves the board in an iframe under `/tableview?table=`; gameui lives only in that child frame; detection+injection are all-frames (isPotentialTablePage / selectGameFrame / probeGameFrame)
+- [Probing BGA's framework DOM](project_bga_framework_dom_probing.md) — find who owns an element via gameui's prototype chain; reproduce transient banners by calling the method; finished tables still render at /tableview
 
 ## BGA Azul Notes
 - All information is public — no player/spectator distinction needed

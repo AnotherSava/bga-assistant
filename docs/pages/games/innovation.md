@@ -71,9 +71,10 @@ so the prompt, the action buttons and the move counter keep updating exactly as 
 
 On a game with no support here, only the framework part applies — the row, the trimmed bar and the
 alignment. Its own controls are left alone, since nothing here knows what they are. One guard comes
-with that: BGA's status bar is only hidden once it holds nothing but the wrappers moved out of it,
-so a game that keeps a banner or a control of its own down there keeps its bar rather than losing
-what is in it.
+with that: BGA's status bar is only collapsed once it holds nothing but the wrappers moved out of it,
+so a game that keeps a control of its own down there keeps its bar rather than losing what is in it.
+Collapsed rather than hidden, so BGA's own end-of-game notice still shows, in its place under the
+bar, on any game.
 
 ## Card list
 

@@ -121,14 +121,24 @@ describe("compactHeaderFunction mounting", () => {
   });
 
   it("leaves the status bar alone when the game keeps something else in it", () => {
-    // Unknown games may put a banner or a control of their own in #page-title; hiding the bar would
-    // take it with them, with no way to reach it.
+    // Unknown games may put a banner or a control of their own in #page-title; collapsing the bar
+    // would strip it of the box it was drawn for.
     document.getElementById("leftright_page_wrapper")!.className = "bgagame-somegame";
     document.getElementById("page-title")!.insertAdjacentHTML("beforeend", '<div id="game_own_banner">Something this game shows</div>');
     compactHeaderFunction(ENABLED);
 
     expect(rowChildIds()).toEqual(["pagemaintitle_wrap", "gameaction_status_wrap"]);
     expect(document.documentElement.classList.contains("bgaa-compact-header")).toBe(false);
+  });
+
+  it("folds anyway when BGA's own end-of-game banner is in the status bar", () => {
+    // The framework appends it there for the last turn of any game, so reloading during one would
+    // otherwise mean no compact header for the rest of the table. The collapsed bar still shows it.
+    document.getElementById("page-title")!.insertAdjacentHTML("beforeend", '<div id="bga-last-turn-banner"><span class="bga-last-turn-banner-text">End of game triggered!</span></div>');
+    compactHeaderFunction(ENABLED);
+
+    expect(document.documentElement.classList.contains("bgaa-compact-header")).toBe(true);
+    expect(document.getElementById("bga-last-turn-banner")!.parentElement!.id).toBe("page-title");
   });
 
   it("bails silently when BGA has restructured its topbar away", () => {
@@ -215,7 +225,7 @@ describe("compactHeaderFunction mounting", () => {
     expect(timer.parentElement).toBe(middle);
   });
 
-  it("hides BGA's status bar via a root class, leaving #page-title itself untouched", () => {
+  it("collapses BGA's status bar via a root class, leaving #page-title itself untouched", () => {
     compactHeaderFunction(ENABLED);
     expect(document.documentElement.classList.contains("bgaa-compact-header")).toBe(true);
     expect(document.getElementById("page-title")!.getAttribute("style")).toBeNull();
@@ -247,14 +257,14 @@ describe("compactHeaderFunction mounting", () => {
     document.querySelector(".topbar_middle_content")!.innerHTML = "";
     compactHeaderFunction(ENABLED);
 
-    // The prompt is gone with the old topbar, so keeping #page-title hidden would leave the page
+    // The prompt is gone with the old topbar, so keeping #page-title collapsed would leave the page
     // with no prompt at all.
     expect(document.getElementById("pagemaintitle_wrap")).toBeNull();
     expect(document.documentElement.classList.contains("bgaa-compact-header")).toBe(false);
   });
 
   it("leaves the status bar visible in a layout without the prompt wrapper", () => {
-    // Defensive: hiding #page-title is only ever right when its content is in the row instead.
+    // Defensive: collapsing #page-title is only ever right when its content is in the row instead.
     document.getElementById("pagemaintitle_wrap")!.remove();
     compactHeaderFunction(ENABLED);
 
