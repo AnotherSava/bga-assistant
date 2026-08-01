@@ -78,6 +78,11 @@ function addInnovationButtons(): void {
     <i id="browse_all_cards_button" class="bgabutton bgabutton_gray">Browse all cards</i>`);
 }
 
+/** Ark Nova's own "choose a building" picker, nested inside the prompt like BGA renders it. */
+function addArkNovaSubtitle(): void {
+  document.getElementById("maintitlebar_content")!.insertAdjacentHTML("beforeend", '<div id="pagesubtitle"><div id="building-selector">hex icons</div></div>');
+}
+
 function row(): HTMLElement | null {
   return document.getElementById("bgaa-compact-header-row");
 }
@@ -405,6 +410,47 @@ describe("compactHeaderFunction per-game hook", () => {
     document.getElementById("page-title")!.insertAdjacentHTML("beforeend", '<div id="game_own_banner">Something</div>');
     compactHeaderFunction(ENABLED);
     expect(document.documentElement.hasAttribute("data-bgaa-game")).toBe(false);
+  });
+});
+
+describe("compactHeaderFunction Ark Nova building picker", () => {
+  beforeEach(() => {
+    document.getElementById("leftright_page_wrapper")!.className = "bgagame-arknova";
+  });
+
+  it("pulls the picker out of the row and drops it after the topbar", () => {
+    addArkNovaSubtitle();
+    compactHeaderFunction(ENABLED);
+
+    expect(rowChildIds()).not.toContain("pagesubtitle");
+    const topbar = document.getElementById("topbar")!;
+    expect(topbar.nextElementSibling?.id).toBe("pagesubtitle");
+    // The prompt itself still folds as normal — only the picker was singled out.
+    expect(rowChildIds()).toEqual(["pagemaintitle_wrap", "gameaction_status_wrap"]);
+  });
+
+  it("does nothing when the game has no picker to pull out", () => {
+    expect(() => compactHeaderFunction(ENABLED)).not.toThrow();
+    expect(document.getElementById("topbar")!.nextElementSibling?.id).not.toBe("pagesubtitle");
+  });
+
+  it("leaves the picker in place on a game other than Ark Nova", () => {
+    document.getElementById("leftright_page_wrapper")!.className = "bgagame-innovation";
+    addArkNovaSubtitle();
+    compactHeaderFunction(ENABLED);
+
+    // Riding along with the rest of the prompt wrapper is the default, unremarkable behaviour.
+    expect(rowChildIds()).toEqual(["pagemaintitle_wrap", "gameaction_status_wrap"]);
+    expect(row()!.contains(document.getElementById("pagesubtitle"))).toBe(true);
+  });
+
+  it("restores the picker to its placeholder when the header is turned off", () => {
+    addArkNovaSubtitle();
+    const maintitlebarContent = document.getElementById("maintitlebar_content")!;
+    compactHeaderFunction(ENABLED);
+    compactHeaderFunction(DISABLED);
+
+    expect(document.getElementById("pagesubtitle")!.parentElement).toBe(maintitlebarContent);
   });
 });
 

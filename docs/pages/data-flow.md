@@ -130,6 +130,7 @@ Responsibilities:
 - Let it go again once the bar grows past a fixed height ceiling, where freezing it would wall off the board instead of saving room. CSS cannot ask how tall an element is, so a `ResizeObserver` measures the bar and publishes the verdict as a root class the sticky rule keys on. The ceiling is fixed rather than learned from the bar's own history: a game whose own bulky content — a piece picker, board art — lives inside what gets folded can be tall from the very first measurement, with nothing smaller ever recorded to compare against, so a "smallest height seen so far" baseline would learn that as normal and never catch it
 - Watch for Innovation's board buttons, which game setup builds after the frame reports loaded
 - Refuse to hide BGA's status bar on a game that still keeps something of its own in it
+- Pull Ark Nova's "choose a building" picker (`#pagesubtitle`) out ahead of the wrapper move, since it is nested inside the same wrapper as the prompt but is itself the permanently-oversized content the height ceiling exists to catch. Dropped after `#topbar` instead, it scrolls with the board in the normal document flow while the actual prompt still folds into the row — styled with the topbar's own background and shadow so the two read as one continuous header rather than the picker floating loose on the board
 
 Key files:
 - `src/games/innovation/compact_header.ts` — the injected mount function; self-contained, since Chrome serializes it
@@ -392,30 +393,35 @@ topbar's height.
 1. Return silently unless the frame carries a `bgagame-<slug>` wrapper — every frame of the tab
    receives the injection, and only a game board should be rearranged. The `/tableview` shell and the
    loader frame carry no such marker
-2. Move `#pagemaintitle_wrap` and `#gameaction_status_wrap` into a row in the topbar's middle
+2. On Ark Nova, move `#pagesubtitle` — its "choose a building" picker — out from inside
+   `#pagemaintitle_wrap` to right after `#topbar`, ahead of the wrapper move below. Left in place, an
+   800px+ tray of hex icons would ride into the row with the rest of the prompt, becoming exactly the
+   kind of permanently-oversized content the height ceiling exists to catch; pulled out first, it
+   scrolls with the board in the normal document flow while the actual prompt still folds as usual
+3. Move `#pagemaintitle_wrap` and `#gameaction_status_wrap` into a row in the topbar's middle
    column, leaving a hidden placeholder at each origin. BGA's nodes are **moved, not copied**, so
    everything BGA writes by id — the prompt, the action buttons in `#generalactions`, the move
    counter — keeps updating in their new home. Both title wrappers move because BGA swaps between
    them by flipping their `display`
-3. Move `#change_view_full_button` to the far left instead, between `#site-logo` and `#tableinfos`.
+4. Move `#change_view_full_button` to the far left instead, between `#site-logo` and `#tableinfos`.
    Its label is collapsed and an eye drawn in its place by CSS rather than by markup: Innovation's
    `toggle_view` rewrites the button's innerHTML on every click, so anything put inside it from here
    would survive exactly one click
-4. Move `#gotonexttable_wrap` to the head of `#upperrightmenu`. The whole wrapper moves: BGA keeps a
+5. Move `#gotonexttable_wrap` to the head of `#upperrightmenu`. The whole wrapper moves: BGA keeps a
    labelled button and a bare arrow in there and shows whichever suits the state — and the label is
    not always short, since it becomes "N tables are waiting…" once your turn ends, which is why this
    sits on the right where the strip can widen rather than in the left corner beside the table info.
    It arrives inside `#pagemaintitle_wrap`, so this runs after the row is filled and takes it back out
-5. Toggle `bgaa-compact-header` on the root element — and `bgaa-progression-only` alongside it when
+6. Toggle `bgaa-compact-header` on the root element — and `bgaa-progression-only` alongside it when
    asked for, never on its own, since a bare figure in the corner of BGA's untouched header would
    read as a stray number — under two conditions: the prompt is genuinely in
    the row (hiding a status bar that can no longer be filled would leave the page with no prompt at
    all), and `#page-title` holds nothing but the wrappers moved out of it and their placeholders —
    a game nobody here has looked at may keep a banner or a control down there
-6. Stamp the game's slug on the root as `data-bgaa-game`, which is what per-game CSS keys on. Games
+7. Stamp the game's slug on the root as `data-bgaa-game`, which is what per-game CSS keys on. Games
    write their own art into BGA's title bar — Ark Nova's break cup, card icons — sized for the 62px
    bar this replaces, and no shared rule can anticipate each of them
-7. Watch for `#change_view_full_button` when it does not exist yet: Innovation builds its board
+8. Watch for `#change_view_full_button` when it does not exist yet: Innovation builds its board
    buttons during setup, which runs after the frame reports loaded. The observer retires once the
    button is placed, when a later injection turns the feature off, or on a timeout
 

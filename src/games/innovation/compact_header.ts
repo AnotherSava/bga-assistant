@@ -71,7 +71,20 @@ export function compactHeaderFunction(opts: { enabled: boolean; progressionOnly:
    * fits the state. Moving one would strand the other beside the prompt.
    */
   const NEXT_TABLE_ID = "gotonexttable_wrap";
-  const MOVED_IDS = [...ROW_IDS, NEXT_TABLE_ID, VIEW_FULL_ID];
+  /**
+   * Ark Nova's "choose a building to place" picker, which sits out of the row entirely rather than
+   * riding into it with the rest of the prompt.
+   *
+   * BGA renders it as `#pagesubtitle`, nested inside `pagemaintitle_wrap` alongside the actual
+   * prompt — moving the wrapper wholesale would carry an 800px+ tray of hex icons into the sticky
+   * row with it, which is exactly the kind of permanently-oversized content `STICKY_MAX_HEIGHT_PX`
+   * exists to catch, at the cost of losing the frozen bar entirely for the length of the decision.
+   * Pulled out ahead of that move and dropped after `#topbar` instead, it renders in the normal
+   * flow of the page — scrolling away with the board — while the actual prompt, still inside the
+   * wrapper, folds into the row as usual.
+   */
+  const ARKNOVA_SUBTITLE_ID = "pagesubtitle";
+  const MOVED_IDS = [...ROW_IDS, NEXT_TABLE_ID, VIEW_FULL_ID, ARKNOVA_SUBTITLE_ID];
 
   const slotFor = (id: string): Element | null => document.querySelector(`[${SLOT_ATTRIBUTE}="${id}"]`);
 
@@ -128,6 +141,18 @@ export function compactHeaderFunction(opts: { enabled: boolean; progressionOnly:
       slot.style.display = "none";
       node.parentNode?.insertBefore(slot, node);
     };
+
+    // Pulled out before the wrapper move below, so it never rides into the row with the rest of
+    // the prompt. `board` already carries the slug, ahead of the one computed later for the
+    // `data-bgaa-game` attribute — this only ever needs the one game's own id.
+    if (board.classList.contains("bgagame-arknova")) {
+      const subtitle = document.getElementById(ARKNOVA_SUBTITLE_ID);
+      const topbar = document.getElementById("topbar");
+      if (subtitle && topbar && subtitle.parentElement !== topbar.parentElement) {
+        leaveSlot(ARKNOVA_SUBTITLE_ID, subtitle);
+        topbar.parentNode?.insertBefore(subtitle, topbar.nextSibling);
+      }
+    }
 
     for (const id of ROW_IDS) {
       const node = document.getElementById(id);

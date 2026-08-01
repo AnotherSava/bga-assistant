@@ -345,3 +345,12 @@ html.bgaa-progression-only #pr_gameprogression {
 }
 
 html.bgaa-progression-only #pr_gameprogression::after { content: "%"; }
+
+/* Ark Nova's building picker, relocated below the frozen bar by the mount function (see
+ * compact_header.ts). Matches the topbar's own background and shadow so the two read as one
+ * continuous header rather than the picker floating loose on the wood-textured board underneath. */
+html[data-bgaa-game="arknova"] #pagesubtitle {
+  background: linear-gradient(#f4f4f4, #e9e9e9);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  padding: 2px 8px;
+}
