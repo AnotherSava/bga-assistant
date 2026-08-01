@@ -69,12 +69,15 @@ export function isUnpackedBuild(): boolean {
 /**
  * The defaults as they apply to this build.
  *
- * The compact header is the one setting that differs: it rearranges BGA's own page, so the store
- * build leaves it to be asked for, while a local build has it on — that is where it is being worked
- * on, and having to switch it on after every reload is friction with no purpose.
+ * The two settings that touch BGA's own page — the compact header and the in-page log — differ: a
+ * store build leaves both to be asked for, while a local build has them on, since that is where they
+ * are being worked on and switching them back on after every reload is friction with no purpose.
+ * `showPlayerNames` and `progressionOnly` stay off either way — they only restyle what the other two
+ * already turned on.
  */
 function buildDefaults(): InPageSettings {
-  return { ...INPAGE_DEFAULTS, compactHeader: isUnpackedBuild() };
+  const unpacked = isUnpackedBuild();
+  return { ...INPAGE_DEFAULTS, enabled: unpacked, compactHeader: unpacked };
 }
 
 export async function loadInPageSettings(): Promise<InPageSettings> {

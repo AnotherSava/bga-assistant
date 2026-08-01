@@ -127,7 +127,7 @@ Responsibilities:
 - Leave a placeholder at each origin, the only record of where a node belongs once the injection that moved it is gone
 - Hide BGA's status bar via a class on the root element, but only while its content is in the row instead
 - Freeze the bar at the top of the board as it scrolls (`position: sticky`), which also needs BGA's `#overall-content` switched from `overflow: hidden` to `clip` — `hidden` makes it a scroll container, and a sticky element sticks to its nearest scrollport rather than the viewport; `clip` clips identically without establishing one. Also suppresses the root's `overscroll-behavior-y`, since Chrome visually drags a stuck sticky element along with macOS's elastic scroll-bounce past the top of the page and springs it back — a compositor-level effect invisible to layout, so it needs its own fix independent of the sticky rule
-- Let it go again once the bar grows past three times its usual height, where freezing it would wall off the board instead of saving room. CSS cannot ask how tall an element is, so a `ResizeObserver` measures the bar against the smallest height it has held and publishes the verdict as a root class the sticky rule keys on. Toggling that class changes `position` alone, which cannot change the height it was measured from, so the observer cannot feed itself
+- Let it go again once the bar grows past a fixed height ceiling, where freezing it would wall off the board instead of saving room. CSS cannot ask how tall an element is, so a `ResizeObserver` measures the bar and publishes the verdict as a root class the sticky rule keys on. The ceiling is fixed rather than learned from the bar's own history: a game whose own bulky content — a piece picker, board art — lives inside what gets folded can be tall from the very first measurement, with nothing smaller ever recorded to compare against, so a "smallest height seen so far" baseline would learn that as normal and never catch it
 - Watch for Innovation's board buttons, which game setup builds after the frame reports loaded
 - Refuse to hide BGA's status bar on a game that still keeps something of its own in it
 
@@ -349,10 +349,10 @@ table.
 
 ### Settings storage
 
-Every one of these ships off. The compact header is the exception on an **unpacked build**, where it
-defaults on — `isUnpackedBuild()` compares `chrome.runtime.id` against the published id, so the
-setting is live while being worked on without a switch after every extension reload, and reaches
-store users only if they ask for it.
+Every one of these ships off. The compact header and the in-page log are the exception on an
+**unpacked build**, where both default on — `isUnpackedBuild()` compares `chrome.runtime.id` against
+the published id, so they are live while being worked on without a switch after every extension
+reload, and reach store users only if they ask for them.
 
 The in-page settings live in `chrome.storage.local` under `bgaa_inpage_log`
 (`{ enabled, showPlayerNames, compactHeader, progressionOnly }`), not in the `localStorage` used by every other

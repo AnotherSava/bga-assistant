@@ -119,10 +119,10 @@ html.bgaa-compact-header #tableinfos { justify-content: center; line-height: 1; 
  * reachable. */
 html.bgaa-compact-header #overall-content { overflow: clip; }
 
-/* `:not(.bgaa-header-tall)` is the height limit: the mount measures the bar against the smallest it
- * has been and sets that class past three times over, at which point freezing it would wall off the
- * top of the board rather than save space there. Unset, BGA's own `position: relative` applies and
- * the bar scrolls away as it always did. */
+/* `:not(.bgaa-header-tall)` is the height limit: the mount measures the bar against a fixed ceiling
+ * and sets that class past it, at which point freezing it would wall off the top of the board rather
+ * than save space there. Unset, BGA's own `position: relative` applies and the bar scrolls away as it
+ * always did. */
 html.bgaa-compact-header:not(.bgaa-header-tall) #topbar {
   position: sticky;
   top: 0;

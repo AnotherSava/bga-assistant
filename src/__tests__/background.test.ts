@@ -37,6 +37,9 @@ vi.hoisted(() => {
     scripting: { executeScript: vi.fn(() => Promise.resolve([])), insertCSS: vi.fn(() => Promise.resolve()) },
     sidePanel: { open: vi.fn(() => Promise.resolve()), close: vi.fn(() => Promise.resolve()) },
     runtime: {
+      // The published id, not a made-up one: isUnpackedBuild() compares against it, and these tests
+      // assume the store build's defaults (enabled/compactHeader off) unless a test says otherwise.
+      id: "idjijmafngfkkbppkgopldomfhdcedig",
       onMessage: { addListener: (cb: Function) => { _listeners.onMessage = cb; } },
       onConnect: { addListener: (cb: Function) => { _listeners.onConnect = cb; } },
       sendMessage: vi.fn(() => Promise.resolve()),

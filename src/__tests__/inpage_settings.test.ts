@@ -69,21 +69,27 @@ describe("defaults", () => {
     expect(INPAGE_DEFAULTS.progressionOnly).toBe(false);
   });
 
-  it("turns the compact header on for an unpacked build", async () => {
-    // Local builds have it on: that is where it is worked on, and switching it back on after every
-    // extension reload is friction with no purpose. The published id is the only one the store build
-    // can carry, so anything else is a build loaded from disk.
+  it("turns the compact header and the in-page log on for an unpacked build", async () => {
+    // Local builds have both on: that is where they are worked on, and switching them back on after
+    // every extension reload is friction with no purpose. The published id is the only one the store
+    // build can carry, so anything else is a build loaded from disk.
     (globalThis as any).chrome.runtime = { id: "unpackedbuildidfromsomelocalpath" };
-    expect((await loadInPageSettings()).compactHeader).toBe(true);
+    const unpacked = await loadInPageSettings();
+    expect(unpacked.enabled).toBe(true);
+    expect(unpacked.compactHeader).toBe(true);
 
     (globalThis as any).chrome.runtime = { id: "idjijmafngfkkbppkgopldomfhdcedig" };
-    expect((await loadInPageSettings()).compactHeader).toBe(false);
+    const published = await loadInPageSettings();
+    expect(published.enabled).toBe(false);
+    expect(published.compactHeader).toBe(false);
   });
 
   it("lets a stored choice stand over the build's default", async () => {
     (globalThis as any).chrome.runtime = { id: "unpackedbuildidfromsomelocalpath" };
-    storage[INPAGE_LOG_KEY] = { compactHeader: false };
-    expect((await loadInPageSettings()).compactHeader).toBe(false);
+    storage[INPAGE_LOG_KEY] = { enabled: false, compactHeader: false };
+    const loaded = await loadInPageSettings();
+    expect(loaded.enabled).toBe(false);
+    expect(loaded.compactHeader).toBe(false);
   });
 
   it("leaves a stored log preference alone when a new setting is added", async () => {

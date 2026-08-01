@@ -31,22 +31,21 @@ export function compactHeaderFunction(opts: { enabled: boolean; progressionOnly:
   const WATCH_TIMEOUT_MS = 60000;
   /**
    * Freezing the bar is worth it while it is one row; a bar that has grown to several is a wall
-   * across the top of the board, so past this multiple of its usual height it scrolls away like
-   * BGA's own. CSS cannot ask how tall an element is, so this is measured here and published as a
-   * class. Toggling it changes `position` alone, which does not affect the height it was measured
-   * from — so there is no feedback loop to guard against.
-   */
-  const STICKY_MAX_RATIO = 3;
-  /**
-   * Heights below this are treated as mid-layout noise rather than a real state.
+   * across the top of the board, so past this height it scrolls away like BGA's own instead. CSS
+   * cannot ask how tall an element is, so this is measured here and published as a class. Toggling
+   * it changes `position` alone, which does not affect the height it was measured from — so there
+   * is no feedback loop to guard against.
    *
-   * The reference is the smallest height the bar has actually held, so a single junk measurement
-   * taken while the frame was still assembling would lower it for good and leave the bar unable to
-   * stick at its normal size.
+   * Fixed rather than learned from what the bar has held: a game that puts its own bulky content —
+   * a piece picker, board art — inside what gets folded can be tall from the very first measurement,
+   * with nothing smaller ever recorded to compare against. A baseline built from "the smallest
+   * height seen so far" never catches that: the first reading becomes the baseline, so the bar is
+   * never taller than itself. Sized a little over double BGA's own fixed 62px bar, generous enough
+   * for a genuinely wrapped prompt or a game's own inline art, tight enough to still let go of
+   * something that never was one row.
    */
-  const MIN_BASELINE_PX = 24;
+  const STICKY_MAX_HEIGHT_PX = 130;
   const TALL_CLASS = "bgaa-header-tall";
-  const BASELINE_ATTRIBUTE = "data-bgaa-bar-baseline";
   const RESIZE_ATTRIBUTE = "data-bgaa-bar-watch";
   /**
    * BGA nodes folded into the row, in the order they take there.
@@ -90,7 +89,6 @@ export function compactHeaderFunction(opts: { enabled: boolean; progressionOnly:
     document.documentElement.removeAttribute(WATCH_ATTRIBUTE);
     document.documentElement.removeAttribute(GAME_ATTRIBUTE);
     document.documentElement.classList.remove(TALL_CLASS);
-    document.getElementById("topbar")?.removeAttribute(BASELINE_ATTRIBUTE);
   };
 
   // Every frame of the tab receives the injection; only a game board carries this marker, which BGA
@@ -183,22 +181,11 @@ export function compactHeaderFunction(opts: { enabled: boolean; progressionOnly:
     document.documentElement.classList.toggle(PROGRESSION_CLASS, folded && opts.progressionOnly);
   };
 
-  /**
-   * Judge the bar against the smallest height it has held, and publish the verdict as a class.
-   *
-   * The reference is tracked rather than assumed: what counts as one row depends on the game, the
-   * window width and whether the table info is pared down, none of which is knowable from here.
-   */
+  /** Judge the bar's height against the fixed ceiling, and publish the verdict as a class. */
   const gaugeBar = (): void => {
     const bar = document.getElementById("topbar");
     if (!bar) return;
-    const height = bar.getBoundingClientRect().height;
-    // A frame in a background tab measures nothing at all; judging it would only record noise.
-    if (height < MIN_BASELINE_PX) return;
-    const recorded = Number(bar.getAttribute(BASELINE_ATTRIBUTE));
-    const baseline = Number.isFinite(recorded) && recorded >= MIN_BASELINE_PX ? Math.min(recorded, height) : height;
-    bar.setAttribute(BASELINE_ATTRIBUTE, String(baseline));
-    document.documentElement.classList.toggle(TALL_CLASS, height > baseline * STICKY_MAX_RATIO);
+    document.documentElement.classList.toggle(TALL_CLASS, bar.getBoundingClientRect().height > STICKY_MAX_HEIGHT_PX);
   };
 
   apply();

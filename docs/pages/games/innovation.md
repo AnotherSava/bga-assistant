@@ -61,9 +61,9 @@ to think a little" link) are laid out across so they cost one line instead of th
 The bar also stays put while the board scrolls beneath it, so the prompt, the timer and the table's
 progression are readable wherever you are on a long board — worth having only because the bar is now
 36 pixels; freezing BGA's 62-pixel original would have cost a sixth of a laptop screen all game. That
-is also why it lets go when it has to: a prompt long enough to wrap the bar past three times its
-usual height gets a bar that scrolls away like BGA's own, rather than a wall across the top of the
-board. It freezes again as soon as the bar is back to its usual size.
+is also why it lets go when it has to: a prompt long enough to wrap it, or a game whose own content
+grows it past a fixed height, gets a bar that scrolls away like BGA's own, rather than a wall across
+the top of the board. It freezes again as soon as the bar is back under that height.
 
 It is off until you ask for it, under "Compact BGA header" in the help page's eye menu, and turning
 it back off puts every element where BGA had it. Nothing is copied or re-rendered: BGA's own elements are moved,

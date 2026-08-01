@@ -441,30 +441,29 @@ describe("compactHeaderFunction height limit", () => {
     setBarHeight(36);
     compactHeaderFunction(ENABLED);
     expect(isTall()).toBe(false);
-    expect(document.getElementById("topbar")!.getAttribute("data-bgaa-bar-baseline")).toBe("36");
   });
 
-  it("unsticks once the bar grows past three times its usual height", () => {
+  it("unsticks once the bar grows past the ceiling", () => {
     const observer = stubResizeObserver();
     setBarHeight(36);
     compactHeaderFunction(ENABLED);
     expect(isTall()).toBe(false);
 
-    setBarHeight(109);          // 36 * 3 = 108, so this is over
+    setBarHeight(131);          // the ceiling is 130, so this is over
     observer.fire();
     expect(isTall()).toBe(true);
   });
 
-  it("holds on at exactly three times, and lets go past it", () => {
+  it("holds on at exactly the ceiling, and lets go past it", () => {
     const observer = stubResizeObserver();
     setBarHeight(36);
     compactHeaderFunction(ENABLED);
 
-    setBarHeight(108);
+    setBarHeight(130);
     observer.fire();
     expect(isTall()).toBe(false);
 
-    setBarHeight(108.5);
+    setBarHeight(130.5);
     observer.fire();
     expect(isTall()).toBe(true);
   });
@@ -482,34 +481,15 @@ describe("compactHeaderFunction height limit", () => {
     expect(isTall()).toBe(false);
   });
 
-  it("corrects a reference first measured while the bar was tall", () => {
-    // A table opened at the end of a game, or on a narrow window, starts with a wrapped bar; the
-    // smallest height seen is what one row costs, so the reference follows it down.
-    const observer = stubResizeObserver();
-    setBarHeight(100);
+  it("unsticks a bar that is tall from the very first measurement", () => {
+    // The regression this guards against: a game whose own bulky content (a piece picker, board
+    // art) lives inside what gets folded can be tall before anything ever resizes. A baseline
+    // learned from "the smallest height seen so far" would record that first reading as normal and
+    // never catch it — height > height * 3 is never true. The fixed ceiling catches it immediately,
+    // with no resize needed at all.
+    setBarHeight(200);
     compactHeaderFunction(ENABLED);
-    expect(document.getElementById("topbar")!.getAttribute("data-bgaa-bar-baseline")).toBe("100");
-
-    setBarHeight(36);
-    observer.fire();
-    expect(document.getElementById("topbar")!.getAttribute("data-bgaa-bar-baseline")).toBe("36");
-
-    setBarHeight(120);
-    observer.fire();
     expect(isTall()).toBe(true);
-  });
-
-  it("ignores a height taken before the frame has laid out", () => {
-    // A frame in a background tab measures nothing; recording that would leave the bar unable to
-    // stick at any real size.
-    const observer = stubResizeObserver();
-    setBarHeight(36);
-    compactHeaderFunction(ENABLED);
-
-    setBarHeight(0);
-    observer.fire();
-    expect(document.getElementById("topbar")!.getAttribute("data-bgaa-bar-baseline")).toBe("36");
-    expect(isTall()).toBe(false);
   });
 
   it("starts one watcher across repeated injections", () => {
@@ -530,13 +510,6 @@ describe("compactHeaderFunction height limit", () => {
     observer.fire();
     expect(observer.disconnected()).toBe(true);
     expect(document.documentElement.hasAttribute("data-bgaa-bar-watch")).toBe(false);
-  });
-
-  it("clears the reference when the header is restored", () => {
-    setBarHeight(36);
-    compactHeaderFunction(ENABLED);
-    compactHeaderFunction(DISABLED);
-    expect(document.getElementById("topbar")!.hasAttribute("data-bgaa-bar-baseline")).toBe(false);
   });
 
   it("runs without a ResizeObserver, judging the bar as it stands", () => {
