@@ -12,10 +12,12 @@ gets serialized at each boundary, and the message protocols that connect them.
 
 ## Component Overview
 
-The extension has four components, each running in a separate Chrome extension context
+The extension has five components, each running in a separate Chrome extension context
 (isolated JS environment with its own globals and lifecycle). They communicate via
-Chrome's message passing APIs — except the *In-Page Game Log*, which is written to rather than
-messaged (see [In-Page Game Log](#data-flow-in-page-game-log)).
+Chrome's message passing APIs — except the two in-page surfaces, the *In-Page Game Log* and the
+*Compact Table Header*, which are written to rather than messaged (see
+[In-Page Game Log](#data-flow-in-page-game-log) and
+[Compact Table Header](#data-flow-compact-table-header)).
 Chrome **JSON-serializes** all data crossing boundaries between contexts — no class instances,
 Maps, Sets, or functions survive the trip. Game state objects must be explicitly serialized before sending and reconstructed
 on the receiving side.
@@ -111,6 +113,29 @@ Key files:
 - `src/games/innovation/inpage_log.ts` — the injected mount function; self-contained, since Chrome serializes it
 - `src/games/innovation/inpage_log.css` — in-page-only styling delta
 - `src/sidepanel/inpage_settings.ts` — `chrome.storage.local` settings shared with the service worker
+
+### Compact Table Header
+
+Optional, off unless asked for, and — unlike everything else here — not limited to the supported games:
+the header it folds belongs to BGA's framework and is the same on every table. Also an **ISOLATED
+world** injection into the board frame, and written to rather than messaged for the same reason. It
+differs from the *In-Page Game Log* in what it works on: no extraction results reach it, only the
+DOM BGA already rendered.
+
+Responsibilities:
+- Move BGA's own header nodes — never copies of them — into a single row in the topbar, so BGA keeps writing to the elements it created
+- Leave a placeholder at each origin, the only record of where a node belongs once the injection that moved it is gone
+- Hide BGA's status bar via a class on the root element, but only while its content is in the row instead
+- Freeze the bar at the top of the board as it scrolls (`position: sticky`), which also needs BGA's `#overall-content` switched from `overflow: hidden` to `clip` — `hidden` makes it a scroll container, and a sticky element sticks to its nearest scrollport rather than the viewport; `clip` clips identically without establishing one. Also suppresses the root's `overscroll-behavior-y`, since Chrome visually drags a stuck sticky element along with macOS's elastic scroll-bounce past the top of the page and springs it back — a compositor-level effect invisible to layout, so it needs its own fix independent of the sticky rule
+- Let it go again once the bar grows past three times its usual height, where freezing it would wall off the board instead of saving room. CSS cannot ask how tall an element is, so a `ResizeObserver` measures the bar against the smallest height it has held and publishes the verdict as a root class the sticky rule keys on. Toggling that class changes `position` alone, which cannot change the height it was measured from, so the observer cannot feed itself
+- Watch for Innovation's board buttons, which game setup builds after the frame reports loaded
+- Refuse to hide BGA's status bar on a game that still keeps something of its own in it
+
+Key files:
+- `src/games/innovation/compact_header.ts` — the injected mount function; self-contained, since Chrome serializes it
+- `src/games/innovation/compact_header.css` — the one-row layout its DOM moves make possible
+- `src/sidepanel/inpage_settings.ts` — the same `chrome.storage.local` object the in-page log uses
+- `src/sidepanel/global_menu.ts` — the help page's eye menu, where the setting lives for games with no display menu of their own
 
 ## Data Flow: Full Extraction
 
@@ -313,8 +338,8 @@ hidden with nothing in its place and no control to bring it back.
 The two in-page controls are deliberately absent from the stored settings. `collapsed` (the bulb)
 and `halfTurns` (the "more..." control) are held per-tab in the service worker and never written to
 storage, so switching to BGA's log or widening the history lasts for that table rather than becoming
-a new preference. `background.forgetInPageLogTab()` clears them — together with the cached
-stylesheet injection — from `tabs.onUpdated` at navigation start, `webNavigation.onCompleted`, and
+a new preference. `background.forgetInPageTab()` clears them — together with both cached
+stylesheet injections — from `tabs.onUpdated` at navigation start, `webNavigation.onCompleted`, and
 `tabs.onRemoved`. That is what makes the stored setting the default re-applied whenever a table
 opens, and losing the state to a service-worker eviction is harmless for the same reason.
 
@@ -324,13 +349,79 @@ table.
 
 ### Settings storage
 
-The in-page log's settings live in `chrome.storage.local` under `bgaa_inpage_log`
-(`{ enabled, showPlayerNames }`), not in the `localStorage` used by every other display preference.
-Three contexts need them and `localStorage` cannot serve all three: the service worker has none at
-all, and a content script's belongs to `boardgamearena.com` rather than the extension. The panel's
+Every one of these ships off. The compact header is the exception on an **unpacked build**, where it
+defaults on — `isUnpackedBuild()` compares `chrome.runtime.id` against the published id, so the
+setting is live while being worked on without a switch after every extension reload, and reaches
+store users only if they ask for it.
+
+The in-page settings live in `chrome.storage.local` under `bgaa_inpage_log`
+(`{ enabled, showPlayerNames, compactHeader, progressionOnly }`), not in the `localStorage` used by every other
+display preference. Three contexts need them and `localStorage` cannot serve all three: the service
+worker has none at all, and a content script's belongs to `boardgamearena.com` rather than the
+extension. The key is still named for the log alone, which was the first of these settings:
+renaming it would silently drop what every existing user has already chosen. The panel's
 own "Show player names" toggle mirrors its value into this object so a single checkbox drives both
 surfaces. The starting window is the `INPAGE_LOG_HALF_TURNS` constant rather than a stored field,
 so widening can never become the new starting point.
+
+## Data Flow: Compact Table Header
+
+Optional, for every game BGA hosts rather than the supported ones alone. Also an
+ISOLATED-world injection into the board frame, but otherwise unlike the in-page log: it consumes no
+extraction results, only the DOM BGA already rendered. It folds BGA's status bar and Innovation's "Look at all cards in piles" button up
+into the topbar, so the table info, the current prompt and its action buttons share one bar instead
+of three. The table id / move / progression stack is left as BGA renders it — it already fits the
+topbar's height.
+
+***Background Service Worker***
+
+1. On `webNavigation.onCompleted`, bail unless the feature is on and `time-tracking.parseGameTableUrl()`
+   reports a board frame — any game's, since the header is the framework's. This runs ahead of both
+   gates the rest of that handler applies: no consumer is needed, and a table in a background tab is
+   folded like the one in front
+2. `background.pushCompactHeader()` awaits the stylesheet, then injects the mount function into all
+   frames. The undo path skips the stylesheet: the mount removes the root class every rule hangs off
+
+```
+⇩   executeScript arguments (JSON-serialized, not a message):
+⇩   [ { enabled, progressionOnly } ]
+```
+
+***Compact Table Header***
+
+1. Return silently unless the frame carries a `bgagame-<slug>` wrapper — every frame of the tab
+   receives the injection, and only a game board should be rearranged. The `/tableview` shell and the
+   loader frame carry no such marker
+2. Move `#pagemaintitle_wrap` and `#gameaction_status_wrap` into a row in the topbar's middle
+   column, leaving a hidden placeholder at each origin. BGA's nodes are **moved, not copied**, so
+   everything BGA writes by id — the prompt, the action buttons in `#generalactions`, the move
+   counter — keeps updating in their new home. Both title wrappers move because BGA swaps between
+   them by flipping their `display`
+3. Move `#change_view_full_button` to the far left instead, between `#site-logo` and `#tableinfos`.
+   Its label is collapsed and an eye drawn in its place by CSS rather than by markup: Innovation's
+   `toggle_view` rewrites the button's innerHTML on every click, so anything put inside it from here
+   would survive exactly one click
+4. Move `#gotonexttable_wrap` to the head of `#upperrightmenu`. The whole wrapper moves: BGA keeps a
+   labelled button and a bare arrow in there and shows whichever suits the state — and the label is
+   not always short, since it becomes "N tables are waiting…" once your turn ends, which is why this
+   sits on the right where the strip can widen rather than in the left corner beside the table info.
+   It arrives inside `#pagemaintitle_wrap`, so this runs after the row is filled and takes it back out
+5. Toggle `bgaa-compact-header` on the root element — and `bgaa-progression-only` alongside it when
+   asked for, never on its own, since a bare figure in the corner of BGA's untouched header would
+   read as a stray number — under two conditions: the prompt is genuinely in
+   the row (hiding a status bar that can no longer be filled would leave the page with no prompt at
+   all), and `#page-title` holds nothing but the wrappers moved out of it and their placeholders —
+   a game nobody here has looked at may keep a banner or a control down there
+6. Stamp the game's slug on the root as `data-bgaa-game`, which is what per-game CSS keys on. Games
+   write their own art into BGA's title bar — Ark Nova's break cup, card icons — sized for the 62px
+   bar this replaces, and no shared rule can anticipate each of them
+7. Watch for `#change_view_full_button` when it does not exist yet: Innovation builds its board
+   buttons during setup, which runs after the frame reports loaded. The observer retires once the
+   button is placed, when a later injection turns the feature off, or on a timeout
+
+Turning the feature off re-injects with `enabled: false`, which moves every node back to its
+placeholder and drops the class. The placeholders are the whole restore path — an injection carries
+no memory of the DOM an earlier one changed.
 
 ## Data Flow: Side Panel Connect
 
@@ -497,7 +588,7 @@ Key files:
 
 | Message | Payload | Purpose |
 |---------|---------|---------|
-| `"setInPageLog"` | `{ patch: Partial<InPageLogSettings> }` | Apply a change from an in-page control ("more...", or the two-way view switch) |
+| `"setInPageLog"` | `{ patch: Partial<InPageSettings> }` | Apply a change from an in-page control ("more...", or the two-way view switch) |
 
 ### *Background Service Worker* &rarr; *In-Page Game Log*
 
@@ -507,6 +598,13 @@ Not messages — the service worker injects the mount function and passes data a
 |---------|---------|---------|
 | `chrome.scripting.executeScript` | `[rows, opts]` | Render or unmount the in-page log (`opts.enabled: false` unmounts and restores BGA's log; `opts.collapsed` switches which log is shown) |
 | `chrome.scripting.insertCSS` | concatenated stylesheet | Inject styling, once per tab per service-worker lifetime |
+
+### *Background Service Worker* &rarr; *Compact Table Header*
+
+| Channel | Payload | Purpose |
+|---------|---------|---------|
+| `chrome.scripting.executeScript` | `[{ enabled, progressionOnly }]` | Fold BGA's header into one row, or (`enabled: false`) move every node back to its placeholder; `progressionOnly` pares the table info down to the percentage |
+| `chrome.scripting.insertCSS` | `compact_header.css` | Inject the one-row layout, once per tab per service-worker lifetime |
 
 ## Connection Management
 

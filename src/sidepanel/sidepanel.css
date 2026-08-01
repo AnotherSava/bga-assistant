@@ -362,6 +362,24 @@ body {
   user-select: none;
 }
 
+/* A line of explanation under a menu option, for settings whose effect is not on this page —
+ * the compact header changes BGA's own pages, which the panel cannot show. */
+.dropdown-note {
+  font-size: 11px;
+  line-height: 1.35;
+  color: #999;
+  padding: 2px 10px 6px 28px;
+  max-width: 260px;
+  user-select: none;
+}
+
+/* A note under a sub-option lines up with the option it belongs to. */
+.dropdown-note-sub { padding-left: 38px; }
+
+/* A sub-option whose parent is off: still readable, but plainly not in play. */
+#section-selector label.disabled,
+.dropdown-note.disabled { opacity: 0.45; }
+
 /* Auto-hide button & dropdown */
 #btn-pin {
   width: 24px;

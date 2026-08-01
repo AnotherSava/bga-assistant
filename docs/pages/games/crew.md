@@ -44,5 +44,6 @@ Chronological table of all tricks with lead and winner highlights. Each player's
 - **Keyboard shortcut**: configurable via `chrome://extensions/shortcuts` to toggle the side panel open/closed
 - **Lit icon**: the toolbar icon glows when the active tab has a supported game table open
 - **Per-game zoom**: side panel zoom level is saved independently for each game and the help page
+- **Compact BGA header**: folds BGA's table info, the current prompt and its action buttons into a single row and trims the bar to fit, reclaiming the vertical space its three stacked rows took; applies to every BGA table, supported game or not, stays frozen at the top while the board scrolls; it is switched from the eye menu on the help page, which also offers "Progression only" — the table number and move count dropped, leaving the percentage in the prompt's own type
 - **Persistent settings**: all toggle states, section visibility, and pin mode are saved across sessions
 - **Download**: bundled zip with raw data, game log, game state, and standalone summary — attach this archive with a short description if you notice a bug, and I'll prioritize fixing it!

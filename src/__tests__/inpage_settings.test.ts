@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { loadInPageSettings, saveInPageSettings, subscribeInPageSettings, INPAGE_LOG_KEY, INPAGE_LOG_DEFAULTS } from "../sidepanel/inpage_settings.js";
+import { loadInPageSettings, saveInPageSettings, subscribeInPageSettings, INPAGE_LOG_KEY, INPAGE_DEFAULTS } from "../sidepanel/inpage_settings.js";
 
 let storage: Record<string, unknown>;
 let changeListeners: ((changes: Record<string, { newValue?: unknown }>, area: string) => void)[];
@@ -22,7 +22,7 @@ beforeEach(() => {
 
 describe("in-page log settings", () => {
   it("returns defaults when nothing is stored", async () => {
-    expect(await loadInPageSettings()).toEqual(INPAGE_LOG_DEFAULTS);
+    expect(await loadInPageSettings()).toEqual(INPAGE_DEFAULTS);
   });
 
   it("round-trips a saved value", async () => {
@@ -36,17 +36,17 @@ describe("in-page log settings", () => {
     await saveInPageSettings({ enabled: true });
     await saveInPageSettings({ showPlayerNames: true });
     const loaded = await loadInPageSettings();
-    expect(loaded).toEqual({ ...INPAGE_LOG_DEFAULTS, enabled: true, showPlayerNames: true });
+    expect(loaded).toEqual({ ...INPAGE_DEFAULTS, enabled: true, showPlayerNames: true });
   });
 
   it("fills in fields missing from stored data", async () => {
     storage[INPAGE_LOG_KEY] = { enabled: true };
-    expect(await loadInPageSettings()).toEqual({ ...INPAGE_LOG_DEFAULTS, enabled: true });
+    expect(await loadInPageSettings()).toEqual({ ...INPAGE_DEFAULTS, enabled: true });
   });
 
   it("falls back to defaults when storage rejects", async () => {
     (globalThis as any).chrome.storage.local.get = vi.fn(() => Promise.reject(new Error("no storage")));
-    expect(await loadInPageSettings()).toEqual(INPAGE_LOG_DEFAULTS);
+    expect(await loadInPageSettings()).toEqual(INPAGE_DEFAULTS);
   });
 
   it("notifies subscribers on change, ignoring other keys and areas", () => {
@@ -54,7 +54,7 @@ describe("in-page log settings", () => {
     subscribeInPageSettings(s => seen.push(s));
 
     changeListeners[0]({ [INPAGE_LOG_KEY]: { newValue: { enabled: true } } }, "local");
-    expect(seen).toEqual([{ ...INPAGE_LOG_DEFAULTS, enabled: true }]);
+    expect(seen).toEqual([{ ...INPAGE_DEFAULTS, enabled: true }]);
 
     changeListeners[0]({ bgaa_something_else: { newValue: 1 } }, "local");
     changeListeners[0]({ [INPAGE_LOG_KEY]: { newValue: { enabled: false } } }, "sync");
@@ -62,12 +62,44 @@ describe("in-page log settings", () => {
   });
 });
 
+describe("defaults", () => {
+  it("ships everything that touches BGA's own page switched off", () => {
+    expect(INPAGE_DEFAULTS.enabled).toBe(false);
+    expect(INPAGE_DEFAULTS.compactHeader).toBe(false);
+    expect(INPAGE_DEFAULTS.progressionOnly).toBe(false);
+  });
+
+  it("turns the compact header on for an unpacked build", async () => {
+    // Local builds have it on: that is where it is worked on, and switching it back on after every
+    // extension reload is friction with no purpose. The published id is the only one the store build
+    // can carry, so anything else is a build loaded from disk.
+    (globalThis as any).chrome.runtime = { id: "unpackedbuildidfromsomelocalpath" };
+    expect((await loadInPageSettings()).compactHeader).toBe(true);
+
+    (globalThis as any).chrome.runtime = { id: "idjijmafngfkkbppkgopldomfhdcedig" };
+    expect((await loadInPageSettings()).compactHeader).toBe(false);
+  });
+
+  it("lets a stored choice stand over the build's default", async () => {
+    (globalThis as any).chrome.runtime = { id: "unpackedbuildidfromsomelocalpath" };
+    storage[INPAGE_LOG_KEY] = { compactHeader: false };
+    expect((await loadInPageSettings()).compactHeader).toBe(false);
+  });
+
+  it("leaves a stored log preference alone when a new setting is added", async () => {
+    // Settings saved before the compact header existed must keep their own values and pick up the
+    // new field's default, not be reset by it.
+    storage[INPAGE_LOG_KEY] = { enabled: true, showPlayerNames: true };
+    expect(await loadInPageSettings()).toEqual({ enabled: true, showPlayerNames: true, compactHeader: false, progressionOnly: false });
+  });
+});
+
 describe("view switch is not a stored preference", () => {
   it("has no collapsed field — it is per-tab session state in the service worker", () => {
-    expect(INPAGE_LOG_DEFAULTS).not.toHaveProperty("collapsed");
+    expect(INPAGE_DEFAULTS).not.toHaveProperty("collapsed");
   });
 
   it("has no halfTurns field — widening must never become the new starting point", () => {
-    expect(INPAGE_LOG_DEFAULTS).not.toHaveProperty("halfTurns");
+    expect(INPAGE_DEFAULTS).not.toHaveProperty("halfTurns");
   });
 });

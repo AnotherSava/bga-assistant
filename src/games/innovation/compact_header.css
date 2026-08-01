@@ -1,0 +1,347 @@
+/* Compact table header: the one-row layout that the mount function's DOM moves make possible.
+ * Injected via chrome.scripting.insertCSS.
+ *
+ * Contains no `url()` reference to a bundled asset — Chrome resolves relative URLs in injected CSS
+ * against the host page, so any such `url()` would 404 against boardgamearena.com. The one `url()`
+ * here is a `data:` URI, which resolves against no host at all.
+ *
+ * Everything that changes BGA's own elements hangs off the root class the mount function sets, so
+ * turning the feature off is a class removal rather than a second stylesheet. */
+
+/* The status bar is empty once both of its wrappers move into the topbar, and hiding it is what
+ * reclaims the row. */
+html.bgaa-compact-header #page-title { display: none !important; }
+
+/* Innovation's two remaining board buttons. The splay-mode switch only changes how far splayed
+ * stacks overlap, and the card browser duplicates what the side panel already shows. */
+html.bgaa-compact-header #change_display_mode_button,
+html.bgaa-compact-header #browse_all_cards_button { display: none !important; }
+
+/* BGA's "This player is not playing: what can I do?" link. It rides along inside the prompt
+ * wrapper, and BGA reveals it by clearing an inline `display:none` — hence !important, which an
+ * inline style would otherwise win against. */
+html.bgaa-compact-header #not_playing_help { display: none !important; }
+
+/* Table id, move number and progression are deliberately left as BGA stacks them (a Tailwind
+ * `flex-col`). Laying them across would widen the bar without buying back a row — their three
+ * lines are the tallest thing in it, so the bar is only ever as thin as their leading allows. */
+
+/* BGA absolutely positions the reflexion-time block so it can float centred over an otherwise
+ * empty middle column. With the prompt living there too the two would overlap, so put it back in
+ * the flow and let flex lay them out side by side. */
+html.bgaa-compact-header #current_header_infos_wrap { position: static; }
+
+/* In the flow it also starts counting towards the bar's height, and it stacks three lines — "It's
+ * your turn!", the clock, and the "I would like to think a little" link — which measures 62px and
+ * makes it the tallest thing in the bar by some way. Across, it costs one line. The `<br>` is
+ * BGA's own way of stacking the first two, so it goes with them. */
+html.bgaa-compact-header #reflexiontimevalues {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+html.bgaa-compact-header #its_your_turn br { display: none; }
+
+/* The topbar is a fixed 62px and its middle column carries an inline `max-height` to match. Both
+ * go: the bar takes its height from what is in it, growing when a long prompt and its action
+ * buttons need the room and staying thin when they do not.
+ *
+ * !important is defensive rather than demonstrated: a live table did hold 62px with every other rule
+ * here applying, which looked like an inline style winning — but the cause turned out to be the
+ * banner slot below, and these selectors already out-specify BGA's own. Kept because the height of
+ * a responsive bar is the sort of thing a site's JS writes on resize, and losing to that would undo
+ * the whole feature. */
+html.bgaa-compact-header #topbar,
+html.bgaa-compact-header #topbar_content {
+  height: auto !important;
+  min-height: 0 !important;
+}
+html.bgaa-compact-header #topbar { margin-bottom: 0; }
+html.bgaa-compact-header .topbar_middle_content { max-height: none !important; }
+
+/* Two boxes in the bar are sized for BGA's layout rather than for their contents, and neither cost
+ * anything until the middle column came into the flow above.
+ *
+ * `#inactiveplayermessage` is a banner slot: a hard 60px tall with 160px and 300px side margins
+ * held open for an ad that most tables never show. Absolutely positioned it was free; in the flow
+ * it was the single reason the bar would not go below 60px, and its margins were reserving 460px
+ * of the width the prompt sits in.
+ *
+ * The go-to-next-table button carries `.bgabutton`'s 10px top and bottom margins. `#page-title`
+ * used to cut those to 8px; nothing cuts them now that the button lives in the topbar, which left
+ * it 48px tall in a bar trying to be 36. */
+html.bgaa-compact-header #inactiveplayermessage {
+  height: auto;
+  margin-left: 0;
+  margin-right: 0;
+}
+
+/* Its buttons also carry `float: right` and `position: relative; top: 2px` — the float takes them
+ * out of the wrapper's flow, so the wrapper's box stops matching what is drawn in it, and the 2px
+ * is another nudge for a taller bar. Between them the button sat 3px below everything else, all but
+ * touching the bar's floor. `line-height: 0` on the wrapper drops the strut of the `&nbsp;` BGA
+ * opens it with, so the button alone decides the height it is then centred within.
+ *
+ * Deliberately no `display` here: BGA ships this wrapper as `display: none` and reveals it from JS,
+ * so setting one would pin a "go to next table" button to every table's header. */
+html.bgaa-compact-header #gotonexttable_wrap { line-height: 0; }
+
+html.bgaa-compact-header #gotonexttable_wrap .bgabutton {
+  float: none;
+  top: 0;
+  margin: 0;
+  vertical-align: middle;
+  line-height: normal;
+}
+
+/* With the 62px floor gone, everything BGA sized against it becomes the new floor unless it comes
+ * down too: the site logo at 54px (plus the padding on its link), the icon strip at the right at
+ * 40px, and the leading of the three table-info lines, which the bar's height now rests on. */
+html.bgaa-compact-header #topbar #logoiconimg { width: 34px; }
+html.bgaa-compact-header #topbar #logoicon { padding-top: 0; padding-bottom: 0; }
+html.bgaa-compact-header .upperrightmenu_item { height: 28px; }
+
+/* Their leading is now the whole of the bar's height — three lines and nothing else, no padding or
+ * margins in the box — so it is set to the font size exactly. Anything looser simply becomes bar. */
+html.bgaa-compact-header #tableinfos { justify-content: center; line-height: 1; }
+
+/* The bar stays put while the board scrolls under it. Worth having only now that it is 34px: at
+ * BGA's 62px, freezing it would have cost a sixth of a laptop screen for the whole game.
+ *
+ * `#topbar` already carries `z-index: 1053` from BGA, which is what the stacking needs — and BGA's
+ * own drop-down menu sits at 1055, so it still opens over the bar rather than under it.
+ *
+ * The reason this needs a second rule: `#overall-content` is `overflow: hidden`, which makes it a
+ * scroll container, and a sticky element sticks to its nearest scrollport — that box, which never
+ * scrolls. `clip` clips exactly as `hidden` does (BGA has it there to stop a wide board scrolling
+ * the page sideways, and it still does) but establishes no scrollport, so the viewport becomes the
+ * reference again. Verified: sticks at any scroll offset, no sideways scroll, full page height still
+ * reachable. */
+html.bgaa-compact-header #overall-content { overflow: clip; }
+
+/* `:not(.bgaa-header-tall)` is the height limit: the mount measures the bar against the smallest it
+ * has been and sets that class past three times over, at which point freezing it would wall off the
+ * top of the board rather than save space there. Unset, BGA's own `position: relative` applies and
+ * the bar scrolls away as it always did. */
+html.bgaa-compact-header:not(.bgaa-header-tall) #topbar {
+  position: sticky;
+  top: 0;
+}
+
+/* Chrome drags a stuck `position: sticky` element along with the page during the elastic
+ * "rubber-band" bounce a macOS trackpad produces past the top of the scroll range, then springs it
+ * back once the bounce settles — the bar visibly unsticking, drifting down and springing back.
+ * Invisible to layout: the bounce is a compositor transform, so through the whole effect `scrollY`
+ * reads 0 and the bar's `getBoundingClientRect().top` stays 0. Chrome exempts `position: fixed`
+ * from the drag but not sticky (w3c/csswg-drafts#8309), so suppressing the bounce is the fix.
+ *
+ * On the root, not `body`: the viewport takes this from `document.scrollingElement`, which is the
+ * root in standards mode. Chrome read it from `body` until 139 (Aug 2025) — advice written against
+ * that now-fixed bug is why the rule sat on `body` first, where it computed and did nothing.
+ *
+ * `-y` alone leaves the two-finger swipe-back gesture, which rides the horizontal axis, untouched.
+ * Scoped to the same condition as the sticky rule above: losing the native bounce is only worth it
+ * while the bar is actually relying on the illusion of staying put. */
+html.bgaa-compact-header:not(.bgaa-header-tall) { overscroll-behavior-y: none; }
+
+/* The gap under the bar was 8px of its own margin plus 5px above the left column and 5px more
+ * above the play area. Both columns already sit 5px below the bar on their own, which is enough
+ * separation, so the other two go. Zeroing the column margin has a second effect worth keeping:
+ * BGA gives it to the left column only, leaving the two columns 5px out of step with each other. */
+html.bgaa-compact-header #left-side-wrapper { margin-top: 0; }
+html.bgaa-compact-header #game_play_area { margin-top: 0; }
+
+/* Vertical centring, bar-wide. BGA's own bar is tall enough that a few pixels either way go
+ * unnoticed, so several of these boxes are stretched or nudged with offsets sized for it: the
+ * columns of `#topbar_content` stretch by default, `.globalaction` sits 2px low, `#ingame_menu_wheel`
+ * 2px, and the strip's icons carry an 18px top margin left from the pre-flex layout. At 36px all of
+ * that reads as things sitting at different heights, so every box in the bar centres instead. */
+html.bgaa-compact-header #topbar_content,
+html.bgaa-compact-header .topbar_left_content,
+html.bgaa-compact-header .topbar_middle_content,
+html.bgaa-compact-header #upperrightmenu,
+html.bgaa-compact-header #current_header_infos_wrap,
+html.bgaa-compact-header .upperrightmenu_item {
+  align-items: center;
+}
+
+html.bgaa-compact-header .upperrightmenu_item {
+  display: flex;
+  justify-content: center;
+}
+
+html.bgaa-compact-header .upperrightmenu_item .icon20,
+html.bgaa-compact-header .upperrightmenu_item .icon32,
+html.bgaa-compact-header .upperrightmenu_item i,
+html.bgaa-compact-header #ingame_menu_wheel {
+  margin-top: 0;
+}
+
+html.bgaa-compact-header #upperrightmenu .globalaction { top: 0; }
+
+/* The prompt's type, in one place: the row sets it, and the progression figure that can replace the
+ * table info matches it. 17.6px is the 110% that `#page-title` gave the prompt, against the 16px
+ * BGA's topbar inherits — stated in pixels because the figure it has to match sits in a box whose
+ * own font-size is zeroed to drop the words around it. */
+html.bgaa-compact-header { --bgaa-header-text: 17.6px; }
+
+#bgaa-compact-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1 1 auto;
+  min-width: 0;
+  gap: 8px;
+  padding: 0 8px;
+  /* Restates what `#page-title` gave the prompt, which no longer reaches it now that it lives in
+   * the topbar — bar the 32px leading, which was spacing a row of its own and here would set the
+   * height of the whole bar. Deliberately not `bga-game-zoom`: at this size the prompt is better
+   * off holding still while the board zooms. */
+  font-size: var(--bgaa-header-text);
+  font-weight: bold;
+  line-height: 1.2;
+  text-align: center;
+}
+
+/* `w-full` is a Tailwind class on the wrapper; two ids out-specify it without !important. */
+#bgaa-compact-header-row #pagemaintitle_wrap,
+#bgaa-compact-header-row #gameaction_status_wrap { width: auto; }
+
+/* BGA lays the prompt out as inline content, which is fine until a state puts something block-level
+ * in it: at the end of a game the "Return to main site" and "Play again" buttons arrive in a
+ * `.bgabuttonbar` div, and a block cannot share a line with the text above it however much room is
+ * going spare — the bar went to two rows and 76px. As a flex row they sit beside the text, and the
+ * bar is 34px again.
+ *
+ * `flex-wrap` keeps the old behaviour available where it is actually needed: a prompt too long for
+ * the window still breaks, rather than overflowing the bar. `min-width: 0` lets the text shrink to
+ * make that decision instead of forcing its full width on the row. */
+#bgaa-compact-header-row #maintitlebar_content > div {
+  /* !important because the `display: inline-block` is written on the element by BGA's own template,
+   * and an inline style outranks any selector without it. Safe here where it would not be on the
+   * wrappers above: this div is structural, and the states BGA shows and hides are the wrappers. */
+  display: flex !important;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+#bgaa-compact-header-row #pagemaintitletext { min-width: 0; }
+
+/* 42px is sized for a bar of its own; inside the row it is only dead space. */
+#bgaa-compact-header-row #maintitlebar_content,
+#bgaa-compact-header-row #gameaction_status_wrap { min-height: 0; }
+
+/* BGA lays both of its title rows out as inline content — text, status icon and buttons sharing one
+ * text baseline. Baseline alignment leaves the text above the line's centre as soon as a button,
+ * taller than the text, shares the line with it: "Other players make their choices" sat high beside
+ * its Undo button, and the active-player icon lower still. Centring each piece on the line puts them
+ * on the same level as each other and as the rest of the bar.
+ *
+ * By child rather than by name: this runs on every game BGA hosts, and their prompt rows hold
+ * whatever each game puts there. */
+#bgaa-compact-header-row #maintitlebar_content > div > *,
+#bgaa-compact-header-row #gameaction_status_wrap > div,
+#bgaa-compact-header-row #gameaction_status_wrap > div > * {
+  vertical-align: middle;
+}
+
+/* Games write their own art into the prompt — Ark Nova's break cup and card icons, Innovation's age
+ * squares — sized for the 62px bar this replaces. Nested inside the prompt text, it misses the rule
+ * above, so the same centring reaches down through it.
+ *
+ * Images are capped to the row and scale with it. Anything else keeps its own size: a sprite cropped
+ * to a shorter box shows the wrong icon rather than a smaller one, so a game whose art needs
+ * resizing gets a rule of its own keyed on `[data-bgaa-game="<slug>"]`, which the mount stamps on
+ * the root for exactly that purpose. */
+#bgaa-compact-header-row #pagemaintitletext *,
+#bgaa-compact-header-row #gameaction_status * {
+  vertical-align: middle;
+}
+
+#bgaa-compact-header-row img {
+  max-height: 26px;
+  width: auto;
+}
+
+/* `#page-title` gave its buttons 8px above and below, which the bar can no longer afford now that
+ * its height is whatever its contents ask for. */
+#bgaa-compact-header-row .bgabutton,
+#bgaa-compact-header-row .action-button {
+  margin-top: 1px;
+  margin-bottom: 1px;
+  line-height: normal;
+}
+
+/* Innovation's "look at all cards in piles" toggle, redrawn as an icon between the logo and the
+ * table info.
+ *
+ * The label goes to `font-size: 0` rather than being replaced in the markup: `toggle_view` rewrites
+ * the button's innerHTML on every click — swapping "Look at all cards in piles" for "Resume normal
+ * view" — so anything put inside it from our side survives exactly one click. That also means the
+ * two states cannot be told apart here (BGA sets no class for them); the tooltip BGA attaches to
+ * the button still says what it does.
+ *
+ * The eye is the same artwork the side panel uses for its display menu — see `render/icons.ts`,
+ * whose EYE_PATH this repeats. A data URI, not a file: injected CSS resolves relative URLs against
+ * boardgamearena.com, so a bundled asset would 404, and this needs no host at all. */
+html.bgaa-compact-header #change_view_full_button {
+  box-sizing: border-box;
+  width: 30px;
+  height: 28px;
+  flex: none;
+  align-self: center;
+  margin: 0 6px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  box-shadow: none;
+  font-size: 0;
+  cursor: pointer;
+  opacity: 0.55;
+  background: transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23555'%3E%3Cpath d='M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zm0 12.5c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z'/%3E%3C/svg%3E") center / 20px 20px no-repeat;
+  transition: opacity 0.15s;
+}
+
+html.bgaa-compact-header #change_view_full_button:hover {
+  opacity: 1;
+  background-color: rgba(0, 0, 0, 0.06);
+}
+
+/* The go-to-next-table control, now at the head of BGA's icon strip. Deliberately not dimmed: it
+ * was, on the reasoning that a way out of the table should not outshine the table — but the same
+ * control is how BGA tells you other tables are waiting ("6 tables are waiting for you"), and that
+ * is a notice, not decoration. Muting it would mute the notice. */
+html.bgaa-compact-header #gotonexttable_wrap {
+  flex: none;
+  align-self: center;
+  margin-right: 6px;
+}
+
+/* Progression only: the table id and move number go, leaving the percentage reading like the prompt
+ * across the bar from it rather than like BGA's small grey caption.
+ *
+ * `:has()` rather than a position, so the row BGA happens to keep the figure in is the one kept.
+ * `font-size: 0` on that row is what drops the words BGA writes around the number — "Progression"
+ * before it and "%" after — since both are bare text nodes with nothing to select. The percent sign
+ * comes back as generated content at the figure's own size. */
+html.bgaa-progression-only #tableinfos {
+  color: inherit;
+  justify-content: center;
+}
+
+html.bgaa-progression-only #tableinfos .table_ref_item { display: none; }
+
+html.bgaa-progression-only #tableinfos .table_ref_item:has(#pr_gameprogression) {
+  display: block;
+  font-size: 0;
+}
+
+html.bgaa-progression-only #pr_gameprogression {
+  font-size: var(--bgaa-header-text);
+  font-weight: bold;
+}
+
+html.bgaa-progression-only #pr_gameprogression::after { content: "%"; }

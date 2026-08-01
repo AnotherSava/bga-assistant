@@ -4,6 +4,7 @@ import JSZip from "jszip";
 import { renderSummary, renderFullPage, renderTurnHistory, setAssetResolver } from "../games/innovation/render.js";
 import { buildInnovationDisplayMenu, applyInnovationDisplayOptions } from "../games/innovation/display.js";
 import { buildAzulDisplayMenu, applyAzulDisplayOptions } from "../games/azul/display.js";
+import { buildGlobalDisplayMenu } from "./global_menu.js";
 import { recentTurns } from "../games/innovation/turn_history.js";
 import { renderHelp } from "../render/help.js";
 import { applyToggleMode } from "../render/toggle.js";
@@ -456,6 +457,8 @@ document.getElementById("btn-sections")?.addEventListener("click", async (e) => 
     closePinDropdown();
     if (statsPageOpen()) {
       await buildStatsSettingsMenu(panel);
+    } else if (helpPageOpen()) {
+      buildGlobalDisplayMenu(panel);
     } else if (currentResults?.gameName === "azul") {
       buildAzulDisplayMenu(panel);
     } else if (currentResults?.gameName === "innovation") {
@@ -662,8 +665,10 @@ function showHelp(errorMessage?: string, forceGameTab?: GameName): void {
   setupHelpTabs();
   closeMenus();
 
+  // The eye button stays live here, unlike every other non-game view: the help page carries the
+  // settings that apply across BGA rather than to whatever table is open.
   const btnSections = document.getElementById("btn-sections");
-  if (btnSections) btnSections.classList.add("disabled");
+  if (btnSections) btnSections.classList.remove("disabled");
   const tableEl = document.getElementById("game-info-table");
   if (tableEl) tableEl.textContent = "";
   const indicator = document.getElementById("live-indicator");
@@ -749,6 +754,10 @@ function weekdayAbbr(dayKey: string): string {
 /** True while the user has the play-time stats page open. Background pushes (e.g. on service worker revival) must not re-render over it. */
 function statsPageOpen(): boolean {
   return !!document.getElementById("content")?.querySelector(".stats-page");
+}
+
+function helpPageOpen(): boolean {
+  return !!document.getElementById("content")?.querySelector(".help");
 }
 
 /** Round a max value up to a "nice" axis maximum and return evenly spaced tick values from 0. */

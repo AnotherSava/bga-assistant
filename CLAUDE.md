@@ -52,6 +52,8 @@ Keep `docs/pages/data-flow.md` up to date when code changes affect data flow, me
 - `src/games/innovation/config.ts` — Innovation section layout configuration
 - `src/games/innovation/display.ts` — Innovation display menu (section visibility, "Show player names" toggle, in-page log toggles, margin updates)
 - `src/games/innovation/inpage_log.ts` — in-page game log mount (ISOLATED-world, self-contained; keyed row reconcile, popover tooltips, BGA log hiding)
+- `src/games/innovation/compact_header.ts` — compact table header mount for every BGA game (ISOLATED-world, self-contained; moves BGA's status bar into the topbar, placeholders for restore)
+- `src/games/innovation/compact_header.css` — one-row header layout (hides BGA's status bar and the two redundant board buttons)
 - `src/games/innovation/card_tip.css` — card tooltip geometry shared by the side panel and the in-page log
 - `src/games/innovation/turn_history.css` — turn-history row appearance shared by both surfaces
 - `src/games/innovation/inpage_log.css` — in-page-only delta (popover reveal, BGA log hiding, container box)
@@ -81,7 +83,8 @@ Keep `docs/pages/data-flow.md` up to date when code changes affect data flow, me
 - `sidepanel.html` — side panel HTML entry point (project root, Vite input)
 - `cws-publish.json` — tracked mirror of Chrome Web Store listing data (extension ID, single purpose, permission justifications, data usage; used by the global `/publish-chrome-extension` skill)
 - `src/sidepanel/settings.ts` — shared localStorage persistence (loadSetting/saveSetting with typed defaults)
-- `src/sidepanel/inpage_settings.ts` — in-page log settings in `chrome.storage.local` (shared by the side panel and the service worker, which has no localStorage)
+- `src/sidepanel/global_menu.ts` — the help page's eye menu (settings that apply to every BGA table, not one game)
+- `src/sidepanel/inpage_settings.ts` — settings for what the extension changes on BGA's own page (in-page log, compact header) in `chrome.storage.local` (shared by the side panel and the service worker, which has no localStorage)
 - `src/sidepanel/` — side panel UI (game-type-aware rendering dispatch)
 - `assets/bga/innovation/` — Innovation game data (card_info.json, cards/ (WebP), icons/, sprites/)
 - `assets/bga/azul/tiles/` — Azul tile color SVGs

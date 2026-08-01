@@ -7,10 +7,12 @@ import cardInfoRaw from "../assets/bga/innovation/card_info.json";
 import { renderTurnHistoryRows, setAssetResolver } from "./games/innovation/render.js";
 import { recentTurns } from "./games/innovation/turn_history.js";
 import { inPageLogFunction } from "./games/innovation/inpage_log.js";
-import { loadInPageSettings, saveInPageSettings, subscribeInPageSettings, INPAGE_LOG_DEFAULTS, INPAGE_LOG_HALF_TURNS, type InPageLogSettings } from "./sidepanel/inpage_settings.js";
+import { compactHeaderFunction } from "./games/innovation/compact_header.js";
+import { loadInPageSettings, saveInPageSettings, subscribeInPageSettings, INPAGE_DEFAULTS, INPAGE_LOG_HALF_TURNS, type InPageSettings } from "./sidepanel/inpage_settings.js";
 import cardTipCss from "./games/innovation/card_tip.css?raw";
 import turnHistoryCss from "./games/innovation/turn_history.css?raw";
 import inPageLogCss from "./games/innovation/inpage_log.css?raw";
+import compactHeaderCss from "./games/innovation/compact_header.css?raw";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -575,7 +577,7 @@ export function watcherFunction(): void {
 const INPAGE_LOG_CSS = `${cardTipCss}\n${turnHistoryCss}\n${inPageLogCss}`;
 
 /** Hydrated at startup and kept current by storage.onChanged, so gating can read it synchronously. */
-let inPageLogSettings: InPageLogSettings = { ...INPAGE_LOG_DEFAULTS };
+let inPageLogSettings: InPageSettings = { ...INPAGE_DEFAULTS };
 /** In-flight or completed stylesheet injection per tab, so every push can await the same one. */
 const inPageLogStyles = new Map<number, Promise<unknown>>();
 /**
@@ -594,18 +596,21 @@ const inPageLogCollapsedTabs = new Set<number>();
  * from `INPAGE_LOG_HALF_TURNS` again.
  */
 const inPageLogHalfTurns = new Map<number, number>();
+/** In-flight or completed compact-header stylesheet injection per tab. Same contract as the log's. */
+const compactHeaderStyles = new Map<number, Promise<unknown>>();
 
 /**
- * Drop every per-tab in-page-log override.
+ * Drop every per-tab in-page override.
  *
- * One helper rather than three deletes at each call site: the stylesheet cache was once cleared
- * on only one of the navigation paths, which left the log rendering unstyled on the way back
- * into a table. A fourth per-tab collection would repeat that trap.
+ * One helper rather than a delete per collection at each call site: the stylesheet cache was once
+ * cleared on only one of the navigation paths, which left the log rendering unstyled on the way
+ * back into a table. Anything added here must be dropped through this helper for the same reason.
  */
-function forgetInPageLogTab(tabId: number): void {
+function forgetInPageTab(tabId: number): void {
   inPageLogStyles.delete(tabId);
   inPageLogCollapsedTabs.delete(tabId);
   inPageLogHalfTurns.delete(tabId);
+  compactHeaderStyles.delete(tabId);
 }
 
 /**
@@ -684,6 +689,43 @@ function unmountInPageLog(tabId: number): void {
     args: [[], { enabled: false, collapsed: false, showPlayerNames: false, halfTurns: INPAGE_LOG_HALF_TURNS, hasMore: false }],
     world: "ISOLATED" as chrome.scripting.ExecutionWorld,
   }).catch(() => {});
+}
+
+// ---------------------------------------------------------------------------
+// Compact table header
+// ---------------------------------------------------------------------------
+
+/**
+ * Apply or undo the compact header on a tab.
+ *
+ * Deliberately independent of extraction: the header needs nothing from the game log, only an
+ * Innovation board to rearrange. Gating it on results would tie a purely visual change to the
+ * side panel being open or the in-page log being on.
+ *
+ * All frames, as with the log — the board lives in an iframe under BGA's /tableview shell, and the
+ * injected function bails in every frame that is not an Innovation board.
+ */
+async function pushCompactHeader(tabId: number, enabled: boolean): Promise<void> {
+  // Read at push time rather than passed in: every caller wants whatever is stored right now.
+  const progressionOnly = inPageLogSettings.progressionOnly;
+  // The stylesheet must land before the DOM moves, or the row renders with BGA's status bar still
+  // taking up its own line. Every push awaits the same injection, so a second cannot overtake it.
+  if (enabled) {
+    let styles = compactHeaderStyles.get(tabId);
+    if (!styles) {
+      styles = chrome.scripting.insertCSS({ target: { tabId, allFrames: true }, css: compactHeaderCss });
+      compactHeaderStyles.set(tabId, styles);
+    }
+    try {
+      await styles;
+    } catch {
+      // Let the next push retry rather than leaving the tab permanently unstyled.
+      compactHeaderStyles.delete(tabId);
+    }
+  }
+
+  // Undoing needs no stylesheet: the injected function removes the root class every rule hangs off.
+  chrome.scripting.executeScript({ target: { tabId, allFrames: true }, func: compactHeaderFunction as unknown as () => void, args: [{ enabled, progressionOnly }], world: "ISOLATED" as chrome.scripting.ExecutionWorld }).catch(() => {});
 }
 
 function injectWatcher(tabId: number): void {
@@ -1131,7 +1173,7 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
   // webNavigation path, which does not cover every way back into a table (leaving to the table
   // list and re-entering would otherwise render unstyled, the stylesheet being wrongly cached).
   if (changeInfo.status === "loading" || changeInfo.url !== undefined) {
-    forgetInPageLogTab(tabId);
+    forgetInPageTab(tabId);
   }
   if (tabId !== activeTabId) return;
   // Full page load: status goes "loading" → "complete"; react to "complete".
@@ -1177,9 +1219,22 @@ chrome.webNavigation.onCommitted.addListener((details) => {
 // noticeably while the side panel is closed. When the active tab's board frame finishes loading, the
 // probe can finally see gameui, so re-light the icon.
 chrome.webNavigation.onCompleted.addListener((details) => {
-  if (details.tabId !== activeTabId) return;
   const boardInfo = parseGameTableUrl(details.url);
   if (!boardInfo) return; // only the real game-board frame, not the /tableview shell or loader
+  // The compact header comes first and answers to neither gate below: it consumes no extraction
+  // results, so it needs no consumer, and a table sitting in a background tab should come back to
+  // the same layout as the one in front. It waits for the frame to finish because it rearranges
+  // what BGA rendered — Innovation's own board buttons arrive later still, which the injected
+  // function watches for itself.
+  if (inPageLogSettings.compactHeader) {
+    // Every game, not just the supported ones: the header this folds is BGA's own framework, the
+    // same on every table, and `parseGameTableUrl` has already confirmed this is a board frame.
+    // This frame is new, so it carries none of the CSS injected into its predecessor — and the
+    // per-tab cleanup further down runs only when a consumer exists, which the header never needs.
+    compactHeaderStyles.delete(details.tabId);
+    void pushCompactHeader(details.tabId, true);
+  }
+  if (details.tabId !== activeTabId) return;
   chrome.tabs.get(details.tabId).then(async (tab) => {
     const game = await updateIcon(details.tabId, tab.url);
     if (details.tabId !== activeTabId) return; // tab switched while the board was resolving
@@ -1197,7 +1252,7 @@ chrome.webNavigation.onCompleted.addListener((details) => {
     if (!hasConsumer()) return;
     // Opening a table re-applies the stored default, discarding any temporary view switch, and
     // the freshly loaded frame carries none of the previously injected CSS.
-    forgetInPageLogTab(details.tabId);
+    forgetInPageTab(details.tabId);
     if (lastResults?.tableNumber === String(boardInfo.tableId)) {
       // Results are still valid, but the board frame just reloaded, so its DOM no longer holds
       // the in-page log. Re-push before taking the cached-results short-circuit.
@@ -1210,7 +1265,7 @@ chrome.webNavigation.onCompleted.addListener((details) => {
 }, { url: [{ hostSuffix: "boardgamearena.com" }] });
 
 chrome.tabs.onRemoved.addListener((tabId) => {
-  forgetInPageLogTab(tabId);
+  forgetInPageTab(tabId);
   if (tabId === activeTabId) {
     timeTracker.handleFocusChange(null);
     syncHeartbeatAlarm();
@@ -1247,13 +1302,24 @@ chrome.windows.onFocusChanged.addListener(async (windowId) => {
 // synchronously, so they are mirrored into a module-level copy rather than awaited per call.
 void loadInPageSettings().then((settings) => {
   inPageLogSettings = settings;
-  if (settings.enabled && activeTabId !== null) void pushInPageLog(activeTabId);
+  if (activeTabId === null) return;
+  if (settings.enabled) void pushInPageLog(activeTabId);
+  // A table can already be open when the service worker starts (an extension reload, or its first
+  // wake after install), and no navigation event will follow to fold its header.
+  if (settings.compactHeader) void pushCompactHeader(activeTabId, true);
 });
 
 subscribeInPageSettings((settings) => {
   const wasEnabled = inPageLogSettings.enabled;
+  const wasCompactHeader = inPageLogSettings.compactHeader;
+  const wasProgressionOnly = inPageLogSettings.progressionOnly;
   inPageLogSettings = settings;
   if (activeTabId === null) return;
+  if (settings.compactHeader !== wasCompactHeader || settings.progressionOnly !== wasProgressionOnly) {
+    // Re-inject the stylesheet when switching back on: the tab may have reloaded while it was off.
+    if (settings.compactHeader && !wasCompactHeader) compactHeaderStyles.delete(activeTabId);
+    void pushCompactHeader(activeTabId, settings.compactHeader);
+  }
   if (!settings.enabled) {
     if (wasEnabled) unmountInPageLog(activeTabId);
     return;
@@ -1284,7 +1350,7 @@ chrome.runtime.onMessage.addListener(
       // is closed. The view switch is a temporary per-tab override and never persists; anything
       // else is a stored default, written to storage so the onChanged listener re-pushes.
       // collapsed and halfTurns are session-only overrides, not part of the stored settings.
-      const patch = { ...(message.patch ?? {}) } as Partial<InPageLogSettings> & { collapsed?: boolean; halfTurns?: number };
+      const patch = { ...(message.patch ?? {}) } as Partial<InPageSettings> & { collapsed?: boolean; halfTurns?: number };
       const tabId = sender.tab?.id;
       let pushNeeded = false;
       if (typeof patch.collapsed === "boolean" && tabId !== undefined) {

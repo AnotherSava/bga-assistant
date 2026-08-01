@@ -25,6 +25,56 @@ The same turn history can render directly in BGA's own log column instead of the
 
 The column shows one log or the other, never both. A lightbulb in the header switches between them — lit while the turn history is up, dim while BGA's log is — so neither list is out of reach with the side panel closed. "More..." at the foot of the history widens the window beyond the default nine half-turns, and disappears once the whole game is shown. Both that and the switch are temporary: they last for the table you're on, and a reload or a different table starts from the eye-menu setting again.
 
+## Compact table header
+
+This one is not Innovation's alone — the header it folds is BGA's own framework, identical on every
+table, so it applies to every game on the site, supported here or not. It is switched from the eye
+menu on the help page — the one place it lives, since it belongs to no single game. What follows
+describes it on an Innovation table, where a few of the game's own controls are handled too.
+
+BGA's table page spends three rows on its header: the table id, move number and progression sit in
+the topbar, the current prompt and its action buttons in a bar of their own below it, and
+Innovation's board buttons in a third row under that. This folds all of it into one — the prompt and
+its buttons move up into the topbar beside the table info, and the bar they came from goes away,
+leaving that much more of the window for the board. The remaining bar is trimmed as well: a smaller
+site logo and tighter leading let it shrink to the height its contents actually need — 36 pixels
+against BGA's fixed 62 — and the whitespace below it drops from 18 pixels to 5, which also brings
+the two columns back into line with each other.
+
+Two of Innovation's board buttons are hidden along the way: "Show compact", which only changes how
+far splayed stacks overlap, and "Browse all cards", which duplicates what the side panel's card list
+already shows. BGA's "This player is not playing: what can I do?" link is hidden too, so a stalled
+opponent costs no header space.
+
+"Look at all cards in piles" stays, redrawn as an eye icon in the left corner between the site logo
+and the table info — it toggles what you see rather than doing anything in the game, so it is dimmed
+until you hover it. BGA's go-to-next-table control goes the other way, out of the prompt and over to
+the far right to join the sound, fullscreen and menu icons. It sits there rather than in the left
+corner because it is not always the small arrow it looks like mid-turn: once your turn ends and other
+tables are waiting, BGA relabels it "N tables are waiting for you" — a notice rather than a control,
+so it keeps its full strength.
+
+Everything else in the topbar keeps its place — the sound and fullscreen controls, the game menu, and
+the reflexion timer, whose three stacked lines ("It's your turn!", the clock, and the "I would like
+to think a little" link) are laid out across so they cost one line instead of three.
+
+The bar also stays put while the board scrolls beneath it, so the prompt, the timer and the table's
+progression are readable wherever you are on a long board — worth having only because the bar is now
+36 pixels; freezing BGA's 62-pixel original would have cost a sixth of a laptop screen all game. That
+is also why it lets go when it has to: a prompt long enough to wrap the bar past three times its
+usual height gets a bar that scrolls away like BGA's own, rather than a wall across the top of the
+board. It freezes again as soon as the bar is back to its usual size.
+
+It is off until you ask for it, under "Compact BGA header" in the help page's eye menu, and turning
+it back off puts every element where BGA had it. Nothing is copied or re-rendered: BGA's own elements are moved,
+so the prompt, the action buttons and the move counter keep updating exactly as before.
+
+On a game with no support here, only the framework part applies — the row, the trimmed bar and the
+alignment. Its own controls are left alone, since nothing here knows what they are. One guard comes
+with that: BGA's status bar is only hidden once it holds nothing but the wrappers moved out of it,
+so a game that keeps a banner or a control of its own down there keeps its bar rather than losing
+what is in it.
+
 ## Card list
 
 The card list lays out all cards in the game across ages, showing which cards have been identified and which remain unknown. Toggle between Base, Echoes, Cities, and Artifacts sets, filter to show only unaccounted cards, and switch between wide and tall layouts:
@@ -45,6 +95,7 @@ The deck section shows remaining cards per age, with known cards revealed by nam
 - **Layout toggle**: Wide (one row per age) / Tall (color columns)
 - **Turn history**: compact chronological display of recent actions (meld, draw, dogma, endorse, achieve, promote) with card name tooltips; compound actions (e.g. meld → promote → dogma) render as indented sub-action lines; pre-turn Artifact decisions (pass, return, or dogma) render as an italicized line above the turn's actions; each player's row uses their actual BGA-assigned color, with the observer's row tinted for distinction
 - **In-page game log**: render the turn history in BGA's own log column instead of the side panel, newest-first; an in-page switch moves between the two logs without reopening the panel
+- **Compact table header extras**: on top of the shared behaviour, Innovation's "Show compact" and "Browse all cards" buttons are hidden (the card list here covers the second), and "Look at all cards in piles" becomes an eye icon in the header's left corner
 - **Player labels**: "Show player names" toggle in the display menu switches turn-history labels between "you/opp" (default) and full BGA player names; coloring applies in either mode
 - **Section selector**: eye button to show/hide entire sections (including turn history visibility)
 - **Hover tooltips**: known cards show their full face image on hover; narrowed unknown cards display their candidate count and show every remaining candidate as mini card icons on hover
@@ -58,5 +109,6 @@ The deck section shows remaining cards per age, with known cards revealed by nam
 - **Keyboard shortcut**: configurable via `chrome://extensions/shortcuts` to toggle the side panel open/closed
 - **Lit icon**: the toolbar icon glows when the active tab has a supported game table open
 - **Per-game zoom**: side panel zoom level is saved independently for each game and the help page
+- **Compact BGA header**: folds BGA's table info, the current prompt and its action buttons into a single row and trims the bar to fit, reclaiming the vertical space its three stacked rows took; applies to every BGA table, supported game or not, stays frozen at the top while the board scrolls; it is switched from the eye menu on the help page, which also offers "Progression only" — the table number and move count dropped, leaving the percentage in the prompt's own type
 - **Persistent settings**: all toggle states, section visibility, and pin mode are saved across sessions
 - **Download**: bundled zip with raw data, game log, game state, and standalone summary — attach this archive with a short description if you notice a bug, and I'll prioritize fixing it!

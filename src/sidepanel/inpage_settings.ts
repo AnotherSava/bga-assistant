@@ -1,4 +1,5 @@
-// Persisted settings for the in-page game log, stored in chrome.storage.local.
+// Persisted settings for what the extension changes on BGA's own page, stored in
+// chrome.storage.local.
 //
 // These are defaults, re-applied every time a game table is opened. The in-page view switch is
 // deliberately NOT here: it is a temporary, per-tab override held in the service worker, so
@@ -12,6 +13,8 @@
 // The existing 17 bgaa_ localStorage keys stay where they are — they are read inline from
 // render paths, so converting them to async would be a large unrelated refactor.
 
+/** Storage key. Still named for the log alone, which was the first of these settings: renaming it
+ *  would silently drop what every existing user has already chosen. */
 export const INPAGE_LOG_KEY = "bgaa_inpage_log";
 
 /**
@@ -23,38 +26,77 @@ export const INPAGE_LOG_KEY = "bgaa_inpage_log";
  */
 export const INPAGE_LOG_HALF_TURNS = 9;
 
-export interface InPageLogSettings {
-  /** Render turn history into BGA's log column. */
+export interface InPageSettings {
+  /** Render turn history into BGA's log column. Named before this store held anything else. */
   enabled: boolean;
   /** Show full player names rather than "you"/"opp". Mirrored from the panel's own toggle. */
   showPlayerNames: boolean;
+  /** Fold BGA's status bar and Innovation's board buttons into the topbar, as a single row. */
+  compactHeader: boolean;
+  /** Leave the progression figure alone in the folded header, without the table id and move number. */
+  progressionOnly: boolean;
 }
 
-export const INPAGE_LOG_DEFAULTS: InPageLogSettings = {
+export const INPAGE_DEFAULTS: InPageSettings = {
   enabled: false,
   showPlayerNames: false,
+  compactHeader: false,
+  progressionOnly: false,
 };
 
-export async function loadInPageSettings(): Promise<InPageLogSettings> {
+/**
+ * The id Chrome assigns the published build. Mirrors `cws-publish.json`, which is the record of what
+ * was uploaded; it is repeated here rather than imported so store-listing data stays out of the
+ * shipped bundle.
+ */
+const PUBLISHED_EXTENSION_ID = "idjijmafngfkkbppkgopldomfhdcedig";
+
+/**
+ * Whether this is an unpacked build loaded from disk rather than the store one.
+ *
+ * Chrome derives an unpacked extension's id from its path, so only the published build carries the
+ * id above. `chrome.management.getSelf()` would answer this outright but costs the "management"
+ * permission and its warning on the listing, for something a string comparison settles.
+ */
+export function isUnpackedBuild(): boolean {
   try {
-    const stored = await chrome.storage.local.get(INPAGE_LOG_KEY);
-    return { ...INPAGE_LOG_DEFAULTS, ...(stored[INPAGE_LOG_KEY] ?? {}) };
+    return chrome.runtime.id !== PUBLISHED_EXTENSION_ID;
   } catch {
-    return { ...INPAGE_LOG_DEFAULTS };
+    return false;
   }
 }
 
-export async function saveInPageSettings(partial: Partial<InPageLogSettings>): Promise<InPageLogSettings> {
+/**
+ * The defaults as they apply to this build.
+ *
+ * The compact header is the one setting that differs: it rearranges BGA's own page, so the store
+ * build leaves it to be asked for, while a local build has it on — that is where it is being worked
+ * on, and having to switch it on after every reload is friction with no purpose.
+ */
+function buildDefaults(): InPageSettings {
+  return { ...INPAGE_DEFAULTS, compactHeader: isUnpackedBuild() };
+}
+
+export async function loadInPageSettings(): Promise<InPageSettings> {
+  try {
+    const stored = await chrome.storage.local.get(INPAGE_LOG_KEY);
+    return { ...buildDefaults(), ...(stored[INPAGE_LOG_KEY] ?? {}) };
+  } catch {
+    return buildDefaults();
+  }
+}
+
+export async function saveInPageSettings(partial: Partial<InPageSettings>): Promise<InPageSettings> {
   const current = await loadInPageSettings();
   const next = { ...current, ...partial };
   await chrome.storage.local.set({ [INPAGE_LOG_KEY]: next });
   return next;
 }
 
-/** Call `callback` whenever the in-page log settings change in any context. */
-export function subscribeInPageSettings(callback: (settings: InPageLogSettings) => void): void {
+/** Call `callback` whenever the in-page settings change in any context. */
+export function subscribeInPageSettings(callback: (settings: InPageSettings) => void): void {
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area !== "local" || !changes[INPAGE_LOG_KEY]) return;
-    callback({ ...INPAGE_LOG_DEFAULTS, ...(changes[INPAGE_LOG_KEY].newValue ?? {}) });
+    callback({ ...buildDefaults(), ...(changes[INPAGE_LOG_KEY].newValue ?? {}) });
   });
 }

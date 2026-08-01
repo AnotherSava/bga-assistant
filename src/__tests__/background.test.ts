@@ -93,7 +93,8 @@ import { classifyNavigation, shouldAutoClose, shouldShowLoading, watcherFunction
 import { runPipeline, isValidPlayerCount, type PipelineResults } from "../pipeline";
 import { CardDatabase } from "../models/types";
 import { inPageLogFunction } from "../games/innovation/inpage_log";
-import { INPAGE_LOG_KEY, INPAGE_LOG_DEFAULTS, INPAGE_LOG_HALF_TURNS } from "../sidepanel/inpage_settings";
+import { compactHeaderFunction } from "../games/innovation/compact_header";
+import { INPAGE_LOG_KEY, INPAGE_DEFAULTS, INPAGE_LOG_HALF_TURNS } from "../sidepanel/inpage_settings";
 import type { PlayerInfo, RawExtractionData } from "../models/types";
 import { type GameState, createGameState, cardsAt } from "../games/innovation/game_state";
 import { GameEngine } from "../games/innovation/game_engine";
@@ -2039,7 +2040,7 @@ describe("in-page game log", () => {
 
   /** Flip the stored setting and drive the storage.onChanged listener the SW subscribed to. */
   async function setInPageLog(patch: Record<string, unknown>): Promise<void> {
-    const next = { ...INPAGE_LOG_DEFAULTS, ...patch };
+    const next = { ...INPAGE_DEFAULTS, ...patch };
     (chrome.storage.local.get as ReturnType<typeof vi.fn>).mockResolvedValue({ [INPAGE_LOG_KEY]: next });
     listeners.onStorageChanged({ [INPAGE_LOG_KEY]: { newValue: next } }, "local");
     await new Promise((r) => setTimeout(r, 0));
@@ -2303,7 +2304,7 @@ describe("in-page log flash prevention", () => {
   const BOARD = { tabId: 55, frameId: 1, url: "https://boardgamearena.com/8/innovation?table=123" };
 
   async function setEnabled(enabled: boolean): Promise<void> {
-    const next = { ...INPAGE_LOG_DEFAULTS, enabled };
+    const next = { ...INPAGE_DEFAULTS, enabled };
     (chrome.storage.local.get as ReturnType<typeof vi.fn>).mockResolvedValue({ [INPAGE_LOG_KEY]: next });
     listeners.onStorageChanged({ [INPAGE_LOG_KEY]: { newValue: next } }, "local");
     await new Promise((r) => setTimeout(r, 0));
@@ -2348,5 +2349,143 @@ describe("in-page log flash prevention", () => {
     vi.clearAllMocks();
     listeners.onCommitted({ ...BOARD, url: "https://boardgamearena.com/tableview?table=123" });
     expect(mockExecuteScript.mock.calls.find((c) => c[0]?.func === hideBgaLogEarlyFunction)).toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Compact table header
+// ---------------------------------------------------------------------------
+
+describe("compact table header", () => {
+  const mockExecuteScript = chrome.scripting.executeScript as ReturnType<typeof vi.fn>;
+  const mockInsertCSS = chrome.scripting.insertCSS as ReturnType<typeof vi.fn>;
+  const BOARD = { tabId: 61, frameId: 1, url: "https://boardgamearena.com/8/innovation?table=123" };
+
+  /** Flip the stored setting and drive the storage.onChanged listener the SW subscribed to. */
+  async function setCompactHeader(compactHeader: boolean): Promise<void> {
+    const next = { ...INPAGE_DEFAULTS, compactHeader };
+    (chrome.storage.local.get as ReturnType<typeof vi.fn>).mockResolvedValue({ [INPAGE_LOG_KEY]: next });
+    listeners.onStorageChanged({ [INPAGE_LOG_KEY]: { newValue: next } }, "local");
+    await new Promise((r) => setTimeout(r, 10));
+  }
+
+  function headerCalls() {
+    return mockExecuteScript.mock.calls.filter((call) => call[0]?.func === compactHeaderFunction);
+  }
+
+  beforeEach(async () => {
+    await new Promise((r) => setTimeout(r, 20));
+    vi.clearAllMocks();
+    (chrome.runtime.sendMessage as ReturnType<typeof vi.fn>).mockImplementation(() => Promise.resolve());
+  });
+
+  // The default is on, so leave it there for anything that runs afterwards.
+  afterEach(async () => { await setCompactHeader(true); });
+
+  it("folds the header when an Innovation board frame finishes loading", async () => {
+    await setCompactHeader(true);
+    vi.clearAllMocks();
+
+    listeners.onCompleted(BOARD);
+    await new Promise((r) => setTimeout(r, 20));
+
+    const call = headerCalls().at(-1);
+    expect(call).toBeDefined();
+    expect(call![0]).toMatchObject({ target: { tabId: 61, allFrames: true }, world: "ISOLATED" });
+    expect(call![0].args).toEqual([{ enabled: true, progressionOnly: false }]);
+    expect(mockInsertCSS).toHaveBeenCalledWith(expect.objectContaining({ target: { tabId: 61, allFrames: true } }));
+  });
+
+  it("folds a table sitting in a background tab, unlike the panel's own handling", async () => {
+    // The header consumes no extraction results, so it answers to neither the active-tab nor the
+    // consumer gate the rest of that handler applies.
+    await setCompactHeader(true);
+    listeners.onActivated({ tabId: 5 });
+    await new Promise((r) => setTimeout(r, 20));
+    vi.clearAllMocks();
+
+    listeners.onCompleted({ ...BOARD, tabId: 62 });
+    await new Promise((r) => setTimeout(r, 20));
+
+    expect(headerCalls().some((c) => c[0].target.tabId === 62)).toBe(true);
+  });
+
+  it("does nothing while the feature is off", async () => {
+    await setCompactHeader(false);
+    vi.clearAllMocks();
+
+    listeners.onCompleted(BOARD);
+    await new Promise((r) => setTimeout(r, 20));
+
+    expect(headerCalls()).toHaveLength(0);
+  });
+
+  it("folds every game's header, supported or not", async () => {
+    // The bar it folds is BGA's own framework, the same on every table.
+    await setCompactHeader(true);
+    vi.clearAllMocks();
+
+    listeners.onCompleted({ ...BOARD, tabId: 66, url: "https://boardgamearena.com/2/azul?table=123" });
+    listeners.onCompleted({ ...BOARD, tabId: 67, url: "https://boardgamearena.com/42/somegamenobodysupports?table=123" });
+    await new Promise((r) => setTimeout(r, 20));
+
+    expect(headerCalls().map((c) => c[0].target.tabId).sort()).toEqual([66, 67]);
+  });
+
+  it("leaves the shell frame alone", async () => {
+    // Only a board frame, never the /tableview shell that embeds it or its loader.
+    await setCompactHeader(true);
+    vi.clearAllMocks();
+
+    listeners.onCompleted({ ...BOARD, url: "https://boardgamearena.com/tableview?table=123" });
+    await new Promise((r) => setTimeout(r, 20));
+
+    expect(headerCalls()).toHaveLength(0);
+  });
+
+  it("undoes the fold on the open table when the setting is turned off", async () => {
+    await setCompactHeader(true);
+    const tab = { id: 63, url: "https://boardgamearena.com/8/innovation?table=123", windowId: 1 };
+    (chrome.tabs.get as ReturnType<typeof vi.fn>).mockResolvedValue(tab);
+    listeners.onActivated({ tabId: 63 });
+    await new Promise((r) => setTimeout(r, 20));
+    vi.clearAllMocks();
+
+    await setCompactHeader(false);
+
+    const call = headerCalls().at(-1);
+    expect(call![0]).toMatchObject({ target: { tabId: 63, allFrames: true } });
+    expect(call![0].args).toEqual([{ enabled: false, progressionOnly: false }]);
+  });
+
+  it("re-injects the stylesheet each time a board frame loads", async () => {
+    // Injected CSS does not survive a document navigation, so a re-entered table must get its own
+    // copy — the per-tab cleanup that would otherwise drop the cached one runs only when the side
+    // panel or the in-page log is consuming results, and the header needs neither.
+    await setCompactHeader(true);
+    vi.clearAllMocks();
+
+    listeners.onCompleted({ ...BOARD, tabId: 65 });
+    await new Promise((r) => setTimeout(r, 20));
+    listeners.onCompleted({ ...BOARD, tabId: 65 });
+    await new Promise((r) => setTimeout(r, 20));
+
+    expect(mockInsertCSS.mock.calls.filter((c) => c[0]?.target?.tabId === 65)).toHaveLength(2);
+  });
+
+  it("re-injects the stylesheet when switched back on", async () => {
+    // Injected CSS does not survive a document navigation, and the tab may well have reloaded
+    // while the feature was off.
+    await setCompactHeader(true);
+    const tab = { id: 64, url: "https://boardgamearena.com/8/innovation?table=123", windowId: 1 };
+    (chrome.tabs.get as ReturnType<typeof vi.fn>).mockResolvedValue(tab);
+    listeners.onActivated({ tabId: 64 });
+    await new Promise((r) => setTimeout(r, 20));
+    await setCompactHeader(false);
+    vi.clearAllMocks();
+
+    await setCompactHeader(true);
+
+    expect(mockInsertCSS.mock.calls.filter((c) => c[0]?.target?.tabId === 64)).toHaveLength(1);
   });
 });
