@@ -1,7 +1,7 @@
 # BGA Project Memory
 
 ## Workspace Structure
-Three subprojects in `D:\projects\bga`:
+Three sibling subprojects under a shared BGA workspace directory:
 - `themes/` — git repo (`bga-themes`), BGA custom CSS themes (has its own `scripts/browse.py`)
 - `tracker/` — BGA game state tracker (Innovation), uses `src/` layout with `pyproject.toml`
 - `assistant/` — BGA Assistant, TypeScript Chrome extension (Vite + vitest); multi-game (Innovation, Azul, Crew); git repo `AnotherSava/bga-assistant`
@@ -98,7 +98,7 @@ Three subprojects in `D:\projects\bga`:
 - Skill `allowed-tools` may NOT override built-in safety checks for destructive git commands (e.g. `git reset`). If a skill pattern doesn't work, add the pattern to `settings.local.json` instead.
 
 ## Kitty Terminal (WSL)
-- VBS launcher: `C:\programming\other\kitty.vbs`
+- VBS launcher: a `kitty.vbs` script kept with the user's other Windows tooling, outside any repo
 - System kitty (`/usr/bin/kitty`) is 0.32.2; updated kitty at `~/.local/kitty.app/bin/kitty` is 0.45.0
 - WSLg 1.0.71 broke Wayland rendering (ZINK/Mesa errors, `50000x50000` stride error)
 - Try `LIBGL_ALWAYS_SOFTWARE=1` or updated kitty binary as workaround
