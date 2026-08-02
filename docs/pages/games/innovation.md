@@ -25,6 +25,49 @@ The same turn history can render directly in BGA's own log column instead of the
 
 The column shows one log or the other, never both. A lightbulb in the header switches between them — lit while the turn history is up, dim while BGA's log is — so neither list is out of reach with the side panel closed. "More..." at the foot of the history widens the window beyond the default nine half-turns, and disappears once the whole game is shown. Both that and the switch are temporary: they last for the table you're on, and a reload or a different table starts from the eye-menu setting again.
 
+## Simplified cards on the table
+
+The side panel's compact card can replace BGA's illustrated one on the table itself. Enable it from
+the eye menu with "Simplified cards on BGA's table". It covers your hand and every player's board —
+the three places Innovation shows cards face up at full size.
+
+A simplified card drops the illustration and the dogma text, keeping the flat colour of its own
+colour pile, the card's icons, its name and its age. The rules text is still a hover away on BGA's
+own tooltip. Cards shrink to roughly a quarter of their former area, so a board that used to need
+scrolling tends to fit the window.
+
+The top card of a pile — and every card in your hand, which is never stacked — uses the side panel's
+layout, spot for spot: the card's first icon top-left, the rest along the bottom, the name across the
+top, and the age in the bottom-right corner. Cities cards use all six icon spots and so show no name,
+exactly as they do in the panel.
+
+Cards underneath the top one use a second layout, because a splay leaves them showing only a strip
+and the icons in that strip are the point of splaying. There they take the real card's geometry: the
+right-hand icons move out to the right-hand edge and the age moves inboard to the space they leave.
+So splaying left reveals the card's last icon (and on a Cities card the top-right one too), splaying
+right reveals the two left-hand icons, and splaying up reveals the whole bottom row — each exactly as
+on BGA's own cards.
+
+The age needs no rule of its own. On a covered card it sits inboard of both side strips, so a pile
+splayed left or right hides it without being told to, while a pile splayed up reveals the whole
+bottom row and brings it along. The top card is never covered, so it always shows its age.
+
+A **Size** slider under the checkbox scales the cards from 100% to 200% in 10% steps. The whole card
+scales as one — box, icons, name and age together — and so does the strip a splay reveals, so a
+splayed pile reads the same at every size.
+
+Card names are shown in their own capitalisation, as in the side panel. BGA writes them into the page
+already uppercased, so the extension puts the original back from the game's own card data; that also
+means a table played in another language keeps its translated names.
+
+Only your own hand changes: opponents' hands are face-down cards, and the score piles, achievements
+and decks are drawn edge-on, with nothing on them to simplify. The artifact display and revealed
+cards keep BGA's artwork.
+
+Note that BGA has a simplified card layout of its own, under its game preferences. That one swaps
+the illustration for a plain background at the usual card size; this one is a different, denser
+card, and does not need BGA's setting on.
+
 ## Compact table header
 
 This one is not Innovation's alone — the header it folds is BGA's own framework, identical on every
@@ -96,6 +139,7 @@ The deck section shows remaining cards per age, with known cards revealed by nam
 - **Layout toggle**: Wide (one row per age) / Tall (color columns)
 - **Turn history**: compact chronological display of recent actions (meld, draw, dogma, endorse, achieve, promote) with card name tooltips; compound actions (e.g. meld → promote → dogma) render as indented sub-action lines; pre-turn Artifact decisions (pass, return, or dogma) render as an italicized line above the turn's actions; each player's row uses their actual BGA-assigned color, with the observer's row tinted for distinction
 - **In-page game log**: render the turn history in BGA's own log column instead of the side panel, newest-first; an in-page switch moves between the two logs without reopening the panel
+- **Simplified cards on the table**: draw your hand and every player's board with the panel's compact card — flat colour, icons, name and age, at about a quarter of the area; a size slider scales them 100–200%, and covered cards use the real card's icon positions so splayed piles read as before
 - **Compact table header extras**: on top of the shared behaviour, Innovation's "Show compact" and "Browse all cards" buttons are hidden (the card list here covers the second), and "Look at all cards in piles" becomes an eye icon in the header's left corner
 - **Player labels**: "Show player names" toggle in the display menu switches turn-history labels between "you/opp" (default) and full BGA player names; coloring applies in either mode
 - **Section selector**: eye button to show/hide entire sections (including turn history visibility)

@@ -2,7 +2,7 @@
 
 import { SECTION_IDS, SECTION_LABELS, ECHOES_ONLY_SECTIONS, RELICS_ONLY_SECTIONS } from "./config.js";
 import { loadSetting, saveSetting } from "../../sidepanel/settings.js";
-import { loadInPageSettings, saveInPageSettings } from "../../sidepanel/inpage_settings.js";
+import { loadInPageSettings, saveInPageSettings, CARD_SCALE_MIN, CARD_SCALE_MAX, CARD_SCALE_STEP } from "../../sidepanel/inpage_settings.js";
 
 export interface InnovationDisplayContext {
   echoes: boolean;
@@ -96,6 +96,60 @@ export function buildInnovationDisplayMenu(panel: HTMLElement, context: Innovati
 
     logCheckbox.addEventListener("change", () => {
       void saveInPageSettings({ enabled: logCheckbox.checked });
+    });
+  }
+
+  // Simplified cards on BGA's own table. Stored alongside the other in-page settings for the same
+  // reason: the service worker applies it, and it has no localStorage. Top-level rather than a
+  // sub-option — it restyles the board itself and owes nothing to the turn history above it.
+  {
+    const cardsLabel = document.createElement("label");
+    const cardsCheckbox = document.createElement("input");
+    cardsCheckbox.type = "checkbox";
+    cardsLabel.appendChild(cardsCheckbox);
+    cardsLabel.appendChild(document.createTextNode("Simplified cards on BGA's table"));
+    panel.appendChild(cardsLabel);
+
+    // How big those cards are drawn, as a percentage of the side panel's own. A sub-option: it
+    // restyles nothing on its own, it only sizes what the checkbox above turned on.
+    const scaleLabel = document.createElement("label");
+    scaleLabel.className = "sub-option slider-option";
+    const scaleSlider = document.createElement("input");
+    scaleSlider.type = "range";
+    scaleSlider.min = String(CARD_SCALE_MIN);
+    scaleSlider.max = String(CARD_SCALE_MAX);
+    scaleSlider.step = String(CARD_SCALE_STEP);
+    const scaleValue = document.createElement("span");
+    scaleValue.className = "slider-value";
+    scaleLabel.appendChild(document.createTextNode("Size"));
+    scaleLabel.appendChild(scaleSlider);
+    scaleLabel.appendChild(scaleValue);
+    panel.appendChild(scaleLabel);
+
+    /** Grey the size out while the cards it sizes are switched off. */
+    const syncScaleEnabled = (): void => {
+      scaleSlider.disabled = !cardsCheckbox.checked;
+      scaleLabel.classList.toggle("disabled", !cardsCheckbox.checked);
+    };
+
+    void loadInPageSettings().then((settings) => {
+      cardsCheckbox.checked = settings.simplifiedCards;
+      scaleSlider.value = String(settings.cardScale);
+      scaleValue.textContent = `${settings.cardScale}%`;
+      syncScaleEnabled();
+    });
+
+    cardsCheckbox.addEventListener("change", () => {
+      void saveInPageSettings({ simplifiedCards: cardsCheckbox.checked });
+      syncScaleEnabled();
+    });
+
+    // On "input" rather than "change", so dragging resizes the board as it goes rather than only
+    // when the handle is let go.
+    scaleSlider.addEventListener("input", () => {
+      const scale = Number(scaleSlider.value);
+      scaleValue.textContent = `${scale}%`;
+      void saveInPageSettings({ cardScale: scale });
     });
   }
 

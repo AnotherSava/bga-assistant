@@ -1,0 +1,263 @@
+/* Simplified Innovation cards on BGA's own table — the side panel's compact card, applied to your
+ * hand and to every player's board.
+ *
+ * Paired with simplified_cards.ts, which shrinks the slot BGA lays each card out in. This file
+ * rebuilds what goes inside that slot: BGA's illustrated background gives way to the panel's flat
+ * colour, the rules text goes, and the icons BGA already drew are scaled down and re-anchored.
+ *
+ * BGA's own elements are reused rather than replaced. Every card on the table already carries its
+ * six spot icons, its name and its age as children — including the per-card hex artwork — so
+ * restyling them needs no card database in the page and no mapping from BGA's card ids to ours.
+ *
+ * TWO LAYOUTS, because a card that is fully visible and a card showing one strip want different
+ * things. The top card of a pile — and every card in your hand, which is never stacked — takes the
+ * side panel's layout, spot for spot, at the panel's own 92x45:
+ *
+ *          col:  2->22        23->43   44->64      65->90
+ *     +---------------------------------------------------+
+ *     |  spot_1        |     name (spot_6)   (spot_5)      |   row  2 -> 22
+ *     |  spot_2        |     spot_3   spot_4  |    AGE     |   row 23 -> 43
+ *     +---------------------------------------------------+
+ *
+ * A covered card takes the real card's geometry instead, which is the panel's with the age and the
+ * right-hand icons swapped:
+ *
+ *          col:  2->22        23->43   44->66      70->90
+ *     +---------------------------------------------------+
+ *     |  spot_1        |     name (spot_6)   |  (spot_5)   |   row  2 -> 22
+ *     |  spot_2        |     spot_3    AGE   |   spot_4    |   row 23 -> 43
+ *     +---------------------------------------------------+
+ *
+ * That is what makes a splayed pile read correctly, because splaying reveals a strip of the cards
+ * underneath and the icons in it are the point: left reveals the right-hand column (spot_4, and
+ * spot_5 on a Cities card), right reveals the left-hand column (spot_1, spot_2), up reveals the
+ * bottom row (spot_2, spot_3, spot_4). Every one of those lands inside its strip here.
+ *
+ * The age needs no rule about when to show. It sits at 44->66, which is outside the 26px strip a
+ * left splay reveals (67 onward) and outside the one a right splay reveals (up to 25), so it hides
+ * itself on both — while an up splay reveals the whole bottom row and brings it along. The top card
+ * is never covered, so it always shows its own.
+ *
+ * Cities cards fill all six spots, so they show no name — as in the panel. Every other set leaves
+ * spot_5 and spot_6 empty, and BGA renders those as `icon_null`, which it already hides.
+ *
+ * Every figure above is at 100%. The size slider publishes its multiplier as `--bgaa-card-scale`,
+ * which each length below is derived from, so the whole card scales as one and the splay geometry
+ * holds at any size: the strips and the icons in them grow together. simplified_cards.ts scales the
+ * same base numbers for the layout it hands BGA, so the two stay in step.
+ *
+ * The `__BGAA_*__` placeholders are replaced with `data:` URIs before injection. They cannot be
+ * `chrome-extension://` URLs: BGA serves a Content-Security-Policy whose `font-src` lists its own
+ * hosts, a few font CDNs and `data:` — but no extension scheme, so the page refuses a font served
+ * from the extension however the stylesheet reached it. `data:` is on that list, which is the one
+ * route in. Fonts are read from the packaged files at injection time rather than inlined here, so
+ * ~38KB of base64 stays out of the service worker's bundle.
+ */
+
+@font-face {
+  font-family: 'Russo One';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("__BGAA_FONT_RUSSO_ONE__") format('woff2');
+}
+
+@font-face {
+  font-family: 'Barlow Condensed';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("__BGAA_FONT_BARLOW_CONDENSED__") format('woff2');
+}
+
+/* The zones left alone: the artifact display, revealed cards and the expanded score/forecast views
+ * all share the one "M card" size key that simplified_cards.ts patches, so any inline size BGA
+ * derives from it has to be put back. The scoped rules below are more specific and still win. */
+html.bgaa-simplified-cards .card.M {
+  width: 180px !important;
+  height: 124px !important;
+}
+
+/* ------------------------------------------------------------------------ */
+/* The card box                                                             */
+/* ------------------------------------------------------------------------ */
+
+/* Opponents' hands hold face-down "S recto" cards, so scoping hands by prefix still reaches only
+ * your own — the one hand BGA draws at "M card" size. */
+html.bgaa-simplified-cards :is([id^="hand_"], [id^="board_"]) .card.M {
+  /* The size slider's multiplier, and every length inside the card derived from it once. Custom
+   * properties inherit, so the rules below read these rather than repeating the arithmetic. The
+   * fallback keeps the card at 100% if the injection has not published a scale yet. */
+  --s: var(--bgaa-card-scale, 1);
+  --inset: calc(2px * var(--s));
+  --col-centre: calc(23px * var(--s));
+  --col-right: calc(44px * var(--s));
+  --cell: calc(20px * var(--s));
+  width: calc(92px * var(--s)) !important;
+  height: calc(45px * var(--s)) !important;
+  background-image: none;
+  border-radius: 4px;
+  border-style: solid;
+  border-width: 1px;
+  box-shadow: none;
+}
+
+html.bgaa-simplified-cards :is([id^="hand_"], [id^="board_"]) .card.M.color_0 { background-color: #1a3a5c; border-color: #4a9eff; }
+html.bgaa-simplified-cards :is([id^="hand_"], [id^="board_"]) .card.M.color_1 { background-color: #5c1a1a; border-color: #ff4444; }
+html.bgaa-simplified-cards :is([id^="hand_"], [id^="board_"]) .card.M.color_2 { background-color: #1a4c1a; border-color: #44bb44; }
+html.bgaa-simplified-cards :is([id^="hand_"], [id^="board_"]) .card.M.color_3 { background-color: #4c4a1a; border-color: #ccaa00; }
+html.bgaa-simplified-cards :is([id^="hand_"], [id^="board_"]) .card.M.color_4 { background-color: #3a1a5c; border-color: #bb66ff; }
+
+/* The dogma text is what the simplified card trades away; BGA's hover tooltip still has it. */
+html.bgaa-simplified-cards :is([id^="hand_"], [id^="board_"]) .card.M > .card_effects {
+  display: none !important;
+}
+
+/* ------------------------------------------------------------------------ */
+/* Icons                                                                     */
+/* ------------------------------------------------------------------------ */
+
+/* Each icon type has its own intrinsic size, so each gets the scale that lands it on the panel's
+ * 20px. Scaling rather than resizing keeps every sprite offset BGA computed valid — restating the
+ * background geometry for six icons across five colours would be a second copy of BGA's own table,
+ * free to drift from it. `transform-origin` is set with the anchor below, so the corner an icon is
+ * pinned to is the corner it scales toward. */
+html.bgaa-simplified-cards :is([id^="hand_"], [id^="board_"]) .card.M .square_card_icon.M { transform: scale(calc(0.5556 * var(--s))); }
+html.bgaa-simplified-cards :is([id^="hand_"], [id^="board_"]) .card.M .hexagon_card_icon.M { transform: scale(calc(0.4444 * var(--s))); }
+html.bgaa-simplified-cards :is([id^="hand_"], [id^="board_"]) .card.M .city_special_icon.M { transform: scale(calc(0.5 * var(--s))); }
+html.bgaa-simplified-cards :is([id^="hand_"], [id^="board_"]) .card.M .bonus_card_icon.M { transform: scale(calc(0.5556 * var(--s))); }
+html.bgaa-simplified-cards :is([id^="hand_"], [id^="board_"]) .card.M .city_search_icon.M { transform: scale(calc(0.4444 * var(--s))); }
+
+/* Anchors. Every icon type shares them, and both card layouts use the same three columns, so a
+ * Cities card's six spots and a base card's four land on the same grid. All are pinned from the
+ * left, since the age owns the right-hand edge. */
+html.bgaa-simplified-cards :is([id^="hand_"], [id^="board_"]) .card.M :is(.square_card_icon, .hexagon_card_icon, .city_special_icon, .bonus_card_icon).M.top_left_icon {
+  top: var(--inset); left: var(--inset); right: auto; bottom: auto; transform-origin: top left;
+}
+html.bgaa-simplified-cards :is([id^="hand_"], [id^="board_"]) .card.M :is(.square_card_icon, .hexagon_card_icon, .city_special_icon, .bonus_card_icon).M.top_center_icon {
+  top: var(--inset); left: var(--col-centre); right: auto; bottom: auto; transform-origin: top left;
+}
+html.bgaa-simplified-cards :is([id^="hand_"], [id^="board_"]) .card.M :is(.square_card_icon, .hexagon_card_icon, .city_special_icon, .bonus_card_icon).M.top_right_icon {
+  top: var(--inset); left: var(--col-right); right: auto; bottom: auto; transform-origin: top left;
+}
+html.bgaa-simplified-cards :is([id^="hand_"], [id^="board_"]) .card.M :is(.square_card_icon, .hexagon_card_icon, .city_special_icon, .bonus_card_icon).M.bottom_left_icon {
+  bottom: var(--inset); left: var(--inset); right: auto; top: auto; transform-origin: bottom left;
+}
+html.bgaa-simplified-cards :is([id^="hand_"], [id^="board_"]) .card.M :is(.square_card_icon, .hexagon_card_icon, .city_special_icon, .bonus_card_icon).M.bottom_center_icon {
+  bottom: var(--inset); left: var(--col-centre); right: auto; top: auto; transform-origin: bottom left;
+}
+html.bgaa-simplified-cards :is([id^="hand_"], [id^="board_"]) .card.M :is(.square_card_icon, .hexagon_card_icon, .city_special_icon, .bonus_card_icon).M.bottom_right_icon {
+  bottom: var(--inset); left: var(--col-right); right: auto; top: auto; transform-origin: bottom left;
+}
+
+/* A bonus icon is two stacked elements — the coloured hexagon and the digit over it — anchored
+ * separately by BGA. The digit is re-centred on the 20px cell its backdrop now fills, rather than
+ * inheriting the anchor above, which would pin it to the cell's corner. */
+html.bgaa-simplified-cards :is([id^="hand_"], [id^="board_"]) .card.M .bonus_card_icon.M.bonus_value:is(.top_left_icon, .top_center_icon, .top_right_icon) {
+  top: calc(5.9px * var(--s));
+}
+html.bgaa-simplified-cards :is([id^="hand_"], [id^="board_"]) .card.M .bonus_card_icon.M.bonus_value:is(.bottom_left_icon, .bottom_center_icon, .bottom_right_icon) {
+  bottom: calc(5.9px * var(--s));
+}
+html.bgaa-simplified-cards :is([id^="hand_"], [id^="board_"]) .card.M .bonus_card_icon.M.bonus_value:is(.top_left_icon, .bottom_left_icon) { left: calc(6.4px * var(--s)); }
+html.bgaa-simplified-cards :is([id^="hand_"], [id^="board_"]) .card.M .bonus_card_icon.M.bonus_value:is(.top_center_icon, .bottom_center_icon) { left: calc(27.4px * var(--s)); }
+html.bgaa-simplified-cards :is([id^="hand_"], [id^="board_"]) .card.M .bonus_card_icon.M.bonus_value:is(.top_right_icon, .bottom_right_icon) { left: calc(48.4px * var(--s)); }
+
+/* The frame BGA draws around a Cities search icon, which sits a little outside the icon it rings. */
+html.bgaa-simplified-cards :is([id^="hand_"], [id^="board_"]) .card.M .city_search_icon.M {
+  top: 0; left: var(--col-centre); transform-origin: top left;
+}
+
+/* An Echo card carries its effect as running text in an icon spot. There is no reading that at
+ * 20px, so it becomes the same echo mark the side panel uses and the text falls back to BGA's
+ * tooltip, as the dogma text does. */
+html.bgaa-simplified-cards :is([id^="hand_"], [id^="board_"]) .card.M .square_card_icon.M.icon_10 {
+  background-image: url("__BGAA_ICON_ECHO__") !important;
+  background-size: contain !important;
+  background-repeat: no-repeat;
+  border: none !important;
+  background-color: transparent !important;
+}
+html.bgaa-simplified-cards :is([id^="hand_"], [id^="board_"]) .card.M .square_card_icon.M.icon_10 > span {
+  display: none !important;
+}
+
+/* ------------------------------------------------------------------------ */
+/* Name and age                                                              */
+/* ------------------------------------------------------------------------ */
+
+/* BGA measures the name against its own card width and bakes the size it settles on into a
+ * `font_size_N` class — on the inner span it wraps the text in, not on the element itself. Both the
+ * box and that span are restated here, or the name would still be sized for a 180px card.
+ *
+ * The name's case is not a style question: BGA uppercases it in the markup, so simplified_cards.ts
+ * rewrites the text from `gameui.cards`, where the original survives. */
+html.bgaa-simplified-cards :is([id^="hand_"], [id^="board_"]) .card.M > .card_title {
+  left: var(--col-centre) !important;
+  top: var(--inset) !important;
+  width: calc(67px * var(--s)) !important;
+  height: var(--cell) !important;
+  overflow: hidden;
+}
+html.bgaa-simplified-cards :is([id^="hand_"], [id^="board_"]) .card.M > .card_title > span {
+  font-family: 'Barlow Condensed', sans-serif !important;
+  font-size: calc(12px * var(--s)) !important;
+  line-height: var(--cell) !important;
+  color: #fff !important;
+  white-space: nowrap !important;
+}
+
+/* A Cities card fills all six spots, leaving the top row no room for a name — which is what the
+ * side panel does with them too, naming them in the tooltip alone. */
+html.bgaa-simplified-cards :is([id^="hand_"], [id^="board_"]) .card.M > .card_title.type_2 {
+  display: none !important;
+}
+
+html.bgaa-simplified-cards :is([id^="hand_"], [id^="board_"]) .card.M > .card_age {
+  bottom: var(--inset) !important;
+  right: var(--inset) !important;
+  left: auto !important;
+  top: auto !important;
+  width: calc(25px * var(--s)) !important;
+  height: var(--cell) !important;
+  line-height: var(--cell) !important;
+  text-align: center;
+}
+/* Sized on the inner span for the same reason as the name above. */
+html.bgaa-simplified-cards :is([id^="hand_"], [id^="board_"]) .card.M > .card_age > span {
+  font-family: 'Russo One', sans-serif !important;
+  font-size: calc(18px * var(--s)) !important;
+  font-weight: normal !important;
+  color: #fff !important;
+}
+
+/* ------------------------------------------------------------------------ */
+/* Covered cards in a board pile                                             */
+/* ------------------------------------------------------------------------ */
+
+/* The real card's geometry, for the cards a splay leaves showing only a strip: the right-hand
+ * icons take the right-hand edge, and the age moves inboard to the space they leave.
+ *
+ * `:has(~ .card.M)` is every card with another card after it — that is, all but the topmost, since
+ * BGA appends a pile in bottom-to-top order. Scoped to the boards: a hand is a grid where every
+ * card is fully visible, so all of them want the panel layout however many follow them.
+ *
+ * Only three things move. Everything above — the colour, the icon scales, the left and centre
+ * columns, the name — already matches on both layouts. */
+html.bgaa-simplified-cards [id^="board_"] .card.M:has(~ .card.M) :is(.square_card_icon, .hexagon_card_icon, .city_special_icon, .bonus_card_icon).M.top_right_icon {
+  left: auto; right: var(--inset); transform-origin: top right;
+}
+html.bgaa-simplified-cards [id^="board_"] .card.M:has(~ .card.M) :is(.square_card_icon, .hexagon_card_icon, .city_special_icon, .bonus_card_icon).M.bottom_right_icon {
+  left: auto; right: var(--inset); transform-origin: bottom right;
+}
+html.bgaa-simplified-cards [id^="board_"] .card.M:has(~ .card.M) .bonus_card_icon.M.bonus_value:is(.top_right_icon, .bottom_right_icon) {
+  left: auto; right: calc(6.4px * var(--s));
+}
+
+/* Ends at 66, one pixel clear of the 67 where a left splay's strip begins — so a covered card shows
+ * its icon there and never a sliver of a digit. */
+html.bgaa-simplified-cards [id^="board_"] .card.M:has(~ .card.M) > .card_age {
+  left: var(--col-right) !important;
+  right: auto !important;
+  width: calc(22px * var(--s)) !important;
+}

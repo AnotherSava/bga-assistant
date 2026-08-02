@@ -35,13 +35,24 @@ export interface InPageSettings {
   compactHeader: boolean;
   /** Leave the progression figure alone in the folded header, without the table id and move number. */
   progressionOnly: boolean;
+  /** Draw Innovation's own hand and every board with the side panel's compact card. */
+  simplifiedCards: boolean;
+  /** Size of those cards, as a percentage of the side panel's own. Only `CARD_SCALE_STEP` steps. */
+  cardScale: number;
 }
+
+/** Bounds of the simplified cards' size slider, in percent. */
+export const CARD_SCALE_MIN = 100;
+export const CARD_SCALE_MAX = 200;
+export const CARD_SCALE_STEP = 10;
 
 export const INPAGE_DEFAULTS: InPageSettings = {
   enabled: false,
   showPlayerNames: false,
   compactHeader: false,
   progressionOnly: false,
+  simplifiedCards: false,
+  cardScale: CARD_SCALE_MIN,
 };
 
 /**
@@ -69,15 +80,15 @@ export function isUnpackedBuild(): boolean {
 /**
  * The defaults as they apply to this build.
  *
- * The two settings that touch BGA's own page — the compact header and the in-page log — differ: a
- * store build leaves both to be asked for, while a local build has them on, since that is where they
- * are being worked on and switching them back on after every reload is friction with no purpose.
- * `showPlayerNames` and `progressionOnly` stay off either way — they only restyle what the other two
- * already turned on.
+ * The three settings that touch BGA's own page — the in-page log, the compact header and the
+ * simplified cards — differ: a store build leaves all of them to be asked for, while a local build
+ * has them on, since that is where they are being worked on and switching them back on after every
+ * reload is friction with no purpose. `showPlayerNames` and `progressionOnly` stay off either way —
+ * they only restyle what the others already turned on.
  */
 function buildDefaults(): InPageSettings {
   const unpacked = isUnpackedBuild();
-  return { ...INPAGE_DEFAULTS, enabled: unpacked, compactHeader: unpacked };
+  return { ...INPAGE_DEFAULTS, enabled: unpacked, compactHeader: unpacked, simplifiedCards: unpacked };
 }
 
 export async function loadInPageSettings(): Promise<InPageSettings> {

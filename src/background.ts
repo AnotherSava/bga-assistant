@@ -8,11 +8,14 @@ import { renderTurnHistoryRows, setAssetResolver } from "./games/innovation/rend
 import { recentTurns } from "./games/innovation/turn_history.js";
 import { inPageLogFunction } from "./games/innovation/inpage_log.js";
 import { compactHeaderFunction } from "./games/innovation/compact_header.js";
+import { simplifiedCardsFunction } from "./games/innovation/simplified_cards.js";
 import { loadInPageSettings, saveInPageSettings, subscribeInPageSettings, INPAGE_DEFAULTS, INPAGE_LOG_HALF_TURNS, type InPageSettings } from "./sidepanel/inpage_settings.js";
 import cardTipCss from "./games/innovation/card_tip.css?raw";
 import turnHistoryCss from "./games/innovation/turn_history.css?raw";
 import inPageLogCss from "./games/innovation/inpage_log.css?raw";
 import compactHeaderCss from "./games/innovation/compact_header.css?raw";
+import simplifiedCardsCss from "./games/innovation/simplified_cards.css?raw";
+import echoIconSvg from "../assets/bga/innovation/icons/echo.svg?raw";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -598,6 +601,8 @@ const inPageLogCollapsedTabs = new Set<number>();
 const inPageLogHalfTurns = new Map<number, number>();
 /** In-flight or completed compact-header stylesheet injection per tab. Same contract as the log's. */
 const compactHeaderStyles = new Map<number, Promise<unknown>>();
+/** In-flight or completed simplified-card stylesheet injection per tab. Same contract as the log's. */
+const simplifiedCardsStyles = new Map<number, Promise<unknown>>();
 
 /**
  * Drop every per-tab in-page override.
@@ -611,6 +616,32 @@ function forgetInPageTab(tabId: number): void {
   inPageLogCollapsedTabs.delete(tabId);
   inPageLogHalfTurns.delete(tabId);
   compactHeaderStyles.delete(tabId);
+  simplifiedCardsStyles.delete(tabId);
+}
+
+/**
+ * Inject a stylesheet once per tab per service-worker lifetime, awaiting the same injection on
+ * every push.
+ *
+ * The *promise* is cached rather than a "styled" boolean: marking the tab styled when the injection
+ * starts lets a second push overtake the first one's CSS, and the resulting flash of unstyled
+ * markup looks intermittent because it depends on which push wins. On failure the entry is dropped,
+ * so the next push retries rather than leaving the tab permanently unstyled.
+ *
+ * `css` is a callback rather than a string so a stylesheet that has to be built — the simplified
+ * cards inline their fonts as `data:` URIs — is built only when a tab actually needs it.
+ */
+async function ensureStyles(cache: Map<number, Promise<unknown>>, tabId: number, css: () => string | Promise<string>): Promise<void> {
+  let styles = cache.get(tabId);
+  if (!styles) {
+    styles = Promise.resolve(css()).then((text) => chrome.scripting.insertCSS({ target: { tabId, allFrames: true }, css: text }));
+    cache.set(tabId, styles);
+  }
+  try {
+    await styles;
+  } catch {
+    cache.delete(tabId);
+  }
 }
 
 /**
@@ -649,19 +680,8 @@ async function pushInPageLog(tabId: number): Promise<void> {
   const opts = { enabled: true, collapsed: inPageLogCollapsedTabs.has(tabId), showPlayerNames: inPageLogSettings.showPlayerNames, halfTurns, hasMore: !atEnd };
 
   // The stylesheet must land before the rows, or the turn history renders as unstyled text —
-  // both player-name spans visible, narration unindented — until the CSS catches up. Every push
-  // awaits the same injection promise, so a second push cannot overtake the first one's CSS.
-  let styles = inPageLogStyles.get(tabId);
-  if (!styles) {
-    styles = chrome.scripting.insertCSS({ target: { tabId, allFrames: true }, css: INPAGE_LOG_CSS });
-    inPageLogStyles.set(tabId, styles);
-  }
-  try {
-    await styles;
-  } catch {
-    // Let the next push retry rather than leaving the tab permanently unstyled.
-    inPageLogStyles.delete(tabId);
-  }
+  // both player-name spans visible, narration unindented — until the CSS catches up.
+  await ensureStyles(inPageLogStyles, tabId, () => INPAGE_LOG_CSS);
 
   // chrome-types declares `func` as `() => void`, so the arg-taking form needs a cast — the same
   // workaround the world/ISOLATED injections already use.
@@ -709,23 +729,82 @@ async function pushCompactHeader(tabId: number, enabled: boolean): Promise<void>
   // Read at push time rather than passed in: every caller wants whatever is stored right now.
   const progressionOnly = inPageLogSettings.progressionOnly;
   // The stylesheet must land before the DOM moves, or the row renders with BGA's status bar still
-  // taking up its own line. Every push awaits the same injection, so a second cannot overtake it.
-  if (enabled) {
-    let styles = compactHeaderStyles.get(tabId);
-    if (!styles) {
-      styles = chrome.scripting.insertCSS({ target: { tabId, allFrames: true }, css: compactHeaderCss });
-      compactHeaderStyles.set(tabId, styles);
-    }
-    try {
-      await styles;
-    } catch {
-      // Let the next push retry rather than leaving the tab permanently unstyled.
-      compactHeaderStyles.delete(tabId);
-    }
-  }
+  // taking up its own line.
+  if (enabled) await ensureStyles(compactHeaderStyles, tabId, () => compactHeaderCss);
 
   // Undoing needs no stylesheet: the injected function removes the root class every rule hangs off.
   chrome.scripting.executeScript({ target: { tabId, allFrames: true }, func: compactHeaderFunction as unknown as () => void, args: [{ enabled, progressionOnly }], world: "ISOLATED" as chrome.scripting.ExecutionWorld }).catch(() => {});
+}
+
+/**
+ * The simplified-card stylesheet with its assets inlined, built once per service-worker lifetime.
+ *
+ * Everything it references has to arrive as a `data:` URI. BGA serves a Content-Security-Policy
+ * whose `font-src` allows its own hosts, a handful of font CDNs and `data:`, but no extension
+ * scheme — so a font at a `chrome-extension://` URL is refused by the page no matter that the
+ * stylesheet was injected by the extension, and the cards fall back to a system font. `data:` is
+ * the one source on that list this can use.
+ *
+ * The promise is cached rather than the string, so overlapping pushes share one read instead of
+ * racing to do the same work.
+ */
+let simplifiedCardsCssReady: Promise<string> | null = null;
+
+/** Read a packaged file and return it as a base64 `data:` URI. */
+async function packagedDataUrl(path: string, mimeType: string): Promise<string> {
+  const response = await fetch(chrome.runtime.getURL(path));
+  const bytes = new Uint8Array(await response.arrayBuffer());
+  // Chunked rather than one spread: a whole font passed as arguments overflows the call stack.
+  let binary = "";
+  for (let offset = 0; offset < bytes.length; offset += 0x8000) {
+    binary += String.fromCharCode(...bytes.subarray(offset, offset + 0x8000));
+  }
+  return `data:${mimeType};base64,${btoa(binary)}`;
+}
+
+function buildSimplifiedCardsCss(): Promise<string> {
+  if (!simplifiedCardsCssReady) {
+    simplifiedCardsCssReady = (async () => {
+      const [russoOne, barlowCondensed] = await Promise.all([
+        packagedDataUrl("assets/fonts/russo-one-regular.woff2", "font/woff2"),
+        packagedDataUrl("assets/fonts/barlow-condensed-regular.woff2", "font/woff2"),
+      ]);
+      // The echo mark is markup rather than binary, so it rides along from the bundle — 450 bytes,
+      // against ~38KB of base64 for the two fonts, which is why those are read at runtime instead.
+      const echoIcon = `data:image/svg+xml,${encodeURIComponent(echoIconSvg)}`;
+      return simplifiedCardsCss
+        .replaceAll("__BGAA_FONT_RUSSO_ONE__", russoOne)
+        .replaceAll("__BGAA_FONT_BARLOW_CONDENSED__", barlowCondensed)
+        .replaceAll("__BGAA_ICON_ECHO__", echoIcon);
+    })().catch((err) => {
+      // Let the next push retry rather than caching a failure for the worker's lifetime.
+      simplifiedCardsCssReady = null;
+      throw err;
+    });
+  }
+  return simplifiedCardsCssReady;
+}
+
+/**
+ * Swap Innovation's table cards between BGA's illustrated ones and the side panel's compact ones.
+ *
+ * Independent of extraction for the same reason as the compact header: it needs nothing from the
+ * game log, only an Innovation board to restyle, and the injected function bails in every frame
+ * that is not one.
+ *
+ * The stylesheet carries its fonts and the echo mark inlined as `data:` URIs, the only source BGA's
+ * own Content-Security-Policy leaves open to them.
+ */
+async function pushSimplifiedCards(tabId: number, enabled: boolean): Promise<void> {
+  // Read at push time rather than passed in: every caller wants whatever is stored right now.
+  const scale = inPageLogSettings.cardScale;
+  // The stylesheet must land before the layout does: the injected function hands the relayout to
+  // BGA, which measures the cards as it re-places them.
+  if (enabled) await ensureStyles(simplifiedCardsStyles, tabId, buildSimplifiedCardsCss);
+
+  // Undoing needs no stylesheet: the injected function puts BGA's own layout constants back and
+  // removes the root class every rule hangs off.
+  chrome.scripting.executeScript({ target: { tabId, allFrames: true }, func: simplifiedCardsFunction as unknown as () => void, args: [{ enabled, scale }], world: "MAIN" as chrome.scripting.ExecutionWorld }).catch(() => {});
 }
 
 function injectWatcher(tabId: number): void {
@@ -1234,6 +1313,12 @@ chrome.webNavigation.onCompleted.addListener((details) => {
     compactHeaderStyles.delete(details.tabId);
     void pushCompactHeader(details.tabId, true);
   }
+  // Same story, and for the same reasons: no consumer needed, and a fresh frame carries none of the
+  // CSS injected into the one it replaced. The injected function waits for Innovation's zones itself.
+  if (inPageLogSettings.simplifiedCards) {
+    simplifiedCardsStyles.delete(details.tabId);
+    void pushSimplifiedCards(details.tabId, true);
+  }
   if (details.tabId !== activeTabId) return;
   chrome.tabs.get(details.tabId).then(async (tab) => {
     const game = await updateIcon(details.tabId, tab.url);
@@ -1307,18 +1392,28 @@ void loadInPageSettings().then((settings) => {
   // A table can already be open when the service worker starts (an extension reload, or its first
   // wake after install), and no navigation event will follow to fold its header.
   if (settings.compactHeader) void pushCompactHeader(activeTabId, true);
+  if (settings.simplifiedCards) void pushSimplifiedCards(activeTabId, true);
 });
 
 subscribeInPageSettings((settings) => {
   const wasEnabled = inPageLogSettings.enabled;
   const wasCompactHeader = inPageLogSettings.compactHeader;
   const wasProgressionOnly = inPageLogSettings.progressionOnly;
+  const wasSimplifiedCards = inPageLogSettings.simplifiedCards;
+  const wasCardScale = inPageLogSettings.cardScale;
   inPageLogSettings = settings;
   if (activeTabId === null) return;
   if (settings.compactHeader !== wasCompactHeader || settings.progressionOnly !== wasProgressionOnly) {
     // Re-inject the stylesheet when switching back on: the tab may have reloaded while it was off.
     if (settings.compactHeader && !wasCompactHeader) compactHeaderStyles.delete(activeTabId);
     void pushCompactHeader(activeTabId, settings.compactHeader);
+  }
+  // A size change re-pushes too: the stylesheet reads the multiplier from a custom property, but
+  // BGA's own layout constants are scaled by the injected function and only it can restate them.
+  if (settings.simplifiedCards !== wasSimplifiedCards || (settings.simplifiedCards && settings.cardScale !== wasCardScale)) {
+    // Re-inject the stylesheet when switching back on: the tab may have reloaded while it was off.
+    if (settings.simplifiedCards && !wasSimplifiedCards) simplifiedCardsStyles.delete(activeTabId);
+    void pushSimplifiedCards(activeTabId, settings.simplifiedCards);
   }
   if (!settings.enabled) {
     if (wasEnabled) unmountInPageLog(activeTabId);

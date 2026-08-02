@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { loadInPageSettings, saveInPageSettings, subscribeInPageSettings, INPAGE_LOG_KEY, INPAGE_DEFAULTS } from "../sidepanel/inpage_settings.js";
+import { loadInPageSettings, saveInPageSettings, subscribeInPageSettings, INPAGE_LOG_KEY, INPAGE_DEFAULTS, CARD_SCALE_MIN } from "../sidepanel/inpage_settings.js";
 
 let storage: Record<string, unknown>;
 let changeListeners: ((changes: Record<string, { newValue?: unknown }>, area: string) => void)[];
@@ -67,36 +67,41 @@ describe("defaults", () => {
     expect(INPAGE_DEFAULTS.enabled).toBe(false);
     expect(INPAGE_DEFAULTS.compactHeader).toBe(false);
     expect(INPAGE_DEFAULTS.progressionOnly).toBe(false);
+    expect(INPAGE_DEFAULTS.simplifiedCards).toBe(false);
+    expect(INPAGE_DEFAULTS.cardScale).toBe(CARD_SCALE_MIN);
   });
 
-  it("turns the compact header and the in-page log on for an unpacked build", async () => {
-    // Local builds have both on: that is where they are worked on, and switching them back on after
-    // every extension reload is friction with no purpose. The published id is the only one the store
-    // build can carry, so anything else is a build loaded from disk.
+  it("turns everything that touches BGA's own page on for an unpacked build", async () => {
+    // Local builds have them all on: that is where they are worked on, and switching them back on
+    // after every extension reload is friction with no purpose. The published id is the only one the
+    // store build can carry, so anything else is a build loaded from disk.
     (globalThis as any).chrome.runtime = { id: "unpackedbuildidfromsomelocalpath" };
     const unpacked = await loadInPageSettings();
     expect(unpacked.enabled).toBe(true);
     expect(unpacked.compactHeader).toBe(true);
+    expect(unpacked.simplifiedCards).toBe(true);
 
     (globalThis as any).chrome.runtime = { id: "idjijmafngfkkbppkgopldomfhdcedig" };
     const published = await loadInPageSettings();
     expect(published.enabled).toBe(false);
     expect(published.compactHeader).toBe(false);
+    expect(published.simplifiedCards).toBe(false);
   });
 
   it("lets a stored choice stand over the build's default", async () => {
     (globalThis as any).chrome.runtime = { id: "unpackedbuildidfromsomelocalpath" };
-    storage[INPAGE_LOG_KEY] = { enabled: false, compactHeader: false };
+    storage[INPAGE_LOG_KEY] = { enabled: false, compactHeader: false, simplifiedCards: false };
     const loaded = await loadInPageSettings();
     expect(loaded.enabled).toBe(false);
     expect(loaded.compactHeader).toBe(false);
+    expect(loaded.simplifiedCards).toBe(false);
   });
 
   it("leaves a stored log preference alone when a new setting is added", async () => {
     // Settings saved before the compact header existed must keep their own values and pick up the
     // new field's default, not be reset by it.
     storage[INPAGE_LOG_KEY] = { enabled: true, showPlayerNames: true };
-    expect(await loadInPageSettings()).toEqual({ enabled: true, showPlayerNames: true, compactHeader: false, progressionOnly: false });
+    expect(await loadInPageSettings()).toEqual({ enabled: true, showPlayerNames: true, compactHeader: false, progressionOnly: false, simplifiedCards: false, cardScale: 100 });
   });
 });
 

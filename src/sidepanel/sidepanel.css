@@ -268,6 +268,13 @@ body {
 /* Options belonging to the toggle above them. Indents build on the 22px base rather than
  * replacing it, so a sub-option never sits further left than its parent. */
 #section-selector label.sub-option { padding-left: 38px; }
+/* A setting held on a slider rather than a checkbox. Keeps the sub-option indent so it still reads
+ * as belonging to the toggle above it, and gives the readout a fixed width so the row does not
+ * twitch as the number goes from 100% to 90-something. */
+#section-selector label.slider-option { display: flex; align-items: center; gap: 8px; padding-right: 10px; }
+#section-selector label.slider-option input[type="range"] { flex: 1; min-width: 60px; accent-color: #4a9eff; margin: 0; cursor: pointer; }
+#section-selector label.slider-option .slider-value { min-width: 34px; text-align: right; font-variant-numeric: tabular-nums; }
+#section-selector label.slider-option input[type="range"]:disabled { cursor: default; }
 #section-selector label.stats-setting { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 4px 10px; }
 #section-selector label.stats-setting select { background: #1e1e1e; color: #ccc; border: 1px solid #555; border-radius: 3px; padding: 1px 4px; font-size: 12px; cursor: pointer; }
 .section.section-hidden { display: none !important; }

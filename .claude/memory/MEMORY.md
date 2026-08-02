@@ -130,6 +130,7 @@ Three subprojects in `D:\projects\bga`:
 - 7 city names fixed from BGA defaults: Mohenjo-Daro, Nineveh, Constantinople, Hoi An, Rio de Janeiro, Munich (B7), Montreal (R7)
 - `gameStateChange id:4` with `args.action_number` = regular action marker (1 or 2); fires in BOTH channels, dedupe by `(move, player, actionNumber)`
 - `gameStateChange id:15` = artifact-decision turn marker (fires when player has an Artifact on display at turn start, BEFORE the first `id:4 action_number:1`). Sometimes fires in the player-channel packet only (e.g. move 17 in table 839716682), so process from any channel and dedupe by `(move, player)` — do NOT gate on `isSpectatorPacket` the way `id:4` does.
+- [Innovation card DOM + layout constants](project_innovation_card_dom.md) — element id format, `gameui.card_dimensions`/`refreshLayout`, splay indicator, names uppercased into markup
 
 ### Cities of Destiny
 - [Upstream cities images sorted by cardnum](project_innovation_cities_images.md) — `Print_CitiesCards_front-N` maps to card with cardnum `(335+N)`; same shape as echoes downloader, simpler sort key

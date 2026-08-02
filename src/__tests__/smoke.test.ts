@@ -73,7 +73,9 @@ describe("manifest web_accessible_resources", () => {
   });
 
   it("exposes card faces and nothing else", () => {
-    // Every additional glob widens the page-reachable surface; keep this deliberate.
+    // Every additional glob widens the page-reachable surface; keep this deliberate. Notably the
+    // simplified cards add nothing here: BGA's Content-Security-Policy would refuse a font served
+    // from the extension anyway, so that stylesheet inlines its assets as `data:` URIs instead.
     const resources = manifest.web_accessible_resources.flatMap((e: { resources: string[] }) => e.resources);
     expect(resources).toEqual(["assets/bga/innovation/cards/*.webp"]);
   });

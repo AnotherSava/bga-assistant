@@ -104,6 +104,16 @@ export function renderHelp(errorMessage?: string, gameName?: GameName): string {
   </div>
 
   <div class="help-section">
+    <div class="help-section-title">Simplified cards on the table</div>
+    <div class="help-sections-grid">
+      <div class="help-grid-item"><span>The compact card used above can replace BGA\u2019s illustrated one on the table itself \u2014 enable \u201CSimplified cards on BGA\u2019s table\u201D in the ${ICON_EYE} menu. It covers your hand and every player\u2019s board, the three places Innovation shows cards face up at full size. The illustration and the dogma text go; the colour, icons, name and age stay, at about a quarter of the area, so a board that needed scrolling tends to fit the window. The rules text is still a hover away on BGA\u2019s own tooltip.</span></div>
+      <div class="help-grid-item"><span>The top card of a pile \u2014 and every card in your hand, which is never stacked \u2014 uses the layout above, spot for spot: first icon top-left, the rest along the bottom, name across the top, age in the bottom-right corner. Cities cards fill all six icon spots and so show no name, as they do above.</span></div>
+      <div class="help-grid-item"><span>Cards under the top one use a second layout, since a splay leaves them showing only a strip and the icons in it are the point. There they take the real card\u2019s geometry \u2014 the right-hand icons out on the right-hand edge, the age moved inboard \u2014 so splaying left reveals the last icon, right the two left-hand ones, and up the whole bottom row, each as on BGA\u2019s own cards. The age follows from that with no rule of its own: hidden on a pile splayed left or right, carried along by one splayed up, and always shown on the top card.</span></div>
+      <div class="help-grid-item"><span>A <b>Size</b> slider under the checkbox scales the cards from 100% to 200% in 10% steps. The whole card scales as one — box, icons, name and age — and so does the strip a splay reveals, so a splayed pile reads the same at every size. Names show in their own capitalisation, as above: BGA writes them into the page already uppercased, so the original is put back from the game's own card data, which also keeps a table played in another language on its translated names. BGA has a simplified layout of its own under its game preferences; that one keeps the usual card size, and this does not need it on.</span></div>
+    </div>
+  </div>
+
+  <div class="help-section">
     <div class="help-section-title">Compact table header</div>
     <div class="help-sections-grid">
       <div class="help-grid-item"><span>On top of what the compact header does on every BGA table \u2014 described under \u201COn BGA\u2019s pages\u201D above \u2014 an Innovation table gets its own board controls handled too.</span></div>

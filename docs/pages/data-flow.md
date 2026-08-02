@@ -138,6 +138,35 @@ Key files:
 - `src/sidepanel/inpage_settings.ts` — the same `chrome.storage.local` object the in-page log uses
 - `src/sidepanel/global_menu.ts` — the help page's eye menu, where the setting lives for games with no display menu of their own
 
+### Simplified Cards
+
+Optional, Innovation only, and off on a store build unless asked for — on by default on an unpacked
+one, as the in-page log and the compact header are. The one in-page feature injected into the **MAIN
+world** rather than the ISOLATED one, because it is a layout change and not only a restyle: BGA gives
+every card an inline `left`/`top` it computes from `gameui.card_dimensions`, and recomputes them on
+every move, splay and resize, so a card shrunk in CSS alone would keep its old slot and leave a hole.
+Reaching `gameui` at all requires the page's own world. Like the compact header, it consumes no
+extraction results — only the DOM and game object BGA already built.
+
+Responsibilities:
+- Patch the three constants Innovation derives card layout from — `card_dimensions["M card"]`, `delta.my_hand` and `overlap_for_splay["M card"]` — then call BGA's own `refreshLayout()` and let its zone engine re-place every card. Splay direction, the echo-effect visibility rules and the pile-width clamping keep working, none of it reimplemented
+- Stash BGA's originals on the game object on the first enabling injection only, so a repeated one cannot park the already-patched values and leave nothing able to restore them
+- Publish the wanted state as a root attribute rather than closing over it, because the zones are built during Innovation's setup and a toggle can arrive before there is anything to lay out. The retry loop reads the attribute back each tick, so switching off while the board still loads is not overtaken by the retry that was started to switch it on
+- Restyle the card interior from CSS, reusing the icons, name and age BGA already drew as children of every card — so no card database and no BGA-id-to-card mapping enters the page
+- Use two layouts, since a fully visible card and one showing a single strip want different things. The top card of a pile — and every hand card, which is never stacked — reproduces the side panel's layout spot for spot, age in the bottom-right corner included. A covered card takes the real card's geometry instead, which is the panel's with the age and the right-hand icons swapped, so that every icon a splay is meant to reveal lands inside the strip it reveals: left gives `spot_4` (and `spot_5` on a Cities card), right gives `spot_1`/`spot_2`, up gives the bottom row
+- Select covered cards with `:has(~ .card.M)` — all but the topmost, since BGA appends a pile bottom-to-top — scoped to the board containers, because a hand is a grid whose cards are all fully visible however many follow them
+- Leave the age to fall out of that geometry rather than ruling on it. At 44→66 on a covered card it is outside both the 26px strip a left splay reveals (67 onward) and the one a right splay reveals (up to 25), so it hides itself on either, while an up splay reveals the whole bottom row and carries it along. This is why nothing here reads the splay direction: BGA publishes it only as a class on a separate `splay_indicator_*` element that no selector reaches from a card, and the layout makes needing it moot
+- Scope the shrink to your own hand and the boards, and restore BGA's card size for the other zones that share the patched `"M card"` size key — the artifact display, revealed cards and the expanded score/forecast views
+- Scale everything from one multiplier, which the size slider sets between 100% and 200%. The layout constants handed to BGA and every length in the stylesheet derive from the same base numbers, the latter through `calc()` on a `--bgaa-card-scale` custom property published on the root, so the card and the splay strips grow together and the geometry above holds at any size
+- Rewrite the card names from `gameui.cards`, where the original capitalisation survives — BGA uppercases a name into the markup (`_(card_data.name).toUpperCase()`), so no stylesheet can undo it and `text-transform` could only ever produce sentence case. Applied through BGA's own `_()` first, so a translated table keeps its translated names, and reverted to uppercase when the feature is switched off. A `MutationObserver` on the two zone kinds catches the cards BGA rebuilds as they move, coalesced to a frame; the pass writes only where the text differs, so it cannot retrigger its own observer
+- Carry the panel's two fonts and the echo mark inlined as `data:` URIs. BGA's `font-src` lists its own hosts, a few font CDNs and `data:`, but no extension scheme, so a `chrome-extension://` font is refused by the page no matter that the extension injected the stylesheet — the cards silently fall back to a system font. The fonts are read from the packaged files at injection time and cached for the worker's lifetime, keeping ~38KB of base64 out of the bundle; the 450-byte echo mark rides along in it
+
+Key files:
+- `src/games/innovation/simplified_cards.ts` — the injected patch; self-contained, since Chrome serializes it
+- `src/games/innovation/simplified_cards.css` — the card interior, rebuilt at panel scale
+- `src/sidepanel/inpage_settings.ts` — the same `chrome.storage.local` object the in-page log uses
+- `src/games/innovation/display.ts` — the Innovation eye menu, where the setting lives
+
 ## Data Flow: Full Extraction
 
 Extracts game data from a BGA page, processes it through a game-specific pipeline,
@@ -350,13 +379,14 @@ table.
 
 ### Settings storage
 
-Every one of these ships off. The compact header and the in-page log are the exception on an
-**unpacked build**, where both default on — `isUnpackedBuild()` compares `chrome.runtime.id` against
-the published id, so they are live while being worked on without a switch after every extension
-reload, and reach store users only if they ask for them.
+Every one of these ships off. The three that touch BGA's own page — the in-page log, the compact
+header and the simplified cards — are the exception on an **unpacked build**, where they default on
+— `isUnpackedBuild()` compares `chrome.runtime.id` against the published id, so they are live while
+being worked on without a switch after every extension reload, and reach store users only if they
+ask for them.
 
 The in-page settings live in `chrome.storage.local` under `bgaa_inpage_log`
-(`{ enabled, showPlayerNames, compactHeader, progressionOnly }`), not in the `localStorage` used by every other
+(`{ enabled, showPlayerNames, compactHeader, progressionOnly, simplifiedCards, cardScale }`), not in the `localStorage` used by every other
 display preference. Three contexts need them and `localStorage` cannot serve all three: the service
 worker has none at all, and a content script's belongs to `boardgamearena.com` rather than the
 extension. The key is still named for the log alone, which was the first of these settings:
@@ -615,6 +645,13 @@ Not messages — the service worker injects the mount function and passes data a
 | `chrome.scripting.executeScript` | `[{ enabled, progressionOnly }]` | Fold BGA's header into one row, or (`enabled: false`) move every node back to its placeholder; `progressionOnly` pares the table info down to the percentage |
 | `chrome.scripting.insertCSS` | `compact_header.css` | Inject the one-row layout, once per tab per service-worker lifetime |
 
+### *Background Service Worker* &rarr; *Simplified Cards*
+
+| Channel | Payload | Purpose |
+|---------|---------|---------|
+| `chrome.scripting.executeScript` (MAIN world) | `[{ enabled, scale }]` | Patch Innovation's card-layout constants and re-run BGA's own relayout, or (`enabled: false`) put BGA's numbers back |
+| `chrome.scripting.insertCSS` | `simplified_cards.css` | Inject the compact card, once per tab per service-worker lifetime. Its fonts and echo mark are substituted in as `data:` URIs first — BGA's CSP allows `data:` for `font-src` but no extension scheme, so a font at a `chrome-extension://` URL is refused by the page however the stylesheet got there |
+
 ## Connection Management
 
 The *Side Panel* maintains a persistent port via `chrome.runtime.connect({name: "sidepanel"})`.
@@ -702,7 +739,7 @@ and skips its own extraction.
 |-------|-----------|---------|-------------------|
 | Service worker restarts | Port disconnect detected by side panel; reconnects after 1s via `chrome.runtime.connect` | `onConnect` handler — pushes cached results if same table, otherwise re-extracts with source `"reconnect"` | No loading indicator; dedup guard skips render if data unchanged. Disconnected indicator shown after 3s if reconnect hasn't completed |
 | Side panel closes | Port `onDisconnect` | Sets `sidePanelOpen = false`; stops live tracking only when `background.hasConsumer()` is now false | N/A (panel gone) |
-| In-page log settings change | `chrome.storage.onChanged` for `bgaa_inpage_log` | Updates the cached settings, then mounts or unmounts the *In-Page Game Log* in the active tab | None |
+| In-page log settings change | `chrome.storage.onChanged` for `bgaa_inpage_log` | Updates the cached settings, then mounts or unmounts the *In-Page Game Log*, the *Compact Table Header* and *Simplified Cards* in the active tab | None |
 | Board frame commits | `chrome.webNavigation.onCommitted` | Hides BGA's log in that frame before it paints, so the in-page log does not flash BGA's list first | None |
 | Board iframe finishes loading | `chrome.webNavigation.onCompleted` | Re-attributes the play-time session, re-lights the icon, re-resolves panel content, and re-pushes the in-page log — the frame's DOM is new even when cached results still match the table | Content re-resolved unless already correct for this table |
 
