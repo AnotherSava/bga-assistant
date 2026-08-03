@@ -39,6 +39,8 @@ export interface InPageSettings {
   simplifiedCards: boolean;
   /** Size of those cards, as a percentage of the side panel's own. Only `CARD_SCALE_STEP` steps. */
   cardScale: number;
+  /** Print an Echo card's effect in full on the card, rather than marking the slot as holding text. */
+  echoText: boolean;
 }
 
 /** Bounds of the simplified cards' size slider, in percent. */
@@ -53,6 +55,7 @@ export const INPAGE_DEFAULTS: InPageSettings = {
   progressionOnly: false,
   simplifiedCards: false,
   cardScale: CARD_SCALE_MIN,
+  echoText: false,
 };
 
 /**

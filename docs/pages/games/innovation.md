@@ -56,6 +56,13 @@ A **Size** slider under the checkbox scales the cards from 100% to 200% in 10% s
 scales as one — box, icons, name and age together — and so does the strip a splay reveals, so a
 splayed pile reads the same at every size.
 
+An Echo card carries its effect as running text in one of its icon spots, which no card this small
+can show. That spot is marked with lines of writing instead, and the effect itself stays a hover away
+on BGA's own tooltip. **Echo effects as text** prints it on the card after all — set in Tahoma, drawn
+for exactly this kind of small screen text, and clipped to its spot so a long effect cannot spill
+over the icons around it. It is deliberately tiny at 100%: turn the size slider up, or lean on the
+browser's own zoom, and it becomes readable.
+
 Card names are shown in their own capitalisation, as in the side panel. BGA writes them into the page
 already uppercased, so the extension puts the original back from the game's own card data; that also
 means a table played in another language keeps its translated names.
@@ -108,6 +115,12 @@ is also why it lets go when it has to: a prompt long enough to wrap it, or a gam
 grows it past a fixed height, gets a bar that scrolls away like BGA's own, rather than a wall across
 the top of the board. It freezes again as soon as the bar is back under that height.
 
+A few prompts are simply too long for one line, so they are said shorter — on Ark Nova, "You must
+choose an action card" becomes "Choose:", which leaves the action buttons beside it rather than
+below. Only prompts named for a specific game are touched, and only when they match word for word,
+so everything else keeps BGA's own wording. This works on English tables: BGA translates its prompts,
+and a table played in another language keeps the full sentence.
+
 It is off until you ask for it, under "Compact BGA header" in the help page's eye menu, and turning
 it back off puts every element where BGA had it. Nothing is copied or re-rendered: BGA's own elements are moved,
 so the prompt, the action buttons and the move counter keep updating exactly as before.
@@ -139,7 +152,7 @@ The deck section shows remaining cards per age, with known cards revealed by nam
 - **Layout toggle**: Wide (one row per age) / Tall (color columns)
 - **Turn history**: compact chronological display of recent actions (meld, draw, dogma, endorse, achieve, promote) with card name tooltips; compound actions (e.g. meld → promote → dogma) render as indented sub-action lines; pre-turn Artifact decisions (pass, return, or dogma) render as an italicized line above the turn's actions; each player's row uses their actual BGA-assigned color, with the observer's row tinted for distinction
 - **In-page game log**: render the turn history in BGA's own log column instead of the side panel, newest-first; an in-page switch moves between the two logs without reopening the panel
-- **Simplified cards on the table**: draw your hand and every player's board with the panel's compact card — flat colour, icons, name and age, at about a quarter of the area; a size slider scales them 100–200%, and covered cards use the real card's icon positions so splayed piles read as before
+- **Simplified cards on the table**: draw your hand and every player's board with the panel's compact card — flat colour, icons, name and age, at about a quarter of the area; a size slider scales them 100–200%, covered cards use the real card's icon positions so splayed piles read as before, and Echo effects can be printed as text rather than marked
 - **Compact table header extras**: on top of the shared behaviour, Innovation's "Show compact" and "Browse all cards" buttons are hidden (the card list here covers the second), and "Look at all cards in piles" becomes an eye icon in the header's left corner
 - **Player labels**: "Show player names" toggle in the display menu switches turn-history labels between "you/opp" (default) and full BGA player names; coloring applies in either mode
 - **Section selector**: eye button to show/hide entire sections (including turn history visibility)

@@ -19,9 +19,11 @@
  *
  * Must be self-contained (no closures or external references) — Chrome serializes it for injection.
  */
-export function simplifiedCardsFunction(opts: { enabled: boolean; scale: number }): void {
+export function simplifiedCardsFunction(opts: { enabled: boolean; scale: number; echoText: boolean }): void {
   /** Every rule in simplified_cards.css hangs off this, so removing it is the whole restore path. */
   const ROOT_CLASS = "bgaa-simplified-cards";
+  /** Print an Echo card's effect in full instead of marking its slot. Styling alone, so it is a class. */
+  const ECHO_TEXT_CLASS = "bgaa-echo-text";
   /**
    * The wanted state, published on the root rather than read from `opts`.
    *
@@ -88,6 +90,35 @@ export function simplifiedCardsFunction(opts: { enabled: boolean; scale: number 
 
   /** The zones this restyles: your own hand, and every player's board pile. */
   const ZONE_SELECTOR = '[id^="hand_"], [id^="board_"]';
+  /**
+   * Marks the top card of a board pile, which is the one that gets the side panel's full layout.
+   *
+   * Not derivable in CSS. The obvious `:has(~ .card.M)` — "every card with another after it" — reads
+   * DOM order, and BGA's is not stack order: `createAndAddToZone` appends the node and takes the
+   * card's height in the pile from a separate `items` array, so a tuck (a card melded to the
+   * *bottom*, which Innovation does constantly) arrives last in the DOM while sitting at the bottom
+   * of the stack. That mislabels the pile and hands covered cards the layout that puts the age on
+   * the very edge a splay reveals. `items` is the authority — BGA's own splay code calls
+   * `i == items.length - 1` the top card.
+   */
+  const TOP_ATTRIBUTE = "data-bgaa-top";
+
+  /** Stamp `TOP_ATTRIBUTE` on the top card of every board pile, and clear it from the rest. */
+  const markTopCards = (gameui: Record<string, any>): void => {
+    const boards = gameui.zone?.board;
+    if (!boards) return;
+    for (const playerId of Object.keys(boards)) {
+      for (const color of Object.keys(boards[playerId])) {
+        const zone = boards[playerId][color];
+        const container = zone?.container_div ? document.getElementById(zone.container_div) : null;
+        if (!container || !Array.isArray(zone.items)) continue;
+        const topId = zone.items.length > 0 ? zone.items[zone.items.length - 1].id : null;
+        for (const card of Array.from(container.querySelectorAll<HTMLElement>(".card.M"))) {
+          card.toggleAttribute(TOP_ATTRIBUTE, card.id === topId);
+        }
+      }
+    }
+  };
 
   /**
    * Put the card names back in the case they were written in.
@@ -154,7 +185,10 @@ export function simplifiedCardsFunction(opts: { enabled: boolean; scale: number 
           requestAnimationFrame(() => {
             queued = false;
             const live = (window as unknown as { gameui?: Record<string, any> }).gameui;
-            if (live && document.documentElement.classList.contains(ROOT_CLASS)) retitleCards(live, false);
+            if (!live || !document.documentElement.classList.contains(ROOT_CLASS)) return;
+            retitleCards(live, false);
+            // A card entering or leaving a pile can change which one is on top.
+            markTopCards(live);
           });
         });
         for (const zone of Array.from(document.querySelectorAll(ZONE_SELECTOR))) {
@@ -173,6 +207,7 @@ export function simplifiedCardsFunction(opts: { enabled: boolean; scale: number 
       // Re-published on every enabling injection, not just the first: the slider changes nothing
       // else, so this is the only thing a size-only change has to carry through.
       document.documentElement.style.setProperty(SCALE_PROPERTY, String(factor));
+      document.documentElement.classList.toggle(ECHO_TEXT_CLASS, opts.echoText);
     } else {
       if (!stash) {
         document.documentElement.classList.remove(ROOT_CLASS);
@@ -184,7 +219,9 @@ export function simplifiedCardsFunction(opts: { enabled: boolean; scale: number 
       // Before the observer goes, so its own writes cannot race the restore.
       stash.watcher.disconnect();
       retitleCards(gameui, true);
+      for (const card of Array.from(document.querySelectorAll(`[${TOP_ATTRIBUTE}]`))) card.removeAttribute(TOP_ATTRIBUTE);
       document.documentElement.style.removeProperty(SCALE_PROPERTY);
+      document.documentElement.classList.remove(ECHO_TEXT_CLASS);
       delete gameui[STASH_KEY];
     }
 
@@ -196,7 +233,10 @@ export function simplifiedCardsFunction(opts: { enabled: boolean; scale: number 
     gameui.refreshLayout();
     // After the relayout, which is what puts the cards where they belong; the rename only touches
     // their text. The restore path has already done its own pass, above.
-    if (enabled) retitleCards(gameui, false);
+    if (enabled) {
+      retitleCards(gameui, false);
+      markTopCards(gameui);
+    }
     return true;
   };
 

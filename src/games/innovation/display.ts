@@ -126,22 +126,39 @@ export function buildInnovationDisplayMenu(panel: HTMLElement, context: Innovati
     scaleLabel.appendChild(scaleValue);
     panel.appendChild(scaleLabel);
 
-    /** Grey the size out while the cards it sizes are switched off. */
-    const syncScaleEnabled = (): void => {
+    // An Echo card's effect printed in full, rather than a mark saying the slot holds text. Small
+    // enough at these card sizes to need the slider above, or the browser's own zoom, to read.
+    const echoLabel = document.createElement("label");
+    echoLabel.className = "sub-option";
+    const echoCheckbox = document.createElement("input");
+    echoCheckbox.type = "checkbox";
+    echoLabel.appendChild(echoCheckbox);
+    echoLabel.appendChild(document.createTextNode("Echo effects as text"));
+    panel.appendChild(echoLabel);
+
+    /** Grey the sub-options out while the cards they apply to are switched off. */
+    const syncSubOptions = (): void => {
       scaleSlider.disabled = !cardsCheckbox.checked;
+      echoCheckbox.disabled = !cardsCheckbox.checked;
       scaleLabel.classList.toggle("disabled", !cardsCheckbox.checked);
+      echoLabel.classList.toggle("disabled", !cardsCheckbox.checked);
     };
 
     void loadInPageSettings().then((settings) => {
       cardsCheckbox.checked = settings.simplifiedCards;
       scaleSlider.value = String(settings.cardScale);
       scaleValue.textContent = `${settings.cardScale}%`;
-      syncScaleEnabled();
+      echoCheckbox.checked = settings.echoText;
+      syncSubOptions();
     });
 
     cardsCheckbox.addEventListener("change", () => {
       void saveInPageSettings({ simplifiedCards: cardsCheckbox.checked });
-      syncScaleEnabled();
+      syncSubOptions();
+    });
+
+    echoCheckbox.addEventListener("change", () => {
+      void saveInPageSettings({ echoText: echoCheckbox.checked });
     });
 
     // On "input" rather than "change", so dragging resizes the board as it goes rather than only

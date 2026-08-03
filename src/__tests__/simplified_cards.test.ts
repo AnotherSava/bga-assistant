@@ -6,8 +6,8 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { simplifiedCardsFunction } from "../games/innovation/simplified_cards.js";
 
-const ENABLED = { enabled: true, scale: 100 };
-const DISABLED = { enabled: false, scale: 100 };
+const ENABLED = { enabled: true, scale: 100, echoText: false };
+const DISABLED = { enabled: false, scale: 100, echoText: false };
 
 const ROOT_CLASS = "bgaa-simplified-cards";
 
@@ -20,7 +20,7 @@ interface FakeGameui {
   card_dimensions: Record<string, { width: number; height: number }>;
   delta: Record<string, { x: number; y: number }>;
   overlap_for_splay: Record<string, { compact: number; expanded: number }>;
-  zone?: { board: Record<string, unknown> };
+  zone?: { board: Record<string, Record<string, { container_div: string; items: { id: string }[] }>> };
   refreshLayout: () => void;
   [key: string]: unknown;
 }
@@ -59,6 +59,16 @@ function addCard(zoneId: string, cardId: number, title: string): void {
   document.getElementById(zoneId)!.appendChild(card);
 }
 
+/** The element id BGA gives a card, as `zone.items` records it. */
+function cardId(cardNumber: number): { id: string } {
+  return { id: `item_${cardNumber}__age_1__type_0__is_relic_0__M__card` };
+}
+
+/** Ids of the cards currently crowned as their pile's top card. */
+function topCardIds(zoneId: string): string[] {
+  return Array.from(document.querySelectorAll(`#${zoneId} [data-bgaa-top]`)).map(el => el.id);
+}
+
 function cardTitle(zoneId: string): string | null {
   return document.querySelector(`#${zoneId} .card_title > span`)!.textContent;
 }
@@ -68,6 +78,7 @@ beforeEach(() => {
   document.documentElement.removeAttribute("data-bgaa-cards-on");
   document.documentElement.removeAttribute("data-bgaa-cards-watch");
   document.documentElement.style.removeProperty("--bgaa-card-scale");
+  document.documentElement.classList.remove("bgaa-echo-text");
   document.body.innerHTML = "";
   setGameui(undefined);
 });
@@ -156,7 +167,7 @@ describe("simplifiedCardsFunction patching", () => {
     const gameui = fakeGameui();
     setGameui(gameui);
 
-    simplifiedCardsFunction({ enabled: true, scale: 200 });
+    simplifiedCardsFunction({ enabled: true, scale: 200, echoText: false });
 
     expect(gameui.card_dimensions["M card"]).toEqual({ width: 186, height: 92 });
     expect(gameui.delta.my_hand).toEqual({ x: 200, y: 106 });
@@ -167,7 +178,7 @@ describe("simplifiedCardsFunction patching", () => {
     const gameui = fakeGameui();
     setGameui(gameui);
 
-    simplifiedCardsFunction({ enabled: true, scale: 150 });
+    simplifiedCardsFunction({ enabled: true, scale: 150, echoText: false });
     expect(document.documentElement.style.getPropertyValue("--bgaa-card-scale")).toBe("1.5");
 
     simplifiedCardsFunction(DISABLED);
@@ -180,8 +191,8 @@ describe("simplifiedCardsFunction patching", () => {
     const gameui = fakeGameui();
     setGameui(gameui);
 
-    simplifiedCardsFunction({ enabled: true, scale: 100 });
-    simplifiedCardsFunction({ enabled: true, scale: 200 });
+    simplifiedCardsFunction({ enabled: true, scale: 100, echoText: false });
+    simplifiedCardsFunction({ enabled: true, scale: 200, echoText: false });
 
     expect(gameui.card_dimensions["M card"]).toEqual({ width: 186, height: 92 });
     expect(document.documentElement.style.getPropertyValue("--bgaa-card-scale")).toBe("2");
@@ -231,6 +242,72 @@ describe("simplifiedCardsFunction patching", () => {
     simplifiedCardsFunction(ENABLED);
 
     expect(cardTitle("hand_1234")).toBe("SOMETHING ELSE");
+  });
+
+  it("marks the pile's top card from the stack order, not the DOM order", () => {
+    // BGA appends a new node to the container and keeps the stack in a separate `items` array, so a
+    // tuck — a card melded to the bottom, which Innovation does constantly — is last in the DOM
+    // while lying at the bottom of the pile. Reading the DOM would crown the wrong card and hand
+    // covered cards the layout that puts the age on the edge a splay reveals.
+    const gameui = fakeGameui();
+    setGameui(gameui);
+    addCard("board_1234_0", 1, "FIRST");
+    addCard("board_1234_0", 2, "SECOND");
+    addCard("board_1234_0", 3, "TUCKED");
+    gameui.zone!.board["1234"] = { "0": { container_div: "board_1234_0", items: [cardId(3), cardId(1), cardId(2)] } };
+
+    simplifiedCardsFunction(ENABLED);
+
+    expect(topCardIds("board_1234_0")).toEqual([cardId(2).id]);
+  });
+
+  it("re-crowns the pile when a card lands on top of it", () => {
+    const gameui = fakeGameui();
+    setGameui(gameui);
+    addCard("board_1234_0", 1, "FIRST");
+    gameui.zone!.board["1234"] = { "0": { container_div: "board_1234_0", items: [cardId(1)] } };
+    simplifiedCardsFunction(ENABLED);
+    expect(topCardIds("board_1234_0")).toEqual([cardId(1).id]);
+
+    addCard("board_1234_0", 2, "MELDED");
+    gameui.zone!.board["1234"]["0"].items = [cardId(1), cardId(2)];
+    simplifiedCardsFunction(ENABLED);
+
+    expect(topCardIds("board_1234_0")).toEqual([cardId(2).id]);
+  });
+
+  it("leaves no card crowned once the feature is switched off", () => {
+    const gameui = fakeGameui();
+    setGameui(gameui);
+    addCard("board_1234_0", 1, "FIRST");
+    gameui.zone!.board["1234"] = { "0": { container_div: "board_1234_0", items: [cardId(1)] } };
+
+    simplifiedCardsFunction(ENABLED);
+    simplifiedCardsFunction(DISABLED);
+
+    expect(topCardIds("board_1234_0")).toEqual([]);
+  });
+
+  it("publishes the echo-text choice as a class for the stylesheet to key on", () => {
+    const gameui = fakeGameui();
+    setGameui(gameui);
+
+    simplifiedCardsFunction({ enabled: true, scale: 100, echoText: true });
+    expect(document.documentElement.classList.contains("bgaa-echo-text")).toBe(true);
+
+    // A toggle-only change re-injects with the feature already on, so it must still take effect.
+    simplifiedCardsFunction({ enabled: true, scale: 100, echoText: false });
+    expect(document.documentElement.classList.contains("bgaa-echo-text")).toBe(false);
+  });
+
+  it("drops the echo-text class when the cards are switched off", () => {
+    const gameui = fakeGameui();
+    setGameui(gameui);
+
+    simplifiedCardsFunction({ enabled: true, scale: 100, echoText: true });
+    simplifiedCardsFunction(DISABLED);
+
+    expect(document.documentElement.classList.contains("bgaa-echo-text")).toBe(false);
   });
 
   it("is inert when switched off without ever having been on", () => {

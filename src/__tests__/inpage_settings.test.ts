@@ -69,6 +69,7 @@ describe("defaults", () => {
     expect(INPAGE_DEFAULTS.progressionOnly).toBe(false);
     expect(INPAGE_DEFAULTS.simplifiedCards).toBe(false);
     expect(INPAGE_DEFAULTS.cardScale).toBe(CARD_SCALE_MIN);
+    expect(INPAGE_DEFAULTS.echoText).toBe(false);
   });
 
   it("turns everything that touches BGA's own page on for an unpacked build", async () => {
@@ -101,7 +102,7 @@ describe("defaults", () => {
     // Settings saved before the compact header existed must keep their own values and pick up the
     // new field's default, not be reset by it.
     storage[INPAGE_LOG_KEY] = { enabled: true, showPlayerNames: true };
-    expect(await loadInPageSettings()).toEqual({ enabled: true, showPlayerNames: true, compactHeader: false, progressionOnly: false, simplifiedCards: false, cardScale: 100 });
+    expect(await loadInPageSettings()).toEqual({ enabled: true, showPlayerNames: true, compactHeader: false, progressionOnly: false, simplifiedCards: false, cardScale: 100, echoText: false });
   });
 });
 

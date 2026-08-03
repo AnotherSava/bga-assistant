@@ -50,11 +50,11 @@ Keep `docs/pages/data-flow.md` up to date when code changes affect data flow, me
 - `src/games/innovation/turn_history.ts` — Turn action types (TurnAction, ActionDetail, ActionType) and recent-turns grouping
 - `src/games/innovation/render.ts` — Innovation HTML summary renderer
 - `src/games/innovation/config.ts` — Innovation section layout configuration
-- `src/games/innovation/display.ts` — Innovation display menu (section visibility, "Show player names" toggle, in-page log toggles, margin updates)
+- `src/games/innovation/display.ts` — Innovation display menu (section visibility, "Show player names" toggle, in-page log toggles, simplified-card toggle with its size slider and echo-text option, margin updates)
 - `src/games/innovation/inpage_log.ts` — in-page game log mount (ISOLATED-world, self-contained; keyed row reconcile, popover tooltips, BGA log hiding)
-- `src/games/innovation/compact_header.ts` — compact table header mount for every BGA game (ISOLATED-world, self-contained; moves BGA's status bar into the topbar, placeholders for restore)
+- `src/games/innovation/compact_header.ts` — compact table header mount for every BGA game (ISOLATED-world, self-contained; moves BGA's status bar into the topbar, placeholders for restore, shortens known over-long prompts per game)
 - `src/games/innovation/compact_header.css` — one-row header layout (collapses BGA's status bar and hides the two redundant board buttons)
-- `src/games/innovation/simplified_cards.ts` — simplified table cards (MAIN-world, self-contained; patches Innovation's layout constants, rewrites card names from `gameui.cards`)
+- `src/games/innovation/simplified_cards.ts` — simplified table cards (MAIN-world, self-contained; patches Innovation's layout constants, marks each pile's top card from `zone.items`, rewrites card names from `gameui.cards`)
 - `src/games/innovation/simplified_cards.css` — the compact card's two layouts (top card / covered card), scaled from `--bgaa-card-scale`
 - `src/games/innovation/card_tip.css` — card tooltip geometry shared by the side panel and the in-page log
 - `src/games/innovation/turn_history.css` — turn-history row appearance shared by both surfaces

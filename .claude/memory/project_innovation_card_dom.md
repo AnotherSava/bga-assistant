@@ -13,6 +13,14 @@ Restyling Innovation's table cards means working against its client (`micahstair
 
 **Splay direction is only on `splay_indicator_<pid>_<color>`** as a `splay_<0-3>` class — no DOM relation to the pile, so no selector reaches it from a card. 0=none, 1=left, 2=right, 3=up; left reveals the cards' right edge, right their left edge, up their bottom.
 
+**DOM order is not stack order.** `createAndAddToZone` does `dojo.place(node, start)` and then `addToZone(zone, id, position, …)`: the node is appended to the container while its height in the pile comes from the zone's separate `items` array. A tuck — a card melded to the *bottom*, which Innovation does constantly — is therefore last in the DOM and bottom of the stack. To find a pile's top card, read `zone.items[items.length - 1].id` (BGA's own splay code comments that index as the top card); never a CSS sibling test.
+
+**Arrow icons are one sprite rotated.** `city_special_icon.icon_11/12/13` are left/right/up, drawn from a single image with `transform: rotate(180deg)` (right) and `rotate(90deg)` (up) — so any `transform` of your own replaces the direction. Arrows only ever occupy the two centre spots (`top_center`, `bottom_center`).
+
+**`city_search_icon` is mostly frame.** The magnifier marking a Cities card's top-centre icon is a 45px sprite that is largely a border around the 36px icon, with the magnifier a small badge in one corner — so scaling it to a small cell renders the badge at under 3px. Not salvageable by scaling; replace it.
+
+**Pile chrome is floored at BGA's own card**: `.pile { min-height: 126px }` and `.board { min-height: 171px }`, with the splay arrow a sibling *after* the pile. Both must be restated when cards shrink, or the arrow strands ~80px below them.
+
 **Card names are uppercased into the markup** (`_(card_data.name).toUpperCase()`), so no `text-transform` can restore title case — `gameui.cards[id].name` holds the original. **Text sizes are baked as a `font_size_N` class on an inner `<span>`** by `createAdjustedContent`, which measures against BGA's own card width — override the span, not just the element.
 
 See also [[project_bga_framework_dom_probing]] for BGA's framework chrome, as opposed to a game's own client.
