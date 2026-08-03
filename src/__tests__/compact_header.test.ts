@@ -3,7 +3,7 @@
 // Innovation's board button into the topbar. Exercises the real DOM contract against a fixture of
 // BGA's board markup — topbar, status bar and player panel in the positions BGA renders them.
 
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { compactHeaderFunction } from "../games/innovation/compact_header.js";
 
 const ENABLED = { enabled: true, progressionOnly: false };
@@ -98,6 +98,13 @@ function flush(): Promise<void> {
 
 beforeEach(() => {
   buildBgaBoardDom();
+});
+
+// Balance every mount with an unmount, as a real page does when the setting is switched off. The
+// prompt watcher outlives the DOM it was attached to otherwise, and fires against a torn-down
+// environment once the suite ends.
+afterEach(() => {
+  compactHeaderFunction(DISABLED);
 });
 
 describe("compactHeaderFunction mounting", () => {
@@ -461,6 +468,59 @@ describe("compactHeaderFunction Ark Nova building picker", () => {
     compactHeaderFunction(DISABLED);
 
     expect(document.getElementById("pagesubtitle")!.parentElement).toBe(maintitlebarContent);
+  });
+});
+
+describe("compactHeaderFunction prompt shortening", () => {
+  const promptText = (): string | null => document.getElementById("pagemaintitletext")!.textContent;
+  const setPrompt = (text: string): void => { document.getElementById("pagemaintitletext")!.textContent = text; };
+
+  beforeEach(() => {
+    document.getElementById("leftright_page_wrapper")!.className = "bgagame-arknova";
+  });
+
+  it("says a known over-long prompt shorter, so the folded row stays one line", () => {
+    setPrompt("You must choose an action card");
+    compactHeaderFunction(ENABLED);
+
+    expect(promptText()).toBe("Choose:");
+  });
+
+  it("leaves a prompt it does not recognise alone", () => {
+    setPrompt("You must place a building somewhere unusual");
+    compactHeaderFunction(ENABLED);
+
+    expect(promptText()).toBe("You must place a building somewhere unusual");
+  });
+
+  it("leaves the same wording alone on another game", () => {
+    // The table is keyed by game slug: one game's phrasing must not be rewritten on another's table.
+    document.getElementById("leftright_page_wrapper")!.className = "bgagame-innovation";
+    setPrompt("You must choose an action card");
+    compactHeaderFunction(ENABLED);
+
+    expect(promptText()).toBe("You must choose an action card");
+  });
+
+  it("re-shortens after BGA rewrites the prompt on a state change", async () => {
+    setPrompt("You must choose an action card");
+    compactHeaderFunction(ENABLED);
+    expect(promptText()).toBe("Choose:");
+
+    // BGA owns this element and rewrites it every state change; shortening once would last until
+    // the first one.
+    setPrompt("You must choose an action card");
+    await flush();
+
+    expect(promptText()).toBe("Choose:");
+  });
+
+  it("gives BGA its own wording back when the header is turned off", () => {
+    setPrompt("You must choose an action card");
+    compactHeaderFunction(ENABLED);
+    compactHeaderFunction(DISABLED);
+
+    expect(promptText()).toBe("You must choose an action card");
   });
 });
 

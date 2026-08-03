@@ -91,6 +91,41 @@ export function compactHeaderFunction(opts: { enabled: boolean; progressionOnly:
    */
   const LAST_TURN_BANNER_ID = "bga-last-turn-banner";
   const MOVED_IDS = [...ROW_IDS, NEXT_TABLE_ID, VIEW_FULL_ID, ARKNOVA_SUBTITLE_ID];
+  /** BGA's prompt text, the one thing in the row long enough to wrap it onto a second line. */
+  const PROMPT_ID = "pagemaintitletext";
+  /** Where a shortened prompt keeps the wording it replaced, so restoring needs no lookup table. */
+  const PROMPT_ORIGINAL_ATTRIBUTE = "data-bgaa-prompt";
+  /**
+   * Marks the prompt element already being watched.
+   *
+   * On the element rather than the root, so it cannot become a one-way latch: were BGA to rebuild
+   * its topbar, a root-level flag would say "watched" while the observer sat on the element that
+   * went with it, and the prompt would never be shortened again. A new element arrives unmarked and
+   * gets its own observer.
+   */
+  const PROMPT_WATCH_ATTRIBUTE = "data-bgaa-prompt-watch";
+  /**
+   * Where the prompt's observer is parked, on the element it watches.
+   *
+   * A later injection is a fresh function with none of this one's variables, and an attribute cannot
+   * hold an object — so the node itself carries it, which is the one thing both injections can see.
+   */
+  const PROMPT_WATCHER_KEY = "__bgaaPromptWatcher";
+  type PromptElement = HTMLElement & { [PROMPT_WATCHER_KEY]?: MutationObserver };
+  /**
+   * Prompts worth saying shorter, keyed by BGA's own game slug.
+   *
+   * A folded row is one line, and BGA writes whole sentences into it. A prompt long enough to wrap
+   * takes the row past the height ceiling, which un-freezes the bar for the length of the decision —
+   * so where the same thing fits in a couple of words, it is said in a couple of words.
+   *
+   * Matched on the exact text BGA writes, and only ever for the game it is listed under, so anything
+   * unrecognised is left alone. Necessarily English-only: BGA localises these, and a table played in
+   * another language simply keeps its full prompt.
+   */
+  const PROMPT_REPLACEMENTS: Record<string, Record<string, string>> = {
+    arknova: { "You must choose an action card": "Choose:" },
+  };
 
   const slotFor = (id: string): Element | null => document.querySelector(`[${SLOT_ATTRIBUTE}="${id}"]`);
 
@@ -102,6 +137,19 @@ export function compactHeaderFunction(opts: { enabled: boolean; progressionOnly:
       if (node && slot && slot.parentNode) slot.parentNode.insertBefore(node, slot);
       slot?.remove();
     }
+    const prompt = document.getElementById(PROMPT_ID);
+    const original = prompt?.getAttribute(PROMPT_ORIGINAL_ATTRIBUTE);
+    if (prompt && original !== null && original !== undefined) {
+      prompt.textContent = original;
+      prompt.removeAttribute(PROMPT_ORIGINAL_ATTRIBUTE);
+    }
+    // Disconnected outright rather than left to retire on its next callback: the observer is
+    // reachable from the element, so switching the header off can stop it now instead of leaving
+    // one attached to a prompt nobody is rewriting any more.
+    const watcher = prompt ? (prompt as PromptElement)[PROMPT_WATCHER_KEY] : undefined;
+    watcher?.disconnect();
+    if (prompt) delete (prompt as PromptElement)[PROMPT_WATCHER_KEY];
+    prompt?.removeAttribute(PROMPT_WATCH_ATTRIBUTE);
     document.getElementById(ROW_ID)?.remove();
     document.documentElement.classList.remove(HEADER_CLASS);
     document.documentElement.classList.remove(PROGRESSION_CLASS);
@@ -115,6 +163,9 @@ export function compactHeaderFunction(opts: { enabled: boolean; progressionOnly:
   // none, and neither does any other page on the site.
   const board = document.querySelector('[class*="bgagame-"]');
   if (!board) return;
+
+  /** The game's own slug, off that same marker. Fixed for the life of an injection. */
+  const slug = Array.from(board.classList).find((name) => name.startsWith("bgagame-"))?.slice("bgagame-".length);
 
   if (!opts.enabled) {
     restore();
@@ -209,12 +260,56 @@ export function compactHeaderFunction(opts: { enabled: boolean; progressionOnly:
     const titleBarIsSpent = !titleBar || Array.from(titleBar.children).every((el) => el.hasAttribute(SLOT_ATTRIBUTE) || el.id === LAST_TURN_BANNER_ID || (el.children.length === 0 && !el.textContent?.trim()));
     const folded = promptInRow && titleBarIsSpent;
     document.documentElement.classList.toggle(HEADER_CLASS, folded);
-    const slug = Array.from(board.classList).find((name) => name.startsWith("bgagame-"))?.slice("bgagame-".length);
     if (folded && slug) document.documentElement.setAttribute(GAME_ATTRIBUTE, slug);
     else document.documentElement.removeAttribute(GAME_ATTRIBUTE);
     // Only ever alongside the fold: on BGA's own header the table info is a caption in the corner,
     // and stripping it to a bare number there would read as a stray figure.
     document.documentElement.classList.toggle(PROGRESSION_CLASS, folded && opts.progressionOnly);
+    // Only while folded, for the same reason: BGA's own bar has the room for the full sentence.
+    if (folded) shortenPrompt();
+  };
+
+  /**
+   * Swap a known over-long prompt for a shorter wording.
+   *
+   * Writes `textContent`, which would discard any markup BGA had put inside — safe only because the
+   * whole text must match a listed prompt first, and those are plain sentences. The original is kept
+   * on the element so `restore` can put it back without consulting the table.
+   */
+  const shortenPrompt = (): void => {
+    const replacements = slug ? PROMPT_REPLACEMENTS[slug] : undefined;
+    const prompt = document.getElementById(PROMPT_ID);
+    if (!replacements || !prompt) return;
+    const replacement = replacements[prompt.textContent?.trim() ?? ""];
+    if (replacement === undefined) return;
+    prompt.setAttribute(PROMPT_ORIGINAL_ATTRIBUTE, prompt.textContent!.trim());
+    prompt.textContent = replacement;
+  };
+
+  /**
+   * Re-shorten the prompt after BGA rewrites it, which it does on every state change.
+   *
+   * No loop guard is needed beyond the exact-match test in `shortenPrompt`: the text it writes is
+   * not itself a listed prompt, so the mutation it causes finds nothing to do and stops there.
+   */
+  const watchPrompt = (): void => {
+    if (!slug || !PROMPT_REPLACEMENTS[slug]) return;
+    const prompt = document.getElementById(PROMPT_ID);
+    if (!prompt || prompt.hasAttribute(PROMPT_WATCH_ATTRIBUTE)) return;
+    prompt.setAttribute(PROMPT_WATCH_ATTRIBUTE, "1");
+    const watcher = new MutationObserver(() => {
+      // Belongs to the run that started it and cannot be reached from a later one, so it retires
+      // itself once the header is no longer folded.
+      if (!document.documentElement.classList.contains(HEADER_CLASS)) {
+        watcher.disconnect();
+        prompt.removeAttribute(PROMPT_WATCH_ATTRIBUTE);
+        delete (prompt as PromptElement)[PROMPT_WATCHER_KEY];
+        return;
+      }
+      shortenPrompt();
+    });
+    (prompt as PromptElement)[PROMPT_WATCHER_KEY] = watcher;
+    watcher.observe(prompt, { childList: true, characterData: true, subtree: true });
   };
 
   /** Judge the bar's height against the fixed ceiling, and publish the verdict as a class. */
@@ -226,6 +321,9 @@ export function compactHeaderFunction(opts: { enabled: boolean; progressionOnly:
 
   apply();
   gaugeBar();
+
+  // BGA rewrites the prompt on every state change, so shortening it once would last until the first.
+  watchPrompt();
 
   // Re-judge whenever the bar changes size: a prompt long enough to wrap, a game's own art, or the
   // window narrowing until the buttons drop to a second row. Guarded by an attribute so repeated
