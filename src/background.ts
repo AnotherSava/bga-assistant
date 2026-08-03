@@ -15,7 +15,6 @@ import turnHistoryCss from "./games/innovation/turn_history.css?raw";
 import inPageLogCss from "./games/innovation/inpage_log.css?raw";
 import compactHeaderCss from "./games/innovation/compact_header.css?raw";
 import simplifiedCardsCss from "./games/innovation/simplified_cards.css?raw";
-import echoIconSvg from "../assets/bga/innovation/icons/echo.svg?raw";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -765,17 +764,15 @@ async function packagedDataUrl(path: string, mimeType: string): Promise<string> 
 function buildSimplifiedCardsCss(): Promise<string> {
   if (!simplifiedCardsCssReady) {
     simplifiedCardsCssReady = (async () => {
+      // Only the fonts are read from disk: the stylesheet's own marks are inline SVG, small enough
+      // to live in the CSS and drawn here rather than taken from BGA or the panel.
       const [russoOne, barlowCondensed] = await Promise.all([
         packagedDataUrl("assets/fonts/russo-one-regular.woff2", "font/woff2"),
         packagedDataUrl("assets/fonts/barlow-condensed-regular.woff2", "font/woff2"),
       ]);
-      // The echo mark is markup rather than binary, so it rides along from the bundle — 450 bytes,
-      // against ~38KB of base64 for the two fonts, which is why those are read at runtime instead.
-      const echoIcon = `data:image/svg+xml,${encodeURIComponent(echoIconSvg)}`;
       return simplifiedCardsCss
         .replaceAll("__BGAA_FONT_RUSSO_ONE__", russoOne)
-        .replaceAll("__BGAA_FONT_BARLOW_CONDENSED__", barlowCondensed)
-        .replaceAll("__BGAA_ICON_ECHO__", echoIcon);
+        .replaceAll("__BGAA_FONT_BARLOW_CONDENSED__", barlowCondensed);
     })().catch((err) => {
       // Let the next push retry rather than caching a failure for the worker's lifetime.
       simplifiedCardsCssReady = null;
@@ -792,19 +789,62 @@ function buildSimplifiedCardsCss(): Promise<string> {
  * game log, only an Innovation board to restyle, and the injected function bails in every frame
  * that is not one.
  *
- * The stylesheet carries its fonts and the echo mark inlined as `data:` URIs, the only source BGA's
+ * The stylesheet carries its fonts and icon marks inlined as `data:` URIs, the only source BGA's
  * own Content-Security-Policy leaves open to them.
  */
 async function pushSimplifiedCards(tabId: number, enabled: boolean): Promise<void> {
   // Read at push time rather than passed in: every caller wants whatever is stored right now.
   const scale = inPageLogSettings.cardScale;
+  const echoText = inPageLogSettings.echoText;
   // The stylesheet must land before the layout does: the injected function hands the relayout to
   // BGA, which measures the cards as it re-places them.
   if (enabled) await ensureStyles(simplifiedCardsStyles, tabId, buildSimplifiedCardsCss);
 
   // Undoing needs no stylesheet: the injected function puts BGA's own layout constants back and
   // removes the root class every rule hangs off.
-  chrome.scripting.executeScript({ target: { tabId, allFrames: true }, func: simplifiedCardsFunction as unknown as () => void, args: [{ enabled, scale }], world: "MAIN" as chrome.scripting.ExecutionWorld }).catch(() => {});
+  chrome.scripting.executeScript({ target: { tabId, allFrames: true }, func: simplifiedCardsFunction as unknown as () => void, args: [{ enabled, scale, echoText }], world: "MAIN" as chrome.scripting.ExecutionWorld }).catch(() => {});
+}
+
+/**
+ * Every BGA tab that is open, so a settings change can reach all of them.
+ *
+ * These two features are per-page state the service worker pushes, and pushing to the active tab
+ * alone leaves a table in any other tab — or another window — showing the old setting until it
+ * reloads. That is easy to hit with two tables open, and reads as the setting not working at all.
+ *
+ * Broadcast on change rather than re-pushed on every activation: a change is rare and a tab switch
+ * is not, and this way a background table is already correct when it comes to the front rather than
+ * being fixed up as it does.
+ */
+async function inPageTargetTabs(): Promise<number[]> {
+  // The active tab is always included, never merely because the query found it: that is the one the
+  // user is looking at, and it must still be updated if the query fails or the permission is absent.
+  const tabIds = new Set<number>();
+  if (activeTabId !== null) tabIds.add(activeTabId);
+  try {
+    const tabs = await chrome.tabs.query({ url: ["https://boardgamearena.com/*", "https://*.boardgamearena.com/*"] });
+    for (const tab of tabs) { if (tab.id !== undefined) tabIds.add(tab.id); }
+  } catch { /* the active tab alone, then */ }
+  return [...tabIds];
+}
+
+/**
+ * Send a per-page setting to every open BGA tab.
+ *
+ * These features are page state rather than panel state, so pushing to the active tab alone leaves a
+ * table in any other tab — or another window — showing the old setting until it reloads, which reads
+ * as the switch simply not working.
+ *
+ * `freshlyEnabled` drops the cached stylesheet injection first: the tab may well have reloaded while
+ * the feature was off, and injected CSS does not survive a document navigation.
+ */
+function broadcastInPageSetting(cache: Map<number, Promise<unknown>>, push: (tabId: number, enabled: boolean) => Promise<void>, enabled: boolean, freshlyEnabled: boolean): void {
+  void inPageTargetTabs().then((tabIds) => {
+    for (const tabId of tabIds) {
+      if (freshlyEnabled) cache.delete(tabId);
+      void push(tabId, enabled);
+    }
+  });
 }
 
 function injectWatcher(tabId: number): void {
@@ -1401,20 +1441,17 @@ subscribeInPageSettings((settings) => {
   const wasProgressionOnly = inPageLogSettings.progressionOnly;
   const wasSimplifiedCards = inPageLogSettings.simplifiedCards;
   const wasCardScale = inPageLogSettings.cardScale;
+  const wasEchoText = inPageLogSettings.echoText;
   inPageLogSettings = settings;
-  if (activeTabId === null) return;
   if (settings.compactHeader !== wasCompactHeader || settings.progressionOnly !== wasProgressionOnly) {
-    // Re-inject the stylesheet when switching back on: the tab may have reloaded while it was off.
-    if (settings.compactHeader && !wasCompactHeader) compactHeaderStyles.delete(activeTabId);
-    void pushCompactHeader(activeTabId, settings.compactHeader);
+    broadcastInPageSetting(compactHeaderStyles, pushCompactHeader, settings.compactHeader, settings.compactHeader && !wasCompactHeader);
   }
-  // A size change re-pushes too: the stylesheet reads the multiplier from a custom property, but
-  // BGA's own layout constants are scaled by the injected function and only it can restate them.
-  if (settings.simplifiedCards !== wasSimplifiedCards || (settings.simplifiedCards && settings.cardScale !== wasCardScale)) {
-    // Re-inject the stylesheet when switching back on: the tab may have reloaded while it was off.
-    if (settings.simplifiedCards && !wasSimplifiedCards) simplifiedCardsStyles.delete(activeTabId);
-    void pushSimplifiedCards(activeTabId, settings.simplifiedCards);
+  // A size or echo-text change re-pushes too: the stylesheet reads both from what the injected
+  // function publishes, and only it can restate BGA's own layout constants at the new scale.
+  if (settings.simplifiedCards !== wasSimplifiedCards || (settings.simplifiedCards && (settings.cardScale !== wasCardScale || settings.echoText !== wasEchoText))) {
+    broadcastInPageSetting(simplifiedCardsStyles, pushSimplifiedCards, settings.simplifiedCards, settings.simplifiedCards && !wasSimplifiedCards);
   }
+  if (activeTabId === null) return;
   if (!settings.enabled) {
     if (wasEnabled) unmountInPageLog(activeTabId);
     return;

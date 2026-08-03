@@ -2491,4 +2491,35 @@ describe("compact table header", () => {
 
     expect(mockInsertCSS.mock.calls.filter((c) => c[0]?.target?.tabId === 64)).toHaveLength(1);
   });
+
+  it("reaches every open BGA tab, not only the one in front", async () => {
+    // The setting is page state, so a table in a background tab or another window would otherwise
+    // keep the old one until it reloaded — which reads as the switch simply not working.
+    const tab = { id: 70, url: "https://boardgamearena.com/8/innovation?table=1", windowId: 1 };
+    (chrome.tabs.get as ReturnType<typeof vi.fn>).mockResolvedValue(tab);
+    listeners.onActivated({ tabId: 70 });
+    await new Promise((r) => setTimeout(r, 20));
+    (chrome.tabs.query as ReturnType<typeof vi.fn>).mockResolvedValue([{ id: 70 }, { id: 71 }, { id: 72 }]);
+    vi.clearAllMocks();
+
+    await setCompactHeader(false);
+
+    expect(headerCalls().map((c) => c[0].target.tabId).sort()).toEqual([70, 71, 72]);
+    (chrome.tabs.query as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+  });
+
+  it("still updates the tab in front when the tab query gives nothing", async () => {
+    // The query needs the tabs permission and can fail; the tab being looked at must update anyway.
+    const tab = { id: 73, url: "https://boardgamearena.com/8/innovation?table=1", windowId: 1 };
+    (chrome.tabs.get as ReturnType<typeof vi.fn>).mockResolvedValue(tab);
+    listeners.onActivated({ tabId: 73 });
+    await new Promise((r) => setTimeout(r, 20));
+    (chrome.tabs.query as ReturnType<typeof vi.fn>).mockRejectedValue(new Error("no permission"));
+    vi.clearAllMocks();
+
+    await setCompactHeader(false);
+
+    expect(headerCalls().map((c) => c[0].target.tabId)).toEqual([73]);
+    (chrome.tabs.query as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+  });
 });
