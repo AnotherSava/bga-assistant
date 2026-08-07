@@ -2,6 +2,7 @@
 
 import type { PlayerInfo } from "../../models/types.js";
 import type { TransferEntry, MessageEntry, GameLogEntry, RawExtractionData } from "./types.js";
+import { type CardSet, cardSetFromLabel } from "./types.js";
 import type { TurnAction, ActionDetail } from "./turn_history.js";
 
 // ---------------------------------------------------------------------------
@@ -26,6 +27,15 @@ export const SET_MAP: Record<string, string> = {
   "3": "echoes",
   "4": "figures",
 };
+
+/**
+ * Our own `CardSet` -> the set id BGA uses, derived from `SET_MAP` rather than written out again.
+ *
+ * The two numberings disagree — BGA's 1 is Artifacts and ours is Figures — and anything matching our
+ * cards against BGA's own markup needs its numbering, since BGA stamps `type_<id>` on every card it
+ * draws. Inverting the map here keeps the pairing in one place.
+ */
+export const BGA_SET_ID: Record<CardSet, string> = Object.fromEntries(Object.entries(SET_MAP).map(([bgaId, label]) => [cardSetFromLabel(label), bgaId])) as Record<CardSet, string>;
 
 /** Structured game log output from processRawLog. */
 export interface GameLog {

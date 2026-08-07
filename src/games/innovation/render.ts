@@ -2,7 +2,8 @@
 // Replaces Jinja2 templates + DTO layer (TemplateCard/Row/Section).
 
 import type { PlayerInfo } from "../../models/types.js";
-import { type CardInfo, type Card, CardSet, Color, CardDatabase, colorLabel, cardSetLabel, ageSetKey, cardIndex } from "./types.js";
+import { type CardInfo, type Card, type AgeSetKey, CardSet, Color, CardDatabase, colorLabel, cardSetLabel, ageSetKey, parseAgeSetKey, cardIndex } from "./types.js";
+import { BGA_SET_ID } from "./process_log.js";
 import { escapeHtml } from "../../render/icons.js";
 import { playerColorAttr } from "../../render/player.js";
 import type { TurnAction, ActionDetail } from "./turn_history.js";
@@ -90,10 +91,10 @@ function renderCardTip(info: CardInfo, popoverTips: boolean = false): string {
   return `<div class="card-tip"${popoverAttr} style="background-image:url('${resolveAssetUrl(`assets/bga/innovation/cards/card_${info.spriteIndex}.webp`)}')"></div>`;
 }
 
-function renderKnownCard(info: CardInfo, markResolved: boolean, includeTip: boolean = true): string {
+function renderKnownCard(info: CardInfo, markResolved: boolean, includeTip: boolean = true, popoverTips: boolean = false): string {
   const color = colorLabel(info.color);
   const resolvedAttr = markResolved ? " data-known" : "";
-  const tip = includeTip ? renderCardTip(info) : "";
+  const tip = includeTip ? renderCardTip(info, popoverTips) : "";
 
   if (info.cardSet === CardSet.BASE || info.cardSet === CardSet.ECHOES || info.cardSet === CardSet.ARTIFACTS || info.cardSet === CardSet.FIGURES) {
     return `<div class="card card-base b-${color}"${resolvedAttr}>`
@@ -122,14 +123,18 @@ function renderKnownCard(info: CardInfo, markResolved: boolean, includeTip: bool
 }
 
 /** Hover tooltip for an unknown card: a mini card icon for every remaining candidate,
- *  sorted by (age, color, name). Candidate cards carry no nested tooltips of their own. */
-function renderCandidateTip(candidates: Set<string>, cardDb: CardDatabase): string {
+ *  sorted by (age, color, name). Candidate cards carry no nested tooltips of their own.
+ *
+ *  `popoverTips` promotes the list to the top layer when shown, for the surfaces that render into
+ *  BGA's own page — see renderCardTip, which does the same for a card face. */
+function renderCandidateTip(candidates: Set<string>, cardDb: CardDatabase, popoverTips: boolean = false): string {
   const infos = [...candidates].map(name => cardDb.get(name)).filter((info): info is CardInfo => info !== undefined);
   infos.sort((a, b) => a.age - b.age || a.color - b.color || a.indexName.localeCompare(b.indexName));
-  return `<div class="card-tip-list">${infos.map(info => renderKnownCard(info, false, false)).join("")}</div>`;
+  const popoverAttr = popoverTips ? " popover=\"manual\"" : "";
+  return `<div class="card-tip-list"${popoverAttr}>${infos.map(info => renderKnownCard(info, false, false)).join("")}</div>`;
 }
 
-function renderUnknownCard(card: Card, cardDb: CardDatabase): string {
+function renderUnknownCard(card: Card, cardDb: CardDatabase, popoverTips: boolean = false): string {
   const cardSet = card.cardSet;
   let cls: string;
   if (cardSet === CardSet.BASE) cls = "b-gray-base";
@@ -143,16 +148,85 @@ function renderUnknownCard(card: Card, cardDb: CardDatabase): string {
   const maxCandidates = cardDb.groupInfos(card.age, cardSet).length;
   const narrowed = card.candidates.size > 1 && card.candidates.size < maxCandidates;
   const count = narrowed ? `<div class="cb-count">${card.candidates.size}</div>` : "";
-  const tip = narrowed ? renderCandidateTip(card.candidates, cardDb) : "";
+  const tip = narrowed ? renderCandidateTip(card.candidates, cardDb, popoverTips) : "";
   return `<div class="card card-base ${cls}"><div class="cb-tl"></div><div class="cb-name"></div><div class="cb-bl"></div><div class="cb-mid"></div>${count}<div class="card-age">${card.age}</div>${tip}</div>`;
 }
 
-function renderCard(card: Card, cardDb: CardDatabase, markResolved: boolean): string {
+function renderCard(card: Card, cardDb: CardDatabase, markResolved: boolean, popoverTips: boolean = false): string {
   if (card.isResolved) {
     const info = cardDb.get(card.resolvedName!)!;
-    return renderKnownCard(info, markResolved);
+    return renderKnownCard(info, markResolved, true, popoverTips);
   }
-  return renderUnknownCard(card, cardDb);
+  return renderUnknownCard(card, cardDb, popoverTips);
+}
+
+// ---------------------------------------------------------------------------
+// Opponent hands, for BGA's own table
+// ---------------------------------------------------------------------------
+
+/**
+ * One card's finished markup and how many cards in its group carry exactly that markup.
+ *
+ * Run-length rather than one entry per card, because a group's cards usually share their knowledge:
+ * candidates are per-pool equivalence classes, so five unknown age-1 cards narrowed the same way
+ * render five identical fragments — each carrying a tooltip listing every candidate. Collapsing them
+ * keeps a push proportional to what is actually known rather than to the size of the hand.
+ */
+export interface HandHintRun {
+  html: string;
+  count: number;
+}
+
+/**
+ * The cards of one player's hand that share an age and a set, ready to be matched against BGA's own.
+ *
+ * Grouped by exactly what BGA reveals about a face-down card — it stamps `age_N` and `type_N` on
+ * every one — because that is the finest distinction both sides can agree on. Within a group there is
+ * nothing to match: the model holds a multiset of possibilities, not an identity per card, so any
+ * assignment of these runs to that group's cards says the same thing.
+ *
+ * `bgaSetId` is BGA's own set numbering, not ours, since it is compared against BGA's markup.
+ */
+export interface HandHintGroup {
+  playerId: string;
+  age: number;
+  bgaSetId: string;
+  runs: HandHintRun[];
+}
+
+/**
+ * Render every player's hand as groups of finished card markup, for drawing onto BGA's table.
+ *
+ * The same `renderCard` the side panel uses, so a hand card on the table is the card in the panel —
+ * a known card with its name and icons, an unknown one as the placeholder with its candidate count
+ * and the list of everything it could still be. Tips are popovers here: they open inside BGA's board,
+ * where anything else would be clipped.
+ */
+export function renderHandHintGroups(hands: Map<string, Card[]>, cardDb: CardDatabase): HandHintGroup[] {
+  const groups: HandHintGroup[] = [];
+  for (const [playerId, cards] of hands) {
+    const byAgeSet = new Map<AgeSetKey, Card[]>();
+    for (const card of cards) {
+      const key = ageSetKey(card.age, card.cardSet);
+      const bucket = byAgeSet.get(key);
+      if (bucket) bucket.push(card);
+      else byAgeSet.set(key, [card]);
+    }
+    for (const [key, bucket] of byAgeSet) {
+      const { age, cardSet } = parseAgeSetKey(key);
+      // Sorted so identical fragments sit together, which is what makes the run-length collapse
+      // below reach them. Reordering within a group loses nothing — see HandHintGroup.
+      const rendered = bucket.map(card => renderCard(card, cardDb, false, true)).sort();
+      const runs: HandHintRun[] = [];
+      for (const html of rendered) {
+        const last = runs[runs.length - 1];
+        if (last && last.html === html) last.count++;
+        else runs.push({ html, count: 1 });
+      }
+      groups.push({ playerId, age, bgaSetId: BGA_SET_ID[cardSet], runs });
+    }
+  }
+  return groups;
 }
 
 // ---------------------------------------------------------------------------
@@ -653,7 +727,7 @@ export function renderFullPage(gameState: GameState, engine: GameEngine, cardDb:
 ${css}
 </style>
 </head>
-<body>
+<body class="bgaa-cards">
 ${bodyHtml}
 <script>
 ${SUMMARY_JS}

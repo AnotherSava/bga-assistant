@@ -33,8 +33,8 @@
  * spot_5 on a Cities card), right reveals the left-hand column (spot_1, spot_2), up reveals the
  * bottom row (spot_2, spot_3, spot_4). Every one of those lands inside its strip here.
  *
- * The age needs no rule about when to show. It sits at 44->66, which is outside the 26px strip a
- * left splay reveals (67 onward) and outside the one a right splay reveals (up to 25), so it hides
+ * The age needs no rule about when to show. It sits at 44->66, which is outside the 22px strip a
+ * left splay reveals (70 onward) and outside the one a right splay reveals (up to 22), so it hides
  * itself on both — while an up splay reveals the whole bottom row and brings it along. The top card
  * is never covered, so it always shows its own.
  *
@@ -337,6 +337,97 @@ html.bgaa-simplified-cards .board {
 }
 
 /* ------------------------------------------------------------------------ */
+/* Opponents' hands                                                          */
+/* ------------------------------------------------------------------------ */
+
+/* An opponent's hand card is BGA's face-down back with nothing on it at all — no name, no age, no
+ * icons, since BGA has nothing to say about a card it is hiding. We do: the side panel's card is
+ * dropped inside it, drawn from the same renderer that fills the panel, so a card we have identified
+ * shows its name and icons and one we have not shows the placeholder with its remaining count.
+ *
+ * The back itself goes. `background-image: none` covers both of BGA's, the illustrated one and the
+ * flat `simplified_card_back` its own preference substitutes, and the age span that preference adds
+ * goes with it — the card inside carries an age of its own, and two would disagree the moment we know
+ * more than BGA is showing.
+ *
+ * The box is sized for the panel's card at 94x47 rather than restyled to hold one, because the card
+ * inside is scaled whole (below) instead of rebuilt per size. simplified_cards.ts lays the zone out
+ * against these same numbers. */
+html.bgaa-simplified-cards.bgaa-opponent-hands [data-bgaa-opp-hand] > .recto {
+  box-sizing: border-box;
+  width: calc(94px * var(--bgaa-card-scale, 1));
+  height: calc(47px * var(--bgaa-card-scale, 1));
+  box-shadow: none;
+}
+
+/* BGA's own back goes only where a card has actually been drawn over it — `:has()` on the wrapper the
+ * mount injects, never on the slot alone. A card is drawn into every slot, so in practice this always
+ * matches; what it guards is the moment before that, between BGA adding a card to a hand and the
+ * observer reaching it. Unconditional, this erased the back of a card with nothing over it yet — a
+ * face-down card has no other content, so the slot rendered as an invisible rectangle. */
+html.bgaa-simplified-cards.bgaa-opponent-hands [data-bgaa-opp-hand] > .recto:has(> .bgaa-hint) {
+  background-image: none !important;
+  background-color: transparent !important;
+  border: none !important;
+}
+
+/* The age BGA prints on its own "simplified card back" preference. Hidden for the same reason and
+ * under the same condition: the card drawn over it carries an age, and two would disagree the moment
+ * we know more than BGA is showing. */
+html.bgaa-simplified-cards.bgaa-opponent-hands [data-bgaa-opp-hand] > .recto:has(> .bgaa-hint) > .card_back_text {
+  display: none !important;
+}
+
+/* The panel's card, laid over BGA's slot and scaled as one piece — box, icons, name and age
+ * together — which is what lets the size slider reach these cards without a single length inside
+ * them being restated per size, the way the board's own cards are.
+ *
+ * `pointer-events: none` so the card is only ever a picture: BGA makes an opponent's hand card
+ * clickable during some dogma effects, and the click has to reach BGA's own element. Hover is read
+ * from that element too, so the tooltip loses nothing by it. */
+html.bgaa-simplified-cards.bgaa-opponent-hands [data-bgaa-opp-hand] > .recto > .bgaa-hint {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform: scale(var(--bgaa-card-scale, 1));
+  transform-origin: top left;
+  pointer-events: none;
+}
+
+/* The tooltip: every candidate as a mini card, or the face of a card we have identified.
+ *
+ * Opened as a popover from script rather than on `:hover` — the same reasoning, and the same reset,
+ * as the in-page log's tips: the top layer is the one place a tip cannot be clipped by BGA's board or
+ * its transforms, and the JS-set coordinates must not be overridden here (so no `inset`, no `width`,
+ * no `height`, and `background-color` rather than the `background` shorthand). */
+html.bgaa-simplified-cards .bgaa-hint :is(.card-tip, .card-tip-list)[popover] {
+  position: fixed;
+  right: auto;
+  bottom: auto;
+  position-anchor: none;
+  position-try-fallbacks: none;
+  margin: 0;
+  border: 0;
+  padding: 0;
+  background-color: transparent;
+  color: inherit;
+  overflow: visible;
+}
+
+/* Scoped to our own wrapper, not to every popover on the page: the in-page log's tips carry the same
+ * classes and ship their own copy of this reset, and a selector reaching both would silently retune
+ * that feature from here. The candidate list restores the three declarations it wants — it is the one
+ * tip with a box of its own — after the reset above has cleared the UA popover's. */
+html.bgaa-simplified-cards .bgaa-hint .card-tip-list[popover] {
+  background-color: #222;
+  border: 1px solid #555;
+  padding: 3px;
+}
+
+html.bgaa-simplified-cards .bgaa-hint .card-tip:popover-open { display: block; }
+html.bgaa-simplified-cards .bgaa-hint .card-tip-list:popover-open { display: flex; flex-wrap: wrap; }
+
+/* ------------------------------------------------------------------------ */
 /* Covered cards in a board pile                                             */
 /* ------------------------------------------------------------------------ */
 
@@ -364,8 +455,8 @@ html.bgaa-simplified-cards [id^="board_"] .card.M:not([data-bgaa-top]) .bonus_ca
   left: auto; right: calc(6.4px * var(--s));
 }
 
-/* Ends at 66, one pixel clear of the 67 where a left splay's strip begins — so a covered card shows
- * its icon there and never a sliver of a digit. */
+/* Ends at 66, clear of the 70 where a left splay's strip begins — so a covered card shows its icon
+ * there and never a sliver of a digit. */
 html.bgaa-simplified-cards [id^="board_"] .card.M:not([data-bgaa-top]) > .card_age {
   left: var(--col-right) !important;
   right: auto !important;

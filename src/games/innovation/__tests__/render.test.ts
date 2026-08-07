@@ -6,7 +6,7 @@ import { Card, CardDatabase, CardSet, cardIndex } from "../types";
 import type { PlayerInfo } from "../../../models/types";
 import { type GameState, createGameState } from "../game_state";
 import { GameEngine } from "../game_engine";
-import { renderSummary, renderTurnHistory, renderTurnHistoryRows } from "../render";
+import { renderSummary, renderTurnHistory, renderTurnHistoryRows, renderHandHintGroups } from "../render";
 import type { TurnAction } from "../turn_history";
 
 const thisDir = dirname(fileURLToPath(import.meta.url));
@@ -481,5 +481,106 @@ describe("timestamp format", () => {
   it("still omits the timestamp entirely when the action has no time", () => {
     const timeless = { ...action, time: null };
     expect(renderTurnHistory([timeless], cardDb, PLAYERS, { timeOnly: true })).not.toContain("th-time");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// renderHandHintGroups — the hands drawn onto BGA's own table
+// ---------------------------------------------------------------------------
+
+describe("renderHandHintGroups", () => {
+  it("groups by age and set, in BGA's own set numbering", () => {
+    // BGA numbers its sets differently from ours — its 1 is Artifacts where ours is Figures — and
+    // these groups are matched against BGA's own `type_N` markup, so they carry BGA's ids.
+    const hands = new Map([["Bob", [
+      new Card(1, CardSet.BASE, [cardIndex("agriculture"), cardIndex("archery")]),
+      new Card(2, CardSet.ECHOES, cardDb.groupInfos(2, CardSet.ECHOES).slice(0, 2).map(info => info.indexName)),
+      new Card(3, CardSet.ARTIFACTS, cardDb.groupInfos(3, CardSet.ARTIFACTS).slice(0, 2).map(info => info.indexName)),
+    ]]]);
+
+    const groups = renderHandHintGroups(hands, cardDb);
+
+    expect(groups.map(g => ({ age: g.age, set: g.bgaSetId }))).toEqual([
+      { age: 1, set: "0" },
+      { age: 2, set: "3" },
+      { age: 3, set: "1" },
+    ]);
+    expect(groups.every(g => g.playerId === "Bob")).toBe(true);
+  });
+
+  it("collapses cards that carry the same knowledge into one run", () => {
+    // Candidates are per-pool equivalence classes, so a group's unknown cards usually render
+    // identically — and each carries a tooltip listing every candidate. Sending one copy and a count
+    // keeps a push proportional to what is known rather than to the size of the hand.
+    const candidates = [cardIndex("agriculture"), cardIndex("archery")];
+    const hands = new Map([["Bob", [
+      new Card(1, CardSet.BASE, candidates),
+      new Card(1, CardSet.BASE, candidates),
+      new Card(1, CardSet.BASE, candidates),
+    ]]]);
+
+    const groups = renderHandHintGroups(hands, cardDb);
+
+    expect(groups).toHaveLength(1);
+    expect(groups[0].runs).toHaveLength(1);
+    expect(groups[0].runs[0].count).toBe(3);
+  });
+
+  it("keeps cards that differ apart, and covers every card in the group", () => {
+    const hands = new Map([["Bob", [
+      new Card(1, CardSet.BASE, [cardIndex("agriculture")]),
+      new Card(1, CardSet.BASE, [cardIndex("agriculture"), cardIndex("archery")]),
+      new Card(1, CardSet.BASE, [cardIndex("agriculture"), cardIndex("archery")]),
+    ]]]);
+
+    const groups = renderHandHintGroups(hands, cardDb);
+
+    expect(groups[0].runs).toHaveLength(2);
+    expect(groups[0].runs.reduce((total, run) => total + run.count, 0)).toBe(3);
+  });
+
+  it("draws a card we have identified as that card, and an unknown one as the placeholder", () => {
+    const hands = new Map([["Bob", [
+      new Card(1, CardSet.BASE, [cardIndex("agriculture")]),
+      new Card(1, CardSet.BASE, [cardIndex("agriculture"), cardIndex("archery")]),
+    ]]]);
+
+    const groups = renderHandHintGroups(hands, cardDb);
+    const html = groups[0].runs.map(run => run.html).join("");
+
+    // The same markup the side panel draws: a known card with its name, an unknown one as the gray
+    // placeholder carrying its remaining count.
+    expect(html).toContain("Agriculture");
+    expect(html).toContain("b-gray-base");
+    expect(html).toContain('<div class="cb-count">2</div>');
+  });
+
+  it("opens its tooltips as popovers, which is the only way they clear BGA's board", () => {
+    const hands = new Map([["Bob", [
+      new Card(1, CardSet.BASE, [cardIndex("agriculture"), cardIndex("archery")]),
+      new Card(1, CardSet.BASE, [cardIndex("Code of Laws")]),
+    ]]]);
+
+    const groups = renderHandHintGroups(hands, cardDb);
+    const html = groups[0].runs.map(run => run.html).join("");
+
+    expect(html).toContain('<div class="card-tip-list" popover="manual">');
+    expect(html).toContain('popover="manual" style="background-image');
+    // The candidates inside a tooltip carry no tooltips of their own.
+    expect(html.match(/card-tip-list/g)).toHaveLength(1);
+  });
+
+  it("says nothing about a card nothing is known about", () => {
+    // A candidate set spanning the whole group is no information: no count, no tooltip — the card
+    // keeps the plain placeholder, exactly as in the panel.
+    const fullGroup = cardDb.groupInfos(1, CardSet.BASE).map(info => info.indexName);
+    const groups = renderHandHintGroups(new Map([["Bob", [new Card(1, CardSet.BASE, fullGroup)]]]), cardDb);
+
+    expect(groups[0].runs[0].html).not.toContain("cb-count");
+    expect(groups[0].runs[0].html).not.toContain("card-tip-list");
+  });
+
+  it("returns nothing for a player holding no cards", () => {
+    expect(renderHandHintGroups(new Map([["Bob", []]]), cardDb)).toEqual([]);
   });
 });

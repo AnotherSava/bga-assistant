@@ -18,7 +18,8 @@ BGA Assistant does **not** collect, transmit, or store any personal data. There 
 - All processing happens locally in your browser — game state is computed on your device and never sent anywhere.
 - Display preferences (such as section visibility and toggle states) are saved in your browser's `localStorage` and never leave your device. The in-page game log's settings are saved in `chrome.storage.local`, also local to your browser, because they are shared between the side panel and the extension's background worker.
 - When the optional in-page game log is enabled for Innovation, the extension adds its own turn-history panel to the BGA page and hides BGA's log display. This changes only what you see; nothing is sent anywhere, and turning the option off restores the page.
-- When the optional simplified cards option is enabled for Innovation, the extension restyles the cards on the BGA table and adjusts the sizes the page lays them out at. This too changes only what you see; nothing is sent anywhere, and turning the option off restores the page.
+- When the optional simplified cards option is enabled for Innovation, the extension restyles the cards on the BGA table and adjusts the sizes the page lays them out at. With its opponents'-hands sub-option it also draws what it has deduced about those hands — a card's likely identities and how many remain — onto the face-down cards. Everything drawn there was computed on your device from the game log BGA already showed you; nothing is sent anywhere, and turning the option off restores the page.
+- When the optional pinned player panels option is enabled, the extension keeps the top of BGA's right column in place while the board scrolls. This changes only what you see; nothing is sent anywhere, and turning the option off restores the page.
 
 ## Permissions
 

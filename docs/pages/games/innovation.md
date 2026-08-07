@@ -29,7 +29,8 @@ The column shows one log or the other, never both. A lightbulb in the header swi
 
 The side panel's compact card can replace BGA's illustrated one on the table itself. Enable it from
 the eye menu with "Simplified cards on BGA's table". It covers your hand and every player's board —
-the three places Innovation shows cards face up at full size.
+the places Innovation shows cards face up at full size — and, as a sub-option, the opponents'
+face-down hands as well.
 
 A simplified card drops the illustration and the dogma text, keeping the flat colour of its own
 colour pile, the card's icons, its name and its age. The rules text is still a hover away on BGA's
@@ -67,13 +68,38 @@ Card names are shown in their own capitalisation, as in the side panel. BGA writ
 already uppercased, so the extension puts the original back from the game's own card data; that also
 means a table played in another language keeps its translated names.
 
-Only your own hand changes: opponents' hands are face-down cards, and the score piles, achievements
-and decks are drawn edge-on, with nothing on them to simplify. The artifact display and revealed
-cards keep BGA's artwork.
+The score piles, achievements and decks are drawn edge-on, with nothing on them to simplify, and the
+artifact display and revealed cards keep BGA's artwork.
 
 Note that BGA has a simplified card layout of its own, under its game preferences. That one swaps
 the illustration for a plain background at the usual card size; this one is a different, denser
 card, and does not need BGA's setting on.
+
+### Opponents' hands
+
+An opponent's hand is the one place BGA shows nothing at all: face-down backs, no name, no age, not
+even a colour. "Opponents' hands" under the checkbox fills them in with what the side panel has
+deduced, drawn as the same card.
+
+A card that has been identified shows its name, icons and age, exactly as it would in the panel. One
+that has not shows the panel's placeholder — the age, and above it a count of how many cards it could
+still be. Hovering either one opens the same tooltip the panel does: every remaining candidate as a
+mini card for an unknown one, and the full card face for a card that is known.
+
+Cards nothing has been learnt about yet show no count and no tooltip, only the age: a candidate set
+that still spans the whole age is not information, and the panel says nothing about those either.
+Neither does a card the tracker has not caught up with — the hands follow the same live extraction the
+turn history does, so a card drawn a moment ago stays blank for a few seconds until the next one.
+
+There is no matching a specific card to a specific hint, and none is attempted: the tracker knows what
+an opponent's age-1 cards could be as a group, not which physical card is which, so within one age and
+set the counts are interchangeable by construction. What is shown against each card is stable between
+updates, but a card being drawn or played can shuffle which of two equal cards carries which count.
+
+Because these cards are the panel's, they follow the size slider along with the rest — and an
+opponent's hand takes noticeably more room than BGA's row of small backs, wrapping onto a second row
+where their old hand fitted one. Switching just this sub-option off puts BGA's own backs back and
+leaves the rest of the simplified cards alone.
 
 ## Compact table header
 
@@ -132,6 +158,43 @@ so a game that keeps a control of its own down there keeps its bar rather than l
 Collapsed rather than hidden, so BGA's own end-of-game notice still shows, in its place under the
 bar, on any game.
 
+## Pinned right column
+
+Also BGA's own framework rather than Innovation's, so this too applies to every table on the site and
+is switched from the same eye menu, under "Pin player panels".
+
+BGA's board is often several screens tall, and everything in the right column — the player panels with
+their scores, hand counts and clocks, and the log below them — sits at the top of it, out of view for
+most of the board. Pinned, that stays at the top of the window while the board scrolls past. Where the
+folded header bar is frozen above it, it sits underneath it; where it is not — BGA's own bar, or a
+folded one grown too tall to freeze — it sits at the very top of the page instead.
+
+What gets pinned depends on what the column is showing:
+
+**With the turn history in the column**, the whole column is pinned: panels, history and the view
+switch between the two logs. Nothing there scrolls away, so the last few turns and the switch to BGA's
+log are readable wherever you are on the board. A column that outgrows the window keeps its foot
+reachable with a scrollbar of its own rather than running off the bottom edge — and the panels stay at
+the top of that too, so scrolling back through the history never pushes them out of view.
+
+**With BGA's own log in the column**, the player panels alone are pinned and the log column scrolls
+away as BGA intended, view switch included. BGA's log is its own thing, long and self-scrolling, and
+pinning it would be pinning BGA's UI rather than ours.
+
+The panels take on the page's own background while pinned, so whichever log travels behind them does
+not read up through the gaps between them.
+
+The panels-alone mode lets go under the same reasoning the header bar does. Panels tall enough to take
+half of what the window has left — a four-player table on a short screen — scroll away as BGA intended,
+since pinning them would wall off the top of the board rather than keep a reference in view. That is
+re-judged as the panels grow and as the window is resized, so a table that starts out pinned can let go
+later and take it back. The pinned column needs no such ceiling: it is capped to the window and scrolls
+inside itself, so nothing in it can be out of reach however tall it grows.
+
+BGA's narrow-window layout is left alone. There the two columns are stacked rather than side by side,
+which puts the column above the board with nothing to travel past — and BGA hides its log column in
+that layout, so there is no history to pin either.
+
 ## Card list
 
 The card list lays out all cards in the game across ages, showing which cards have been identified and which remain unknown. Toggle between Base, Echoes, Cities, and Artifacts sets, filter to show only unaccounted cards, and switch between wide and tall layouts:
@@ -168,5 +231,6 @@ The deck section shows remaining cards per age, with known cards revealed by nam
 - **Lit icon**: the toolbar icon glows when the active tab has a supported game table open
 - **Per-game zoom**: side panel zoom level is saved independently for each game and the help page
 - **Compact BGA header**: folds BGA's table info, the current prompt and its action buttons into a single row and trims the bar to fit, reclaiming the vertical space its three stacked rows took; applies to every BGA table, supported game or not, stays frozen at the top while the board scrolls; it is switched from the eye menu on the help page, which also offers "Progression only" — the table number and move count dropped, leaving the percentage in the prompt's own type
+- **Pin player panels**: keeps the top of BGA's right column in place while the board scrolls past — under the folded header bar when it is frozen, at the top of the page when it is not. While the turn history is showing in BGA's log column the whole column is pinned, history and view switch included, and scrolls inside itself if it outgrows the window; otherwise the player panels alone are pinned and BGA's log column scrolls away as usual, and panels tall enough to take half the window are left alone. Switched from the eye menu on the help page, and applies to every BGA table, supported game or not
 - **Persistent settings**: all toggle states, section visibility, and pin mode are saved across sessions
 - **Download**: bundled zip with raw data, game log, game state, and standalone summary — attach this archive with a short description if you notice a bug, and I'll prioritize fixing it!

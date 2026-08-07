@@ -2,18 +2,22 @@
 
 import { runPipeline, isValidPlayerCount, type PipelineResults } from "./pipeline.js";
 import { CardDatabase, type GameName, type RawExtractionData } from "./models/types.js";
-import { SessionTracker, parseGameTableUrl, IDLE_DETECTION_SECONDS, IDLE_GRACE_MS, HEARTBEAT_MS } from "./time-tracking.js";
+import { Card, type CardSet } from "./games/innovation/types.js";
+import { SessionTracker, parseGameTableUrl, tableIdFromUrl, IDLE_DETECTION_SECONDS, IDLE_GRACE_MS, HEARTBEAT_MS } from "./time-tracking.js";
 import cardInfoRaw from "../assets/bga/innovation/card_info.json";
-import { renderTurnHistoryRows, setAssetResolver } from "./games/innovation/render.js";
+import { renderTurnHistoryRows, renderHandHintGroups, setAssetResolver, type HandHintGroup } from "./games/innovation/render.js";
 import { recentTurns } from "./games/innovation/turn_history.js";
 import { inPageLogFunction } from "./games/innovation/inpage_log.js";
 import { compactHeaderFunction } from "./games/innovation/compact_header.js";
-import { simplifiedCardsFunction } from "./games/innovation/simplified_cards.js";
+import { stickyPanelsFunction } from "./games/innovation/sticky_panels.js";
+import { simplifiedCardsFunction, opponentHandHintsFunction } from "./games/innovation/simplified_cards.js";
 import { loadInPageSettings, saveInPageSettings, subscribeInPageSettings, INPAGE_DEFAULTS, INPAGE_LOG_HALF_TURNS, type InPageSettings } from "./sidepanel/inpage_settings.js";
 import cardTipCss from "./games/innovation/card_tip.css?raw";
 import turnHistoryCss from "./games/innovation/turn_history.css?raw";
 import inPageLogCss from "./games/innovation/inpage_log.css?raw";
 import compactHeaderCss from "./games/innovation/compact_header.css?raw";
+import stickyPanelsCss from "./games/innovation/sticky_panels.css?raw";
+import miniCardCss from "./games/innovation/mini_card.css?raw";
 import simplifiedCardsCss from "./games/innovation/simplified_cards.css?raw";
 
 // ---------------------------------------------------------------------------
@@ -75,7 +79,11 @@ let deferredExtractionTimer: ReturnType<typeof setTimeout> | null = null;
  * closed — which is its whole point — so every one of those gates now asks this instead.
  */
 function hasConsumer(): boolean {
-  return sidePanelOpen || inPageLogSettings.enabled;
+  // The opponents' hands are the one in-page feature besides the log that needs extraction results
+  // rather than only the DOM BGA rendered, so switching them on makes this tab worth extracting for
+  // even with the panel closed and the log off — otherwise the cards would sit there with nothing
+  // known about them.
+  return sidePanelOpen || inPageLogSettings.enabled || (inPageLogSettings.simplifiedCards && inPageLogSettings.opponentHands);
 }
 
 // Load card database once at startup
@@ -600,6 +608,8 @@ const inPageLogCollapsedTabs = new Set<number>();
 const inPageLogHalfTurns = new Map<number, number>();
 /** In-flight or completed compact-header stylesheet injection per tab. Same contract as the log's. */
 const compactHeaderStyles = new Map<number, Promise<unknown>>();
+/** In-flight or completed pinned-panel stylesheet injection per tab. Same contract as the log's. */
+const stickyPanelsStyles = new Map<number, Promise<unknown>>();
 /** In-flight or completed simplified-card stylesheet injection per tab. Same contract as the log's. */
 const simplifiedCardsStyles = new Map<number, Promise<unknown>>();
 
@@ -615,6 +625,7 @@ function forgetInPageTab(tabId: number): void {
   inPageLogCollapsedTabs.delete(tabId);
   inPageLogHalfTurns.delete(tabId);
   compactHeaderStyles.delete(tabId);
+  stickyPanelsStyles.delete(tabId);
   simplifiedCardsStyles.delete(tabId);
 }
 
@@ -687,6 +698,18 @@ async function pushInPageLog(tabId: number): Promise<void> {
   chrome.scripting.executeScript({ target: { tabId, allFrames: true }, func: inPageLogFunction as unknown as () => void, args: [rows, opts], world: "ISOLATED" as chrome.scripting.ExecutionWorld }).catch(() => {});
 }
 
+/**
+ * Push everything drawn from extraction results into one tab.
+ *
+ * One helper rather than a pair of calls at each site: the turn history and the opponents' hands are
+ * fed by the same results, and a site that pushed only one would leave the other showing the previous
+ * move. Each self-gates on its own setting, so this is safe wherever results have just changed.
+ */
+function pushResultSurfaces(tabId: number): void {
+  void pushInPageLog(tabId);
+  void pushOpponentHands(tabId);
+}
+
 /** Just the hiding rule, injected at frame-commit time so BGA's log never paints. */
 const EARLY_HIDE_CSS = "html.bgaa-hide-bga-log #logs { display: none !important; }";
 
@@ -735,6 +758,27 @@ async function pushCompactHeader(tabId: number, enabled: boolean): Promise<void>
   chrome.scripting.executeScript({ target: { tabId, allFrames: true }, func: compactHeaderFunction as unknown as () => void, args: [{ enabled, progressionOnly }], world: "ISOLATED" as chrome.scripting.ExecutionWorld }).catch(() => {});
 }
 
+// ---------------------------------------------------------------------------
+// Pinned right column
+// ---------------------------------------------------------------------------
+
+/**
+ * Apply or undo the pinned player panels on a tab.
+ *
+ * Independent of extraction and of the compact header, for the same reasons the header itself is: it
+ * consumes no game log, and the column it pins is BGA's framework rather than any one game's board.
+ * Where the header is folded and frozen, this sits under it — read from the page at mount time, so
+ * the two need no coordination here.
+ */
+async function pushStickyPanels(tabId: number, enabled: boolean): Promise<void> {
+  // Before the measurements are published, or the panels would be pinned for one frame against the
+  // properties' fallback of zero, under a bar that is still covering them.
+  if (enabled) await ensureStyles(stickyPanelsStyles, tabId, () => stickyPanelsCss);
+
+  // Undoing needs no stylesheet: the injected function removes the root class every rule hangs off.
+  chrome.scripting.executeScript({ target: { tabId, allFrames: true }, func: stickyPanelsFunction as unknown as () => void, args: [{ enabled }], world: "ISOLATED" as chrome.scripting.ExecutionWorld }).catch(() => {});
+}
+
 /**
  * The simplified-card stylesheet with its assets inlined, built once per service-worker lifetime.
  *
@@ -770,7 +814,10 @@ function buildSimplifiedCardsCss(): Promise<string> {
         packagedDataUrl("assets/fonts/russo-one-regular.woff2", "font/woff2"),
         packagedDataUrl("assets/fonts/barlow-condensed-regular.woff2", "font/woff2"),
       ]);
-      return simplifiedCardsCss
+      // The panel's own card and the tooltip geometry ride along, because the opponents' hands are
+      // drawn with the panel's renderer: the same markup needs the same rules wherever it lands.
+      // Both sheets are scoped so nothing in them can reach BGA's own cards — see mini_card.css.
+      return [miniCardCss, cardTipCss, simplifiedCardsCss].join("\n")
         .replaceAll("__BGAA_FONT_RUSSO_ONE__", russoOne)
         .replaceAll("__BGAA_FONT_BARLOW_CONDENSED__", barlowCondensed);
     })().catch((err) => {
@@ -796,13 +843,63 @@ async function pushSimplifiedCards(tabId: number, enabled: boolean): Promise<voi
   // Read at push time rather than passed in: every caller wants whatever is stored right now.
   const scale = inPageLogSettings.cardScale;
   const echoText = inPageLogSettings.echoText;
+  const opponentHands = inPageLogSettings.opponentHands;
   // The stylesheet must land before the layout does: the injected function hands the relayout to
   // BGA, which measures the cards as it re-places them.
   if (enabled) await ensureStyles(simplifiedCardsStyles, tabId, buildSimplifiedCardsCss);
 
   // Undoing needs no stylesheet: the injected function puts BGA's own layout constants back and
   // removes the root class every rule hangs off.
-  chrome.scripting.executeScript({ target: { tabId, allFrames: true }, func: simplifiedCardsFunction as unknown as () => void, args: [{ enabled, scale, echoText }], world: "MAIN" as chrome.scripting.ExecutionWorld }).catch(() => {});
+  chrome.scripting.executeScript({ target: { tabId, allFrames: true }, func: simplifiedCardsFunction as unknown as () => void, args: [{ enabled, scale, echoText, opponentHands }], world: "MAIN" as chrome.scripting.ExecutionWorld }).catch(() => {});
+  // The mount draws whatever knowledge is already parked in the page and waits for the rest. Pushing
+  // it straight after means a table opened mid-game shows its hands without waiting for a move.
+  if (enabled && opponentHands) void pushOpponentHands(tabId);
+}
+
+/**
+ * Push what is known about the opponents' hands into the page.
+ *
+ * Rendered here rather than in the page for the same reason the turn history is: the card database
+ * stays in the service worker and only finished markup crosses, as `executeScript` arguments.
+ *
+ * Its own push, separate from the mount above, because it arrives on every move while the mount ends
+ * by handing the board back to BGA to lay out again — an animation on every card. This one only
+ * writes into cards.
+ *
+ * Everyone's hand is sent, not only the opponents': the page decides whose is face-down, which is a
+ * distinction BGA has already made per zone and which a spectator — with no hand of their own —
+ * answers differently.
+ */
+async function pushOpponentHands(tabId: number): Promise<void> {
+  if (!inPageLogSettings.simplifiedCards || !inPageLogSettings.opponentHands) return;
+  if (!lastResults || lastResults.gameName !== "innovation" || !lastResults.gameState) return;
+
+  // This knowledge belongs to one table, and this is the one results-driven push that can reach a tab
+  // nobody has extracted: it rides along with the simplified cards, which are pushed for every board
+  // frame that loads and broadcast to every open BGA tab when a setting changes. Two tables against
+  // the same opponent would otherwise trade hands — the player ids match, so the groups would land.
+  let tab: chrome.tabs.Tab;
+  try {
+    tab = await chrome.tabs.get(tabId);
+  } catch {
+    return; // the tab closed while this was queued
+  }
+  if (!tab.url || String(tableIdFromUrl(tab.url)) !== lastResults.tableNumber) return;
+
+  let groups: HandHintGroup[];
+  try {
+    const hands = new Map<string, Card[]>();
+    for (const [playerId, cards] of Object.entries(lastResults.gameState.hands)) {
+      hands.set(playerId, cards.map(card => new Card(card.age!, card.cardSet as CardSet, card.resolved !== undefined ? [card.resolved] : card.candidates)));
+    }
+    groups = renderHandHintGroups(hands, cardDb);
+  } catch (err) {
+    // A card the database does not know would otherwise take down the service worker.
+    console.warn("[opponent-hands] render failed:", err);
+    return;
+  }
+
+  chrome.scripting.executeScript({ target: { tabId, allFrames: true }, func: opponentHandHintsFunction as unknown as () => void, args: [groups], world: "MAIN" as chrome.scripting.ExecutionWorld }).catch(() => {});
 }
 
 /**
@@ -897,9 +994,9 @@ function triggerLiveExtraction(): void {
       const newPacketCount = lastResults?.rawData?.packets?.length ?? 0;
       if (newPacketCount !== previousPacketCount) {
         chrome.runtime.sendMessage({ type: "resultsReady", results: lastResults }).catch(() => {});
-        // sendMessage reaches extension pages only, never a content script, so the in-page log
-        // needs its own push.
-        if (liveTabId !== null) void pushInPageLog(liveTabId);
+        // sendMessage reaches extension pages only, never a content script, so the surfaces inside
+        // BGA's page need their own push.
+        if (liveTabId !== null) pushResultSurfaces(liveTabId);
       }
     })
     .catch((err) => {
@@ -1050,7 +1147,7 @@ async function extractFromTab(tabId: number, tableNumber: string, skipNotify = f
 
   lastExtractionTime = Date.now();
   if (!skipNotify) chrome.runtime.sendMessage({ type: "resultsReady", results: lastResults }).catch(() => {});
-  void pushInPageLog(tabId);
+  pushResultSurfaces(tabId);
   return true;
 }
 
@@ -1353,6 +1450,13 @@ chrome.webNavigation.onCompleted.addListener((details) => {
     compactHeaderStyles.delete(details.tabId);
     void pushCompactHeader(details.tabId, true);
   }
+  // Same story, and after the header: this measures the bar the header froze, so the fold wants to
+  // have happened by the time it reads its height. Both are pushed off the same event, and the mount
+  // re-measures on its own from there — a bar that folds a moment later resizes, which it watches.
+  if (inPageLogSettings.stickyPanels) {
+    stickyPanelsStyles.delete(details.tabId);
+    void pushStickyPanels(details.tabId, true);
+  }
   // Same story, and for the same reasons: no consumer needed, and a fresh frame carries none of the
   // CSS injected into the one it replaced. The injected function waits for Innovation's zones itself.
   if (inPageLogSettings.simplifiedCards) {
@@ -1380,8 +1484,8 @@ chrome.webNavigation.onCompleted.addListener((details) => {
     forgetInPageTab(details.tabId);
     if (lastResults?.tableNumber === String(boardInfo.tableId)) {
       // Results are still valid, but the board frame just reloaded, so its DOM no longer holds
-      // the in-page log. Re-push before taking the cached-results short-circuit.
-      void pushInPageLog(details.tabId);
+      // what they were drawn into. Re-push before taking the cached-results short-circuit.
+      pushResultSurfaces(details.tabId);
       return;
     }
     if (extracting) { pendingNavTabId = details.tabId; return; }
@@ -1432,6 +1536,7 @@ void loadInPageSettings().then((settings) => {
   // A table can already be open when the service worker starts (an extension reload, or its first
   // wake after install), and no navigation event will follow to fold its header.
   if (settings.compactHeader) void pushCompactHeader(activeTabId, true);
+  if (settings.stickyPanels) void pushStickyPanels(activeTabId, true);
   if (settings.simplifiedCards) void pushSimplifiedCards(activeTabId, true);
 });
 
@@ -1439,16 +1544,23 @@ subscribeInPageSettings((settings) => {
   const wasEnabled = inPageLogSettings.enabled;
   const wasCompactHeader = inPageLogSettings.compactHeader;
   const wasProgressionOnly = inPageLogSettings.progressionOnly;
+  const wasStickyPanels = inPageLogSettings.stickyPanels;
   const wasSimplifiedCards = inPageLogSettings.simplifiedCards;
   const wasCardScale = inPageLogSettings.cardScale;
   const wasEchoText = inPageLogSettings.echoText;
+  const wasOpponentHands = inPageLogSettings.opponentHands;
   inPageLogSettings = settings;
   if (settings.compactHeader !== wasCompactHeader || settings.progressionOnly !== wasProgressionOnly) {
     broadcastInPageSetting(compactHeaderStyles, pushCompactHeader, settings.compactHeader, settings.compactHeader && !wasCompactHeader);
   }
+  // A header change needs no re-push here: what the pinned panels take from it is the bar's height,
+  // and folding or unfolding the bar changes that — which the mount's own observer is watching for.
+  if (settings.stickyPanels !== wasStickyPanels) {
+    broadcastInPageSetting(stickyPanelsStyles, pushStickyPanels, settings.stickyPanels, settings.stickyPanels && !wasStickyPanels);
+  }
   // A size or echo-text change re-pushes too: the stylesheet reads both from what the injected
   // function publishes, and only it can restate BGA's own layout constants at the new scale.
-  if (settings.simplifiedCards !== wasSimplifiedCards || (settings.simplifiedCards && (settings.cardScale !== wasCardScale || settings.echoText !== wasEchoText))) {
+  if (settings.simplifiedCards !== wasSimplifiedCards || (settings.simplifiedCards && (settings.cardScale !== wasCardScale || settings.echoText !== wasEchoText || settings.opponentHands !== wasOpponentHands))) {
     broadcastInPageSetting(simplifiedCardsStyles, pushSimplifiedCards, settings.simplifiedCards, settings.simplifiedCards && !wasSimplifiedCards);
   }
   if (activeTabId === null) return;

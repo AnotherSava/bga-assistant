@@ -97,6 +97,7 @@ import { runPipeline, isValidPlayerCount, type PipelineResults } from "../pipeli
 import { CardDatabase } from "../models/types";
 import { inPageLogFunction } from "../games/innovation/inpage_log";
 import { compactHeaderFunction } from "../games/innovation/compact_header";
+import { opponentHandHintsFunction } from "../games/innovation/simplified_cards";
 import { INPAGE_LOG_KEY, INPAGE_DEFAULTS, INPAGE_LOG_HALF_TURNS } from "../sidepanel/inpage_settings";
 import type { PlayerInfo, RawExtractionData } from "../models/types";
 import { type GameState, createGameState, cardsAt } from "../games/innovation/game_state";
@@ -2521,5 +2522,95 @@ describe("compact table header", () => {
 
     expect(headerCalls().map((c) => c[0].target.tabId)).toEqual([73]);
     (chrome.tabs.query as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+  });
+});
+
+describe("opponents' hands", () => {
+  const mockExecuteScript = chrome.scripting.executeScript as ReturnType<typeof vi.fn>;
+  const TABLE_URL = "https://boardgamearena.com/8/innovation?table=123";
+
+  async function setSettings(patch: Record<string, unknown>): Promise<void> {
+    const next = { ...INPAGE_DEFAULTS, ...patch };
+    (chrome.storage.local.get as ReturnType<typeof vi.fn>).mockResolvedValue({ [INPAGE_LOG_KEY]: next });
+    listeners.onStorageChanged({ [INPAGE_LOG_KEY]: { newValue: next } }, "local");
+    await new Promise((r) => setTimeout(r, 10));
+  }
+
+  /** Click-to-extract on a tab showing `url`, which is also what the table guard reads back. */
+  async function clickExtract(tabId: number, url: string = TABLE_URL): Promise<void> {
+    const rawData = makeRawData({ "1": "Alice", "2": "Bob" }, []);
+    mockExecuteScript.mockResolvedValueOnce([{ result: rawData }]);
+    const tab = { id: tabId, url, windowId: 1 };
+    (chrome.tabs.get as ReturnType<typeof vi.fn>).mockResolvedValue(tab);
+    await listeners.onClicked(tab);
+    await new Promise((r) => setTimeout(r, 20));
+  }
+
+  function handCalls() {
+    return mockExecuteScript.mock.calls.filter((call) => call[0]?.func === opponentHandHintsFunction);
+  }
+
+  beforeEach(async () => {
+    await new Promise((r) => setTimeout(r, 100));
+    const { triggerDisconnect } = connectSidePanel();
+    triggerDisconnect();
+    await setSettings({ simplifiedCards: false, opponentHands: false });
+    vi.clearAllMocks();
+    (chrome.runtime.sendMessage as ReturnType<typeof vi.fn>).mockImplementation(() => Promise.resolve());
+    (chrome.sidePanel.open as ReturnType<typeof vi.fn>).mockImplementation(() => { connectSidePanel(); return Promise.resolve(); });
+  });
+
+  afterEach(async () => {
+    await setSettings({ simplifiedCards: false, opponentHands: false });
+    (chrome.sidePanel.open as ReturnType<typeof vi.fn>).mockReset();
+  });
+
+  it("pushes the hands into the page's own world after an extraction", async () => {
+    await setSettings({ simplifiedCards: true, opponentHands: true });
+    vi.clearAllMocks();
+
+    await clickExtract(71);
+
+    const call = handCalls().at(-1);
+    expect(call).toBeDefined();
+    expect(call![0]).toMatchObject({ target: { tabId: 71, allFrames: true }, world: "MAIN" });
+    // Finished markup, grouped — the card database never crosses into BGA's page.
+    expect(Array.isArray(call![0].args[0])).toBe(true);
+  });
+
+  it("stays silent while either half of the setting is off", async () => {
+    await setSettings({ simplifiedCards: true, opponentHands: false });
+    vi.clearAllMocks();
+    await clickExtract(72);
+    expect(handCalls()).toHaveLength(0);
+
+    await setSettings({ simplifiedCards: false, opponentHands: true });
+    vi.clearAllMocks();
+    await clickExtract(73);
+    expect(handCalls()).toHaveLength(0);
+  });
+
+  it("refuses a tab showing a different table", async () => {
+    // The hands ride along with the simplified cards, which are pushed for every board frame that
+    // loads and broadcast to every open BGA tab on a settings change — so this push, unlike the
+    // others, can be aimed at a table nobody extracted. Two tables against the same opponent would
+    // otherwise trade hands, since the player ids match and the groups would land.
+    await setSettings({ simplifiedCards: true, opponentHands: true });
+    await clickExtract(74);
+    vi.clearAllMocks();
+
+    (chrome.tabs.get as ReturnType<typeof vi.fn>).mockResolvedValue({ id: 75, url: "https://boardgamearena.com/tableview?table=999", windowId: 1 });
+    listeners.onCompleted({ tabId: 75, frameId: 1, url: "https://boardgamearena.com/8/innovation?table=999" });
+    await new Promise((r) => setTimeout(r, 30));
+
+    expect(handCalls().filter((c) => c[0].target.tabId === 75)).toHaveLength(0);
+  });
+
+  it("accepts the /tableview shell the tab actually sits on", async () => {
+    // The board is an iframe: the tab's own URL is the shell, which carries the table id but no slug.
+    await setSettings({ simplifiedCards: true, opponentHands: true });
+    await clickExtract(76, "https://boardgamearena.com/tableview?table=123");
+
+    expect(handCalls().filter((c) => c[0].target.tabId === 76).length).toBeGreaterThan(0);
   });
 });

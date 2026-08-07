@@ -42,6 +42,21 @@ export function buildGlobalDisplayMenu(panel: HTMLElement): void {
   progressionNote.textContent = "Drops the table number and move count, leaving the percentage in the prompt's own type.";
   panel.appendChild(progressionNote);
 
+  // Pinned panels — a setting of its own, not a sub-option: it needs nothing from the folded header,
+  // and only reads its height to sit under it when there is one.
+  const panelsLabel = document.createElement("label");
+  const panelsCheckbox = document.createElement("input");
+  panelsCheckbox.type = "checkbox";
+  panelsCheckbox.id = "setting-sticky-panels";
+  panelsLabel.appendChild(panelsCheckbox);
+  panelsLabel.appendChild(document.createTextNode("Pin player panels"));
+  panel.appendChild(panelsLabel);
+
+  const panelsNote = document.createElement("div");
+  panelsNote.className = "dropdown-note";
+  panelsNote.textContent = "Keeps the player panels — and the turn history's view switch — at the top of their column while the board scrolls. Applies to every game, supported or not.";
+  panel.appendChild(panelsNote);
+
   /** Nothing to strip down while the header is untouched, so the sub-option follows its parent. */
   const syncEnabled = (compactHeader: boolean): void => {
     progressionCheckbox.disabled = !compactHeader;
@@ -54,6 +69,7 @@ export function buildGlobalDisplayMenu(panel: HTMLElement): void {
   void loadInPageSettings().then((settings) => {
     checkbox.checked = settings.compactHeader;
     progressionCheckbox.checked = settings.progressionOnly;
+    panelsCheckbox.checked = settings.stickyPanels;
     syncEnabled(settings.compactHeader);
   });
 
@@ -64,5 +80,9 @@ export function buildGlobalDisplayMenu(panel: HTMLElement): void {
 
   progressionCheckbox.addEventListener("change", () => {
     void saveInPageSettings({ progressionOnly: progressionCheckbox.checked });
+  });
+
+  panelsCheckbox.addEventListener("change", () => {
+    void saveInPageSettings({ stickyPanels: panelsCheckbox.checked });
   });
 }

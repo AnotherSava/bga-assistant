@@ -102,7 +102,7 @@ describe("defaults", () => {
     // Settings saved before the compact header existed must keep their own values and pick up the
     // new field's default, not be reset by it.
     storage[INPAGE_LOG_KEY] = { enabled: true, showPlayerNames: true };
-    expect(await loadInPageSettings()).toEqual({ enabled: true, showPlayerNames: true, compactHeader: false, progressionOnly: false, simplifiedCards: false, cardScale: 100, echoText: false });
+    expect(await loadInPageSettings()).toEqual({ enabled: true, showPlayerNames: true, compactHeader: false, progressionOnly: false, stickyPanels: false, simplifiedCards: false, cardScale: 100, echoText: false, opponentHands: false });
   });
 });
 

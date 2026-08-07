@@ -12,10 +12,11 @@ gets serialized at each boundary, and the message protocols that connect them.
 
 ## Component Overview
 
-The extension has five components, each running in a separate Chrome extension context
+The extension has seven components, each running in a separate Chrome extension context
 (isolated JS environment with its own globals and lifecycle). They communicate via
-Chrome's message passing APIs — except the two in-page surfaces, the *In-Page Game Log* and the
-*Compact Table Header*, which are written to rather than messaged (see
+Chrome's message passing APIs — except the four in-page surfaces, the *In-Page Game Log*, the
+*Compact Table Header*, the *Pinned Right Column* and the *Simplified Cards*, which are written to
+rather than messaged (see
 [In-Page Game Log](#data-flow-in-page-game-log) and
 [Compact Table Header](#data-flow-compact-table-header)).
 Chrome **JSON-serializes** all data crossing boundaries between contexts — no class instances,
@@ -147,7 +148,8 @@ world** rather than the ISOLATED one, because it is a layout change and not only
 every card an inline `left`/`top` it computes from `gameui.card_dimensions`, and recomputes them on
 every move, splay and resize, so a card shrunk in CSS alone would keep its old slot and leave a hole.
 Reaching `gameui` at all requires the page's own world. Like the compact header, it consumes no
-extraction results — only the DOM and game object BGA already built.
+extraction results for the cards BGA already draws — only the DOM and game object BGA built. Its one
+sub-feature that does is the opponents' hands, below, where BGA draws nothing to restyle.
 
 Responsibilities:
 - Patch the three constants Innovation derives card layout from — `card_dimensions["M card"]`, `delta.my_hand` and `overlap_for_splay["M card"]` — then call BGA's own `refreshLayout()` and let its zone engine re-place every card. Splay direction, the echo-effect visibility rules and the pile-width clamping keep working, none of it reimplemented
@@ -156,7 +158,7 @@ Responsibilities:
 - Restyle the card interior from CSS, reusing the icons, name and age BGA already drew as children of every card — so no card database and no BGA-id-to-card mapping enters the page
 - Use two layouts, since a fully visible card and one showing a single strip want different things. The top card of a pile — and every hand card, which is never stacked — reproduces the side panel's layout spot for spot, age in the bottom-right corner included. A covered card takes the real card's geometry instead, which is the panel's with the age and the right-hand icons swapped, so that every icon a splay is meant to reveal lands inside the strip it reveals: left gives `spot_4` (and `spot_5` on a Cities card), right gives `spot_1`/`spot_2`, up gives the bottom row
 - Stamp `data-bgaa-top` on each pile's top card and select covered cards as everything else, scoped to the board containers (a hand is a grid whose cards are all fully visible). The top card cannot be found in CSS: a DOM-order test like `:has(~ .card.M)` reads the wrong thing, because BGA appends each new node to the container while keeping the stack in a separate `items` array — so a tuck, a card melded to the *bottom*, arrives last in the DOM while lying at the bottom of the pile. `items` is the authority; BGA's own splay code calls `i == items.length - 1` the top card. Re-stamped whenever a card enters or leaves a pile, which the same observer that restores the card names already sees
-- Leave the age to fall out of that geometry rather than ruling on it. At 44→66 on a covered card it is outside both the 26px strip a left splay reveals (67 onward) and the one a right splay reveals (up to 25), so it hides itself on either, while an up splay reveals the whole bottom row and carries it along. This is why nothing here reads the splay direction: BGA publishes it only as a class on a separate `splay_indicator_*` element that no selector reaches from a card, and the layout makes needing it moot
+- Leave the age to fall out of that geometry rather than ruling on it. At 44→66 on a covered card it is outside both the 22px strip a left splay reveals (70 onward) and the one a right splay reveals (up to 22), so it hides itself on either, while an up splay reveals the whole bottom row and carries it along. This is why nothing here reads the splay direction: BGA publishes it only as a class on a separate `splay_indicator_*` element that no selector reaches from a card, and the layout makes needing it moot
 - Scope the shrink to your own hand and the boards, and restore BGA's card size for the other zones that share the patched `"M card"` size key — the artifact display, revealed cards and the expanded score/forecast views
 - Scale everything from one multiplier, which the size slider sets between 100% and 200%. The layout constants handed to BGA and every length in the stylesheet derive from the same base numbers, the latter through `calc()` on a `--bgaa-card-scale` custom property published on the root, so the card and the splay strips grow together and the geometry above holds at any size
 - Rewrite the card names from `gameui.cards`, where the original capitalisation survives — BGA uppercases a name into the markup (`_(card_data.name).toUpperCase()`), so no stylesheet can undo it and `text-transform` could only ever produce sentence case. Applied through BGA's own `_()` first, so a translated table keeps its translated names, and reverted to uppercase when the feature is switched off. A `MutationObserver` on the two zone kinds catches the cards BGA rebuilds as they move, coalesced to a frame; the pass writes only where the text differs, so it cannot retrigger its own observer
@@ -164,11 +166,60 @@ Responsibilities:
 - Offer the Echo effect as text instead of the mark, through a second root class the stylesheet keys on. BGA already writes the effect into the card and this only ever hid it, so the setting is a display choice rather than anything to fetch or rebuild
 - Neutralise `background-position` wherever a BGA icon's image is replaced. BGA offsets each icon box into its own sprite sheet per colour, so a replacement image left with that offset is pushed clean out of a 36px box: loaded, correctly sized, and invisible
 
+Its one sub-feature that consumes results rather than only the DOM is the **opponents' hands**, which
+BGA draws face-down and empty. Those are filled in with what the tracker has deduced — the panel's own
+card, rendered by the service worker and pushed as markup, exactly as the *In-Page Game Log* is — so
+this is the second surface for which `hasConsumer()` reports a tab worth extracting for.
+
+Responsibilities (opponents' hands):
+- Resize only the opponent-hand zones, by replacing each one's `itemIdToCoordsGrid`. `card_dimensions["S recto"]` is shared between the hands, all fifty deck piles, both achievement rows, the relics and every forecast and score back, so it cannot move — and the zone's own `item_width`/`item_height` are not an alternative, because Innovation does not use the framework's placement: `setPlacementRules` installs its own function on every zone, and that one reports each card's box straight from the shared `card_dimensions[HTML_class]`. Replacing it per zone — which is what Innovation itself does to a board pile when it splays — is the only lever that reaches one zone kind alone. Everything but the size stays BGA's: the step and the row count come from `delta[location]` and `num_cards_in_row[location]`
+- Report the true painted size from that function, because BGA sizes the hand's container from it: `setPattern("grid")` leaves `autoheight` on, and `updateDisplay` takes the tallest `y + h` it was told. Reporting BGA's 47px while painting a card half again as tall left the hand overflowing its box — the visible symptom of the placement override being missed
+- Match knowledge to cards by (age, set), the two things BGA states on a face-down card as `age_N` and `type_N`, and never card by card: the model holds a multiset of possibilities per group rather than an identity per card, so any assignment within a group says the same thing. Both sides are sorted — the DOM by the synthetic id BGA mints once per card and keeps across every reparenting — so the assignment is stable between pushes
+- Take fewer hints than cards as normal rather than an error: a card nothing is known about contributes none, and one just drawn is not in the model until the next extraction. Those keep BGA's own back
+- Write only on a difference, since the pass runs from the same `MutationObserver` that watches these cards; and sweep wrappers off cards that have left a hand, which BGA reparents rather than rebuilds
+- Reveal the candidate list, or a known card's face, as a popover — the top layer being the one place a tip cannot be clipped by BGA's board — with hover delegated per container, since the cards themselves come and go
+
 Key files:
-- `src/games/innovation/simplified_cards.ts` — the injected patch; self-contained, since Chrome serializes it
-- `src/games/innovation/simplified_cards.css` — the card interior, rebuilt at panel scale
+- `src/games/innovation/simplified_cards.ts` — the injected patch and the separate, cheaper hint push; self-contained, since Chrome serializes them
+- `src/games/innovation/simplified_cards.css` — the card interior, rebuilt at panel scale, and the opponent-hand slot
+- `src/games/innovation/mini_card.css` — the panel's own card, shared with the page and scoped so it cannot reach BGA's `.card` elements
 - `src/sidepanel/inpage_settings.ts` — the same `chrome.storage.local` object the in-page log uses
 - `src/games/innovation/display.ts` — the Innovation eye menu, where the setting lives
+
+### Pinned Right Column
+
+Optional, for every game BGA hosts rather than the supported ones alone, and an **ISOLATED world**
+injection into the board frame like the compact header — which it also sits under, though the two are
+switched independently. It keeps the top of BGA's right column in place while the board scrolls past.
+
+Two modes, and the page already says which applies: `bgaa-hide-bga-log` is on the root exactly while
+the turn history is the column's content, since the *In-Page Game Log* puts it there to hide BGA's own
+log. With it, the whole column is pinned — panels, history and the view switch — capped to the window
+and scrollable inside itself. Without it, the player panels alone are pinned and BGA's log column
+scrolls away as BGA intended.
+
+Both modes are `position: sticky` rules keyed on that class, so the switch needs no injection of its
+own. What does is what CSS cannot ask for: the height of the bar the pinned block sits under, whether
+the panels are too tall to pin at all, and the backdrop of the page behind them.
+
+Responsibilities:
+- Publish where the pinned block sits as `--bgaa-sticky-top`: the frozen bar's height, plus the 5px top margin BGA gives the column. The margin is what makes the bar's height alone wrong — a block pinned at exactly that height starts the page 5px below where it will stick, so it visibly nudges up as soon as the page moves. Pinning it where it already sits removes the movement and keeps BGA's own separation. Taken from the column's computed margin rather than from the distance between the two boxes, which cannot be read back once the block is stuck: that measurement returns the stuck position and collapses the gap to nothing
+- Take the bar's contribution from `#topbar`'s computed `position`, so a bar that scrolls away (BGA's own, or a folded one past the compact header's height ceiling) contributes nothing — neither its height nor the gap, there being nothing left up there to keep separation from — and the block pins at the very top instead. Read from the page rather than from our own settings, since the compact header owns that decision and can change it mid-game. One offset serves both modes: the pinned column takes it directly, and the panels inside that column take zero, the column standing at it having already accounted for it
+- Give up on panels taller than half of what the viewport has left under the bar, as a root class their rule keys on. A share of the viewport rather than a pixel ceiling, unlike the compact header's: a panel stack is as tall as the table has players. Read by the panels-alone mode only — the pinned column is capped to the window and scrolls internally, so height can put nothing there out of reach
+- Re-measure on a `ResizeObserver` over the panels and the bar, and on window resize — panels grow with their owner's board and BGA collapses them on click, the folded bar changes height with the prompt in it, and neither element resizes when only the window's height changes
+- Copy the page's own background onto the pinned panels, read from the root element and then `body` — whichever paints something, since which of the two carries BGA's table felt is a theme's choice, and a custom stylesheet is free to move it. BGA leaves the gaps between panels transparent, which goes unnoticed until the block is pinned and a log starts travelling behind it
+- Do nothing at all in BGA's narrow-window layout, without detecting it: that layout stacks the two columns (`flex-direction: column-reverse`), leaving the column's parent no taller than its own content and the sticky rules with nowhere to travel, and it hides the log column outright
+
+The pinned-column mode also has to override BGA's own layout in one place, in CSS: `#right-side` is a
+stretched flex item, as tall as the board beside it and therefore with nowhere to travel, so
+`align-self: flex-start` shrinks it to its content. Safe only in that mode, where BGA's log — the one
+thing in the column BGA sizes against the height being given up — is hidden.
+
+Key files:
+- `src/games/innovation/sticky_panels.ts` — the injected mount function; self-contained, since Chrome serializes it
+- `src/games/innovation/sticky_panels.css` — the sticky rules for both modes, and the panels' backdrop
+- `src/sidepanel/inpage_settings.ts` — the same `chrome.storage.local` object the in-page log uses
+- `src/sidepanel/global_menu.ts` — the help page's eye menu, alongside the compact header's own setting
 
 ## Data Flow: Full Extraction
 
@@ -296,14 +347,14 @@ and re-running the extraction pipeline. Initiated by the watcher injection in
 
 1. Validate re-extraction guards:
    - Sender tab matches tracked live tab
-   - A consumer exists — `background.hasConsumer()`, i.e. the *Side Panel* is open **or** the *In-Page Game Log* is enabled
+   - A consumer exists — `background.hasConsumer()`, i.e. the *Side Panel* is open, **or** the *In-Page Game Log* is enabled, **or** the *Simplified Cards* are on with their opponents' hands: the three surfaces that consume results
    - No extraction currently in progress
    - At least 5 seconds since last extraction
 2. If rate-limited (less than 5s since last extraction): schedule a deferred
    re-extraction after the remaining time. Only one deferred timer is active at
    a time; subsequent mutations within the same window are coalesced.
 3. If all guards pass, re-run Full Extraction flow silently (clear any deferred timer)
-4. Only push results if packet count increased — to the *Side Panel* by message, and to the *In-Page Game Log* by injection
+4. Only push results if packet count increased — to the *Side Panel* by message, and to the *In-Page Game Log* and the opponents' hands by injection, through the one `background.pushResultSurfaces()` that keeps the two in step
 
 ## Data Flow: In-Page Game Log
 
@@ -382,14 +433,14 @@ table.
 
 ### Settings storage
 
-Every one of these ships off. The three that touch BGA's own page — the in-page log, the compact
-header and the simplified cards — are the exception on an **unpacked build**, where they default on
+Every one of these ships off. The four that touch BGA's own page — the in-page log, the compact
+header, the pinned panels and the simplified cards — are the exception on an **unpacked build**, where they default on
 — `isUnpackedBuild()` compares `chrome.runtime.id` against the published id, so they are live while
 being worked on without a switch after every extension reload, and reach store users only if they
 ask for them.
 
 The in-page settings live in `chrome.storage.local` under `bgaa_inpage_log`
-(`{ enabled, showPlayerNames, compactHeader, progressionOnly, simplifiedCards, cardScale, echoText }`), not in the `localStorage` used by every other
+(`{ enabled, showPlayerNames, compactHeader, progressionOnly, stickyPanels, simplifiedCards, cardScale, echoText, opponentHands }`), not in the `localStorage` used by every other
 display preference. Three contexts need them and `localStorage` cannot serve all three: the service
 worker has none at all, and a content script's belongs to `boardgamearena.com` rather than the
 extension. The key is still named for the log alone, which was the first of these settings:
@@ -464,6 +515,50 @@ topbar's height.
 Turning the feature off re-injects with `enabled: false`, which moves every node back to its
 placeholder and drops the class. The placeholders are the whole restore path — an injection carries
 no memory of the DOM an earlier one changed.
+
+## Data Flow: Pinned Right Column
+
+Optional, for every game BGA hosts, and pushed off the same event as the compact header for the same
+reasons — no extraction results reach it either. It pins the whole right column while the turn history
+is the column's content, and BGA's player panels alone otherwise. Both the pinning and the choice
+between them are CSS; what crosses this boundary is the injection that measures what those rules stick
+to.
+
+***Background Service Worker***
+
+1. On `webNavigation.onCompleted`, bail unless the feature is on and `time-tracking.parseGameTableUrl()`
+   reports a board frame. Runs after the compact header is pushed, so the bar whose height this
+   measures has folded by the time it is read — and a bar that folds later resizes, which the mount
+   watches for anyway
+2. `background.pushStickyPanels()` awaits the stylesheet, then injects the mount function into all
+   frames. The stylesheet must land first, or the panels pin for a frame against the custom
+   properties' fallback of zero, under a bar still covering them
+
+```
+⇩   executeScript arguments (JSON-serialized, not a message):
+⇩   [ { enabled } ]
+```
+
+***Pinned Right Column***
+
+1. Return silently unless the frame has a `#right-side-first-part` — every frame of the tab receives
+   the injection, and only a board frame has a right column
+2. Add `bgaa-sticky-panels` to the root, which is what every sticky rule keys on. Which mode applies
+   is decided from there by `bgaa-hide-bga-log`, which the *In-Page Game Log* already maintains — so
+   switching between the two logs switches what is pinned, with nothing to re-inject
+3. Copy the page's backdrop onto the root as `--bgaa-panels-backdrop-image` and
+   `--bgaa-panels-backdrop-color`, taken from the root element or from `body`, whichever paints
+   something. Once per injection: a theme is chosen between page loads, unlike the measurements
+4. Measure and publish `--bgaa-sticky-top` — the height of `#topbar` plus the column's own top margin,
+   or zero unless the bar's computed `position` is `sticky` — and toggle `bgaa-panels-tall` when the
+   panels are past the ceiling, the one thing that turns the panels-alone rule off
+5. Re-measure from a `ResizeObserver` over the panels and the bar, and from a window `resize`
+   listener for the viewport height that no element's size reflects. Both are guarded by a root
+   attribute so overlapping injections leave one of each, and both read the root class back on every
+   callback and stand down once it is gone — an injection cannot reach the observers of an earlier one
+
+Turning the feature off re-injects with `enabled: false`, which drops the class and every published
+property; the observers retire themselves on their next callback.
 
 ## Data Flow: Side Panel Connect
 
@@ -648,12 +743,20 @@ Not messages — the service worker injects the mount function and passes data a
 | `chrome.scripting.executeScript` | `[{ enabled, progressionOnly }]` | Fold BGA's header into one row, or (`enabled: false`) move every node back to its placeholder; `progressionOnly` pares the table info down to the percentage |
 | `chrome.scripting.insertCSS` | `compact_header.css` | Inject the one-row layout, once per tab per service-worker lifetime |
 
+### *Background Service Worker* &rarr; *Pinned Right Column*
+
+| Channel | Payload | Purpose |
+|---------|---------|---------|
+| `chrome.scripting.executeScript` | `[{ enabled }]` | Measure what the sticky rules stick to and publish it on the root, or (`enabled: false`) drop it and the class every rule hangs off |
+| `chrome.scripting.insertCSS` | `sticky_panels.css` | Inject the sticky rules for both modes, once per tab per service-worker lifetime |
+
 ### *Background Service Worker* &rarr; *Simplified Cards*
 
 | Channel | Payload | Purpose |
 |---------|---------|---------|
-| `chrome.scripting.executeScript` (MAIN world) | `[{ enabled, scale, echoText }]` | Patch Innovation's card-layout constants and re-run BGA's own relayout, or (`enabled: false`) put BGA's numbers back |
-| `chrome.scripting.insertCSS` | `simplified_cards.css` | Inject the compact card, once per tab per service-worker lifetime. Its fonts are substituted in as `data:` URIs first — BGA's CSP allows `data:` for `font-src` but no extension scheme, so a font at a `chrome-extension://` URL is refused by the page however the stylesheet got there |
+| `chrome.scripting.executeScript` (MAIN world) | `[{ enabled, scale, echoText, opponentHands }]` | Patch Innovation's card-layout constants and re-run BGA's own relayout, or (`enabled: false`) put BGA's numbers back. `opponentHands` also resizes the opponent-hand zones and parks the applier the push below calls |
+| `chrome.scripting.executeScript` (MAIN world) | `[HandHintGroup[]]` | The opponents' hands as finished markup, grouped by player, age and BGA's set id, run-length collapsed since a group's cards usually share their knowledge. Its own push, on every move: the mount ends by handing the board back to BGA to lay out, which animates every card, and this only writes into them |
+| `chrome.scripting.insertCSS` | concatenated stylesheet (`mini_card` + `card_tip` + `simplified_cards`) | Inject the compact card, once per tab per service-worker lifetime — the panel's own card and the tooltip geometry ride along, since the opponents' hands are drawn with the panel's renderer. Its fonts are substituted in as `data:` URIs first — BGA's CSP allows `data:` for `font-src` but no extension scheme, so a font at a `chrome-extension://` URL is refused by the page however the stylesheet got there |
 
 ## Connection Management
 
@@ -661,10 +764,11 @@ The *Side Panel* maintains a persistent port via `chrome.runtime.connect({name: 
 The *Background Service Worker* uses port connection/disconnection to track whether the
 *Side Panel* is open.
 
-Port disconnection no longer stops live tracking unconditionally: if the *In-Page Game Log*
-is still enabled, tracking continues, because that log consumes the same results with the panel
-closed. Every gate that previously read `sidePanelOpen` directly — live re-extraction, watcher
-injection, and the four navigation handlers — now reads `background.hasConsumer()`.
+Port disconnection no longer stops live tracking unconditionally: if the *In-Page Game Log* is still
+enabled, or the *Simplified Cards* are drawing the opponents' hands, tracking continues, because both
+consume the same results with the panel closed. Every gate that previously read `sidePanelOpen`
+directly — live re-extraction, watcher injection, and the four navigation handlers — now reads
+`background.hasConsumer()`.
 
 On port connect, the *Background Service Worker* queries the active tab and compares
 its table number against cached results. If they match, cached results are pushed

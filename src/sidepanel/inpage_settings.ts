@@ -35,12 +35,16 @@ export interface InPageSettings {
   compactHeader: boolean;
   /** Leave the progression figure alone in the folded header, without the table id and move number. */
   progressionOnly: boolean;
+  /** Keep BGA's player panels, and the turn history's view switch, at the top of their column. */
+  stickyPanels: boolean;
   /** Draw Innovation's own hand and every board with the side panel's compact card. */
   simplifiedCards: boolean;
   /** Size of those cards, as a percentage of the side panel's own. Only `CARD_SCALE_STEP` steps. */
   cardScale: number;
   /** Print an Echo card's effect in full on the card, rather than marking the slot as holding text. */
   echoText: boolean;
+  /** Draw the opponents' face-down hands as those cards too, with what is known about each. */
+  opponentHands: boolean;
 }
 
 /** Bounds of the simplified cards' size slider, in percent. */
@@ -53,9 +57,11 @@ export const INPAGE_DEFAULTS: InPageSettings = {
   showPlayerNames: false,
   compactHeader: false,
   progressionOnly: false,
+  stickyPanels: false,
   simplifiedCards: false,
   cardScale: CARD_SCALE_MIN,
   echoText: false,
+  opponentHands: false,
 };
 
 /**
@@ -83,15 +89,16 @@ export function isUnpackedBuild(): boolean {
 /**
  * The defaults as they apply to this build.
  *
- * The three settings that touch BGA's own page — the in-page log, the compact header and the
- * simplified cards — differ: a store build leaves all of them to be asked for, while a local build
- * has them on, since that is where they are being worked on and switching them back on after every
- * reload is friction with no purpose. `showPlayerNames` and `progressionOnly` stay off either way —
- * they only restyle what the others already turned on.
+ * The settings that put something on BGA's own page — the in-page log, the compact header, the pinned
+ * panels, the simplified cards and the opponents' hands among them — differ: a store build leaves all
+ * of them to be asked for, while a local build has them on, since that is where they are being worked
+ * on and switching them back on after every reload is friction with no purpose. `showPlayerNames`,
+ * `progressionOnly` and `echoText` stay off either way — they only restyle what the others already
+ * turned on, where the opponents' hands are a surface of their own.
  */
 function buildDefaults(): InPageSettings {
   const unpacked = isUnpackedBuild();
-  return { ...INPAGE_DEFAULTS, enabled: unpacked, compactHeader: unpacked, simplifiedCards: unpacked };
+  return { ...INPAGE_DEFAULTS, enabled: unpacked, compactHeader: unpacked, stickyPanels: unpacked, simplifiedCards: unpacked, opponentHands: unpacked };
 }
 
 export async function loadInPageSettings(): Promise<InPageSettings> {

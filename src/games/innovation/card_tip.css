@@ -1,5 +1,6 @@
 /* Card tooltip geometry, shared by the side panel's `.card` tooltips and the turn history's
- * `.th-card` tooltips — and by the in-page log, which cannot load the side panel stylesheet.
+ * `.th-card` tooltips — and by the two surfaces inside BGA's own page, the in-page log and the
+ * opponents' hands, neither of which can load the side panel stylesheet.
  *
  * Anchored via CSS anchor positioning: below the anchor, aligned to its left edge.
  * position-try-fallbacks flips to the opposite side(s) when the default position would
@@ -10,7 +11,7 @@
  *
  * Each surface supplies its own reveal rule — the side panel reveals on `:hover`, the in-page
  * log promotes the tip to the top layer via the popover API. Only appearance is shared here. */
-.card-tip, .card-tip-text {
+.card-tip, .card-tip-text, .card-tip-list {
   display: none;
   position: fixed;
   z-index: 10;
@@ -34,4 +35,14 @@
   max-width: 320px;
   border: 1px solid #555;
   line-height: 1.4;
+}
+
+/* An unknown card's tooltip: a mini card for every remaining candidate. Its own class rather than
+ * `.card-tip`, so the fixed 375x275 face-image box above never applies to this grid of cards. */
+.card-tip-list {
+  background: #222;
+  border: 1px solid #555;
+  border-radius: 6px;
+  padding: 3px;
+  max-width: 320px;
 }

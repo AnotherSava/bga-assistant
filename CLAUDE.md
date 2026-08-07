@@ -50,13 +50,16 @@ Keep `docs/pages/data-flow.md` up to date when code changes affect data flow, me
 - `src/games/innovation/turn_history.ts` — Turn action types (TurnAction, ActionDetail, ActionType) and recent-turns grouping
 - `src/games/innovation/render.ts` — Innovation HTML summary renderer
 - `src/games/innovation/config.ts` — Innovation section layout configuration
-- `src/games/innovation/display.ts` — Innovation display menu (section visibility, "Show player names" toggle, in-page log toggles, simplified-card toggle with its size slider and echo-text option, margin updates)
+- `src/games/innovation/display.ts` — Innovation display menu (section visibility, "Show player names" toggle, in-page log toggles, simplified-card toggle with its size slider, echo-text and opponents'-hands options, margin updates)
 - `src/games/innovation/inpage_log.ts` — in-page game log mount (ISOLATED-world, self-contained; keyed row reconcile, popover tooltips, BGA log hiding)
 - `src/games/innovation/compact_header.ts` — compact table header mount for every BGA game (ISOLATED-world, self-contained; moves BGA's status bar into the topbar, placeholders for restore, shortens known over-long prompts per game)
 - `src/games/innovation/compact_header.css` — one-row header layout (collapses BGA's status bar and hides the two redundant board buttons)
-- `src/games/innovation/simplified_cards.ts` — simplified table cards (MAIN-world, self-contained; patches Innovation's layout constants, marks each pile's top card from `zone.items`, rewrites card names from `gameui.cards`)
+- `src/games/innovation/sticky_panels.ts` — pinned right column for every BGA game (ISOLATED-world, self-contained; measures the frozen bar and the panel stack, publishes them as custom properties, copies the page backdrop)
+- `src/games/innovation/sticky_panels.css` — the sticky rules for both modes (whole column while the turn history is up, player panels alone otherwise) and the panels' backdrop
+- `src/games/innovation/simplified_cards.ts` — simplified table cards (MAIN-world, self-contained; patches Innovation's layout constants, marks each pile's top card from `zone.items`, rewrites card names from `gameui.cards`) + opponent-hand knowledge push (replaces each opponent-hand zone's `itemIdToCoordsGrid` to resize it, draws the panel's card into each face-down card)
 - `src/games/innovation/simplified_cards.css` — the compact card's two layouts (top card / covered card), scaled from `--bgaa-card-scale`
-- `src/games/innovation/card_tip.css` — card tooltip geometry shared by the side panel and the in-page log
+- `src/games/innovation/mini_card.css` — the panel's compact card, shared by the side panel, the ZIP export and the opponents' hands on BGA's table (every rule scoped under `.bgaa-cards`, which must outweigh BGA's own single-class `.card` rule)
+- `src/games/innovation/card_tip.css` — card tooltip geometry shared by the side panel, the in-page log and the simplified cards' opponent hands
 - `src/games/innovation/turn_history.css` — turn-history row appearance shared by both surfaces
 - `src/games/innovation/inpage_log.css` — in-page-only delta (popover reveal, BGA log hiding, container box)
 - `src/games/azul/process_log.ts` — Azul BGA packet processing
@@ -86,7 +89,7 @@ Keep `docs/pages/data-flow.md` up to date when code changes affect data flow, me
 - `cws-publish.json` — tracked mirror of Chrome Web Store listing data (extension ID, single purpose, permission justifications, data usage; used by the global `/publish-chrome-extension` skill)
 - `src/sidepanel/settings.ts` — shared localStorage persistence (loadSetting/saveSetting with typed defaults)
 - `src/sidepanel/global_menu.ts` — the help page's eye menu (settings that apply to every BGA table, not one game)
-- `src/sidepanel/inpage_settings.ts` — settings for what the extension changes on BGA's own page (in-page log, compact header, simplified cards) in `chrome.storage.local` (shared by the side panel and the service worker, which has no localStorage)
+- `src/sidepanel/inpage_settings.ts` — settings for what the extension changes on BGA's own page (in-page log, compact header, pinned panels, simplified cards with their opponents'-hands sub-option) in `chrome.storage.local` (shared by the side panel and the service worker, which has no localStorage)
 - `src/sidepanel/` — side panel UI (game-type-aware rendering dispatch)
 - `assets/bga/innovation/` — Innovation game data (card_info.json, cards/ (WebP), icons/, sprites/)
 - `assets/bga/azul/tiles/` — Azul tile color SVGs

@@ -126,6 +126,17 @@ export function buildInnovationDisplayMenu(panel: HTMLElement, context: Innovati
     scaleLabel.appendChild(scaleValue);
     panel.appendChild(scaleLabel);
 
+    // The opponents' hands, which BGA draws face-down and this fills in with what has been deduced.
+    // A sub-option: it draws the same card the checkbox above turned on, in the one place BGA shows
+    // nothing at all.
+    const handsLabel = document.createElement("label");
+    handsLabel.className = "sub-option";
+    const handsCheckbox = document.createElement("input");
+    handsCheckbox.type = "checkbox";
+    handsLabel.appendChild(handsCheckbox);
+    handsLabel.appendChild(document.createTextNode("Opponents' hands"));
+    panel.appendChild(handsLabel);
+
     // An Echo card's effect printed in full, rather than a mark saying the slot holds text. Small
     // enough at these card sizes to need the slider above, or the browser's own zoom, to read.
     const echoLabel = document.createElement("label");
@@ -140,8 +151,10 @@ export function buildInnovationDisplayMenu(panel: HTMLElement, context: Innovati
     const syncSubOptions = (): void => {
       scaleSlider.disabled = !cardsCheckbox.checked;
       echoCheckbox.disabled = !cardsCheckbox.checked;
+      handsCheckbox.disabled = !cardsCheckbox.checked;
       scaleLabel.classList.toggle("disabled", !cardsCheckbox.checked);
       echoLabel.classList.toggle("disabled", !cardsCheckbox.checked);
+      handsLabel.classList.toggle("disabled", !cardsCheckbox.checked);
     };
 
     void loadInPageSettings().then((settings) => {
@@ -149,6 +162,7 @@ export function buildInnovationDisplayMenu(panel: HTMLElement, context: Innovati
       scaleSlider.value = String(settings.cardScale);
       scaleValue.textContent = `${settings.cardScale}%`;
       echoCheckbox.checked = settings.echoText;
+      handsCheckbox.checked = settings.opponentHands;
       syncSubOptions();
     });
 
@@ -159,6 +173,10 @@ export function buildInnovationDisplayMenu(panel: HTMLElement, context: Innovati
 
     echoCheckbox.addEventListener("change", () => {
       void saveInPageSettings({ echoText: echoCheckbox.checked });
+    });
+
+    handsCheckbox.addEventListener("change", () => {
+      void saveInPageSettings({ opponentHands: handsCheckbox.checked });
     });
 
     // On "input" rather than "change", so dragging resizes the board as it goes rather than only

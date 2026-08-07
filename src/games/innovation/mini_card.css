@@ -1,0 +1,86 @@
+/* The compact Innovation card, shared by every surface that draws one: the side panel, the ZIP
+ * export, and — through the simplified cards — the opponents' hands on BGA's own table.
+ *
+ * EVERY selector here is scoped under `.bgaa-cards`, which BGA's page makes load-bearing twice over.
+ * Its own table cards carry the class `card`, so an unscoped `.card` rule injected into its page would
+ * restyle the whole board — and BGA's own `.card { display: inline-block; ... }` is a single class, so
+ * a scope that weighs nothing merely ties it. An injected stylesheet loses that tie: the grid below
+ * silently stayed `inline-block` and every card stacked into a tall column, while the two-class colour
+ * rules beneath it applied and made the sheet look loaded. So the scope is a real class, worth its one
+ * point, rather than the `:where()` it started as.
+ *
+ * That the extra point is safe for the side panel is a fact about the panel's own sheet rather than a
+ * hope: nothing there overrides these rules by tying with them. The only rules that reach this markup
+ * are `.mode-unknown [data-known]`, which wins on `!important`, its `visibility` companions, which set
+ * a property this sheet never sets, and the `:hover` tip reveals, which are more specific again.
+ *
+ * The scope class is supplied per surface: on `<body>` in the side panel and in the exported page, and
+ * on the wrapper the simplified cards inject into each of BGA's own hand cards.
+ *
+ * Sizes are fixed rather than derived from a scale: at 100% a card is 92x45 inside its border, which
+ * is the number simplified_cards.ts lays BGA's cards out against. The size slider scales these cards
+ * with a transform instead — see the opponent-hand rules in simplified_cards.css — so the grid below
+ * never has to be restated per size.
+ *
+ * Contains no `url()` reference — Chrome resolves relative URLs in injected CSS against the host
+ * page, so any `url()` would 404 against boardgamearena.com. */
+
+.bgaa-cards .card {
+  display: inline-block;
+  padding: 2px;
+  border-radius: 4px;
+  border: 1px solid;
+  margin: 1px;
+  position: relative;
+  vertical-align: top;
+  cursor: default;
+  anchor-name: --card-anchor;
+  anchor-scope: --card-anchor;
+}
+.bgaa-cards .card.b-blue   { background: #1a3a5c; border-color: #4a9eff; color: #8ec8ff; }
+.bgaa-cards .card.b-red    { background: #5c1a1a; border-color: #ff4444; color: #ff8888; }
+.bgaa-cards .card.b-green  { background: #1a4c1a; border-color: #44bb44; color: #88dd88; }
+.bgaa-cards .card.b-yellow { background: #4c4a1a; border-color: #ccaa00; color: #eedd66; }
+.bgaa-cards .card.b-purple { background: #3a1a5c; border-color: #bb66ff; color: #dd99ff; }
+.bgaa-cards .card.b-gray   { background: #333; border-color: #555; color: #888; }
+.bgaa-cards .card.b-gray-base   { background: #363328; border-color: #6b6545; color: #999078; }
+.bgaa-cards .card.b-gray-cities { background: #4a3548; border-color: #9a6890; color: #c090b8; }
+.bgaa-cards .card.b-gray-echoes { background: #354858; border-color: #6890a8; color: #90b0c8; }
+.bgaa-cards .card.b-gray-artifacts { background: #3a2e22; border-color: #8a6640; color: #b08868; }
+.bgaa-cards .card img { width: 20px; height: 20px; display: block; }
+
+/* Set 0 (base) — 2x3 CSS grid */
+.bgaa-cards .card-base {
+  display: inline-grid;
+  grid-template-columns: 20px 41px 25px;
+  grid-template-rows: 20px 20px;
+  gap: 1px;
+  align-items: center;
+}
+.bgaa-cards .cb-tl   { grid-row: 1; grid-column: 1; }
+.bgaa-cards .cb-name { grid-row: 1; grid-column: 2 / 4; font-size: 12px; white-space: nowrap; font-family: 'Barlow Condensed', sans-serif; padding-left: 1px; color: #fff; }
+.bgaa-cards .cb-bl   { grid-row: 2; grid-column: 1; }
+.bgaa-cards .cb-mid  { grid-row: 2; grid-column: 2; display: flex; gap: 1px; justify-self: start; }
+.bgaa-cards .card-base > .card-age { grid-row: 2; grid-column: 3; align-self: center; justify-self: end; }
+/* Unknown-card candidate count: top-center, smaller and paler than the age number. */
+.bgaa-cards .cb-count { grid-row: 1; grid-column: 1 / 4; align-self: center; justify-self: center; font-family: 'Russo One', sans-serif; font-size: 11px; color: rgba(255, 255, 255, 0.45); pointer-events: none; }
+
+/* Set 2 (cities) — 2x2 CSS grid, icons only */
+.bgaa-cards .card-cities {
+  display: inline-grid;
+  grid-template-columns: 62px 25px;
+  grid-template-rows: 20px 20px;
+  gap: 1px;
+  align-items: center;
+}
+.bgaa-cards .cc-top { grid-row: 1; grid-column: 1; display: flex; gap: 1px; }
+.bgaa-cards .cc-bot { grid-row: 2; grid-column: 1; display: flex; gap: 1px; }
+.bgaa-cards .card-cities > .card-age { grid-row: 2; grid-column: 2; align-self: center; justify-self: end; }
+.bgaa-cards .card-age {
+  font-family: 'Russo One', sans-serif;
+  font-size: 18px;
+  font-weight: bold;
+  text-align: center;
+  min-width: 20px;
+  color: #fff;
+}

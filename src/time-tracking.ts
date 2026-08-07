@@ -39,13 +39,22 @@ export function extractDisplayName(title: string | undefined): string | null {
   return null;
 }
 
+/**
+ * The table id in any BGA URL that carries one — a board frame's, and equally the `/tableview?table=`
+ * shell a tab actually sits on, which no game slug appears in.
+ */
+export function tableIdFromUrl(url: string): number | null {
+  const match = url.match(/[?&]table=(\d+)/);
+  return match ? Number(match[1]) : null;
+}
+
 /** Parse a BGA game table URL into its numeric game ID, game slug, and table ID. Returns null if the URL doesn't match. */
 export function parseGameTableUrl(url: string): GameTableInfo | null {
   const match = url.match(GAME_TABLE_RE);
   if (!match) return null;
-  const tableMatch = url.match(/[?&]table=(\d+)/);
-  if (!tableMatch) return null;
-  return { gameId: Number(match[2]), gameName: match[3], tableId: Number(tableMatch[1]) };
+  const tableId = tableIdFromUrl(url);
+  if (tableId === null) return null;
+  return { gameId: Number(match[2]), gameName: match[3], tableId };
 }
 
 // ---------------------------------------------------------------------------

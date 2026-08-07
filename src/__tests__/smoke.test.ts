@@ -72,11 +72,44 @@ describe("manifest web_accessible_resources", () => {
     expect(resources).not.toContain("assets/bga/innovation/*");
   });
 
-  it("exposes card faces and nothing else", () => {
-    // Every additional glob widens the page-reachable surface; keep this deliberate. Notably the
-    // simplified cards add nothing here: BGA's Content-Security-Policy would refuse a font served
-    // from the extension anyway, so that stylesheet inlines its assets as `data:` URIs instead.
+  it("exposes card faces and card icons, and nothing else", () => {
+    // Every additional glob widens the page-reachable surface; keep this deliberate.
+    //
+    // Card faces are the tooltips the in-page log and the opponents' hands open. The icons are the
+    // cards themselves: an opponent's hand is drawn with the side panel's own card, whose icons are
+    // `<img>` elements that BGA's document fetches. Fonts are the exception that stays out — BGA's
+    // Content-Security-Policy refuses the extension scheme for `font-src`, so the injected stylesheet
+    // inlines those as `data:` URIs instead. `img-src` has no such objection.
     const resources = manifest.web_accessible_resources.flatMap((e: { resources: string[] }) => e.resources);
-    expect(resources).toEqual(["assets/bga/innovation/cards/*.webp"]);
+    expect(resources).toEqual(["assets/bga/innovation/cards/*.webp", "assets/bga/innovation/icons/*"]);
+  });
+});
+
+describe("the compact card's scope class", () => {
+  const root = resolve(thisDir, "../..");
+
+  it("is carried by every surface that renders the card", () => {
+    // mini_card.css hangs every rule off `:where(.bgaa-cards)`, so that injecting it into BGA's page
+    // cannot restyle BGA's own `.card` elements. That makes the class load-bearing on our side: drop
+    // it from a surface and every card there loses its box, grid and colour at once.
+    expect(readFileSync(resolve(root, "sidepanel.html"), "utf-8")).toContain('<body class="bgaa-cards">');
+    // The exported page, which carries the same markup and collects the same stylesheets.
+    expect(readFileSync(resolve(root, "src/games/innovation/render.ts"), "utf-8")).toContain('<body class="bgaa-cards">');
+    // And the wrapper the simplified cards inject into each of BGA's own hand cards.
+    expect(readFileSync(resolve(root, "src/games/innovation/simplified_cards.ts"), "utf-8")).toContain('const CARDS_SCOPE_CLASS = "bgaa-cards"');
+  });
+
+  it("scopes every rule in the shared sheet, so none of it can reach BGA's cards", () => {
+    // A real class, not `:where()`: BGA's own `.card { display: inline-block }` is a single class, and
+    // an injected sheet loses that tie — the card's grid never applied and every card stacked into a
+    // column. The scope has to be worth a point of its own.
+    const css = readFileSync(resolve(root, "src/games/innovation/mini_card.css"), "utf-8");
+    const selectors = css.replace(/\/\*[\s\S]*?\*\//g, "").split("}").map(block => block.split("{")[0].trim()).filter(Boolean);
+    expect(selectors.length).toBeGreaterThan(10);
+    for (const selector of selectors) {
+      for (const alternative of selector.split(",")) {
+        expect(alternative.trim().startsWith(".bgaa-cards ")).toBe(true);
+      }
+    }
   });
 });

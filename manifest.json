@@ -34,7 +34,7 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["assets/bga/innovation/cards/*.webp"],
+      "resources": ["assets/bga/innovation/cards/*.webp", "assets/bga/innovation/icons/*"],
       "matches": ["https://boardgamearena.com/*", "https://*.boardgamearena.com/*"]
     }
   ]

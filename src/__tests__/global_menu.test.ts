@@ -77,6 +77,50 @@ describe("global display menu", () => {
   });
 });
 
+describe("pinned panels setting", () => {
+  function panels(): HTMLInputElement {
+    return document.getElementById("setting-sticky-panels") as HTMLInputElement;
+  }
+
+  it("is offered on its own, not under the compact header", () => {
+    // It reads the folded bar's height to sit under it, but needs nothing from the fold itself.
+    buildGlobalDisplayMenu(panel());
+    expect(panels()).not.toBeNull();
+    expect(panels().closest("label")!.className).not.toContain("sub-option");
+  });
+
+  it("is off when nothing is stored, since it changes BGA's own page", async () => {
+    buildGlobalDisplayMenu(panel());
+    await flush();
+    expect(panels().checked).toBe(false);
+  });
+
+  it("reflects the stored value", async () => {
+    storage[INPAGE_LOG_KEY] = { ...INPAGE_DEFAULTS, stickyPanels: true };
+    buildGlobalDisplayMenu(panel());
+    await flush();
+    expect(panels().checked).toBe(true);
+  });
+
+  it("writes the shared store, which is what the service worker pushes from", async () => {
+    buildGlobalDisplayMenu(panel());
+    await flush();
+
+    panels().checked = true;
+    panels().dispatchEvent(new Event("change"));
+    await flush();
+
+    expect((storage[INPAGE_LOG_KEY] as Record<string, unknown>).stickyPanels).toBe(true);
+  });
+
+  it("stays switchable while the compact header is off", async () => {
+    storage[INPAGE_LOG_KEY] = { ...INPAGE_DEFAULTS, compactHeader: false };
+    buildGlobalDisplayMenu(panel());
+    await flush();
+    expect(panels().disabled).toBe(false);
+  });
+});
+
 describe("progression-only sub-option", () => {
   function progression(): HTMLInputElement {
     return document.getElementById("setting-progression-only") as HTMLInputElement;
