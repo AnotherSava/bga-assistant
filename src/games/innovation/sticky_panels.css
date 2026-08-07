@@ -1,0 +1,90 @@
+/* Pinned right column: what stays at the top of the column while the board scrolls past.
+ *
+ * Two modes, and the page already says which applies. `bgaa-hide-bga-log` is on the root exactly
+ * while the turn history is rendered into BGA's log column — the in-page log puts it there to hide
+ * BGA's own log — so it doubles as "our history is the column's content":
+ *
+ *   - with it, the WHOLE column is pinned: the panels, the history and its view switch all stay put,
+ *     and a column too tall for the window scrolls inside itself
+ *   - without it, only the player panels are pinned, and BGA's log column scrolls away as BGA
+ *     intended
+ *
+ * Paired with sticky_panels.ts, which measures the one offset these rules stick to — the frozen
+ * header bar's height, as `--bgaa-sticky-top` — and copies the page's own backdrop onto the root.
+ * Neither is a constant: the bar's height depends on what the compact header folded into it.
+ *
+ * Contains no `url()` reference — Chrome resolves relative URLs in injected CSS against the host
+ * page, so any `url()` would 404 against boardgamearena.com.
+ *
+ * WHY STICKY WORKS HERE AT ALL, since it comes down to one line of BGA's own layout: on the desktop
+ * layout `#leftright_page_wrapper` is a row flexbox, so the column's own parent is as tall as the
+ * board beside it — and a sticky element travels within its parent's box, which is therefore the
+ * whole scrollable page. BGA's `.mobile_version` layout stacks the two columns instead
+ * (`flex-direction: column-reverse`), leaving that parent no taller than its own content and these
+ * rules with nowhere to travel; it also hides `#right-side-second-part` outright, so the history they
+ * would pin is not there either. Nothing to detect: with no travel, sticky renders as static. */
+
+/* ------------------------------------------------------------------------ */
+/* Our history is the column: pin all of it                                 */
+/* ------------------------------------------------------------------------ */
+
+html.bgaa-sticky-panels.bgaa-hide-bga-log #right-side {
+  position: sticky;
+  top: var(--bgaa-sticky-top, 0px);
+  /* Without this the column is a stretched flex item, as tall as the board beside it and with
+   * nowhere to travel — sticky would compute and do nothing. Shrinking it to its content is
+   * invisible: BGA gives the column no background of its own. Safe to do only in this mode, where
+   * BGA's log — the one thing in the column it sizes against the height this gives up — is hidden. */
+  align-self: flex-start;
+  /* Never taller than what the window has left, because the page's scroll no longer moves it: a
+   * column past the bottom edge would have its foot permanently out of reach. Its own scrollbar is
+   * what keeps the rest reachable, and appears only when there is more than fits. */
+  max-height: calc(100vh - var(--bgaa-sticky-top, 0px));
+  overflow-y: auto;
+  z-index: 3;
+}
+
+/* Inside a column that now scrolls on its own, the panels pin to the column rather than to the page —
+ * a sticky element sticks to its nearest scrollport, which the rule above just made this. So the
+ * offset is zero here: the bar is already accounted for by the column standing under it. */
+html.bgaa-sticky-panels.bgaa-hide-bga-log #right-side-first-part {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+/* ------------------------------------------------------------------------ */
+/* BGA's log is the column: pin the panels alone                            */
+/* ------------------------------------------------------------------------ */
+
+/* `:not(.bgaa-panels-tall)` is the height limit the mount measures against — past it, pinning would
+ * cost more of the screen than the reference is worth, and BGA's own scrolling applies unchanged.
+ * The ceiling belongs to this mode alone: the pinned column above scrolls internally instead, so
+ * nothing there can be out of reach however tall it grows.
+ *
+ * The z-index is not decoration: BGA gives `#logs` `position: relative`, which paints it in the same
+ * layer as a sticky element and, being later in the document, over it. */
+html.bgaa-sticky-panels:not(.bgaa-hide-bga-log):not(.bgaa-panels-tall) #right-side-first-part {
+  position: sticky;
+  top: var(--bgaa-sticky-top, 0px);
+  z-index: 3;
+}
+
+/* ------------------------------------------------------------------------ */
+/* The backdrop the pinned panels need                                      */
+/* ------------------------------------------------------------------------ */
+
+/* The page's own backdrop, copied here by the mount. BGA leaves the gaps between panels transparent,
+ * which goes unnoticed until the block is pinned and a log starts travelling behind it — log lines
+ * reading up through the panel stack. Anchored to the viewport rather than to the document, so the
+ * felt stays as still as the panels standing on it.
+ *
+ * Scoped to exactly the two selectors above rather than to every `#right-side-first-part`: a block
+ * that is not pinned travels with the page, and a backdrop that does not travel with it would show
+ * as a patch of felt sliding against the rest. */
+html.bgaa-sticky-panels.bgaa-hide-bga-log #right-side-first-part,
+html.bgaa-sticky-panels:not(.bgaa-hide-bga-log):not(.bgaa-panels-tall) #right-side-first-part {
+  background-color: var(--bgaa-panels-backdrop-color, transparent);
+  background-image: var(--bgaa-panels-backdrop-image, none);
+  background-attachment: fixed;
+}
