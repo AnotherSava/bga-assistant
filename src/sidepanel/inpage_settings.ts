@@ -52,6 +52,15 @@ export const CARD_SCALE_MIN = 100;
 export const CARD_SCALE_MAX = 200;
 export const CARD_SCALE_STEP = 10;
 
+/**
+ * The size a local build starts the simplified cards at.
+ *
+ * Larger than the store default (`CARD_SCALE_MIN`) so the cards are legible while they are being
+ * worked on, without turning the slider up after every reload — the same reasoning that has a local
+ * build switch the in-page features on. A valid slider step (100 + 5×10), so it lands on a notch.
+ */
+export const CARD_SCALE_LOCAL_DEFAULT = 150;
+
 export const INPAGE_DEFAULTS: InPageSettings = {
   enabled: false,
   showPlayerNames: false,
@@ -94,11 +103,12 @@ export function isUnpackedBuild(): boolean {
  * of them to be asked for, while a local build has them on, since that is where they are being worked
  * on and switching them back on after every reload is friction with no purpose. `showPlayerNames`,
  * `progressionOnly` and `echoText` stay off either way — they only restyle what the others already
- * turned on, where the opponents' hands are a surface of their own.
+ * turned on, where the opponents' hands are a surface of their own. A local build also starts the
+ * simplified cards at `CARD_SCALE_LOCAL_DEFAULT` rather than the store's 100%, for the same reason.
  */
 function buildDefaults(): InPageSettings {
   const unpacked = isUnpackedBuild();
-  return { ...INPAGE_DEFAULTS, enabled: unpacked, compactHeader: unpacked, stickyPanels: unpacked, simplifiedCards: unpacked, opponentHands: unpacked };
+  return { ...INPAGE_DEFAULTS, enabled: unpacked, compactHeader: unpacked, stickyPanels: unpacked, simplifiedCards: unpacked, opponentHands: unpacked, cardScale: unpacked ? CARD_SCALE_LOCAL_DEFAULT : INPAGE_DEFAULTS.cardScale };
 }
 
 export async function loadInPageSettings(): Promise<InPageSettings> {

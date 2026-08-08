@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { loadInPageSettings, saveInPageSettings, subscribeInPageSettings, INPAGE_LOG_KEY, INPAGE_DEFAULTS, CARD_SCALE_MIN } from "../sidepanel/inpage_settings.js";
+import { loadInPageSettings, saveInPageSettings, subscribeInPageSettings, INPAGE_LOG_KEY, INPAGE_DEFAULTS, CARD_SCALE_MIN, CARD_SCALE_LOCAL_DEFAULT } from "../sidepanel/inpage_settings.js";
 
 let storage: Record<string, unknown>;
 let changeListeners: ((changes: Record<string, { newValue?: unknown }>, area: string) => void)[];
@@ -81,12 +81,15 @@ describe("defaults", () => {
     expect(unpacked.enabled).toBe(true);
     expect(unpacked.compactHeader).toBe(true);
     expect(unpacked.simplifiedCards).toBe(true);
+    // And starts the cards larger, so they are legible while being worked on.
+    expect(unpacked.cardScale).toBe(CARD_SCALE_LOCAL_DEFAULT);
 
     (globalThis as any).chrome.runtime = { id: "idjijmafngfkkbppkgopldomfhdcedig" };
     const published = await loadInPageSettings();
     expect(published.enabled).toBe(false);
     expect(published.compactHeader).toBe(false);
     expect(published.simplifiedCards).toBe(false);
+    expect(published.cardScale).toBe(CARD_SCALE_MIN);
   });
 
   it("lets a stored choice stand over the build's default", async () => {
