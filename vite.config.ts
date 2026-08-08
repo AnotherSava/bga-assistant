@@ -40,6 +40,12 @@ export default defineConfig({
       },
     },
     target: "es2022",
+    // Vite otherwise injects `<link rel="modulepreload" crossorigin>` for shared chunks into
+    // sidepanel.html. On a chrome-extension:// page the crossorigin preload does not match the
+    // actual same-world module fetch, so Chrome discards it as unused ("cross-world extension
+    // resource mismatch") and logs a warning. The chunk still loads via its static import, and a
+    // local extension resource gains nothing from the preload hint, so the link is pure noise.
+    modulePreload: false,
     minify: false,
     sourcemap: true,
   },
