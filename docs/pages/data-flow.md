@@ -345,6 +345,28 @@ and re-running the extraction pipeline. Initiated by the watcher injection in
 ⇩   "gameLogChanged" message
 ```
 
+### Catching up when the tab becomes visible again
+
+The DOM-mutation trigger is a fast path that only fires while the tab is visible. BGA advances its own
+notification queue into `#logs` only as each animation completes, and those are paint-gated, so a hidden
+(backgrounded, minimized, or fully occluded) tab stops appending log rows entirely — the observer has
+nothing to fire on, and the quiet-period `setTimeout` is background-throttled on top of that. The history
+therefore drifts stale while the tab is away, and live tracking may also have been torn down by a focus
+change to another tab or window (see [resolveContent](#data-flow-full-extraction)).
+
+So the same watcher also listens for `document.visibilitychange` and sends a `"tabVisible"` message the
+moment the tab is shown again. The *Background Service Worker* re-runs the Full Extraction flow for that
+tab (via `handleNavigation`, source `"focus"`) — which re-pulls the complete server-side notification
+history and re-arms live tracking — gated on a consumer existing, no extraction already running, and at
+least `LIVE_MIN_INTERVAL_MS` since the last one (so a focus event that already refreshed isn't doubled).
+The signal comes from the page rather than the worker's focus/active-tab bookkeeping deliberately: it
+still fires when the worker was evicted while the tab was hidden, and it covers the occluded-window case
+that a window-focus event alone can miss.
+
+```
+⇩   "tabVisible" message
+```
+
 ***Background Service Worker***
 
 1. Validate re-extraction guards:
@@ -722,6 +744,7 @@ Key files:
 | Message | Purpose |
 |---------|---------|
 | `"gameLogChanged"` | DOM mutation detected — trigger live re-extraction |
+| `"tabVisible"` | Board tab became visible again — re-extract to catch a stale history up |
 
 ### *In-Page Game Log* &rarr; *Background Service Worker*
 

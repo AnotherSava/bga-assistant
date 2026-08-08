@@ -1036,6 +1036,46 @@ describe("live tracking", () => {
     vi.restoreAllMocks();
   });
 
+  it("tabVisible re-extracts to catch the history up when the tab becomes visible", async () => {
+    await clickExtract(42);
+    vi.clearAllMocks();
+    mockSendMessage.mockImplementation(() => Promise.resolve());
+
+    // handleNavigation re-reads the tab, then extractFromTab (its first executeScript) pulls fresh
+    // server history; the watcher re-injection that follows falls through to the benign [] default.
+    const boardTab = { id: 42, url: "https://boardgamearena.com/8/innovation?table=123", status: "complete", windowId: 1 };
+    (chrome.tabs.get as ReturnType<typeof vi.fn>).mockResolvedValueOnce(boardTab);
+    const rawData = makeRawData({ "1": "Alice", "2": "Bob" }, []);
+    mockExecuteScript.mockResolvedValueOnce([{ result: rawData }]);
+
+    // Past the rate-limit window so the staleness gate lets it through.
+    vi.spyOn(Date, "now").mockReturnValue(Date.now() + 10000);
+
+    listeners.onMessage({ type: "tabVisible" }, { tab: { id: 42 } }, () => {});
+
+    await vi.waitFor(() => {
+      const extractCall = mockExecuteScript.mock.calls.find((c: any[]) => c[0]?.files?.includes("dist/extract.js"));
+      expect(extractCall).toBeDefined();
+    });
+    await new Promise((r) => setTimeout(r, 50));
+    vi.restoreAllMocks();
+  });
+
+  it("tabVisible is ignored when nothing consumes results", async () => {
+    const conn = await clickExtract(42);
+    conn.triggerDisconnect(); // panel closed and the in-page log off (store build) — no consumer
+    vi.clearAllMocks();
+    mockSendMessage.mockImplementation(() => Promise.resolve());
+    vi.spyOn(Date, "now").mockReturnValue(Date.now() + 10000);
+
+    listeners.onMessage({ type: "tabVisible" }, { tab: { id: 42 } }, () => {});
+    await new Promise((r) => setTimeout(r, 30));
+
+    const extractCall = mockExecuteScript.mock.calls.find((c: any[]) => c[0]?.files?.includes("dist/extract.js"));
+    expect(extractCall).toBeUndefined();
+    vi.restoreAllMocks();
+  });
+
   it("deferred extraction fires after remaining rate limit window", async () => {
     await clickExtract(42);
     await new Promise((r) => setTimeout(r, 50));

@@ -577,6 +577,16 @@ export function watcherFunction(): void {
     }, 2000);
   });
   observer.observe(logContainer, { childList: true, subtree: true });
+  // BGA freezes its own log/board rendering while the tab is hidden — its notification queue advances
+  // only as each animation completes, and those are paint-gated — so no new rows land in #logs and the
+  // observer above has nothing to fire on; the debounce setTimeout is background-throttled on top of
+  // that. History therefore drifts stale behind the scenes. Ask the worker to re-extract the moment the
+  // tab is shown again, so it catches up at once. This signal comes straight from the page, so it holds
+  // even when the worker was evicted while the tab was hidden and doesn't rely on the focus/active-tab
+  // events the worker would otherwise have to catch (which miss the occluded-window case).
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") chrome.runtime.sendMessage({ type: "tabVisible" }).catch(() => {});
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -1616,6 +1626,17 @@ chrome.runtime.onMessage.addListener(
     } else if (message.type === "gameLogChanged") {
       if (sender.tab?.id !== liveTabId) { console.log("[live] ignored: sender tab", sender.tab?.id, "!= liveTabId", liveTabId); return; }
       triggerLiveExtraction();
+    } else if (message.type === "tabVisible") {
+      // The board tab just became visible again. While it was hidden, BGA stopped drawing new log rows
+      // (so the mutation watcher couldn't fire) and live tracking may have been torn down by a focus
+      // change to another tab/window — either way the history is stale. Re-extract now to catch it up,
+      // and re-arm live tracking, via the same path a focus change uses. Driven by the page rather than
+      // the worker's focus bookkeeping so it survives an occluded window and a worker evicted while
+      // hidden. The staleness gate skips this when a focus event already refreshed within the interval.
+      const visibleTabId = sender.tab?.id;
+      if (visibleTabId === undefined || !hasConsumer() || extracting) return;
+      if (Date.now() - lastExtractionTime < LIVE_MIN_INTERVAL_MS) return;
+      handleNavigation(visibleTabId, "focus");
     } else if (message.type === "resetTimeTracking") {
       timeTracker.reset();
       chrome.alarms.clear(HEARTBEAT_ALARM);
