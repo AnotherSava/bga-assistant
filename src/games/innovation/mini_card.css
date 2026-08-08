@@ -49,6 +49,14 @@
 .bgaa-cards .card.b-gray-artifacts { background: #3a2e22; border-color: #8a6640; color: #b08868; }
 .bgaa-cards .card img { width: 20px; height: 20px; display: block; }
 
+/* The resource tiles (crown, leaf, lightbulb, castle, factory, clock) are single flat chips — one
+ * file per resource, the same on every card colour. BGA's own sprite drew them as a card-colour frame
+ * ring around a resource-colour chip plus a 1px white frame; both frames are stripped from the PNGs,
+ * so only the resource chip and glyph remain. (The white line was ~0.13px at the 20px display size —
+ * too thin to survive scaling, so it broke into a stray white edge at a non-integer zoom.) Only the
+ * corners are rounded, to match BGA's tiles. */
+.bgaa-cards .card img.resource-icon { border-radius: 3px; }
+
 /* Set 0 (base) — 2x3 CSS grid */
 .bgaa-cards .card-base {
   display: inline-grid;

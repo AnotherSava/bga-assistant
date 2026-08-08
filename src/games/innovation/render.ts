@@ -65,7 +65,7 @@ function iconImg(iconName: string, color: string, spriteIndex: number): string {
     const bonusNum = iconName.split("-")[1];
     return `<img src="${resolveAssetUrl(`assets/bga/innovation/icons/bonus_${bonusNum}.png`)}" width="20" height="20" alt="${iconName}">`;
   }
-  return `<img src="${resolveAssetUrl(`assets/bga/innovation/icons/${iconName}_${color}.png`)}" width="20" height="20" alt="${iconName}">`;
+  return `<img class="resource-icon" src="${resolveAssetUrl(`assets/bga/innovation/icons/${iconName}.png`)}" width="20" height="20" alt="${iconName}">`;
 }
 
 // ---------------------------------------------------------------------------

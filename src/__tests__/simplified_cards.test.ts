@@ -119,11 +119,12 @@ describe("simplifiedCardsFunction patching", () => {
     simplifiedCardsFunction(ENABLED);
 
     expect(document.documentElement.classList.contains(ROOT_CLASS)).toBe(true);
-    expect(gameui.card_dimensions["M card"]).toEqual({ width: 94, height: 47 });
-    expect(gameui.delta.my_hand).toEqual({ x: 101, y: 54 });
-    // The icon band a splay reveals (2px inset + a 20px icon), plus the covered card's own border
-    // edge — and no more, or an up splay would show a strip of the icon row above.
-    expect(gameui.overlap_for_splay["M card"]).toEqual({ compact: 3, expanded: 23 });
+    expect(gameui.card_dimensions["M card"]).toEqual({ width: 96, height: 48 });
+    expect(gameui.delta.my_hand).toEqual({ x: 103, y: 55 });
+    // The icon plus a full 2px gap to where the next card overlaps (2px inset + a 20px icon + 2px),
+    // plus the covered card's own border edge — equals --col-centre, so the overlap lands exactly on
+    // the next column and the revealed icon keeps the same 2px margin it has from the card border.
+    expect(gameui.overlap_for_splay["M card"]).toEqual({ compact: 3, expanded: 25 });
     expect(gameui.refreshLayout).toHaveBeenCalledTimes(1);
   });
 
@@ -177,10 +178,10 @@ describe("simplifiedCardsFunction patching", () => {
 
     simplifiedCardsFunction({ enabled: true, scale: 200, echoText: false, opponentHands: false });
 
-    expect(gameui.card_dimensions["M card"]).toEqual({ width: 186, height: 92 });
-    expect(gameui.delta.my_hand).toEqual({ x: 200, y: 106 });
+    expect(gameui.card_dimensions["M card"]).toEqual({ width: 190, height: 94 });
+    expect(gameui.delta.my_hand).toEqual({ x: 204, y: 108 });
     // The band doubles; the border edge it opens with does not.
-    expect(gameui.overlap_for_splay["M card"]).toEqual({ compact: 3, expanded: 45 });
+    expect(gameui.overlap_for_splay["M card"]).toEqual({ compact: 3, expanded: 49 });
   });
 
   it("publishes the multiplier for the stylesheet to derive its lengths from", () => {
@@ -203,7 +204,7 @@ describe("simplifiedCardsFunction patching", () => {
     simplifiedCardsFunction({ enabled: true, scale: 100, echoText: false, opponentHands: false });
     simplifiedCardsFunction({ enabled: true, scale: 200, echoText: false, opponentHands: false });
 
-    expect(gameui.card_dimensions["M card"]).toEqual({ width: 186, height: 92 });
+    expect(gameui.card_dimensions["M card"]).toEqual({ width: 190, height: 94 });
     expect(document.documentElement.style.getPropertyValue("--bgaa-card-scale")).toBe("2");
 
     simplifiedCardsFunction(DISABLED);
@@ -347,7 +348,7 @@ describe("simplifiedCardsFunction waiting for setup", () => {
     gameui.zone = { board: { "1234": {} } };
     vi.advanceTimersByTime(300);
 
-    expect(gameui.card_dimensions["M card"]).toEqual({ width: 94, height: 47 });
+    expect(gameui.card_dimensions["M card"]).toEqual({ width: 96, height: 48 });
     expect(gameui.refreshLayout).toHaveBeenCalledTimes(1);
   });
 

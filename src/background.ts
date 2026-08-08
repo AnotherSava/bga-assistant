@@ -819,7 +819,10 @@ function buildSimplifiedCardsCss(): Promise<string> {
       // Both sheets are scoped so nothing in them can reach BGA's own cards — see mini_card.css.
       return [miniCardCss, cardTipCss, simplifiedCardsCss].join("\n")
         .replaceAll("__BGAA_FONT_RUSSO_ONE__", russoOne)
-        .replaceAll("__BGAA_FONT_BARLOW_CONDENSED__", barlowCondensed);
+        .replaceAll("__BGAA_FONT_BARLOW_CONDENSED__", barlowCondensed)
+        // The resource-icon swap references the extension's icon PNGs by absolute URL; a stylesheet
+        // injected via insertCSS has no origin of its own to resolve a relative path against.
+        .replaceAll("__BGAA_ICONS__", chrome.runtime.getURL("assets/bga/innovation/icons/"));
     })().catch((err) => {
       // Let the next push retry rather than caching a failure for the worker's lifetime.
       simplifiedCardsCssReady = null;

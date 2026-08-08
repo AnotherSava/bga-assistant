@@ -11,21 +11,22 @@
  *
  * TWO LAYOUTS, because a card that is fully visible and a card showing one strip want different
  * things. The top card of a pile — and every card in your hand, which is never stacked — takes the
- * side panel's layout, spot for spot, at the panel's own 92x45:
+ * compact layout, spot for spot, at the board card's 94x46 (2px wider and taller than the panel's
+ * own 92x45, so the icons sit 2px apart and a splay strip clears the next one):
  *
- *          col:  2->22        23->43   44->64      65->90
+ *          col:  2->22        24->44   46->66      67->92
  *     +---------------------------------------------------+
  *     |  spot_1        |     name (spot_6)   (spot_5)      |   row  2 -> 22
- *     |  spot_2        |     spot_3   spot_4  |    AGE     |   row 23 -> 43
+ *     |  spot_2        |     spot_3   spot_4  |    AGE     |   row 24 -> 44
  *     +---------------------------------------------------+
  *
  * A covered card takes the real card's geometry instead, which is the panel's with the age and the
  * right-hand icons swapped:
  *
- *          col:  2->22        23->43   44->66      70->90
+ *          col:  2->22        24->44   46->68      72->92
  *     +---------------------------------------------------+
  *     |  spot_1        |     name (spot_6)   |  (spot_5)   |   row  2 -> 22
- *     |  spot_2        |     spot_3    AGE   |   spot_4    |   row 23 -> 43
+ *     |  spot_2        |     spot_3    AGE   |   spot_4    |   row 24 -> 44
  *     +---------------------------------------------------+
  *
  * That is what makes a splayed pile read correctly, because splaying reveals a strip of the cards
@@ -33,10 +34,10 @@
  * spot_5 on a Cities card), right reveals the left-hand column (spot_1, spot_2), up reveals the
  * bottom row (spot_2, spot_3, spot_4). Every one of those lands inside its strip here.
  *
- * The age needs no rule about when to show. It sits at 44->66, which is outside the 22px strip a
- * left splay reveals (70 onward) and outside the one a right splay reveals (up to 22), so it hides
- * itself on both — while an up splay reveals the whole bottom row and brings it along. The top card
- * is never covered, so it always shows its own.
+ * The age needs no rule about when to show. It sits at 46->68, which is outside the strip a left
+ * splay reveals (70 onward) and outside the one a right splay reveals (up to 24), so it hides itself
+ * on both — while an up splay reveals the whole bottom row and brings it along. The top card is
+ * never covered, so it always shows its own.
  *
  * Cities cards fill all six spots, so they show no name — as in the panel. Every other set leaves
  * spot_5 and spot_6 empty, and BGA renders those as `icon_null`, which it already hides.
@@ -90,11 +91,11 @@ html.bgaa-simplified-cards :is([id^="hand_"], [id^="board_"]) .card.M {
    * fallback keeps the card at 100% if the injection has not published a scale yet. */
   --s: var(--bgaa-card-scale, 1);
   --inset: calc(2px * var(--s));
-  --col-centre: calc(23px * var(--s));
-  --col-right: calc(44px * var(--s));
+  --col-centre: calc(24px * var(--s));
+  --col-right: calc(46px * var(--s));
   --cell: calc(20px * var(--s));
-  width: calc(92px * var(--s)) !important;
-  height: calc(45px * var(--s)) !important;
+  width: calc(94px * var(--s)) !important;
+  height: calc(46px * var(--s)) !important;
   background-image: none;
   border-radius: 4px;
   border-style: solid;
@@ -149,6 +150,35 @@ html.bgaa-simplified-cards :is([id^="hand_"], [id^="board_"]) .card.M :is(.squar
   bottom: var(--inset); left: var(--col-right); right: auto; top: auto; transform-origin: bottom left;
 }
 
+/* ------------------------------------------------------------------------ */
+/* Resource-icon swap                                                        */
+/* ------------------------------------------------------------------------ */
+
+/* BGA draws the six resource tiles (icon_1..6: crown, leaf, lightbulb, castle, factory, clock) from
+ * its own sprite as three layers — an outer card-colour frame ring, a resource-colour chip, then the
+ * glyph — plus a 1px white frame that at this display size (~0.13px) is too thin to survive scaling
+ * and breaks into a stray white edge at a non-integer zoom. The sprite is swapped for the extension's
+ * own PNG, which has BOTH frames removed: just the resource-colour chip and glyph, so each icon is one
+ * flat shape that reads at the smallest sizes and carries no card-colour ring to clash with the card
+ * (the card shows its own colour). Because the icon no longer varies by card colour, one file per
+ * resource serves every card — keyed by `icon_N` alone, no colour. The corners are rounded to match
+ * BGA's tiles (radius pre-divided by the 0.5556 icon transform above so it lands at ~3px). Only
+ * icon_1..6 are swapped — icon_10 (echo) and the hex, city-special and bonus icons keep BGA's own
+ * rendering. `__BGAA_ICONS__` is replaced with the extension's icon base URL before injection (BGA's
+ * img-src allows the extension scheme, as the opponents'-hand card faces already rely on). */
+html.bgaa-simplified-cards :is([id^="hand_"], [id^="board_"]) .card.M .square_card_icon.M:is(.icon_1, .icon_2, .icon_3, .icon_4, .icon_5, .icon_6) {
+  border-radius: calc(3px / 0.5556);
+  background-position: center !important;
+  background-size: contain !important;
+  background-repeat: no-repeat !important;
+}
+html.bgaa-simplified-cards :is([id^="hand_"], [id^="board_"]) .card.M .square_card_icon.M.icon_1 { background-image: url("__BGAA_ICONS__crown.png") !important; }
+html.bgaa-simplified-cards :is([id^="hand_"], [id^="board_"]) .card.M .square_card_icon.M.icon_2 { background-image: url("__BGAA_ICONS__leaf.png") !important; }
+html.bgaa-simplified-cards :is([id^="hand_"], [id^="board_"]) .card.M .square_card_icon.M.icon_3 { background-image: url("__BGAA_ICONS__lightbulb.png") !important; }
+html.bgaa-simplified-cards :is([id^="hand_"], [id^="board_"]) .card.M .square_card_icon.M.icon_4 { background-image: url("__BGAA_ICONS__castle.png") !important; }
+html.bgaa-simplified-cards :is([id^="hand_"], [id^="board_"]) .card.M .square_card_icon.M.icon_5 { background-image: url("__BGAA_ICONS__factory.png") !important; }
+html.bgaa-simplified-cards :is([id^="hand_"], [id^="board_"]) .card.M .square_card_icon.M.icon_6 { background-image: url("__BGAA_ICONS__clock.png") !important; }
+
 /* Cities arrows. BGA draws left, right and up from ONE sprite, rotating it for the latter two —
  * and `transform` is a single property, so the `scale()` above silently replaced that rotation and
  * every arrow pointed the sprite's own way (left). Vienna's right-arrow is the visible case.
@@ -184,8 +214,8 @@ html.bgaa-simplified-cards :is([id^="hand_"], [id^="board_"]) .card.M .bonus_car
   bottom: calc(5.9px * var(--s));
 }
 html.bgaa-simplified-cards :is([id^="hand_"], [id^="board_"]) .card.M .bonus_card_icon.M.bonus_value:is(.top_left_icon, .bottom_left_icon) { left: calc(6.4px * var(--s)); }
-html.bgaa-simplified-cards :is([id^="hand_"], [id^="board_"]) .card.M .bonus_card_icon.M.bonus_value:is(.top_center_icon, .bottom_center_icon) { left: calc(27.4px * var(--s)); }
-html.bgaa-simplified-cards :is([id^="hand_"], [id^="board_"]) .card.M .bonus_card_icon.M.bonus_value:is(.top_right_icon, .bottom_right_icon) { left: calc(48.4px * var(--s)); }
+html.bgaa-simplified-cards :is([id^="hand_"], [id^="board_"]) .card.M .bonus_card_icon.M.bonus_value:is(.top_center_icon, .bottom_center_icon) { left: calc(28.4px * var(--s)); }
+html.bgaa-simplified-cards :is([id^="hand_"], [id^="board_"]) .card.M .bonus_card_icon.M.bonus_value:is(.top_right_icon, .bottom_right_icon) { left: calc(50.4px * var(--s)); }
 
 /* The magnifier marking a Cities card's top-centre icon as its search icon.
  *
@@ -277,7 +307,7 @@ html.bgaa-simplified-cards.bgaa-echo-text :is([id^="hand_"], [id^="board_"]) .ca
 html.bgaa-simplified-cards :is([id^="hand_"], [id^="board_"]) .card.M > .card_title {
   left: var(--col-centre) !important;
   top: var(--inset) !important;
-  width: calc(67px * var(--s)) !important;
+  width: calc(68px * var(--s)) !important;
   height: var(--cell) !important;
   overflow: hidden;
   /* Left-aligned, as in the panel. BGA centres the title with flexbox, so `text-align` alone would
@@ -330,10 +360,10 @@ html.bgaa-simplified-cards :is([id^="hand_"], [id^="board_"]) .card.M > .card_ag
  * These read `--bgaa-card-scale` from the root rather than the card's own `--s`: they are outside
  * `.card`, so nothing is inherited down to them. */
 html.bgaa-simplified-cards .pile {
-  min-height: calc(47px * var(--bgaa-card-scale, 1)) !important;
+  min-height: calc(48px * var(--bgaa-card-scale, 1)) !important;
 }
 html.bgaa-simplified-cards .board {
-  min-height: calc(47px * var(--bgaa-card-scale, 1) + 45px) !important;
+  min-height: calc(48px * var(--bgaa-card-scale, 1) + 45px) !important;
 }
 
 /* ------------------------------------------------------------------------ */
@@ -455,7 +485,7 @@ html.bgaa-simplified-cards [id^="board_"] .card.M:not([data-bgaa-top]) .bonus_ca
   left: auto; right: calc(6.4px * var(--s));
 }
 
-/* Ends at 66, clear of the 70 where a left splay's strip begins — so a covered card shows its icon
+/* Ends at 68, clear of the 70 where a left splay's strip begins — so a covered card shows its icon
  * there and never a sliver of a digit. */
 html.bgaa-simplified-cards [id^="board_"] .card.M:not([data-bgaa-top]) > .card_age {
   left: var(--col-right) !important;

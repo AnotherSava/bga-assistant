@@ -55,28 +55,41 @@ export function simplifiedCardsFunction(opts: { enabled: boolean; scale: number;
   const RETRY_INTERVAL_MS = 250;
 
   /**
-   * The card at 100%, in CSS pixels: the side panel's own. Everything below is this scaled, and it
-   * must stay in step with `.card.M` in simplified_cards.css.
+   * The opponents'-hand card at 100%, in CSS pixels: the side panel's own size. It stays in step with
+   * `.card` in mini_card.css. The board and own-hand cards use `CARD_BOARD` instead.
    */
   const CARD = { width: 92, height: 45 };
+  /**
+   * The board and own-hand card: 2px wider and 1px taller than `CARD`. The extra width holds a 2px gap
+   * between the icon columns and the extra height a 2px gap between the two rows, so a splayed pile's
+   * revealed strip clears the next icon with a pixel of room — without crowding any icon toward the
+   * card edge. Only the boards splay, but BGA sizes every "M card" (your hand included) from one
+   * `card_dimensions` entry, so the own hand comes along; the opponents' hands and the panel keep
+   * `CARD`. Must stay in step with the `.card.M` box in simplified_cards.css.
+   */
+  const CARD_BOARD = { width: 94, height: 46 };
   /** The gutter BGA leaves between hand cards at 100% (its own 189 is a 182 box plus 7). */
   const HAND_GUTTER = 7;
   /**
-   * How much of a covered card a splay leaves showing, at 100% — the icon band it exists to reveal
-   * and nothing more: a 20px icon at a 2px inset.
+   * How much of a covered card a splay leaves showing, at 100% — the icon and a full 2px gap to where
+   * the next card overlaps: a 20px icon at a 2px inset, then the whole 2px gap to the next column/row.
    *
-   * One figure serves every direction, because the band is the same 22px on both axes: it exposes
-   * the left or right icon column of a 92px-wide card, and the bottom row of a 45px-tall one.
+   * This equals `--col-centre` (24), and that is the point: the overlapping card's edge then lands
+   * exactly on the next icon column (the border offsets cancel — `1 + 24*f` on both sides), so the
+   * revealed icon gets the same 2px margin it has from the card's own border, and no sliver of the
+   * next column shows. One figure serves every direction, because `CARD_BOARD` gives the icons a 2px
+   * gap on both axes: the left or right column of a 94px-wide card, and the bottom row of a 46px-tall
+   * one (46 = this 24 + a 2px inset + a 20px icon).
    *
-   * It must not be generous. The card's two icon rows sit a single pixel apart (2->22 and 23->43 of
-   * 45), so every pixel of slack here shows as a strip of the row above through an up splay — and
-   * the same slack on a right splay would bring a sliver of the centre column with it.
+   * It must not be generous. A band wider than 24 would bring a sliver of the next column into a right
+   * splay, or the row above into an up splay. `CARD_BOARD`'s extra 2x1px over `CARD` is what buys this
+   * 24 over the old 22 — which left the icon flush against the next card — without crowding the edge.
    *
    * simplified_cards.css lays a covered card out against this number — it gives the right-hand icons
    * the strip a left splay reveals and keeps the age out of it — so the two are a pair and neither
    * moves alone.
    */
-  const SPLAY_REVEAL = 22;
+  const SPLAY_REVEAL = 24;
   /**
    * BGA's own "show next to nothing" offset for its compact display mode, left unscaled: it is a
    * hairline standing in for a hidden card rather than a part of the card's proportions.
@@ -107,17 +120,19 @@ export function simplifiedCardsFunction(opts: { enabled: boolean; scale: number;
    * way to a fractional overlap — and rounding here alone would put these a half-pixel out of step
    * with the stylesheet, which scales the same base numbers through calc().
    *
-   * `hand` is the opponent-hand card, outer edge included. Its whole box scales, border and all,
-   * because the panel's card is dropped into BGA's slot whole and scaled with a transform rather than
-   * rebuilt at each size in CSS — so at 200% it is two pixels wider than a hand card of your own,
-   * whose 1px border does not scale. The zone is laid out against exactly what gets painted.
+   * `hand` is the opponent-hand card, outer edge included, and the one place `CARD` (92x45) is still
+   * used rather than `CARD_BOARD`: opponents' hands stay the panel's compact size. Its whole box
+   * scales, border and all, because the panel's card is dropped into BGA's slot whole and scaled with
+   * a transform rather than rebuilt at each size in CSS — so its 1px border grows with it, unlike the
+   * board/own-hand card whose border stays 1px at every size. The zone is laid out against exactly
+   * what gets painted.
    */
   const geometryAt = (scale: number) => {
     const factor = scale / 100;
     return {
       factor,
-      card: { width: CARD.width * factor + 2 * BORDER, height: CARD.height * factor + 2 * BORDER },
-      myHand: { x: (CARD.width + HAND_GUTTER) * factor + 2 * BORDER, y: (CARD.height + HAND_GUTTER) * factor + 2 * BORDER },
+      card: { width: CARD_BOARD.width * factor + 2 * BORDER, height: CARD_BOARD.height * factor + 2 * BORDER },
+      myHand: { x: (CARD_BOARD.width + HAND_GUTTER) * factor + 2 * BORDER, y: (CARD_BOARD.height + HAND_GUTTER) * factor + 2 * BORDER },
       // The step is between card boxes, so the strip it leaves showing opens with the covered card's
       // own border edge — one border, not two, and it is not part of the band the icons need.
       splay: { compact: SPLAY_COMPACT, expanded: SPLAY_REVEAL * factor + BORDER },

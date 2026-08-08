@@ -57,7 +57,7 @@ Keep `docs/pages/data-flow.md` up to date when code changes affect data flow, me
 - `src/games/innovation/sticky_panels.ts` — pinned right column for every BGA game (ISOLATED-world, self-contained; measures the frozen bar and the panel stack, publishes them as custom properties, copies the page backdrop)
 - `src/games/innovation/sticky_panels.css` — the sticky rules for both modes (whole column while the turn history is up, player panels alone otherwise) and the panels' backdrop
 - `src/games/innovation/simplified_cards.ts` — simplified table cards (MAIN-world, self-contained; patches Innovation's layout constants, marks each pile's top card from `zone.items`, rewrites card names from `gameui.cards`) + opponent-hand knowledge push (replaces each opponent-hand zone's `itemIdToCoordsGrid` to resize it, draws the panel's card into each face-down card)
-- `src/games/innovation/simplified_cards.css` — the compact card's two layouts (top card / covered card), scaled from `--bgaa-card-scale`
+- `src/games/innovation/simplified_cards.css` — the compact card's two layouts (top card / covered card), scaled from `--bgaa-card-scale`, plus the resource-icon swap (BGA's framed sprite tiles replaced by the extension's flat frame-removed PNGs, via the `__BGAA_ICONS__` URL placeholder)
 - `src/games/innovation/mini_card.css` — the panel's compact card, shared by the side panel, the ZIP export and the opponents' hands on BGA's table (every rule scoped under `.bgaa-cards`, which must outweigh BGA's own single-class `.card` rule)
 - `src/games/innovation/card_tip.css` — card tooltip geometry shared by the side panel, the in-page log and the simplified cards' opponent hands
 - `src/games/innovation/turn_history.css` — turn-history row appearance shared by both surfaces
