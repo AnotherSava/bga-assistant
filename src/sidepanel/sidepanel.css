@@ -263,7 +263,28 @@ body {
 }
 .help-grid-item { display: contents; }
 .help-grid-label { color: #ddd; font-weight: bold; white-space: nowrap; min-width: 90px; }
-.help-grid-item:not(:has(.help-grid-label)) { grid-column: 1 / -1; }
+/* Label-less items span the full width. The rule targets the child, not the .help-grid-item
+   wrapper: the wrapper is display:contents, so it generates no box and grid-column on it is ignored —
+   the span itself is the grid item. */
+.help-grid-item:not(:has(.help-grid-label)) > * { grid-column: 1 / -1; line-height: 1.5; margin-bottom: 8px; }
+
+/* Collapsible sections: a prose-heavy .help-section becomes a <details> whose .help-section-title
+   is the <summary>. Short reference sections stay plain <div> blocks, always shown. */
+details.help-section > summary.help-section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+  margin-bottom: 0;
+}
+details.help-section[open] > summary.help-section-title { margin-bottom: 10px; }
+details.help-section > summary.help-section-title::-webkit-details-marker { display: none; }
+details.help-section > summary.help-section-title:hover { color: #ddd; }
+.help-section-title .chevron { flex: none; color: #888; font-weight: normal; transition: transform 0.15s ease; }
+details.help-section[open] > summary.help-section-title .chevron { transform: rotate(90deg); }
 
 /* Help page button circles (mirrors .top-buttons button) */
 .help-btn {

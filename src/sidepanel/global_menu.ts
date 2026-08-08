@@ -11,7 +11,7 @@ export function buildGlobalDisplayMenu(panel: HTMLElement): void {
 
   const header = document.createElement("div");
   header.className = "dropdown-header";
-  header.textContent = "On BGA's pages:";
+  header.textContent = "On the game table:";
   panel.appendChild(header);
 
   const label = document.createElement("label");
