@@ -329,7 +329,7 @@ function renderWithDb(cardDb: CardDatabase, results: InnovationResults, contentE
   const turnHistoryEl = document.getElementById("turn-history");
   if (turnHistoryEl) {
     const recent = recentTurns(gameLog.actions, 3);
-    turnHistoryEl.innerHTML = renderTurnHistory(recent, cardDb, players);
+    turnHistoryEl.innerHTML = renderTurnHistory(recent, cardDb, players, { newestFirst: true });
   }
 
   applyInnovationDisplayOptions({ echoes: currentExpansions.echoes, relics: currentExpansions.relics ?? false, zoomLevel });

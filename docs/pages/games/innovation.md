@@ -15,13 +15,13 @@ Each of those sections shows known cards with their name, icons, and age, while 
 
 ## Turn history
 
-A compact sidebar shows recent actions — meld, draw, dogma, endorse, achieve, promote — with timestamps and player attribution. Each player's row is rendered in their actual BGA-assigned color, and your own ("you") row is highlighted with a subtle background tint of that color so it stays distinguishable regardless of which color BGA gave you. Compound actions (e.g. meld → promote → dogma) render as indented sub-action lines. Turns that begin with an Artifact on display show the pre-turn choice (pass, return, or dogma of that Artifact) as an italicized line above the regular actions:
+A compact sidebar shows recent actions — meld, draw, dogma, endorse, achieve, promote — newest first, with timestamps and player attribution. Each player's row is rendered in their actual BGA-assigned color, and your own ("you") row is highlighted with a subtle background tint of that color so it stays distinguishable regardless of which color BGA gave you. Compound actions (e.g. meld → promote → dogma) render as indented sub-action lines. Turns that begin with an Artifact on display show the pre-turn choice (pass, return, or dogma of that Artifact) as an italicized line above the regular actions:
 
 ![Innovation turn history](../../screenshots/innovation-history.png)
 
 ### In the BGA game log
 
-The same turn history can render directly in BGA's own log column instead of the side panel, where it stays visible and keeps updating with the panel closed. Enable it from the eye menu with "Show in BGA game log". The in-page version reads newest-first to match BGA's log, shows the same action lines as the panel, and timestamps them with the time only — rows wrap in BGA's narrow column, and the date would cost a line. Card names keep their hover tooltips.
+The same turn history can render directly in BGA's own log column instead of the side panel, where it stays visible and keeps updating with the panel closed. Enable it from the eye menu with "Show in BGA game log". Like the panel, it reads newest-first — matching BGA's log — and shows the same action lines, but timestamps them with the time only: rows wrap in BGA's narrow column, and the date would cost a line. Card names keep their hover tooltips.
 
 The column shows one log or the other, never both. A lightbulb in the header switches between them — lit while the turn history is up, dim while BGA's log is — so neither list is out of reach with the side panel closed. "More..." at the foot of the history widens the window beyond the default nine half-turns, and disappears once the whole game is shown. Both that and the switch are temporary: they last for the table you're on, and a reload or a different table starts from the eye-menu setting again.
 
@@ -213,7 +213,7 @@ The deck section shows remaining cards per age, with known cards revealed by nam
 - **Set toggle**: switch between Base, Echoes, Cities, and Artifacts card sets for deck and card list
 - **Filter toggle**: All / Unknown (show only unaccounted cards)
 - **Layout toggle**: Wide (one row per age) / Tall (color columns)
-- **Turn history**: compact chronological display of recent actions (meld, draw, dogma, endorse, achieve, promote) with card name tooltips; compound actions (e.g. meld → promote → dogma) render as indented sub-action lines; pre-turn Artifact decisions (pass, return, or dogma) render as an italicized line above the turn's actions; each player's row uses their actual BGA-assigned color, with the observer's row tinted for distinction
+- **Turn history**: compact newest-first display of recent actions (meld, draw, dogma, endorse, achieve, promote) with card name tooltips; compound actions (e.g. meld → promote → dogma) render as indented sub-action lines; pre-turn Artifact decisions (pass, return, or dogma) render as an italicized line above the turn's actions; each player's row uses their actual BGA-assigned color, with the observer's row tinted for distinction
 - **In-page game log**: render the turn history in BGA's own log column instead of the side panel, newest-first; an in-page switch moves between the two logs without reopening the panel
 - **Simplified cards on the table**: draw your hand and every player's board with the panel's compact card — flat colour, icons, name and age, at about a quarter of the area; a size slider scales them 100–200%, covered cards use the real card's icon positions so splayed piles read as before, and Echo effects can be printed as text rather than marked
 - **Compact table header extras**: on top of the shared behaviour, Innovation's "Show compact" and "Browse all cards" buttons are hidden (the card list here covers the second), and "Look at all cards in piles" becomes an eye icon in the header's left corner
