@@ -272,9 +272,8 @@ body {
    is the <summary>. Short reference sections stay plain <div> blocks, always shown. */
 details.help-section > summary.help-section-title {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  flex-direction: column;
+  gap: 2px;
   cursor: pointer;
   list-style: none;
   user-select: none;
@@ -285,6 +284,12 @@ details.help-section > summary.help-section-title::-webkit-details-marker { disp
 details.help-section > summary.help-section-title:hover { color: #ddd; }
 .help-section-title .chevron { flex: none; color: #888; font-weight: normal; transition: transform 0.15s ease; }
 details.help-section[open] > summary.help-section-title .chevron { transform: rotate(90deg); }
+/* Title row (name + chevron), and the collapsed-state one-line preview under it. The preview is
+   hidden once the section opens, since the body then carries the full text. It resets the title's
+   uppercasing and letter-spacing so it reads as a sentence-case summary. */
+.help-section-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.help-section-preview { font-size: 11px; font-weight: normal; text-transform: none; letter-spacing: normal; color: #888; }
+details.help-section[open] > summary.help-section-title .help-section-preview { display: none; }
 
 /* Help page button circles (mirrors .top-buttons button) */
 .help-btn {
