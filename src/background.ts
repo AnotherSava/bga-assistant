@@ -11,11 +11,13 @@ import { inPageLogFunction } from "./games/innovation/inpage_log.js";
 import { compactHeaderFunction } from "./games/innovation/compact_header.js";
 import { stickyPanelsFunction } from "./games/innovation/sticky_panels.js";
 import { simplifiedCardsFunction, opponentHandHintsFunction } from "./games/innovation/simplified_cards.js";
+import { actionTintFunction } from "./games/innovation/action_tint.js";
 import { loadInPageSettings, saveInPageSettings, subscribeInPageSettings, INPAGE_DEFAULTS, INPAGE_LOG_HALF_TURNS, type InPageSettings } from "./sidepanel/inpage_settings.js";
 import cardTipCss from "./games/innovation/card_tip.css?raw";
 import turnHistoryCss from "./games/innovation/turn_history.css?raw";
 import inPageLogCss from "./games/innovation/inpage_log.css?raw";
 import compactHeaderCss from "./games/innovation/compact_header.css?raw";
+import actionTintCss from "./games/innovation/action_tint.css?raw";
 import stickyPanelsCss from "./games/innovation/sticky_panels.css?raw";
 import miniCardCss from "./games/innovation/mini_card.css?raw";
 import simplifiedCardsCss from "./games/innovation/simplified_cards.css?raw";
@@ -622,6 +624,8 @@ const compactHeaderStyles = new Map<number, Promise<unknown>>();
 const stickyPanelsStyles = new Map<number, Promise<unknown>>();
 /** In-flight or completed simplified-card stylesheet injection per tab. Same contract as the log's. */
 const simplifiedCardsStyles = new Map<number, Promise<unknown>>();
+/** In-flight or completed action-tint stylesheet injection per tab. Same contract as the log's. */
+const actionTintStyles = new Map<number, Promise<unknown>>();
 
 /**
  * Drop every per-tab in-page override.
@@ -637,6 +641,7 @@ function forgetInPageTab(tabId: number): void {
   compactHeaderStyles.delete(tabId);
   stickyPanelsStyles.delete(tabId);
   simplifiedCardsStyles.delete(tabId);
+  actionTintStyles.delete(tabId);
 }
 
 /**
@@ -718,6 +723,21 @@ async function pushInPageLog(tabId: number): Promise<void> {
 function pushResultSurfaces(tabId: number): void {
   void pushInPageLog(tabId);
   void pushOpponentHands(tabId);
+}
+
+/**
+ * Tint the top bar when the viewer must act during another player's turn.
+ *
+ * Independent of extraction, like the compact header: the injected function reads whose turn it is —
+ * and whether the viewer must act — straight from gameui, so the service worker sends only the on/off
+ * flag. Injected into every board frame; the function bails on any frame that is not an Innovation
+ * board (the one game with cross-turn reactions), and there tears itself down if it was on.
+ */
+async function pushActionTint(tabId: number, enabled: boolean): Promise<void> {
+  // Read at push time rather than passed in: every caller wants whatever is stored right now.
+  const speed = inPageLogSettings.actionTintSpeed;
+  if (enabled) await ensureStyles(actionTintStyles, tabId, () => actionTintCss);
+  chrome.scripting.executeScript({ target: { tabId, allFrames: true }, func: actionTintFunction as unknown as () => void, args: [{ enabled, speed }], world: "MAIN" as chrome.scripting.ExecutionWorld }).catch(() => {});
 }
 
 /** Just the hiding rule, injected at frame-commit time so BGA's log never paints. */
@@ -1476,6 +1496,12 @@ chrome.webNavigation.onCompleted.addListener((details) => {
     simplifiedCardsStyles.delete(details.tabId);
     void pushSimplifiedCards(details.tabId, true);
   }
+  // Same story: extraction-independent, no consumer needed, and the fresh frame carries none of the
+  // predecessor's CSS. The injected function bails on any board that is not Innovation.
+  if (inPageLogSettings.actionTint) {
+    actionTintStyles.delete(details.tabId);
+    void pushActionTint(details.tabId, true);
+  }
   if (details.tabId !== activeTabId) return;
   chrome.tabs.get(details.tabId).then(async (tab) => {
     const game = await updateIcon(details.tabId, tab.url);
@@ -1551,6 +1577,9 @@ void loadInPageSettings().then((settings) => {
   if (settings.compactHeader) void pushCompactHeader(activeTabId, true);
   if (settings.stickyPanels) void pushStickyPanels(activeTabId, true);
   if (settings.simplifiedCards) void pushSimplifiedCards(activeTabId, true);
+  // Extraction-independent like the compact header: a table already open when the worker starts gets
+  // the tint set up here, since no navigation event will follow to inject it.
+  if (settings.actionTint) void pushActionTint(activeTabId, true);
 });
 
 subscribeInPageSettings((settings) => {
@@ -1562,6 +1591,8 @@ subscribeInPageSettings((settings) => {
   const wasCardScale = inPageLogSettings.cardScale;
   const wasEchoText = inPageLogSettings.echoText;
   const wasOpponentHands = inPageLogSettings.opponentHands;
+  const wasActionTint = inPageLogSettings.actionTint;
+  const wasActionTintSpeed = inPageLogSettings.actionTintSpeed;
   inPageLogSettings = settings;
   if (settings.compactHeader !== wasCompactHeader || settings.progressionOnly !== wasProgressionOnly) {
     broadcastInPageSetting(compactHeaderStyles, pushCompactHeader, settings.compactHeader, settings.compactHeader && !wasCompactHeader);
@@ -1575,6 +1606,10 @@ subscribeInPageSettings((settings) => {
   // function publishes, and only it can restate BGA's own layout constants at the new scale.
   if (settings.simplifiedCards !== wasSimplifiedCards || (settings.simplifiedCards && (settings.cardScale !== wasCardScale || settings.echoText !== wasEchoText || settings.opponentHands !== wasOpponentHands))) {
     broadcastInPageSetting(simplifiedCardsStyles, pushSimplifiedCards, settings.simplifiedCards, settings.simplifiedCards && !wasSimplifiedCards);
+  }
+  // A speed change re-pushes too, since the injected function republishes the animation properties.
+  if (settings.actionTint !== wasActionTint || (settings.actionTint && settings.actionTintSpeed !== wasActionTintSpeed)) {
+    broadcastInPageSetting(actionTintStyles, pushActionTint, settings.actionTint, settings.actionTint && !wasActionTint);
   }
   if (activeTabId === null) return;
   if (!settings.enabled) {

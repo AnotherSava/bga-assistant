@@ -1,0 +1,12 @@
+---
+name: Innovation gamestate machine + act-during-opponent's-turn detection
+description: Tell a forced reaction (act on an opponent's turn) from your own turn/dogma choice via live gameui state
+type: reference
+---
+`gameui.gamedatas.gamestates` exposes the whole state machine (read it live to verify names). Innovation's **activeplayer** states, confirmed on a live table (2026-08-10): `playerTurn` (id 4), `selectionMove` (id 13), `artifactPlayerTurn`, `relicPlayerTurn`, `promoteCardPlayerTurn`, `dogmaPromotedPlayerTurn`. (Others are `game`/`manager`/`multipleactiveplayer` — e.g. `turn0` opening meld is multiactive.)
+
+**The crux:** `selectionMove` is the within-turn choice/reaction state — it fires BOTH for a forced reaction during an *opponent's* turn (I-demand / I-compel / share) AND for the launcher's OWN dogma choices (splay a colour, return a card). `gameui.isCurrentPlayerActive()` is `true` in both, and in both the framework makes the acting player the state's `active_player` — so neither the state name nor `isCurrentPlayerActive()` nor `gamestate.active_player` alone tells "my reaction" from "my own choice." The discriminator is the TURN OWNER.
+
+**Detecting "the viewer must act during another player's turn"** (used by `src/games/innovation/action_tint.ts`): track the turn owner live — it is `gamestate.active_player` whenever the state is one of the five turn-establishing states above (NOT `selectionMove`); seed it at mount from `gameui.gamedatas.active_player` (the top-level turn owner / launcher, correct at getAllDatas / F5, including a reload taken mid-reaction, where it holds the launcher not the reactor). Then it is a reaction iff `isCurrentPlayerActive() && gamestate.name === 'selectionMove' && owner !== String(gameui.player_id)`. All read from gameui LIVE — no extraction.
+
+**Why not the service worker's log-derived turn owner:** the SW reconstructs "whose turn" from the notification history it FETCHES via `gameui.ajaxcall` (network), so it lags a live turn change by seconds (the ~2s watcher debounce + 5s live rate-limit; some transitions mint no `#logs` mutation at all). Invisible for the displayed turn history, but as the tint discriminator it flashes on your OWN turn at turn-start (active flips true instantly while the fetched owner still names the opponent). A truly-fresh turn owner can only come from the page's live `gameui`, which is the same turn-marker data without the fetch delay. Owner ids match `gameui.player_id` (both bare BGA ids) — see [[project_innovation_id_keyed_maps]].

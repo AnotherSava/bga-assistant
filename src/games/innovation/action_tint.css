@@ -1,0 +1,31 @@
+/* Action-required tint: scrolling hazard-tape diagonal stripes across BGA's table top bar when the
+   viewer must act during another player's turn. Keyed only on the root class the injection toggles,
+   independent of the compact header.
+
+   The stripes are a background-image, not a border or box-shadow, so they paint BEHIND the bar's own
+   text (nothing is covered) and let the theme's own background colour show through the transparent
+   gaps. Only background-image is overridden, so the bar keeps its colour and BGA's drop shadow.
+   !important beats a theme's own #topbar background rule; the scroll animates background-position,
+   which no !important touches, so it plays over the top. */
+html.bgaa-action-required #topbar {
+  background-image: repeating-linear-gradient(
+    45deg,
+    rgba(240, 165, 35, 0.72) 0, rgba(240, 165, 35, 0.72) 16px,
+    rgba(240, 165, 35, 0) 16px, rgba(240, 165, 35, 0) 32px
+  ) !important;
+  /* Speed, direction and pause come from the eye-menu slider, published by the injection as custom
+     properties on the root; the fallbacks match the shipped default (magnitude 3, forward). */
+  animation: bgaa-tape-scroll var(--bgaa-tape-duration, 1s) linear infinite;
+  animation-direction: var(--bgaa-tape-direction, normal);
+  animation-play-state: var(--bgaa-tape-play, running);
+}
+
+/* One full 32px pattern step along the 45° axis is 32 / cos 45° ≈ 45.25px horizontally, so the loop
+   is seamless — the end frame lands exactly one stripe on from the start. */
+@keyframes bgaa-tape-scroll {
+  to { background-position: 45.25px 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.bgaa-action-required #topbar { animation: none; }
+}

@@ -195,6 +195,21 @@ BGA's narrow-window layout is left alone. There the two columns are stacked rath
 which puts the column above the board with nothing to travel past — and BGA hides its log column in
 that layout, so there is no history to pin either.
 
+## Police-line highlight
+
+An asynchronous game can leave a decision waiting for you on someone else's turn — an opponent's dogma
+demanding a card, a share you may take — and it is easy to open the table, glance at the board, and
+miss that it is your move at all. This paints diagonal amber hazard stripes across BGA's top bar
+whenever you must act *during another player's turn*, so the one moment that is easy to overlook is the
+one that is impossible to. It stays dark on your own turn and on your own dogma choices — only a genuine
+cross-turn reaction lights it.
+
+Whose turn it is comes from BGA's own live game state rather than the reconstructed log, so the stripes
+appear the instant the reaction does and clear the instant you act. A "Movement" slider under the toggle
+scrolls the stripes — its centre is static, its sign the direction, its magnitude the speed — for
+anything from a still band to a fast barber pole. Switched from the eye menu; on by default on a local
+build, off on the store one, like the other on-table features.
+
 ## Card list
 
 The card list lays out all cards in the game across ages, showing which cards have been identified and which remain unknown. Toggle between Base, Echoes, Cities, and Artifacts sets, filter to show only unaccounted cards, and switch between wide and tall layouts:

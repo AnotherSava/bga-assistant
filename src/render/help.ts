@@ -121,6 +121,13 @@ export function renderHelp(errorMessage?: string, gameName?: GameName): string {
       <div class="help-grid-item"><span>\u201CShow compact\u201D and \u201CBrowse all cards\u201D are hidden too \u2014 the first only changes how far splayed stacks overlap, and the card list here already shows what the second does. BGA\u2019s \u201CThis player is not playing: what can I do?\u201D link goes as well. \u201CLook at all cards in piles\u201D stays, redrawn as an eye icon in the left corner beside the table info, and the go-to-next-table control moves to the right to join BGA\u2019s sound and menu icons \u2014 it grows into \u201CN tables are waiting for you\u201D once your turn ends, and there is room for that there. The eye is dimmed until you hover it; that one keeps its full strength, since it is telling you something. This is on by default; \u201CCompact BGA header\u201D in the ${ICON_EYE} menu puts everything back where BGA had it.</span></div>
     </div>
   </details>
+
+  <details class="help-section" name="help-innov">
+    <summary class="help-section-title"><span class="help-section-head">Police-line highlight <span class="chevron">\u203A</span></span><span class="help-section-preview">Hazard stripes when you must act out of turn</span></summary>
+    <div class="help-sections-grid">
+      <div class="help-grid-item"><span>Diagonal amber hazard stripes cross BGA\u2019s top bar whenever you must act during another player\u2019s turn \u2014 an opponent\u2019s dogma demanding a card, a share you may take \u2014 so a decision left waiting on someone else\u2019s turn is impossible to miss when you open the table. It stays dark on your own turn and on your own dogma choices; only a genuine cross-turn reaction lights it. A \u201CMovement\u201D slider scrolls the stripes: the centre is static, the sign is the direction, the magnitude the speed. Enable \u201CPolice-line highlight\u201D in the ${ICON_EYE} menu.</span></div>
+    </div>
+  </details>
   </div>
 
   <div class="help-tab-content${gameName === "azul" ? " active" : ""}" data-help-panel="azul">

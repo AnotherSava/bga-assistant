@@ -584,6 +584,36 @@ to.
 Turning the feature off re-injects with `enabled: false`, which drops the class and every published
 property; the observers retire themselves on their next callback.
 
+## Data Flow: Action-Required Tint
+
+Optional, Innovation only, and off on a store build. It stripes BGA's top bar amber while the viewer
+must act during *another* player's turn. Extraction-independent — unlike the results-driven surfaces,
+it reads whose turn it is straight from the page's live `gameui`, so nothing crosses this boundary but
+the on/off flag and the scroll speed.
+
+***Background Service Worker***
+
+1. On `webNavigation.onCompleted` — and at worker startup for an already-open table, and on the
+   setting's `storage.onChanged` — bail unless `actionTint` is on, then `background.pushActionTint()`
+   awaits the stylesheet and injects the mount into all frames. A speed change re-injects too, since
+   the injected function republishes the animation as custom properties
+
+```
+⇩   executeScript arguments (JSON-serialized, not a message):
+⇩   [ { enabled, speed } ]
+```
+
+***Action-Required Tint*** (MAIN world)
+
+1. Return silently unless the frame is an Innovation board (`.bgagame-innovation`); tear down otherwise
+2. Publish the scroll — duration, direction, play/pause — as root custom properties the stylesheet's
+   animation reads, derived from the speed (magnitude 1–5, 0 = static, sign = direction)
+3. Poll `gameui` about twice a second: track the turn owner from the turn-establishing states (seeded
+   from `gameui.gamedatas.active_player`), and toggle `bgaa-action-required` on the root when
+   `isCurrentPlayerActive()` and the state is `selectionMove` and the owner is not you. Reading the live
+   state keeps the owner fresh — the reconstructed log's owner lags a turn change and would flash on your
+   own turn at turn-start
+
 ## Data Flow: Side Panel Connect
 
 When the *Side Panel* opens (or reconnects after a service worker restart), the

@@ -2,7 +2,7 @@
 
 import { SECTION_IDS, SECTION_LABELS, ECHOES_ONLY_SECTIONS, RELICS_ONLY_SECTIONS } from "./config.js";
 import { loadSetting, saveSetting } from "../../sidepanel/settings.js";
-import { loadInPageSettings, saveInPageSettings, CARD_SCALE_MIN, CARD_SCALE_MAX, CARD_SCALE_STEP } from "../../sidepanel/inpage_settings.js";
+import { loadInPageSettings, saveInPageSettings, CARD_SCALE_MIN, CARD_SCALE_MAX, CARD_SCALE_STEP, ACTION_TINT_SPEED_MIN, ACTION_TINT_SPEED_MAX, ACTION_TINT_SPEED_STEP } from "../../sidepanel/inpage_settings.js";
 
 export interface InnovationDisplayContext {
   echoes: boolean;
@@ -185,6 +185,60 @@ export function buildInnovationDisplayMenu(panel: HTMLElement, context: Innovati
       const scale = Number(scaleSlider.value);
       scaleValue.textContent = `${scale}%`;
       void saveInPageSettings({ cardScale: scale });
+    });
+  }
+
+  // Police-line highlight: hazard stripes across BGA's top bar when you must act during another
+  // player's turn. Innovation only, so it lives here rather than in the global menu. Stored alongside
+  // the other in-page settings — the service worker applies it, and it has no localStorage.
+  {
+    const tintLabel = document.createElement("label");
+    const tintCheckbox = document.createElement("input");
+    tintCheckbox.type = "checkbox";
+    tintLabel.appendChild(tintCheckbox);
+    tintLabel.appendChild(document.createTextNode("Police-line highlight"));
+    panel.appendChild(tintLabel);
+
+    // Scroll of the stripes: centre (0) is static, the sign is the direction, the magnitude is the
+    // speed. A sub-option — it only tunes the highlight the checkbox above turns on.
+    const speedLabel = document.createElement("label");
+    speedLabel.className = "sub-option slider-option";
+    const speedSlider = document.createElement("input");
+    speedSlider.type = "range";
+    speedSlider.min = String(ACTION_TINT_SPEED_MIN);
+    speedSlider.max = String(ACTION_TINT_SPEED_MAX);
+    speedSlider.step = String(ACTION_TINT_SPEED_STEP);
+    const speedValue = document.createElement("span");
+    speedValue.className = "slider-value";
+    speedLabel.appendChild(document.createTextNode("Movement"));
+    speedLabel.appendChild(speedSlider);
+    speedLabel.appendChild(speedValue);
+    panel.appendChild(speedLabel);
+
+    const speedText = (v: number): string => v === 0 ? "static" : `${v > 0 ? "→" : "←"} ${Math.abs(v)}`;
+
+    /** The movement slider only matters while the highlight itself is on, so it follows its parent. */
+    const syncTint = (): void => {
+      speedSlider.disabled = !tintCheckbox.checked;
+      speedLabel.classList.toggle("disabled", !tintCheckbox.checked);
+    };
+
+    void loadInPageSettings().then((settings) => {
+      tintCheckbox.checked = settings.actionTint;
+      speedSlider.value = String(settings.actionTintSpeed);
+      speedValue.textContent = speedText(settings.actionTintSpeed);
+      syncTint();
+    });
+
+    tintCheckbox.addEventListener("change", () => {
+      void saveInPageSettings({ actionTint: tintCheckbox.checked });
+      syncTint();
+    });
+
+    speedSlider.addEventListener("input", () => {
+      const speed = Number(speedSlider.value);
+      speedValue.textContent = speedText(speed);
+      void saveInPageSettings({ actionTintSpeed: speed });
     });
   }
 

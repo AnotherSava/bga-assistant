@@ -45,6 +45,10 @@ export interface InPageSettings {
   echoText: boolean;
   /** Draw the opponents' face-down hands as those cards too, with what is known about each. */
   opponentHands: boolean;
+  /** Tint BGA's top bar when the viewer must act during another player's turn (a reaction). */
+  actionTint: boolean;
+  /** Scroll of the action-tint stripes: 0 = static, sign = direction, magnitude 1–5 = speed. */
+  actionTintSpeed: number;
 }
 
 /** Bounds of the simplified cards' size slider, in percent. */
@@ -61,6 +65,13 @@ export const CARD_SCALE_STEP = 10;
  */
 export const CARD_SCALE_LOCAL_DEFAULT = 150;
 
+/** Bounds of the action-tint movement slider: −5…+5, with 0 (static) at centre and ±5 magnitudes. */
+export const ACTION_TINT_SPEED_MIN = -5;
+export const ACTION_TINT_SPEED_MAX = 5;
+export const ACTION_TINT_SPEED_STEP = 1;
+/** The scroll speed the stripes shipped with, placed at the middle magnitude so there is room both ways. */
+export const ACTION_TINT_SPEED_DEFAULT = 3;
+
 export const INPAGE_DEFAULTS: InPageSettings = {
   enabled: false,
   showPlayerNames: false,
@@ -71,6 +82,8 @@ export const INPAGE_DEFAULTS: InPageSettings = {
   cardScale: CARD_SCALE_MIN,
   echoText: false,
   opponentHands: false,
+  actionTint: false,
+  actionTintSpeed: ACTION_TINT_SPEED_DEFAULT,
 };
 
 /**
@@ -101,14 +114,15 @@ export function isUnpackedBuild(): boolean {
  * The settings that put something on BGA's own page — the in-page log, the compact header, the pinned
  * panels, the simplified cards and the opponents' hands among them — differ: a store build leaves all
  * of them to be asked for, while a local build has them on, since that is where they are being worked
- * on and switching them back on after every reload is friction with no purpose. `showPlayerNames`,
- * `progressionOnly` and `echoText` stay off either way — they only restyle what the others already
- * turned on, where the opponents' hands are a surface of their own. A local build also starts the
+ * on and switching them back on after every reload is friction with no purpose. `echoText` rides
+ * along on a local build too — it restyles the simplified cards, which are on there — so an Echo card's
+ * effect is legible while it is being worked on. `showPlayerNames` and `progressionOnly` stay off
+ * either way, only restyling what the others already turned on. A local build also starts the
  * simplified cards at `CARD_SCALE_LOCAL_DEFAULT` rather than the store's 100%, for the same reason.
  */
 function buildDefaults(): InPageSettings {
   const unpacked = isUnpackedBuild();
-  return { ...INPAGE_DEFAULTS, enabled: unpacked, compactHeader: unpacked, stickyPanels: unpacked, simplifiedCards: unpacked, opponentHands: unpacked, cardScale: unpacked ? CARD_SCALE_LOCAL_DEFAULT : INPAGE_DEFAULTS.cardScale };
+  return { ...INPAGE_DEFAULTS, enabled: unpacked, compactHeader: unpacked, stickyPanels: unpacked, simplifiedCards: unpacked, opponentHands: unpacked, actionTint: unpacked, echoText: unpacked, cardScale: unpacked ? CARD_SCALE_LOCAL_DEFAULT : INPAGE_DEFAULTS.cardScale };
 }
 
 export async function loadInPageSettings(): Promise<InPageSettings> {
