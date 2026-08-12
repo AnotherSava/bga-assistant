@@ -6,7 +6,7 @@
     "activeTab": "Reads the currently active BGA game page to extract game log data when the user clicks the toolbar icon.",
     "alarms": "Schedules periodic heartbeats for the play-time tracker so sessions are finalized correctly even when the extension's service worker is suspended.",
     "idle": "Detects when the user steps away from the keyboard so play-time tracking pauses instead of counting idle time.",
-    "scripting": "Injects a content script into BGA game pages to extract game log notification data from the page's JavaScript context, and \u2014 when the user enables the optional in-page game log \u2014 to render the extension's turn history into the page's log column.",
+    "scripting": "Injects content scripts into BGA game pages to extract game log notification data from the page's JavaScript context, and \u2014 when the user turns on the corresponding options \u2014 to render the extension's own UI onto the page: an in-page turn-history log, a one-row compact table header, simplified redrawn cards on the table (including opponents' hands), a pinned right column that stays visible while the board scrolls, and a highlight on the top bar when the user must act out of turn.",
     "sidePanel": "Displays a visual game state summary in a Chrome side panel alongside the BGA game page.",
     "storage": "Stores reconstructed game state, user display preferences (section visibility, zoom, toggles), and the play-time session history locally so they persist across browser sessions. No data is transmitted anywhere.",
     "tabs": "Detects when the user navigates to or switches between BGA game tabs to automatically update the side panel content.",
@@ -27,5 +27,5 @@
     "collectedDataTypes": [],
     "certifiedDisclosures": true
   },
-  "lastPublished": { "version": "1.4.1", "date": "2026-07-16" }
+  "lastPublished": { "version": "1.6.0", "date": "2026-08-10" }
 }
