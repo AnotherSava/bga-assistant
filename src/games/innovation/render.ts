@@ -47,6 +47,11 @@ const ROW_LABEL_ICONS: Record<string, string> = {
 // Icon rendering
 // ---------------------------------------------------------------------------
 
+/** The six resource tiles, whose art was redrawn as one flat card-colour-agnostic chip per resource
+ *  (the card carries the colour). Every other icon that falls through to the end of `iconImg` — the
+ *  cities specials plus, whiteflag and blackflag — is still drawn per card colour, one file each. */
+const RESOURCE_ICONS = new Set(["crown", "leaf", "lightbulb", "castle", "factory", "clock"]);
+
 function iconImg(iconName: string, color: string, spriteIndex: number): string {
   if (iconName === "hex") {
     return `<img src="${resolveAssetUrl(`assets/bga/innovation/icons/hex_${spriteIndex}.png`)}" width="20" height="20" alt="${iconName}">`;
@@ -65,7 +70,10 @@ function iconImg(iconName: string, color: string, spriteIndex: number): string {
     const bonusNum = iconName.split("-")[1];
     return `<img src="${resolveAssetUrl(`assets/bga/innovation/icons/bonus_${bonusNum}.png`)}" width="20" height="20" alt="${iconName}">`;
   }
-  return `<img class="resource-icon" src="${resolveAssetUrl(`assets/bga/innovation/icons/${iconName}.png`)}" width="20" height="20" alt="${iconName}">`;
+  if (RESOURCE_ICONS.has(iconName)) {
+    return `<img class="resource-icon" src="${resolveAssetUrl(`assets/bga/innovation/icons/${iconName}.png`)}" width="20" height="20" alt="${iconName}">`;
+  }
+  return `<img src="${resolveAssetUrl(`assets/bga/innovation/icons/${iconName}_${color}.png`)}" width="20" height="20" alt="${iconName}">`;
 }
 
 // ---------------------------------------------------------------------------

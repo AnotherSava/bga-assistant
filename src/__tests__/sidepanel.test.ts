@@ -1,7 +1,7 @@
 // Tests for config, summary rendering, toggle state management
 
 import { describe, it, expect, beforeAll } from "vitest";
-import { readFileSync } from "fs";
+import { existsSync, readFileSync } from "fs";
 import { fileURLToPath } from "url";
 import path from "path";
 
@@ -638,5 +638,34 @@ describe("rendering edge cases", () => {
     const html = renderSummary(gs, engine, cardDb, "Alice", infoOf(["Alice", "Bob"], "Alice"), "12345");
     expect(html).toContain("<svg");
     expect(html).toContain("viewBox");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Asset references
+// ---------------------------------------------------------------------------
+
+describe("card asset references", () => {
+  // Every icon and card face a card can ask for must be a file the extension actually ships:
+  // a name the renderer builds but the assets directory does not carry renders as a broken image
+  // on the card, which no other test would notice. Every card that can reach a table goes into
+  // one hand, so a single render covers every icon name in the database.
+  it("resolves every icon and face of every card to a bundled asset", () => {
+    const assetRoot = path.join(__dirname, "../..");
+    const { state: gs } = makeGameState(["Alice", "Bob"], "Alice");
+    const hand = gs.hands.get("Alice")!;
+    hand.length = 0;
+    for (const info of cardDb.values()) {
+      // Figures cards have no tracked deck, so they never reach a hand — except as relics.
+      if (info.cardSet === CardSet.FIGURES && !info.isRelic) continue;
+      hand.push(new Card(info.age, info.cardSet, [info.indexName]));
+    }
+
+    const html = renderSummary(gs, engine, cardDb, "Alice", infoOf(["Alice", "Bob"], "Alice"), "12345");
+    const referenced = new Set([...html.matchAll(/assets\/bga\/innovation\/[\w./-]+/g)].map(m => m[0]));
+    expect(referenced.size).toBeGreaterThan(100);
+
+    const missing = [...referenced].filter(p => !existsSync(path.join(assetRoot, p)));
+    expect(missing).toEqual([]);
   });
 });
