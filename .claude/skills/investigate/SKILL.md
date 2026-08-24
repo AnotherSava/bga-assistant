@@ -78,18 +78,17 @@ Create or extend a test in the game's `__tests__/` directory that:
 2. Runs the buggy pipeline stage
 3. Asserts the **correct** expected output (not the current buggy output)
 
-**Test data strategy:**
-- For small reproducers: inline the minimal log entries needed to trigger the bug
-- For complex bugs requiring full game context: load the fixture JSON and run the full pipeline, then assert the specific problematic part of the output
+**Test data strategy.** A test must never read from `data/` — it is gitignored, so the test passes here and fails for everyone else:
+- Prefer inlining the minimal log entries that trigger the bug. Most bugs need a handful.
+- If the bug genuinely needs a whole game, copy the archive's raw JSON into `src/games/<game>/__tests__/fixtures/` and commit it, then load it from there:
 
-When loading fixture data, use the pattern:
 ```typescript
 import { readFileSync } from "fs";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
 
 const thisDir = dirname(fileURLToPath(import.meta.url));
-const fixture = JSON.parse(readFileSync(resolve(thisDir, "../../data/<FOLDER>/game_log.json"), "utf-8"));
+const fixture = JSON.parse(readFileSync(resolve(thisDir, "fixtures/<ARCHIVE>.json"), "utf-8"));
 ```
 
 Name the test descriptively based on the bug.
