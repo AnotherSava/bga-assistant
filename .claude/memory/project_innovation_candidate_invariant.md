@@ -22,4 +22,6 @@ This disjointness property holds across zones and across pool epochs because it'
 
 **Future change that could break this**: any engine change that pools BEFORE all peers have been naked-single-propagated would create overlap and let naked-N find real deductions.
 
+**That break has happened (Aug 2026), and naked-N is now enabled.** `resolveHand` pools the opening deal's names across the slots they could occupy — at setup, before anything has resolved them — so every other card in the group still carries those names and the tuple rule prunes them for real. The same holds for any pool formed from names that were never resolved first. Per-container hidden-single is what fills the gap the pooling leaves, and it is now off for hand and score as well: see [[project_bga_card_positions]] for why a slot we index must not carry a guessed name.
+
 See also: [[project_innovation_deck_order]] for the discard-aware pooling machinery added in May 2026.

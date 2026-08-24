@@ -83,9 +83,9 @@ Three sibling subprojects under a shared BGA workspace directory:
 
 ## Side panel & settings
 - [Settings surface](project_settings_surface.md) — no options page; settings persist via settings.ts localStorage + eye-icon menu (#section-selector), dispatched by statsPageOpen() then game
+- [Turn history lists actions only](project_turn_history_scope.md) — no lines for what an action did; a Fission sweep reads as `dogma Fission` (declined 2026-08-24)
 
 ## User Preferences
-- [No defensive fallbacks](feedback_no_defensive_fallbacks.md) — let invalid data surface naturally
 - [Tests must not read from data/](feedback_tests_no_gitignored_data.md) — data/ is gitignored; inline reproducers or copy into committed __tests__/fixtures/
 
 ## Claude Code Settings
@@ -133,6 +133,8 @@ Three sibling subprojects under a shared BGA workspace directory:
 - [Innovation card DOM + layout constants](project_innovation_card_dom.md) — element id format, `gameui.card_dimensions`/`refreshLayout`, splay indicator, names uppercased into markup
 - [Innovation replaces BGA's zone placement](project_innovation_zone_placement.md) — `setPlacementRules` overrides `itemIdToCoordsGrid`, so `zone.item_width/height` are ignored and the reported box sizes the container
 - [Gamestate machine + act-on-opponent's-turn detection](project_innovation_action_states.md) — `selectionMove` is BOTH a reaction and your own dogma choice; distinguish by the live turn owner; the SW's fetched-log owner lags
+- [Card positions name hidden cards](project_bga_card_positions.md) — `position_from`/`position_to` are never scrubbed; hand/score/forecast stacks are per (owner, age, set) with append + gap-closing, decks number from the bottom; indexing a zone makes it ordered, so no slot may carry a guessed name
+- [Cards taken out of the game](project_bga_bulk_removals.md) — Fission / DeLorean / Exxon Valdez sweep by raw SQL with one unnamed notification each (plus The Big Bang's ordinary transfer); which zones each clears, and why the swept cards stay in their group
 
 ### Cities of Destiny
 - [Upstream cities images sorted by cardnum](project_innovation_cities_images.md) — `Print_CitiesCards_front-N` maps to card with cardnum `(335+N)`; same shape as echoes downloader, simpler sort key
