@@ -38,6 +38,7 @@ export interface SerializedGameState {
   achievements: SerializedCard[];
   displays?: Record<string, SerializedCard[]>;
   relics?: SerializedCard[];
+  removed?: SerializedCard[];
   achievementRelics?: Record<string, SerializedCard[]>;
 }
 
@@ -108,6 +109,7 @@ export function toJSON(state: GameState): SerializedGameState {
   };
   if (Object.keys(displays).length > 0) result.displays = displays;
   if (state.relics.length > 0) result.relics = serializeCards(state.relics);
+  if (state.removed.length > 0) result.removed = serializeCards(state.removed);
   if (Object.keys(achievementRelics).length > 0) result.achievementRelics = achievementRelics;
   return result;
 }
@@ -168,6 +170,7 @@ export function fromJSON(data: SerializedGameState, players: PlayerInfo[], persp
   // Load achievements and relics
   state.achievements = loadCards(data.achievements ?? []);
   if (data.relics) state.relics = loadCards(data.relics);
+  if (data.removed) state.removed = loadCards(data.removed);
 
   return state;
 }

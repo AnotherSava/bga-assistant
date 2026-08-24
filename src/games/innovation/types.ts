@@ -246,7 +246,7 @@ export class CardDatabase {
 // ---------------------------------------------------------------------------
 
 /** Zone names for card locations. */
-export type Zone = "deck" | "hand" | "board" | "score" | "revealed" | "forecast" | "display" | "relics" | "achievements";
+export type Zone = "deck" | "hand" | "board" | "score" | "revealed" | "forecast" | "display" | "relics" | "achievements" | "removed";
 
 interface ActionBase {
   source: Zone;
@@ -255,6 +255,10 @@ interface ActionBase {
   destPlayer: string | null;
   meldKeyword: boolean;
   topOfDeck: boolean;
+  /** BGA's index of the card inside the stack it left. See TransferEntry.sourcePosition. */
+  sourcePosition?: number;
+  /** BGA's index of the card inside the stack it joined. See TransferEntry.destPosition. */
+  destPosition?: number;
 }
 
 export interface NamedAction extends ActionBase {
@@ -286,6 +290,18 @@ export interface TransferEntry {
   destOwner: string | null;
   meldKeyword: boolean;
   topOfDeck: boolean;
+  /** BGA's `position_from`: the index the card occupied in the stack it left. Private
+   *  zones (hand, score, forecast) keep one stack per (owner, age, set), filled by
+   *  appending and closed up when a card leaves, so the index names one specific card
+   *  even when BGA withholds its identity. Decks number from the bottom instead, and
+   *  the remaining zones use a single per-owner stack. Absent on logs recorded before
+   *  the field was captured. */
+  sourcePosition?: number;
+  /** BGA's `position_to`: the index the card took in the stack it joined. An ordinary
+   *  insert appends, so the index doubles as the size that stack had in BGA's model —
+   *  the engine audits its own bookkeeping against it. Insertions at the bottom report 0
+   *  regardless. Absent on logs recorded before the field was captured. */
+  destPosition?: number;
 }
 
 export interface MessageEntry {
@@ -294,4 +310,35 @@ export interface MessageEntry {
   msg: string;
 }
 
-export type GameLogEntry = TransferEntry | MessageEntry;
+/** A sweep of cards leaves the game. BGA sends one notification for the whole sweep rather than a
+ *  transfer per card, so the log carries the instruction and the engine works out which of its own
+ *  cards it hits. Named per the card that causes it. */
+export interface FissionRemoval {
+  type: "removal";
+  move: number;
+  /** Every hand, board, score pile and revealed card, for every player. Forecasts, displays and
+   *  achievements survive. Fission, base age 9. */
+  scope: "hands-boards-scores";
+}
+
+export interface DeLoreanRemoval {
+  type: "removal";
+  move: number;
+  /** Every hand, plus the top card of every board pile. DeLorean DMC-12, Artifacts age 10. */
+  scope: "top-cards-and-hands";
+  /** The board tops the sweep takes. They are face up, so BGA names them rather than leaving the
+   *  pile order to be guessed at. */
+  cardNames: string[];
+}
+
+export interface PlayerRemoval {
+  type: "removal";
+  move: number;
+  /** Everything one player owns, that player being out of the game. Exxon Valdez, Artifacts 10. */
+  scope: "player";
+  player: string;
+}
+
+export type RemovalEntry = FissionRemoval | DeLoreanRemoval | PlayerRemoval;
+
+export type GameLogEntry = TransferEntry | MessageEntry | RemovalEntry;

@@ -276,6 +276,115 @@ describe("processRawLog", () => {
     }
   });
 
+  it("carries the source stack position from position_from", () => {
+    const raw: RawExtractionData = {
+      gameName: "innovation",
+      players: mkPlayers({ "100": "Alice", "200": "Bob" }),
+      packets: [
+        makePacket(42, [
+          { type: "transferedCard", args: { name: null, age: 1, location_from: "hand", location_to: "deck", owner_from: "200", owner_to: "0", meld_keyword: false, position_from: "2", position_to: 0, bottom_to: "1" } },
+          { type: "transferedCard_spectator", args: { type: "0" } },
+        ]),
+      ],
+    };
+    const result = processRawLog(raw);
+    expect(result.log).toHaveLength(1);
+    if (result.log[0].type === "transfer") {
+      expect(result.log[0].sourcePosition).toBe(2);
+      // Insertions at the bottom renumber the whole stack, so their index says nothing.
+      expect(result.log[0].destPosition).toBeUndefined();
+    }
+  });
+
+  it("carries the destination stack position from position_to on an appending insert", () => {
+    const raw: RawExtractionData = {
+      gameName: "innovation",
+      players: mkPlayers({ "100": "Alice" }),
+      packets: [
+        makePacket(7, [
+          { type: "transferedCard", args: { name: "Archery", age: 1, location_from: "deck", location_to: "hand", owner_from: "0", owner_to: "100", meld_keyword: false, position_from: "9", position_to: "3", bottom_to: false } },
+          { type: "transferedCard_spectator", args: { type: "0" } },
+        ]),
+      ],
+    };
+    const result = processRawLog(raw);
+    if (result.log[0].type === "transfer") {
+      expect(result.log[0].destPosition).toBe(3);
+    }
+  });
+
+  it("leaves the source stack position undefined when BGA omits position_from", () => {
+    const raw: RawExtractionData = {
+      gameName: "innovation",
+      players: mkPlayers({ "100": "Alice" }),
+      packets: [
+        makePacket(6, [
+          { type: "transferedCard", args: { name: "Archery", age: 1, location_from: "deck", location_to: "hand", owner_from: "0", owner_to: "100", meld_keyword: false } },
+          { type: "transferedCard_spectator", args: { type: "0" } },
+        ]),
+      ],
+    };
+    const result = processRawLog(raw);
+    if (result.log[0].type === "transfer") {
+      expect(result.log[0].sourcePosition).toBeUndefined();
+    }
+  });
+
+  it("rejects a position that is not an index", () => {
+    const raw: RawExtractionData = {
+      gameName: "innovation",
+      players: mkPlayers({ "100": "Alice" }),
+      packets: [
+        makePacket(8, [
+          { type: "transferedCard", args: { name: null, age: 1, location_from: "hand", location_to: "deck", owner_from: "100", owner_to: "0", meld_keyword: false, position_from: "somewhere" } },
+          { type: "transferedCard_spectator", args: { type: "0" } },
+        ]),
+      ],
+    };
+    expect(() => processRawLog(raw)).toThrow(/non-index position_from/);
+  });
+
+  it("reads Fission's sweep from the spectator copy, once", () => {
+    const raw: RawExtractionData = {
+      gameName: "innovation",
+      players: mkPlayers({ "1": "Alice", "2": "Bob" }),
+      packets: [
+        makePacket(9, [{ type: "removedHandsBoardsAndScores", args: {} }]),
+        makePacket(9, [{ type: "removedHandsBoardsAndScores_spectator", args: { notification_type: "removedHandsBoardsAndScores", log: "All hands, boards and score piles are removed from the game. Achievements are kept." } }]),
+      ],
+    };
+    const result = processRawLog(raw);
+    expect(result.log).toEqual([{ type: "removal", move: 9, scope: "hands-boards-scores" }]);
+  });
+
+  it("names DeLorean's removed board tops from gamedatas", () => {
+    const raw: RawExtractionData = {
+      gameName: "innovation",
+      players: mkPlayers({ "1": "Alice", "2": "Bob" }),
+      gamedatas: { cards: { "5": { name: "Domestication" }, "9": { name: "Sailing" } } },
+      packets: [
+        makePacket(12, [{
+          type: "removedTopCardsAndHands_spectator",
+          args: { top_cards_to_remove: { "5": { id: "5", owner: "1" }, "9": { id: "9", owner: "2" } } },
+        }]),
+      ],
+    };
+    const result = processRawLog(raw);
+    expect(result.log).toEqual([{ type: "removal", move: 12, scope: "top-cards-and-hands", cardNames: ["Domestication", "Sailing"] }]);
+  });
+
+  it("carries the eliminated player through Exxon Valdez's sweep", () => {
+    const raw: RawExtractionData = {
+      gameName: "innovation",
+      players: mkPlayers({ "1": "Alice", "2": "Bob" }),
+      packets: [
+        makePacket(15, [{ type: "removedPlayer_spectator", args: { player_to_remove: "2", player_name: "Bob" } }]),
+      ],
+    };
+    const result = processRawLog(raw);
+    expect(result.log).toEqual([{ type: "removal", move: 15, scope: "player", player: "2" }]);
+  });
+
   it("handles cities card set", () => {
     const raw: RawExtractionData = {
       gameName: "innovation",

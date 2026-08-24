@@ -6,6 +6,7 @@ import {
   type GameLogEntry,
   type MessageEntry,
   type OpponentKnowledge,
+  type RemovalEntry,
   type TransferEntry,
   type Zone,
   Card,
@@ -14,6 +15,7 @@ import {
   ageSetKey,
   cardIndex,
   cardSetFromLabel,
+  cardSetLabel,
   parseAgeSetKey,
 } from "./types.js";
 import { type GameState, createGameState, cardsAt } from "./game_state.js";
@@ -77,6 +79,7 @@ export class GameEngine {
       return deck;
     }
     if (zone === "relics") return state.relics;
+    if (zone === "removed") return state.removed;
     if (zone === "achievements") {
       // Relic-aware achievement slot (per player). Regular achievements are handled
       // upstream in processTransfer via the SKIPPED path.
@@ -223,17 +226,39 @@ export class GameEngine {
     }
   }
 
-  /** Resolve initial hand cards right after initGame. */
+  /** Resolve initial hand cards right after initGame. The deal is never logged, so nothing says
+   *  which dealt card BGA put in which slot. Cards sharing a stack therefore start as one pool:
+   *  we know the hand holds them, not which slot holds which, and the first move that names one
+   *  pins it while the rest follow by elimination. Guessing the order instead would misread the
+   *  index BGA reports for every later move out of that stack — and it is a coin flip that lands
+   *  wrong half the time, as the committed bgaa_823235522 capture shows. Only bites without
+   *  Echoes: with it the two dealt cards sit in different stacks and resolve immediately. */
   resolveHand(state: GameState, player: string, cardNames: string[]): void {
     const hand = state.hands.get(player)!;
-    const resolved = new Set<Card>();
+    const namesByGroup = new Map<AgeSetKey, string[]>();
     for (const idx of cardNames) {
-      const card = hand.find(c => !resolved.has(c) && c.candidates.has(idx));
-      if (!card) throw new Error(`Cannot resolve hand card "${idx}" for ${player}`);
-      const info = this.cardDb.get(idx)!;
+      const info = this.cardDb.get(idx);
+      if (!info) throw new Error(`Cannot resolve hand card "${idx}" for ${player}`);
       const groupKey = ageSetKey(info.age, info.cardSet);
-      card.candidates = new Set([idx]);
-      resolved.add(card);
+      const names = namesByGroup.get(groupKey);
+      if (names) names.push(idx);
+      else namesByGroup.set(groupKey, [idx]);
+    }
+    for (const [groupKey, names] of namesByGroup) {
+      // A sweep can take a dealt card out of the hand without ever naming it, and no walk back
+      // through the log recovers it — so the names may not account for every slot of the stack.
+      // Narrowing on a short list would pin a name to whichever slot matched first; leave the
+      // whole stack open instead and let the moves that do name a card settle it.
+      const stack = this.stackOf(hand, groupKey, false);
+      if (names.length < stack.length) continue;
+
+      const slots: Card[] = [];
+      for (const idx of names) {
+        const card = hand.find(c => !slots.includes(c) && c.candidates.has(idx));
+        if (!card) throw new Error(`Cannot resolve hand card "${idx}" for ${player}`);
+        slots.push(card);
+      }
+      for (const card of slots) card.candidates = new Set(names);
       this.propagate(state, groupKey);
     }
   }
@@ -242,7 +267,10 @@ export class GameEngine {
   // Log processing (replaces GameLogProcessor)
   // ------------------------------------------------------------------
 
-  /** Deduce initial hand by reverse-walking the log to undo all hand transfers. */
+  /** Deduce initial hand by reverse-walking the log to undo all hand transfers. Only transfers
+   *  can be undone: a bulk removal takes cards out of the hand without naming them, so after one
+   *  the result is a subset of the deal rather than the deal — see resolveHand, which declines to
+   *  narrow a stack it cannot account for in full. */
   deduceInitialHand(state: GameState, log: GameLogEntry[], myHand: string[]): string[] {
     const hand = new Set(myHand);
     for (let i = log.length - 1; i >= 0; i--) {
@@ -296,10 +324,63 @@ export class GameEngine {
       if (match) {
         this.confirmMeldFilter(match[1]);
       }
+    } else if (entry.type === "removal") {
+      this.processRemoval(state, entry as RemovalEntry);
     }
   }
 
-  private static readonly TRACKED_ZONES: ReadonlySet<string> = new Set(["deck", "hand", "board", "score", "revealed", "forecast", "display", "relics"]);
+  // ------------------------------------------------------------------
+  // Bulk removal
+  // ------------------------------------------------------------------
+
+  /** Take a sweep of cards out of the game. BGA names none of them — one notification stands for
+   *  the whole sweep — so the zones it clears are worked out from our own model. The cards keep
+   *  their group membership in the "removed" zone: a card taken face-down out of a hand is gone
+   *  without ever being identified, and the names it might have been must not fall back to the
+   *  cards left behind. */
+  private processRemoval(state: GameState, entry: RemovalEntry): void {
+    const touched = new Set<AgeSetKey>();
+    const sweep = (cards: Card[]): void => {
+      for (const card of cards) {
+        touched.add(ageSetKey(card.age, card.cardSet));
+        state.removed.push(card);
+      }
+      cards.length = 0;
+    };
+
+    if (entry.scope === "hands-boards-scores") {
+      // Fission. Forecasts, displays and achievements are left alone. The age-10 card the effect
+      // just drew is sitting in "revealed", and goes with the rest.
+      for (const player of state.players) {
+        for (const zone of [state.hands, state.boards, state.scores, state.revealed]) sweep(zone.get(player.id)!);
+      }
+    } else if (entry.scope === "top-cards-and-hands") {
+      // DeLorean. Every hand goes wholesale; the board loses one card per colour, and those are
+      // face up, so BGA lists them by name rather than leaving us to guess at pile order.
+      for (const player of state.players) sweep(state.hands.get(player.id)!);
+      for (const name of entry.cardNames) {
+        const cardIdx = cardIndex(name);
+        const owner = state.players.find(p => state.boards.get(p.id)!.some(c => c.isResolved && c.resolvedName === cardIdx));
+        if (!owner) throw new Error(`Removed top card "${name}" is not on any board`);
+        const board = state.boards.get(owner.id)!;
+        const index = board.findIndex(c => c.isResolved && c.resolvedName === cardIdx);
+        touched.add(ageSetKey(board[index].age, board[index].cardSet));
+        state.removed.push(board.splice(index, 1)[0]);
+      }
+    } else {
+      // Exxon Valdez: everything one player owns, down to the relics in their achievement pile.
+      // BGA removes their claimed achievements too, but ours are an unattributed pool — the nine
+      // sidelined cards, with no record of who took which — so there is nothing there to pick out,
+      // and leaving them makes no difference to the group either way.
+      const player = entry.player;
+      if (!state.hands.has(player)) throw new Error(`Removal names unknown player "${player}"`);
+      for (const zone of [state.hands, state.boards, state.scores, state.revealed, state.forecast, state.displays, state.achievementRelics]) sweep(zone.get(player)!);
+    }
+
+    for (const groupKey of touched) this.propagate(state, groupKey);
+  }
+
+  private static readonly TRACKED_ZONES: ReadonlySet<string> = new Set(["deck", "hand", "board", "score", "revealed", "forecast", "display", "relics", "removed"]);
   private static readonly SKIPPED_ZONES: ReadonlySet<string> = new Set(["claimed", "fountains", "flags"]);
 
   /** Convert a TransferEntry to an Action and execute it. */
@@ -359,6 +440,8 @@ export class GameEngine {
         destPlayer: entry.dest !== "deck" ? entry.destOwner : null,
         meldKeyword: entry.meldKeyword,
         topOfDeck: entry.topOfDeck,
+        sourcePosition: entry.sourcePosition,
+        destPosition: entry.destPosition,
       };
     } else {
       if (entry.cardAge === null) return;
@@ -372,6 +455,8 @@ export class GameEngine {
         destPlayer: entry.dest !== "deck" ? entry.destOwner : null,
         meldKeyword: entry.meldKeyword,
         topOfDeck: entry.topOfDeck,
+        sourcePosition: entry.sourcePosition,
+        destPosition: entry.destPosition,
       };
     }
 
@@ -417,6 +502,7 @@ export class GameEngine {
 
     const card = this.takeFromSource(state, action, groupKey);
     const destCards = this.cardsAtMut(state, action.dest, action.destPlayer, groupKey);
+    this.verifyDestinationSize(action, card, destCards, groupKey);
     if (action.topOfDeck) {
       destCards.unshift(card);
     } else {
@@ -434,6 +520,36 @@ export class GameEngine {
     this.propagate(state, groupKey);
 
     return card;
+  }
+
+  /** Stack name for error messages, e.g. "age 1 base". */
+  private static describeGroup(groupKey: AgeSetKey): string {
+    const { age, cardSet } = parseAgeSetKey(groupKey);
+    return `age ${age} ${cardSetLabel(cardSet)}`;
+  }
+
+  /** Zones BGA numbers per (owner, age, set, relic-or-not), where an index names one specific
+   *  card. Indexing them is what makes them ordered — keep isOrderedContainer in step. */
+  private static isStackedZone(zone: Zone): boolean {
+    return zone === "hand" || zone === "score" || zone === "forecast";
+  }
+
+  /** Audit our bookkeeping against BGA's on every insert. A card appended to a stack takes
+   *  the position after the last one, so the reported index is the size of that stack in
+   *  BGA's model. Disagreeing means we are not tracking the stack BGA is tracking, which
+   *  would make every index we later read out of it name the wrong card — stop instead of
+   *  carrying the divergence forward. Bottom insertions report 0 and say nothing. */
+  private verifyDestinationSize(action: Action, card: Card, destCards: Card[], groupKey: AgeSetKey): void {
+    if (action.destPosition === undefined) return;
+    const isTopOfDeck = action.dest === "deck" && action.topOfDeck;
+    if (!GameEngine.isStackedZone(action.dest) && !isTopOfDeck) return;
+    // Decks hold one group per pile already; private zones hold every group together, and split
+    // relics off into a stack of their own — so count the side of that split the card arrives on.
+    const movingRelic = this.isRelicCard(card);
+    const tracked = isTopOfDeck ? destCards.length : this.stackOf(destCards, groupKey, movingRelic).length;
+    if (tracked !== action.destPosition) {
+      throw new Error(`BGA put the card at index ${action.destPosition} of the ${GameEngine.describeGroup(groupKey)} ${action.dest} stack${action.destPlayer ? ` of player "${action.destPlayer}"` : ""}, but we track ${tracked} card(s) there`);
+    }
   }
 
   /** Confirm meld icon filtering - transition from draw phase to return phase. */
@@ -470,6 +586,13 @@ export class GameEngine {
     return card.isResolved && (this.cardDb.get(card.resolvedName!)?.isRelic ?? false);
   }
 
+  /** The cards BGA keeps as one stack: same (age, set) group, and on the same side of the split it
+   *  keeps between relics and everything else. Spelled out once so the places that index into a
+   *  stack and the one that counts it cannot drift apart. */
+  private stackOf(cards: Card[], groupKey: AgeSetKey, relics: boolean): Card[] {
+    return cards.filter(c => ageSetKey(c.age, c.cardSet) === groupKey && this.isRelicCard(c) === relics);
+  }
+
   /** Find, resolve, remove, and merge at the source location. */
   private takeFromSource(state: GameState, action: Action, groupKey: AgeSetKey): Card {
     let sourceCards: Card[];
@@ -491,16 +614,35 @@ export class GameEngine {
     } else {
       sourceCards = cardsAt(state, action.source, action.sourcePlayer, groupKey);
 
+      const isStackedZone = GameEngine.isStackedZone(action.source);
+      // BGA numbers hand, score and forecast per (owner, age, set, relic-or-not), appending on
+      // entry and closing the gap on exit; the engine's array mirrors that by doing the same two
+      // things, so the reported index names one specific card of the stack. Anonymous moves need
+      // it to know which card left at all. Named moves need it just as much: taking the first
+      // card that merely COULD be the named one removes the wrong object whenever a card that
+      // cannot be it sits in between, and from there our order and BGA's disagree for good.
+      const stackPosition = isStackedZone ? action.sourcePosition : undefined;
+      // Relics keep a stack of their own, so an index counts only cards on the moving card's side
+      // of that split.
+      const movingRelic = action.type === "named" && (this.cardDb.get(action.cardName)?.isRelic ?? false);
+      const stackCards = (): Card[] => this.stackOf(sourceCards, groupKey, movingRelic);
+      const atPosition = (position: number): Card => {
+        const stack = stackCards();
+        const found = stack[position];
+        if (!found) throw new Error(`No card at position ${position} of the ${GameEngine.describeGroup(groupKey)} ${action.source} stack of player "${action.sourcePlayer}" (${stack.length} cards)`);
+        return found;
+      };
+
       // Grouped removal from private zone: pool candidates among indistinguishable cards
       // before selecting which one to remove. During the meld-filter return phase
       // (remainingReturns > 0, dest=deck), we know the returned card is a discard, so we
       // pool only the discard candidates (cards whose candidates fit within discardNames)
       // and leave kept cards untouched — preserving their resolutions. Outside the filter
       // phase, fall back to pooling all sameGroup cards (we have no differentiation info).
-      const inMeldFilterReturn = action.type !== "named" && (action.source === "hand" || action.source === "score" || action.source === "forecast") && action.dest === "deck" && this.remainingReturns > 0;
+      const inMeldFilterReturn = action.type !== "named" && isStackedZone && action.dest === "deck" && this.remainingReturns > 0;
       const isDiscardCandidate = (c: Card): boolean => c.candidates.size > 0 && [...c.candidates].every(name => this.discardNames.has(name));
-      if (action.type !== "named" && (action.source === "hand" || action.source === "score" || action.source === "forecast")) {
-        const sameGroup = sourceCards.filter(c => ageSetKey(c.age, c.cardSet) === groupKey && !this.isRelicCard(c));
+      if (action.type !== "named" && isStackedZone && stackPosition === undefined) {
+        const sameGroup = this.stackOf(sourceCards, groupKey, false);
         const toPool = inMeldFilterReturn ? sameGroup.filter(isDiscardCandidate) : sameGroup;
         if (toPool.length > 1) {
           const union = new Set<string>();
@@ -514,9 +656,30 @@ export class GameEngine {
       }
 
       if (action.type === "named") {
-        const found = sourceCards.find(c => c.candidates.has(action.cardName));
-        if (!found) throw new Error(`Card "${action.cardName}" not found in ${action.source}`);
-        card = found;
+        if (stackPosition !== undefined) {
+          // The name and the index describe the same card, so they cross-check each other on
+          // every meld: a slot that cannot be the named card means our stack is not BGA's.
+          const found = atPosition(stackPosition);
+          if (!found.candidates.has(action.cardName)) {
+            const holds = found.isResolved ? `"${found.resolvedName}"` : `one of ${found.candidates.size} other cards`;
+            throw new Error(`BGA moved "${action.cardName}" out of position ${stackPosition} of the ${GameEngine.describeGroup(groupKey)} ${action.source} stack of player "${action.sourcePlayer}", but we track that slot as ${holds}`);
+          }
+          card = found;
+        } else {
+          const found = sourceCards.find(c => c.candidates.has(action.cardName));
+          if (!found) throw new Error(`Card "${action.cardName}" not found in ${action.source}`);
+          card = found;
+        }
+      } else if (stackPosition !== undefined) {
+        card = atPosition(stackPosition);
+        if (inMeldFilterReturn) {
+          // The filter returns the revealed cards that missed the melded city's icon, so the slot
+          // BGA points at holds one of them. The pooling above would have narrowed to those; with
+          // an index it is a direct intersection, and an empty one means we disagree with BGA.
+          const discards = new Set([...card.candidates].filter(name => this.discardNames.has(name)));
+          if (discards.size === 0) throw new Error(`BGA returned position ${stackPosition} of the ${GameEngine.describeGroup(groupKey)} ${action.source} stack of player "${action.sourcePlayer}" as a meld-filter discard, but we track that slot as a card the filter would keep`);
+          card.candidates = discards;
+        }
       } else {
         // For meld-filter returns, the moved card is a discard by construction — prefer one.
         // Falls back to any sameGroup card if no discard candidate is found (defensive).
@@ -524,7 +687,7 @@ export class GameEngine {
         if (inMeldFilterReturn) {
           found = sourceCards.find(c => ageSetKey(c.age, c.cardSet) === groupKey && isDiscardCandidate(c));
         }
-        if (!found) found = sourceCards.find(c => ageSetKey(c.age, c.cardSet) === groupKey && !this.isRelicCard(c));
+        if (!found) found = this.stackOf(sourceCards, groupKey, false)[0];
         if (!found) throw new Error(`No card with groupKey "${groupKey}" found in ${action.source}`);
         card = found;
       }
@@ -631,9 +794,12 @@ export class GameEngine {
 
   /** Propagate constraints within an (age, cardSet) group to fixed-point.
    *  Card-identity deductions go through the shared kernel. Per-container hidden-single is enabled
-   *  but skips ordered containers (deck, forecast, revealed) where committing a name to a specific
-   *  placeholder would falsely pin a position the observer cannot know. Opponent-knowledge
-   *  (suspect) propagation stays here as a separate fact layer. */
+   *  but skips ordered containers (see isOrderedContainer), where committing a name to a specific
+   *  placeholder would pin a position the observer cannot know. Naked N-tuples are enabled: the
+   *  opening deal pools names nothing has resolved yet, so a closed pool now prunes its peers —
+   *  which is how "this hand holds exactly these two" reaches the rest of the group without
+   *  guessing which slot is which. Opponent-knowledge (suspect) propagation stays here as a
+   *  separate fact layer. */
   private propagate(state: GameState, groupKey: AgeSetKey): void {
     const group = this._groups.get(groupKey);
     if (!group) return;
@@ -644,15 +810,21 @@ export class GameEngine {
     let changed = true;
     while (changed) {
       changed = false;
-      if (kernelPropagate(group, { containerOf, isContainerOrdered: GameEngine.isOrderedContainer })) changed = true;
+      if (kernelPropagate(group, { containerOf, isContainerOrdered: GameEngine.isOrderedContainer, enableNakedTuples: true })) changed = true;
       if (this.propagateSuspects(group)) changed = true;
     }
   }
 
-  /** Containers whose internal order is observable via BGA's grouped-access semantics.
-   *  Per-container hidden-single must not commit to specific placeholders in these. */
+  /** Containers something selects out of by index, so their slots are not interchangeable and
+   *  per-container hidden-single must not commit a name to one of them. A deck qualifies through
+   *  grouped-draw semantics. Hand and score qualify because BGA reports the index a card left them
+   *  from: choosing one of several equally-possible slots to carry a name is a coin flip, and the
+   *  next move out of that stack would read the guess back as fact. Nothing is lost by declining —
+   *  "this name is in this container" stays in the candidate sets either way. Keep this in step
+   *  with isStackedZone: whatever we index into belongs here. */
   private static isOrderedContainer(containerId: string): boolean {
-    return containerId.startsWith("deck:") || containerId.startsWith("forecast:") || containerId.startsWith("revealed:");
+    return containerId.startsWith("deck:") || containerId.startsWith("forecast:") || containerId.startsWith("revealed:")
+      || containerId.startsWith("hand:") || containerId.startsWith("score:");
   }
 
   /** Build a Card → container-key map by scanning all zones in the state. */
@@ -670,6 +842,7 @@ export class GameEngine {
     for (const [pid, cards] of state.displays) visit(cards, `display:${pid}`);
     visit(state.achievements, "achievements");
     visit(state.relics, "relics");
+    visit(state.removed, "removed");
     for (const [pid, cards] of state.achievementRelics) visit(cards, `achievementRelics:${pid}`);
     return locator;
   }
@@ -739,6 +912,7 @@ export class GameEngine {
     for (const cards of state.displays.values()) for (const card of cards) registerCard(card);
     for (const card of state.achievements) registerCard(card);
     for (const card of state.relics) registerCard(card);
+    for (const card of state.removed) registerCard(card);
     for (const cards of state.achievementRelics.values()) for (const card of cards) registerCard(card);
   }
 }

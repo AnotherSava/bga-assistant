@@ -12,6 +12,7 @@ import {
   type NamedAction,
   type GroupedAction,
   type AgeSetKey,
+  type RemovalEntry,
   type TransferEntry,
   type MessageEntry,
   type GameLogEntry,
@@ -19,6 +20,7 @@ import {
 import { type GameState, createGameState as newGameState, cardsAt } from "../game_state";
 import { GameEngine } from "../game_engine";
 import { toJSON, fromJSON } from "../serialization";
+import { renderSummary } from "../render";
 import { processRawLog } from "../process_log";
 import type { PlayerInfo } from "../../../models/types";
 
@@ -52,9 +54,9 @@ function createGS(): { state: GameState; engine: GameEngine } {
   return { state, engine };
 }
 
-function createInitializedGS(expansions?: { echoes: boolean; artifacts?: boolean; relics?: boolean }): { state: GameState; engine: GameEngine } {
+function createInitializedGS(expansions?: { echoes: boolean; artifacts?: boolean; relics?: boolean }, initialRelics?: string[]): { state: GameState; engine: GameEngine } {
   const { state, engine } = createGS();
-  engine.initGame(state, expansions);
+  engine.initGame(state, expansions, initialRelics);
   return { state, engine };
 }
 
@@ -144,14 +146,19 @@ describe("initGame", () => {
 // ---------------------------------------------------------------------------
 
 describe("resolveHand", () => {
-  it("resolves initial hand cards by name", () => {
+  it("resolves an initial hand card that is alone in its stack", () => {
+    const { state, engine } = createInitializedGS({ echoes: true });
+    engine.resolveHand(state, "Alice", ["agriculture", "noodles"]);
+    const hand = state.hands.get("Alice")!;
+    expect(hand.map(c => c.resolvedName)).toEqual(["agriculture", "noodles"]);
+  });
+
+  it("pools initial hand cards that share a stack, since the deal never says which slot is which", () => {
     const { state, engine } = createInitializedGS();
     engine.resolveHand(state, "Alice", ["agriculture", "archery"]);
     const hand = state.hands.get("Alice")!;
-    expect(hand[0].isResolved).toBe(true);
-    expect(hand[0].resolvedName).toBe("agriculture");
-    expect(hand[1].isResolved).toBe(true);
-    expect(hand[1].resolvedName).toBe("archery");
+    const pair = new Set(["agriculture", "archery"]);
+    expect(hand.map(c => c.candidates)).toEqual([pair, pair]);
   });
 
   it("propagates constraints after resolution", () => {
@@ -366,8 +373,8 @@ describe("candidate merging", () => {
   it("preserves resolved cards when unknown card of same age/set is drawn", () => {
     const { state, engine } = createInitializedGS();
     engine.resolveHand(state, "Alice", ["agriculture", "archery"]);
-    // Resolve Bob's hand so both cards are known
-    engine.resolveHand(state, "Bob", ["clothing", "city states"]);
+    // Bob revealed his hand, so both cards are known and sit in the slots BGA listed them in
+    engine.revealHand(state, "Bob", ["clothing", "city states"]);
 
     // Bob draws an unknown age 1 base card — should NOT destroy existing resolutions
     engine.move(state, groupedAction({
@@ -391,8 +398,8 @@ describe("candidate merging", () => {
   it("merges resolved cards when unknown card of same age/set leaves hand", () => {
     const { state, engine } = createInitializedGS();
     engine.resolveHand(state, "Alice", ["agriculture", "archery"]);
-    // Bob has 2 resolved + 1 unresolved of same age/set
-    engine.resolveHand(state, "Bob", ["clothing", "city states"]);
+    // Bob has 2 revealed + 1 unresolved of same age/set
+    engine.revealHand(state, "Bob", ["clothing", "city states"]);
     engine.move(state, groupedAction({
       age: 1,
       cardSet: CardSet.BASE,
@@ -506,7 +513,7 @@ describe("candidate merging", () => {
     // hand card moved. mergeCandidates only fires on source=hand, not dest=hand.
     const { state, engine } = createInitializedGS();
     engine.resolveHand(state, "Alice", ["agriculture", "archery"]);
-    engine.resolveHand(state, "Bob", ["clothing", "city states"]);
+    engine.revealHand(state, "Bob", ["clothing", "city states"]);
 
     const bobHandBefore = state.hands.get("Bob")!.map(c => c.resolvedName);
 
@@ -569,6 +576,213 @@ describe("candidate merging", () => {
 });
 
 // ---------------------------------------------------------------------------
+// Stack position
+// ---------------------------------------------------------------------------
+
+describe("stack position", () => {
+  /** Bob's age-1 base hand, in BGA stack order: mysticism, clothing, metalworking, agriculture.
+   *  Revealed rather than dealt, since the deal alone never says which slot holds which card. */
+  function bobsKnownHand(): { state: GameState; engine: GameEngine } {
+    const { state, engine } = createInitializedGS();
+    engine.resolveHand(state, "Alice", ["archery", "code of laws"]);
+    engine.revealHand(state, "Bob", ["mysticism", "clothing"]);
+    for (const cardName of ["metalworking", "agriculture"]) {
+      engine.move(state, namedAction({ cardName, source: "deck", dest: "hand", destPlayer: "Bob" }));
+    }
+    return { state, engine };
+  }
+
+  it("keeps the rest of a known hand resolved when BGA reports which card left (bgaa_902998891_42)", () => {
+    // Scenario from a real game: the opponent's hand was revealed, then he returned one
+    // age-1 base card without naming it. BGA's position_from says it was the card at
+    // index 2 — metalworking — so the other three stay individually known.
+    const { state, engine } = bobsKnownHand();
+
+    const returned = engine.move(state, groupedAction({
+      age: 1,
+      cardSet: CardSet.BASE,
+      source: "hand",
+      dest: "deck",
+      sourcePlayer: "Bob",
+      sourcePosition: 2,
+    }));
+
+    expect(returned.resolvedName).toBe("metalworking");
+    const remaining = state.hands.get("Bob")!.map(c => c.resolvedName);
+    expect(remaining).toEqual(["mysticism", "clothing", "agriculture"]);
+  });
+
+  it("pools candidates when the position is absent", () => {
+    const { state, engine } = bobsKnownHand();
+
+    engine.move(state, groupedAction({
+      age: 1,
+      cardSet: CardSet.BASE,
+      source: "hand",
+      dest: "deck",
+      sourcePlayer: "Bob",
+    }));
+
+    const expected = new Set(["mysticism", "clothing", "metalworking", "agriculture"]);
+    for (const card of state.hands.get("Bob")!) {
+      expect(card.candidates).toEqual(expected);
+    }
+  });
+
+  it("counts positions per age and set, not across the whole hand", () => {
+    const { state, engine } = bobsKnownHand();
+    // An age-2 card in the same hand belongs to its own stack and must not shift the index.
+    engine.move(state, namedAction({ cardName: "construction", source: "deck", dest: "hand", destPlayer: "Bob" }));
+
+    const returned = engine.move(state, groupedAction({
+      age: 1,
+      cardSet: CardSet.BASE,
+      source: "hand",
+      dest: "deck",
+      sourcePlayer: "Bob",
+      sourcePosition: 3,
+    }));
+
+    expect(returned.resolvedName).toBe("agriculture");
+  });
+
+  it("throws when the reported position is past the end of the stack", () => {
+    const { state, engine } = bobsKnownHand();
+
+    expect(() => engine.move(state, groupedAction({
+      age: 1,
+      cardSet: CardSet.BASE,
+      source: "hand",
+      dest: "deck",
+      sourcePlayer: "Bob",
+      sourcePosition: 4,
+    }))).toThrow(/position 4/);
+  });
+
+  it("takes the card BGA names out of the slot BGA names it from", () => {
+    // A named move has to follow the index too. Taking the first card that merely COULD be the
+    // named one removes the wrong object whenever a card that cannot be it sits in between, and
+    // from then on our slots and BGA's are permuted — the next anonymous move reads back a card
+    // that is still in the hand.
+    const { state, engine } = createInitializedGS();
+    engine.resolveHand(state, "Alice", ["agriculture", "archery"]);
+    const age2Base = { age: 2, cardSet: CardSet.BASE };
+    engine.move(state, groupedAction({ ...age2Base, source: "deck", dest: "hand", destPlayer: "Bob", destPosition: 0 }));
+    engine.move(state, namedAction({ cardName: "construction", source: "deck", dest: "hand", destPlayer: "Bob", destPosition: 1 }));
+    engine.move(state, groupedAction({ ...age2Base, source: "deck", dest: "hand", destPlayer: "Bob", destPosition: 2 }));
+
+    // Bob melds the card in slot 2 — public, so BGA names it. Construction sits in slot 1 and is
+    // not the card that left.
+    engine.move(state, namedAction({ cardName: "mapmaking", source: "hand", dest: "board", sourcePlayer: "Bob", destPlayer: "Bob", sourcePosition: 2 }));
+
+    const stackNames = (): (string | number)[] => state.hands.get("Bob")!
+      .filter(c => ageSetKey(c.age, c.cardSet) === ageSetKey(2, CardSet.BASE))
+      .map(c => c.isResolved ? c.resolvedName! : c.candidates.size);
+    expect(stackNames()[1]).toBe("construction");
+
+    // Bob returns slot 0 face-down: an unknown card leaves, and construction stays in his hand.
+    const returned = engine.move(state, groupedAction({ ...age2Base, source: "hand", dest: "deck", sourcePlayer: "Bob", sourcePosition: 0 }));
+    expect(returned.isResolved).toBe(false);
+    expect(stackNames()).toEqual(["construction"]);
+  });
+
+  it("does not read a name into a slot the kernel only guessed", () => {
+    // Both remaining age-10 cards end up in Bob's hand, so each slot could be either. Committing
+    // one name per slot would be a coin flip, and this read would hand it back as a fact.
+    const { state, engine } = createInitializedGS();
+    engine.resolveHand(state, "Alice", ["agriculture", "archery"]);
+    const age10Names = [...cardDb.groups().get(ageSetKey(10, CardSet.BASE))!];
+    for (const cardName of age10Names.slice(0, -2)) {
+      engine.move(state, namedAction({ cardName, source: "deck", dest: "score", destPlayer: "Alice" }));
+    }
+    const age10Base = { age: 10, cardSet: CardSet.BASE };
+    engine.move(state, groupedAction({ ...age10Base, source: "deck", dest: "hand", destPlayer: "Bob", destPosition: 0 }));
+    engine.move(state, groupedAction({ ...age10Base, source: "deck", dest: "hand", destPlayer: "Bob", destPosition: 1 }));
+
+    const returned = engine.move(state, groupedAction({ ...age10Base, source: "hand", dest: "deck", sourcePlayer: "Bob", sourcePosition: 0 }));
+
+    const pair = new Set(age10Names.slice(-2));
+    expect(returned.candidates).toEqual(pair);
+    const bobAge10 = state.hands.get("Bob")!.filter(c => ageSetKey(c.age, c.cardSet) === ageSetKey(10, CardSet.BASE));
+    expect(bobAge10.map(c => c.candidates)).toEqual([pair]);
+  });
+
+  it("throws when the named card cannot be the one in the slot BGA took it from", () => {
+    const { state, engine } = bobsKnownHand();
+
+    expect(() => engine.move(state, namedAction({
+      cardName: "mysticism",
+      source: "hand",
+      dest: "board",
+      sourcePlayer: "Bob",
+      destPlayer: "Bob",
+      sourcePosition: 3,
+    }))).toThrow(/we track that slot as "agriculture"/);
+  });
+
+  it("counts relics as their own stack, the way BGA keys them", () => {
+    const { state, engine } = createInitializedGS({ echoes: false, artifacts: true, relics: true }, ["Timbuktu"]);
+    const timbuktu = cardIndex("Timbuktu");
+    const { age, cardSet } = cardDb.get(timbuktu)!;
+    engine.move(state, namedAction({ cardName: timbuktu, source: "relics", dest: "hand", destPlayer: "Bob" }));
+    // A non-relic of the same age and set already sits in the score pile, in its own stack.
+    const sibling = cardDb.groupInfos(age, cardSet).find(info => !info.isRelic)!.indexName;
+    engine.move(state, namedAction({ cardName: sibling, source: "deck", dest: "score", destPlayer: "Bob", destPosition: 0 }));
+
+    // BGA numbers the relic 0 as well: it is the first card of the relic stack, not the second
+    // card of the score pile.
+    expect(() => engine.move(state, namedAction({
+      cardName: timbuktu,
+      source: "hand",
+      dest: "score",
+      sourcePlayer: "Bob",
+      destPlayer: "Bob",
+      destPosition: 0,
+    }))).not.toThrow();
+  });
+
+  it("throws when BGA's insert index disagrees with the stack we track", () => {
+    // The index a card is appended at is the stack's size in BGA's model. Disagreeing
+    // means we are tracking a different stack, so every later index would name the wrong
+    // card — that has to surface rather than resolve to whatever sits at the index.
+    const { state, engine } = bobsKnownHand();
+
+    expect(() => engine.move(state, namedAction({
+      cardName: "code of laws",
+      source: "deck",
+      dest: "hand",
+      destPlayer: "Bob",
+      destPosition: 9,
+    }))).toThrow(/index 9 .* but we track 4 card\(s\)/);
+  });
+
+  it("accepts an insert index that matches, counting only the card's own age and set", () => {
+    const { state, engine } = bobsKnownHand();
+    engine.move(state, namedAction({ cardName: "construction", source: "deck", dest: "hand", destPlayer: "Bob", destPosition: 0 }));
+
+    expect(() => engine.move(state, namedAction({
+      cardName: "code of laws",
+      source: "deck",
+      dest: "hand",
+      destPlayer: "Bob",
+      destPosition: 4,
+    }))).not.toThrow();
+  });
+
+  it("ignores the insert index for zones BGA numbers per owner rather than per stack", () => {
+    const { state, engine } = bobsKnownHand();
+
+    expect(() => engine.move(state, namedAction({
+      cardName: "code of laws",
+      source: "deck",
+      dest: "revealed",
+      destPlayer: "Bob",
+      destPosition: 7,
+    }))).not.toThrow();
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Singleton propagation
 // ---------------------------------------------------------------------------
 
@@ -589,10 +803,9 @@ describe("singleton propagation", () => {
     const age1Key = ageSetKey(1, CardSet.BASE);
     const groupNames = [...cardDb.groups().get(age1Key)!];
 
-    // Resolve Alice's hand (2 cards)
-    engine.resolveHand(state, "Alice", [groupNames[0], groupNames[1]]);
-    // Resolve Bob's hand (2 cards)
-    engine.resolveHand(state, "Bob", [groupNames[2], groupNames[3]]);
+    // Both players revealed their hands (2 cards each), so every slot is known individually
+    engine.revealHand(state, "Alice", [groupNames[0], groupNames[1]]);
+    engine.revealHand(state, "Bob", [groupNames[2], groupNames[3]]);
 
     // Draw named cards from deck, leaving 1 unresolved (the achievement)
     const deckSize = state.decks.get(age1Key)!.length;
@@ -628,8 +841,8 @@ describe("hidden singles", () => {
     const groupNames = [...cardDb.groups().get(age1Key)!];
 
     // Resolve both hands
-    engine.resolveHand(state, "Alice", [groupNames[0], groupNames[1]]);
-    engine.resolveHand(state, "Bob", [groupNames[2], groupNames[3]]);
+    engine.revealHand(state, "Alice", [groupNames[0], groupNames[1]]);
+    engine.revealHand(state, "Bob", [groupNames[2], groupNames[3]]);
 
     // Draw all but 2 from deck, leaving 2 unresolved deck cards + 1 achievement = 3 unresolved
     const deckSize = state.decks.get(age1Key)!.length;
@@ -686,8 +899,8 @@ describe("naked subsets", () => {
     const age1Key = ageSetKey(1, CardSet.BASE);
     const groupNames = [...cardDb.groups().get(age1Key)!];
 
-    engine.resolveHand(state, "Alice", [groupNames[0], groupNames[1]]);
-    engine.resolveHand(state, "Bob", [groupNames[2], groupNames[3]]);
+    engine.revealHand(state, "Alice", [groupNames[0], groupNames[1]]);
+    engine.revealHand(state, "Bob", [groupNames[2], groupNames[3]]);
 
     // Draw named cards from deck to reduce the pool, leaving enough for naked subsets (>3 unresolved)
     const deck = state.decks.get(age1Key)!;
@@ -718,13 +931,14 @@ describe("naked subsets", () => {
     const drawName = [...unresolvedCards[0].candidates].find(n => !pairNames.includes(n))!;
     engine.move(state, namedAction({ cardName: drawName, source: "deck", dest: "hand", destPlayer: "Alice" }));
 
-    // After the refactor to complete subset detection, naked pair candidates are
-    // no longer eliminated from other unresolved cards in the group
+    // Two cards confined to two names take both names with them: no other card in the group can
+    // be either. Naked-N is enabled now that the opening deal pools names before anything has
+    // resolved them, which is what gives the rule something real to prune.
     const afterDeck = state.decks.get(age1Key)!;
     for (const card of afterDeck.filter(c => !c.isResolved)) {
       if (card === pairCard0 || card === pairCard1) continue;
       for (const name of pairNames) {
-        expect(card.candidates.has(name)).toBe(true);
+        expect(card.candidates.has(name)).toBe(false);
       }
     }
   });
@@ -770,12 +984,20 @@ describe("hidden pair (deck → both drawn by opponent)", () => {
     engine.move(state, groupedAction({ age: 10, cardSet: CardSet.BASE, source: "deck", dest: "hand", destPlayer: "Bob" }));
     engine.move(state, groupedAction({ age: 10, cardSet: CardSet.BASE, source: "deck", dest: "hand", destPlayer: "Bob" }));
 
-    // Bob's hand should now hold both age-10 cards, resolved 1:1.
+    // Bob's hand holds both age-10 cards — as a pair, not one per slot. Which of the two draws
+    // was which is a coin flip: the log reads the same either way. Pinning a name to a slot
+    // anyway used to look like a firmer answer, until BGA's position_from started reading those
+    // slots back and turning the coin flip into a confident, wrong card.
     const bobAge10 = state.hands.get("Bob")!.filter(c => ageSetKey(c.age, c.cardSet) === age10Key);
     expect(bobAge10.length).toBe(2);
-    expect(bobAge10.every(c => c.isResolved)).toBe(true);
-    const resolvedNames = new Set(bobAge10.map(c => c.resolvedName));
-    expect(resolvedNames).toEqual(new Set(pairNames));
+    const pair = new Set(pairNames);
+    expect(bobAge10.map(c => c.candidates)).toEqual([pair, pair]);
+
+    // The pair is still known to be Bob's: no other card in the group can be either name.
+    const elsewhere = engine.findGroup(10, CardSet.BASE).filter(c => !bobAge10.includes(c));
+    for (const card of elsewhere) {
+      for (const name of pairNames) expect(card.candidates.has(name)).toBe(false);
+    }
   });
 });
 
@@ -862,7 +1084,7 @@ describe("suspect merging", () => {
     // Translation to the deck must NOT pool the group — doing so downgraded the exact cards to
     // partial and gave Education a suspect set that excluded Education itself.
     const { state, engine } = createInitializedGS();
-    engine.resolveHand(state, "Alice", ["agriculture", "archery"]);
+    engine.revealHand(state, "Alice", ["agriculture", "archery"]);
     // Draw a third same-group card so Alice holds 3 age-1 base cards.
     engine.move(state, namedAction({ cardName: "clothing", source: "deck", dest: "hand", destPlayer: "Alice" }));
 
@@ -1067,6 +1289,189 @@ describe("deduceInitialHand", () => {
 // ---------------------------------------------------------------------------
 // processLog (full pipeline)
 // ---------------------------------------------------------------------------
+
+describe("bulk removal", () => {
+  /** Both players holding two cards, with a board, a score pile and a forecast between them. */
+  function midGame(): { state: GameState; engine: GameEngine } {
+    const { state, engine } = createInitializedGS();
+    engine.revealHand(state, "Alice", ["agriculture", "archery"]);
+    engine.revealHand(state, "Bob", ["clothing", "city states"]);
+    engine.move(state, namedAction({ cardName: "domestication", source: "deck", dest: "board", destPlayer: "Bob", meldKeyword: true }));
+    engine.move(state, namedAction({ cardName: "masonry", source: "deck", dest: "board", destPlayer: "Alice", meldKeyword: true }));
+    engine.move(state, namedAction({ cardName: "sailing", source: "deck", dest: "score", destPlayer: "Bob" }));
+    engine.move(state, namedAction({ cardName: "the wheel", source: "deck", dest: "forecast", destPlayer: "Bob" }));
+    engine.initLog(state, [], []);
+    return { state, engine };
+  }
+
+  const removal = (scope: RemovalEntry["scope"], extra: Record<string, unknown> = {}): RemovalEntry =>
+    ({ type: "removal", move: 1, scope, ...extra } as RemovalEntry);
+
+  /** How many cards the Relics section draws. Cities relics carry no name in their markup, so
+   *  the count is what tells us one has gone missing. */
+  const relicCardCount = (state: GameState, engine: GameEngine): number => {
+    const html = renderSummary(state, engine, cardDb, PERSPECTIVE, PLAYERS, "12345", { expansions: { echoes: false, artifacts: true, relics: true } });
+    const start = html.indexOf('id="relics"');
+    return html.slice(start, html.indexOf("data-section=", start)).split('<div class="card ').length - 1;
+  };
+
+  it("clears hands, boards, scores and reveals but keeps forecasts (Fission)", () => {
+    const { state, engine } = midGame();
+    // Fission draws a 10 and reveals it before sweeping, so there is always a revealed card to take.
+    engine.move(state, namedAction({ cardName: "software", source: "deck", dest: "revealed", destPlayer: "Alice" }));
+
+    engine.processEntry(state, removal("hands-boards-scores"));
+
+    expect(state.revealed.get("Alice")).toEqual([]);
+
+    for (const player of ["Alice", "Bob"]) {
+      expect(state.hands.get(player)).toEqual([]);
+      expect(state.boards.get(player)).toEqual([]);
+      expect(state.scores.get(player)).toEqual([]);
+    }
+    expect(state.forecast.get("Bob")!.map(c => c.resolvedName)).toEqual(["the wheel"]);
+    expect(state.removed.map(c => c.resolvedName).sort()).toEqual(["agriculture", "archery", "city states", "clothing", "domestication", "masonry", "sailing", "software"]);
+  });
+
+  it("clears every hand and the board tops BGA lists (DeLorean)", () => {
+    const { state, engine } = midGame();
+
+    engine.processEntry(state, removal("top-cards-and-hands", { cardNames: ["Domestication"] }));
+
+    expect(state.hands.get("Alice")).toEqual([]);
+    expect(state.hands.get("Bob")).toEqual([]);
+    expect(state.boards.get("Bob")).toEqual([]);
+    expect(state.boards.get("Alice")!.map(c => c.resolvedName)).toEqual(["masonry"]);
+    expect(state.scores.get("Bob")!.map(c => c.resolvedName)).toEqual(["sailing"]);
+    expect(state.removed.map(c => c.resolvedName).sort()).toEqual(["agriculture", "archery", "city states", "clothing", "domestication"]);
+  });
+
+  it("clears everything one player owns, relic achievements included (Exxon Valdez)", () => {
+    const { state, engine } = createInitializedGS({ echoes: false, artifacts: true, relics: true }, ["Timbuktu"]);
+    engine.revealHand(state, "Alice", ["agriculture", "archery"]);
+    engine.revealHand(state, "Bob", ["clothing", "city states"]);
+    engine.move(state, namedAction({ cardName: "masonry", source: "deck", dest: "board", destPlayer: "Alice", meldKeyword: true }));
+    engine.initLog(state, [], []);
+    engine.processEntry(state, { type: "transfer", move: 1, cardSet: "cities", source: "relics", dest: "achievements", cardName: "Timbuktu", cardAge: 3, sourceOwner: null, destOwner: "Bob", meldKeyword: false, topOfDeck: false });
+
+    engine.processEntry(state, removal("player", { player: "Bob" }));
+
+    expect(state.hands.get("Bob")).toEqual([]);
+    expect(state.achievementRelics.get("Bob")).toEqual([]);
+    expect(state.hands.get("Alice")!.map(c => c.resolvedName).sort()).toEqual(["agriculture", "archery"]);
+    expect(state.boards.get("Alice")!.map(c => c.resolvedName)).toEqual(["masonry"]);
+    expect(state.removed.map(c => c.resolvedName).sort()).toEqual(["city states", "clothing", "timbuktu"]);
+  });
+
+  it("keeps a removed card's name out of the cards left behind", () => {
+    // A card swept out of a hand goes face-down: it was never identified, and the names it could
+    // have been leave the game with it rather than falling back to the deck.
+    const { state, engine } = createInitializedGS();
+    engine.resolveHand(state, "Alice", ["agriculture", "archery"]);
+    const age2Base = ageSetKey(2, CardSet.BASE);
+    engine.move(state, groupedAction({ age: 2, cardSet: CardSet.BASE, source: "deck", dest: "hand", destPlayer: "Bob" }));
+    const deckBefore = state.decks.get(age2Base)!.length;
+
+    engine.initLog(state, [], []);
+    engine.processEntry(state, removal("hands-boards-scores"));
+
+    const swept = state.removed.find(c => ageSetKey(c.age, c.cardSet) === age2Base)!;
+    expect(swept.candidates.size).toBe(cardDb.groupInfos(2, CardSet.BASE).length);
+    expect(state.decks.get(age2Base)!.length).toBe(deckBefore);
+    for (const card of state.decks.get(age2Base)!) {
+      expect(card.candidates.size).toBe(cardDb.groupInfos(2, CardSet.BASE).length);
+    }
+  });
+
+  it("leaves the hand stacks where BGA's next index expects them", () => {
+    // The reason these sweeps had to be handled at all: an unswept hand keeps phantom cards, and
+    // the next card drawn into it arrives at an index our stack has already used.
+    const { state, engine } = midGame();
+
+    engine.processEntry(state, removal("hands-boards-scores"));
+
+    expect(() => engine.move(state, namedAction({
+      cardName: "oars",
+      source: "deck",
+      dest: "hand",
+      destPlayer: "Bob",
+      destPosition: 0,
+    }))).not.toThrow();
+  });
+
+  it("does not pin an opening hand the reverse walk could only half recover", () => {
+    // A sweep takes cards out of the observer's own hand without naming them, so walking the log
+    // backwards from the current hand cannot put them back: what it recovers is a subset of the
+    // deal. Narrowing on a subset would pin a name to whichever slot happened to match, in a stack
+    // BGA indexes — and the next named move out of it reads the guess back and fails.
+    const { state, engine } = createInitializedGS();
+    const log: GameLogEntry[] = [
+      { type: "transfer", move: 1, cardSet: "base", source: "hand", dest: "board", cardName: "Agriculture", cardAge: 1, sourceOwner: "Alice", destOwner: "Alice", meldKeyword: true, topOfDeck: false, sourcePosition: 1 },
+      removal("hands-boards-scores", { move: 2 }),
+    ];
+
+    expect(() => engine.processLog(state, log, [])).not.toThrow();
+    expect(state.boards.get("Alice")).toEqual([]);
+    expect(state.removed.length).toBe(4);
+  });
+
+  it("throws when a listed top card is on no board", () => {
+    const { state, engine } = midGame();
+
+    expect(() => engine.processEntry(state, removal("top-cards-and-hands", { cardNames: ["Oars"] }))).toThrow(/not on any board/);
+  });
+
+  it("carries removed cards through the panel's own path: serialize, reload, render", () => {
+    // The side panel never runs the engine over a log — it deserializes, rebuilds the groups and
+    // renders. Cards out of the game have to survive that, or their group shrinks and their names
+    // come back as unaccounted.
+    const { state, engine } = midGame();
+    engine.processEntry(state, removal("hands-boards-scores"));
+    const groupSize = engine.findGroup(1, CardSet.BASE).length;
+
+    const reloaded = fromJSON(toJSON(state), PLAYERS, PERSPECTIVE);
+    engine.buildGroups(reloaded);
+
+    expect(reloaded.removed.map(c => c.resolvedName).sort()).toEqual(state.removed.map(c => c.resolvedName).sort());
+    expect(engine.findGroup(1, CardSet.BASE).length).toBe(groupSize);
+    // The card list still counts a removed card as located, rather than listing it as unaccounted.
+    const html = renderSummary(reloaded, engine, cardDb, PERSPECTIVE, PLAYERS, "12345");
+    const cardsHtml = html.slice(html.indexOf('id="cards"'));
+    const masonry = cardsHtml.slice(cardsHtml.indexOf(">Masonry<") - 400, cardsHtml.indexOf(">Masonry<"));
+    expect(masonry).toContain("data-known");
+  });
+
+  it("keeps a swept relic in the Relics section rather than dropping it", () => {
+    // The section accounts for all five relics of the variant. One taken out of the game has to
+    // keep its place there — vanishing reads as "this game has no such relic".
+    const { state, engine } = createInitializedGS({ echoes: false, artifacts: true, relics: true }, ["Timbuktu"]);
+    engine.revealHand(state, "Alice", ["agriculture", "archery"]);
+    engine.revealHand(state, "Bob", ["clothing", "city states"]);
+    engine.initLog(state, [], []);
+    engine.processEntry(state, { type: "transfer", move: 1, cardSet: "cities", source: "relics", dest: "hand", cardName: "Timbuktu", cardAge: 3, sourceOwner: null, destOwner: "Bob", meldKeyword: false, topOfDeck: false });
+    const before = relicCardCount(state, engine);
+
+    engine.processEntry(state, removal("player", { player: "Bob" }));
+
+    expect(state.removed.map(c => c.resolvedName)).toContain("timbuktu");
+    expect(relicCardCount(state, engine)).toBe(before);
+  });
+
+  it("removes a single revealed card from the game (The Big Bang)", () => {
+    const { state, engine } = createInitializedGS();
+    engine.resolveHand(state, "Alice", ["agriculture", "archery"]);
+    engine.initLog(state, [], []);
+
+    engine.processEntry(state, { type: "transfer", move: 1, cardSet: "base", source: "deck", dest: "revealed", cardName: "Bicycle", cardAge: 7, sourceOwner: null, destOwner: "Alice", meldKeyword: false, topOfDeck: false });
+    engine.processEntry(state, { type: "transfer", move: 1, cardSet: "base", source: "revealed", dest: "removed", cardName: "Bicycle", cardAge: 7, sourceOwner: "Alice", destOwner: null, meldKeyword: false, topOfDeck: false });
+
+    expect(state.revealed.get("Alice")).toEqual([]);
+    expect(state.removed.map(c => c.resolvedName)).toEqual(["bicycle"]);
+    for (const card of state.decks.get(ageSetKey(7, CardSet.BASE))!) {
+      expect(card.candidates.has("bicycle")).toBe(false);
+    }
+  });
+});
 
 describe("processLog", () => {
   it("processes a simple game log", () => {
@@ -1375,8 +1780,8 @@ describe("processLog", () => {
 describe("serialization", () => {
   it("round-trips an initial game state", () => {
     const { state, engine } = createInitializedGS();
-    engine.resolveHand(state, "Alice", ["agriculture", "archery"]);
-    engine.resolveHand(state, "Bob", ["clothing", "city states"]);
+    engine.revealHand(state, "Alice", ["agriculture", "archery"]);
+    engine.revealHand(state, "Bob", ["clothing", "city states"]);
 
     const json = toJSON(state);
     const gs2 = fromJSON(json, PLAYERS, PERSPECTIVE);
@@ -1443,7 +1848,7 @@ describe("serialization", () => {
 
   it("serializes resolved cards with age and cardSet", () => {
     const { state, engine } = createInitializedGS();
-    engine.resolveHand(state, "Alice", ["agriculture", "archery"]);
+    engine.revealHand(state, "Alice", ["agriculture", "archery"]);
 
     const json = toJSON(state);
     const aliceHand = json.hands["Alice"];
@@ -1481,7 +1886,7 @@ describe("serialization", () => {
 
   it("fromJSON does not require CardDatabase", () => {
     const { state, engine } = createInitializedGS();
-    engine.resolveHand(state, "Alice", ["agriculture", "archery"]);
+    engine.revealHand(state, "Alice", ["agriculture", "archery"]);
 
     const json = toJSON(state);
     // fromJSON is a standalone function — no engine/cardDb needed
@@ -1613,8 +2018,8 @@ describe("propagation with many resolved cards", () => {
     const age1Key = ageSetKey(1, CardSet.BASE);
     const groupNames = [...cardDb.groups().get(age1Key)!];
 
-    engine.resolveHand(state, "Alice", [groupNames[0], groupNames[1]]);
-    engine.resolveHand(state, "Bob", [groupNames[2], groupNames[3]]);
+    engine.revealHand(state, "Alice", [groupNames[0], groupNames[1]]);
+    engine.revealHand(state, "Bob", [groupNames[2], groupNames[3]]);
 
     // Draw and resolve many cards
     const deckSize = state.decks.get(age1Key)!.length;

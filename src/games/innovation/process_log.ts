@@ -308,6 +308,14 @@ export function processRawLog(rawData: RawExtractionData): GameLog {
         const dest = String(playerArgs.location_to);
         const bto = playerArgs.bottom_to;
         const isBottom = bto === true || bto === 1 || String(bto) === "1";
+        const readPosition = (raw: unknown, field: string): number | undefined => {
+          if (raw === null || raw === undefined) return undefined;
+          const position = Number(raw);
+          if (!Number.isInteger(position) || position < 0) throw new Error(`BGA sent a non-index ${field}: ${JSON.stringify(raw)}`);
+          return position;
+        };
+        const sourcePosition = readPosition(playerArgs.position_from, "position_from");
+        const destPosition = readPosition(playerArgs.position_to, "position_to");
         const entry: TransferEntry = {
           type: "transfer",
           move: moveId,
@@ -320,6 +328,8 @@ export function processRawLog(rawData: RawExtractionData): GameLog {
           destOwner: players[String(playerArgs.owner_to)] ? String(playerArgs.owner_to) : null,
           meldKeyword: Boolean(playerArgs.meld_keyword),
           topOfDeck: dest === "deck" && !isBottom,
+          sourcePosition,
+          destPosition: isBottom ? undefined : destPosition,
         };
         log.push(entry);
 
@@ -349,6 +359,34 @@ export function processRawLog(rawData: RawExtractionData): GameLog {
           }
         } else if (currentAction && entry.source === "forecast" && entry.dest === "board" && entry.meldKeyword) {
           currentAction.actions.push({ actionType: "promote", cardName: entry.cardName, cardAge: entry.cardAge, cardSet: entry.cardSet });
+        }
+        continue;
+      }
+
+      // Bulk removals: one notification stands for a sweep of cards, named nowhere except the
+      // board tops DeLorean lists (those are face up). Read from the spectator copy, which
+      // notifyAllPlayersBut emits for every one of them, so each sweep is seen exactly once and
+      // in step with the transfers around it.
+      if (notifType === "removedHandsBoardsAndScores_spectator" || notifType === "removedTopCardsAndHands_spectator" || notifType === "removedPlayer_spectator") {
+        const args = notif.args as Record<string, unknown>;
+        if (notifType === "removedHandsBoardsAndScores_spectator") {
+          log.push({ type: "removal", move: moveId, scope: "hands-boards-scores" });
+        } else if (notifType === "removedTopCardsAndHands_spectator") {
+          // BGA sends the card rows it removed, keyed by its own card id; gamedatas names them.
+          // Nothing downstream would notice this half going missing — boards carry no index for
+          // the audit to check — so a shape that does not parse has to stop here.
+          const cardNames: string[] = [];
+          for (const row of Object.values(args.top_cards_to_remove as Record<string, { id: unknown }>)) {
+            const cardId = String(row.id);
+            const name = gdCards[cardId]?.name;
+            if (!name) throw new Error(`Removed top card id ${cardId} has no name in gamedatas`);
+            cardNames.push(normalizeName(String(name)));
+          }
+          log.push({ type: "removal", move: moveId, scope: "top-cards-and-hands", cardNames });
+        } else {
+          const removedPlayer = String(args.player_to_remove);
+          if (!players[removedPlayer]) throw new Error(`removedPlayer names unknown player "${removedPlayer}"`);
+          log.push({ type: "removal", move: moveId, scope: "player", player: removedPlayer });
         }
         continue;
       }

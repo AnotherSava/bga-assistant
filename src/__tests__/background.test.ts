@@ -251,11 +251,12 @@ describe("runPipeline", () => {
     );
     const result = runPipeline(rawData, cardDb, "12345", "innovation");
 
-    // Alice (first player = perspective) should have her hand resolved
+    // Alice (first player = perspective) holds both cards. The deal is never logged, so before
+    // her first move nothing says which of BGA's two slots holds which card — they are known as
+    // a pair, and the first card she plays names one and settles the other.
     const hand = result.gameState.hands["1"];
-    const resolvedNames = hand.map((c: { resolved?: string }) => c.resolved).filter(Boolean);
-    expect(resolvedNames).toContain("pottery");
-    expect(resolvedNames).toContain("tools");
+    const pair = ["pottery", "tools"];
+    expect(hand.map((c: { resolved?: string; candidates?: string[] }) => c.resolved ?? c.candidates)).toEqual([pair, pair]);
   });
 
   it("processes multiple moves in sequence", () => {
@@ -286,6 +287,39 @@ describe("runPipeline", () => {
     expect(result.gameState.boards["1"][0].resolved).toBe("metalworking");
     // Alice's hand should still have 2 cards (started with 2, drew 1, played 1)
     expect(result.gameState.hands["1"].length).toBe(2);
+  });
+
+  it("sweeps hands, boards and scores out of the game when Fission fires", () => {
+    const packets = [
+      ...transferPair(
+        1,
+        { type: "0" },
+        { name: "Metalworking", age: 1, location_from: "hand", location_to: "board", owner_from: "1", owner_to: "1", meld_keyword: true },
+      ),
+      ...transferPair(
+        2,
+        { type: "0" },
+        { name: "Pottery", age: 1, location_from: "hand", location_to: "score", owner_from: "2", owner_to: "2", meld_keyword: false },
+      ),
+      { move_id: 3, time: 1003, data: [{ type: "removedHandsBoardsAndScores", args: {} }] },
+      { move_id: 3, time: 1003, data: [{ type: "removedHandsBoardsAndScores_spectator", args: { notification_type: "removedHandsBoardsAndScores", log: "All hands, boards and score piles are removed from the game. Achievements are kept." } }] },
+    ];
+
+    const rawData = makeRawData({ "1": "Alice", "2": "Bob" }, packets, { my_hand: [], cards: {} });
+    const result = runPipeline(rawData, cardDb, "12345", "innovation");
+
+    for (const player of ["1", "2"]) {
+      expect(result.gameState.hands[player]).toEqual([]);
+      expect(result.gameState.boards[player]).toEqual([]);
+      expect(result.gameState.scores[player]).toEqual([]);
+    }
+    // Two dealt cards each, one of them played: four cards out of the game.
+    const removed: { resolved?: string }[] = result.gameState.removed ?? [];
+    expect(removed.length).toBe(4);
+    expect(removed.some(c => c.resolved === "metalworking")).toBe(true);
+    expect(removed.some(c => c.resolved === "pottery")).toBe(true);
+    // Achievements are untouched.
+    expect(result.gameState.achievements.length).toBe(9);
   });
 
   it("processes scoring (hand to score)", () => {

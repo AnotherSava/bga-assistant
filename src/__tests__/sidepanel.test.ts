@@ -400,7 +400,7 @@ describe("renderSummary", () => {
 
   it("renders cards section with data-known attributes for resolved cards", () => {
     const { state: gs } = makeGameState(["Alice", "Bob"], "Alice");
-    engine.resolveHand(gs, "Alice", ["agriculture", "archery"]);
+    engine.revealHand(gs, "Alice", ["agriculture", "archery"]);
     const html = renderSummary(gs, engine, cardDb, "Alice", infoOf(["Alice", "Bob"], "Alice"), "12345");
 
     expect(html).toContain("data-known");
@@ -426,7 +426,7 @@ describe("renderSummary", () => {
 
   it("marks only resolved card-list cards with data-known", () => {
     const { state: gs } = makeGameState(["Alice", "Bob"], "Alice");
-    engine.resolveHand(gs, "Alice", ["agriculture", "archery"]);
+    engine.revealHand(gs, "Alice", ["agriculture", "archery"]);
     const html = renderSummary(gs, engine, cardDb, "Alice", infoOf(["Alice", "Bob"], "Alice"), "12345");
 
     const cardsStart = html.indexOf('id="cards"');

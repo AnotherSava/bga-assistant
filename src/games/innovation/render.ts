@@ -577,6 +577,7 @@ function collectResolvedNames(gameState: GameState): Set<string> {
   for (const cards of gameState.displays.values()) addFrom(cards);
   addFrom(gameState.achievements);
   addFrom(gameState.relics);
+  addFrom(gameState.removed);
   for (const cards of gameState.achievementRelics.values()) addFrom(cards);
   return resolved;
 }
@@ -689,6 +690,9 @@ export function renderSummary(gameState: GameState, engine: GameEngine, cardDb: 
         for (const cards of gameState.boards.values()) scanZone(cards);
         for (const cards of gameState.scores.values()) scanZone(cards);
         for (const cards of gameState.displays.values()) scanZone(cards);
+        // A relic can leave the game with a sweep. The section accounts for all five, so it has to
+        // keep showing one that is gone rather than let it drop out as if it never existed.
+        scanZone(gameState.removed);
         allRelics.sort((a, b) => a.age - b.age);
         return makeSection("relics", "Relics", [prepareCards(allRelics, cardDb, "", true, false)], config["relics"], {});
       },

@@ -26,6 +26,11 @@ export interface GameState {
   /** Global "Available Relics" pool. Fully public. Populated at deck init when the
    *  with-relics variant is active. */
   relics: Card[];
+  /** Cards taken out of the game — Fission, DeLorean, Exxon Valdez, The Big Bang. They keep their
+   *  place in the group so the names they might have been stay accounted for: a card removed
+   *  face-down is gone without ever being identified, and the cards left behind must not inherit
+   *  its name. No owner and no order, as in BGA's own model. */
+  removed: Card[];
   /** Per-player: relics currently sitting in that player's achievements pile.
    *  Unlike regular achievements (count-only), relics can be seized back, so
    *  their identity must be tracked. Fully public. */
@@ -50,6 +55,7 @@ export function createGameState(players: PlayerInfo[], perspective: string): Gam
     achievements: [],
     displays: new Map(ids.map(id => [id, []])),
     relics: [],
+    removed: [],
     achievementRelics: new Map(ids.map(id => [id, []])),
     players,
     perspective,
@@ -86,6 +92,9 @@ export function cardsAt(state: GameState, zone: Zone, player: string | null, gro
     }
     case "relics": {
       return state.relics;
+    }
+    case "removed": {
+      return state.removed;
     }
     case "achievements": {
       if (!player) return state.achievements;

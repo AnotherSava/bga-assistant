@@ -13,6 +13,10 @@ Each of those sections shows known cards with their name, icons, and age, while 
 
 ![Innovation hand and forecast view](../../screenshots/innovation-hand.png)
 
+Cards an opponent moves face-down out of their hand or score pile do not blur what is left behind. BGA withholds the card's name but still reports the slot it came from, and slots are counted per age and set, so the tracker knows which of those cards moved even though it was never named. A hand learnt from a reveal therefore stays known afterwards, and the card that left is followed to wherever it went — the bottom of its deck, most often.
+
+The flip side is that the tracker will not guess a slot. When two cards are known only as a pair — an opponent draws the last two cards of an age, or is dealt two at the start — each shows as one of that pair rather than being assigned a name apiece. Nothing in the log says which is which, and a guess there would be read back as fact the next time one of them moves.
+
 ## Turn history
 
 A compact sidebar shows recent actions — meld, draw, dogma, endorse, achieve, promote — newest first, with timestamps and player attribution. Each player's row is rendered in their actual BGA-assigned color, and your own ("you") row is highlighted with a subtle background tint of that color so it stays distinguishable regardless of which color BGA gave you. Compound actions (e.g. meld → promote → dogma) render as indented sub-action lines. Turns that begin with an Artifact on display show the pre-turn choice (pass, return, or dogma of that Artifact) as an italicized line above the regular actions:
@@ -91,10 +95,11 @@ that still spans the whole age is not information, and the panel says nothing ab
 Neither does a card the tracker has not caught up with — the hands follow the same live extraction the
 turn history does, so a card drawn a moment ago stays blank for a few seconds until the next one.
 
-There is no matching a specific card to a specific hint, and none is attempted: the tracker knows what
-an opponent's age-1 cards could be as a group, not which physical card is which, so within one age and
-set the counts are interchangeable by construction. What is shown against each card is stable between
-updates, but a card being drawn or played can shuffle which of two equal cards carries which count.
+Hints are matched to cards by age and set, never one by one. The tracker does follow an opponent's
+hand slot by slot, but the backs on the table are laid out in BGA's own order, which is not the one
+the panel sorts by — so lining the two up card by card would be a guess dressed as a fact. What is
+shown against each card is stable between updates, but a card being drawn or played can shuffle which
+of two equal cards carries which hint.
 
 Because these cards are the panel's, they follow the size slider along with the rest — and an
 opponent's hand takes noticeably more room than BGA's row of small backs, wrapping onto a second row
@@ -215,6 +220,8 @@ build, off on the store one, like the other on-table features.
 The card list lays out all cards in the game across ages, showing which cards have been identified and which remain unknown. Toggle between Base, Echoes, Cities, and Artifacts sets, filter to show only unaccounted cards, and switch between wide and tall layouts:
 
 <a href="../../screenshots/innovation-cards.png"><img src="../../screenshots/innovation-cards.png" alt="Innovation card list" width="1000"></a>
+
+Cards taken out of the game are followed like any other — one at a time by The Big Bang, or by the handful when Fission empties every hand, board and score pile, DeLorean takes the hands and the top of every pile, or Exxon Valdez ends a player. A card that was identified before it left still counts as identified here; one swept out face-down was never identified and stays unknown, its possible names leaving the game with it rather than passing to the cards still in play.
 
 ## Deck
 
