@@ -97,12 +97,6 @@ Three sibling subprojects under a shared BGA workspace directory:
 - Skill `allowed-tools` patterns: always use colon before wildcard — `Bash(git reset HEAD:*)` not `Bash(git reset HEAD*)`
 - Skill `allowed-tools` may NOT override built-in safety checks for destructive git commands (e.g. `git reset`). If a skill pattern doesn't work, add the pattern to `settings.local.json` instead.
 
-## Kitty Terminal (WSL)
-- VBS launcher: a `kitty.vbs` script kept with the user's other Windows tooling, outside any repo
-- System kitty (`/usr/bin/kitty`) is 0.32.2; updated kitty at `~/.local/kitty.app/bin/kitty` is 0.45.0
-- WSLg 1.0.71 broke Wayland rendering (ZINK/Mesa errors, `50000x50000` stride error)
-- Try `LIBGL_ALWAYS_SOFTWARE=1` or updated kitty binary as workaround
-
 ## Player metadata (multi-game)
 - [BGA player metadata source-of-truth](project_bga_player_metadata.md) — gameui.gamedatas.players[pid] is canonical; .color is bare 6-char hex
 - [BGA mode detection + extraction quirks](project_bga_mode_detection.md) — gameui.bRealtime (1/0) universal; gamedatas.realTime game-specific; title format; my_hand can lag the log
