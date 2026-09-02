@@ -70,6 +70,7 @@ describe("defaults", () => {
     expect(INPAGE_DEFAULTS.simplifiedCards).toBe(false);
     expect(INPAGE_DEFAULTS.cardScale).toBe(CARD_SCALE_MIN);
     expect(INPAGE_DEFAULTS.echoText).toBe(false);
+    expect(INPAGE_DEFAULTS.compactPlayerPanels).toBe(false);
   });
 
   it("turns everything that touches BGA's own page on for an unpacked build", async () => {
@@ -81,6 +82,7 @@ describe("defaults", () => {
     expect(unpacked.enabled).toBe(true);
     expect(unpacked.compactHeader).toBe(true);
     expect(unpacked.simplifiedCards).toBe(true);
+    expect(unpacked.compactPlayerPanels).toBe(true);
     // And starts the cards larger, so they are legible while being worked on.
     expect(unpacked.cardScale).toBe(CARD_SCALE_LOCAL_DEFAULT);
 
@@ -89,6 +91,7 @@ describe("defaults", () => {
     expect(published.enabled).toBe(false);
     expect(published.compactHeader).toBe(false);
     expect(published.simplifiedCards).toBe(false);
+    expect(published.compactPlayerPanels).toBe(false);
     expect(published.cardScale).toBe(CARD_SCALE_MIN);
   });
 
@@ -105,7 +108,7 @@ describe("defaults", () => {
     // Settings saved before the compact header existed must keep their own values and pick up the
     // new field's default, not be reset by it.
     storage[INPAGE_LOG_KEY] = { enabled: true, showPlayerNames: true };
-    expect(await loadInPageSettings()).toEqual({ enabled: true, showPlayerNames: true, compactHeader: false, progressionOnly: false, stickyPanels: false, simplifiedCards: false, cardScale: 100, echoText: false, opponentHands: false, actionTint: false, actionTintSpeed: 3 });
+    expect(await loadInPageSettings()).toEqual({ enabled: true, showPlayerNames: true, compactHeader: false, progressionOnly: false, stickyPanels: false, simplifiedCards: false, cardScale: 100, echoText: false, opponentHands: false, compactPlayerPanels: false, actionTint: false, actionTintSpeed: 3 });
   });
 });
 

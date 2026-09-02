@@ -95,8 +95,9 @@ Key files:
 
 ### In-Page Game Log
 
-Optional, Innovation only. Runs in the **ISOLATED world** of the board frame and renders the
-turn history into BGA's own log column, in place of BGA's `#logs` list.
+Optional, for every game that has a turn history — Innovation and Nucleum. Runs in the
+**ISOLATED world** of the board frame and renders that history into BGA's own log column, in place
+of BGA's `#logs` list.
 
 Unlike the *Side Panel*, it receives nothing by message: `chrome.runtime.sendMessage` reaches
 extension pages only, never a content script. The *Background Service Worker* renders the HTML
@@ -111,8 +112,10 @@ Responsibilities:
 - Offer in-page controls, the only way to reach these settings while the side panel is closed
 
 Key files:
-- `src/games/innovation/inpage_log.ts` — the injected mount function; self-contained, since Chrome serializes it
-- `src/games/innovation/inpage_log.css` — in-page-only styling delta
+- `src/render/inpage_log.ts` — the injected mount function; self-contained, since Chrome serializes it, and game-agnostic — it touches only BGA framework DOM and the rows' own class vocabulary
+- `src/render/inpage_log.css` — in-page-only styling delta
+- `src/render/turn_history_rows.ts` — the row renderer both surfaces share; each game supplies a detail formatter
+- `src/engine/turn_history.ts` — the `TurnAction` shape and the half-turn window
 - `src/sidepanel/inpage_settings.ts` — `chrome.storage.local` settings shared with the service worker
 
 ### Compact Table Header
@@ -217,11 +220,41 @@ stretched flex item, as tall as the board beside it and therefore with nowhere t
 `align-self: flex-start` shrinks it to its content. Safe only in that mode, where BGA's log — the one
 thing in the column BGA sizes against the height being given up — is hidden.
 
+Both modes also suppress `overscroll-behavior-y`, on the root and — in the pinned-column mode, which
+makes the column a scrollport of its own — on the column too. Chrome drags a stuck sticky element
+along with macOS's elastic scroll-bounce past the top and springs it back, so the pinned block
+visibly unsticks and drifts; it is a compositor effect invisible to layout, and `position: fixed` is
+exempt while sticky is not. The compact header carries the same rule for its own bar, and this is not
+a duplicate: the two sheets are injected independently, and the header drops its rule once a long
+prompt makes the bar tall, while these panels stay pinned throughout. `none` rather than `contain`,
+since only `none` suppresses the bounce; `-y` alone leaves the horizontal swipe-back gesture.
+
 Key files:
 - `src/games/innovation/sticky_panels.ts` — the injected mount function; self-contained, since Chrome serializes it
-- `src/games/innovation/sticky_panels.css` — the sticky rules for both modes, and the panels' backdrop
+- `src/games/innovation/sticky_panels.css` — the sticky rules for both modes, the panels' backdrop, and the scroll-bounce suppression
 - `src/sidepanel/inpage_settings.ts` — the same `chrome.storage.local` object the in-page log uses
 - `src/sidepanel/global_menu.ts` — the help page's eye menu, alongside the compact header's own setting
+
+### Compact Player Panels
+
+Optional, off unless asked for, and Nucleum only. An **ISOLATED world** injection into the board
+frame that folds the five resource counters BGA stacks in each player panel — workers, thaler,
+achievements, contracts, network — onto one line, taking a panel from 78 pixels to 20.
+
+The whole change is CSS, so the injected function does nothing but carry the class every rule hangs
+off. That is also where the game check lives: `.counterWrapper` and `.res` are Nucleum's own markup
+rather than anything BGA draws for every table, so no other game's board may be marked. With nothing
+to measure it needs no observer either — the rules apply whenever BGA gets round to building those
+counters.
+
+Responsibilities:
+- Add or remove `bgaa-compact-panels` on the root, bailing on any frame that is not a Nucleum board — but only on the way in, so switching off reaches a frame whichever board it turned out to hold
+- Nothing else: the fold, the sizes and the hidden worker reserve are all stylesheet
+
+Key files:
+- `src/games/nucleum/player_panels.ts` — the injected mount function; self-contained, since Chrome serializes it
+- `src/games/nucleum/player_panels.css` — the fold itself, every rule scoped under the mount's class
+- `src/sidepanel/inpage_settings.ts` — the same `chrome.storage.local` object the in-page log uses
 
 ## Data Flow: Full Extraction
 
@@ -277,9 +310,10 @@ Triggers:
 
 1. Validate player count via `pipeline.isValidPlayerCount()` — reject unsupported configurations (e.g. 2-player Crew)
 2. Transform raw data via `pipeline.runPipeline()`:
-   - Innovation: `process_log.processRawLog()` &rarr; `GameState.processLog()` &rarr; `GameState.toJSON()`
+   - Innovation: `process_log.processRawLog()` &rarr; `game_state.createGameState()` + `GameEngine.initGame()` / `GameEngine.processLog()` &rarr; `serialization.toJSON()`
    - Azul: `process_log.processAzulLog()` &rarr; `game_state.processLog()` &rarr; `game_state.toJSON()`
    - Crew: `process_log.processCrewLog()` &rarr; `game_engine.processCrewState()` &rarr; `serialization.crewToJSON()`
+   - Nucleum: `process_log.processNucleumLog()` &rarr; `game_engine.processNucleumState()` &rarr; `game_state.toJSON()`
 3. If the pipeline throws, cache a fallback `PipelineResults` with `rawData` only (`gameLog` and `gameState` are `null`) so the *Side Panel* can still offer a raw data download
 4. Cache `PipelineResults` (with `gameLog` and `gameState`)
 5. Push results to *Side Panel*
@@ -306,9 +340,10 @@ Triggers:
 ***Side Panel***
 
 1. Reconstruct live objects from serialized state:
-   - Innovation: fetch `card_info.json`, call `GameState.fromJSON()`
+   - Innovation: fetch `card_info.json`, call `serialization.fromJSON()`, then `GameEngine.buildGroups()`
    - Azul: call `game_state.fromJSON()`
    - Crew: call `serialization.crewFromJSON()`
+   - Nucleum: call `game_state.fromJSON()`
 2. Generate HTML, set up toggles/zoom, apply per-game display options (tooltips are CSS-driven via anchor positioning)
 
 </td>
@@ -382,11 +417,18 @@ that a window-focus event alone can miss.
 
 ## Data Flow: In-Page Game Log
 
-Renders Innovation turn history into BGA's log column. Runs whenever results are produced and the
+Renders a game's turn history into BGA's log column. Runs whenever results are produced and the
 feature is enabled — including with the side panel closed, which is its purpose.
 
+Which games can do this, and what each needs, lives in one registry in the service worker
+(`INPAGE_HISTORY_GAMES`) rather than a chain of game tests: everything else here — the mount, the
+reconcile, the per-tab overrides — is already game-agnostic, and only two things are not. A game
+supplies its stylesheet and a function that turns cached results into a window of rendered rows.
+Innovation's sheet carries the card-tooltip geometry; Nucleum's leaves it out, having no card faces
+in its rows.
+
 Triggers:
-- `chrome.webNavigation.onCommitted` for an Innovation board frame — hides BGA's log early (below)
+- `chrome.webNavigation.onCommitted` for a board frame of a game in that registry — hides BGA's log early (below)
 - Extraction completes (full or live)
 - `bgaa_inpage_log` changes in `chrome.storage.local` (either surface's toggles)
 - `chrome.webNavigation.onCompleted` reports the board frame finished loading
@@ -401,22 +443,23 @@ hide therefore runs at frame-commit, independently of results.
 ***Background Service Worker***
 
 1. On `webNavigation.onCommitted`, bail unless the feature is enabled, the tab is not currently
-   switched to BGA's log, and `time-tracking.parseGameTableUrl()` reports an Innovation board frame
+   switched to BGA's log, and `time-tracking.parseGameTableUrl()` reports a board frame of a game in
+   the registry
 2. Inject `EARLY_HIDE_CSS` and `background.hideBgaLogEarlyFunction` into that frame alone
 
 Because this hides before knowing whether a render will succeed, `background.pushInPageLog()`
-**unmounts** rather than bailing when it has no Innovation game log — otherwise BGA's log would stay
+**unmounts** rather than bailing when it has no history to draw — otherwise BGA's log would stay
 hidden with nothing in its place and no control to bring it back.
 
 ---
 
 ***Background Service Worker***
 
-1. Bail unless the feature is enabled, the game is Innovation, and a game log exists — otherwise unmount
-2. Narrow the action list to the window via `turn_history.recentTurns()`, using this tab's override or the `INPAGE_LOG_HALF_TURNS` constant
+1. Bail unless the feature is enabled and the cached results belong to a game in the registry — otherwise unmount
+2. Narrow the game's action list to the window via `turn_history.recentTurns()`, using this tab's override or the `INPAGE_LOG_HALF_TURNS` constant
 3. Compare the windowed length against the full action list to decide `hasMore`, which drives the "more..." control
-4. Render keyed rows via `render.renderTurnHistoryRows()` with `newestFirst`, `popoverTips`, `rowKeys` and `timeOnly`; wrapped in try/catch, since the renderer throws on an unknown player id
-5. Await the stylesheet, then push the rows. The two injections are independent promises, so an un-awaited `insertCSS()` lets the DOM land first and render unstyled. The injection promise is cached per tab (not a boolean) so a second push cannot overtake the first one's CSS, and it is dropped on navigation — injected CSS does not survive a new document
+4. Render keyed rows through the game's own entry — `render.renderTurnHistoryRows()` for Innovation (binding the card database into the formatter), `render.renderNucleumTurnHistoryRows()` for Nucleum — with `newestFirst`, `popoverTips`, `rowKeys` and `timeOnly`; wrapped in try/catch, since the shared renderer throws on an unknown player id
+5. Await the stylesheet, then push the rows. The two injections are independent promises, so an un-awaited `insertCSS()` lets the DOM land first and render unstyled. The injection promise is cached per tab **and game** (not a boolean) so a second push cannot overtake the first one's CSS and a tab moving from one game's table to another cannot wear the first game's sheet; it is dropped on navigation — injected CSS does not survive a new document
 
 ```
 ⇩   executeScript arguments (JSON-serialized, not a message):
@@ -464,13 +507,14 @@ being worked on without a switch after every extension reload, and reach store u
 ask for them.
 
 The in-page settings live in `chrome.storage.local` under `bgaa_inpage_log`
-(`{ enabled, showPlayerNames, compactHeader, progressionOnly, stickyPanels, simplifiedCards, cardScale, echoText, opponentHands }`), not in the `localStorage` used by every other
+(`{ enabled, showPlayerNames, compactHeader, progressionOnly, stickyPanels, simplifiedCards, cardScale, echoText, opponentHands, actionTint, actionTintSpeed }`), not in the `localStorage` used by every other
 display preference. Three contexts need them and `localStorage` cannot serve all three: the service
 worker has none at all, and a content script's belongs to `boardgamearena.com` rather than the
 extension. The key is still named for the log alone, which was the first of these settings:
 renaming it would silently drop what every existing user has already chosen. The panel's
 own "Show player names" toggle mirrors its value into this object so a single checkbox drives both
-surfaces. The starting window is the `INPAGE_LOG_HALF_TURNS` constant rather than a stored field,
+surfaces — from `src/sidepanel/turn_history_settings.ts`, shared by every game with a history rather
+than copied into each game's display menu, so the two cannot drift apart. The starting window is the `INPAGE_LOG_HALF_TURNS` constant rather than a stored field,
 so widening can never become the new starting point.
 
 ## Data Flow: Compact Table Header
@@ -583,6 +627,30 @@ to.
 
 Turning the feature off re-injects with `enabled: false`, which drops the class and every published
 property; the observers retire themselves on their next callback.
+
+## Data Flow: Compact Player Panels
+
+Optional, Nucleum only, and pushed off the same event as the compact header and the pinned column,
+for the same reasons — no extraction results reach it either. The counters it folds are BGA's own
+panel content.
+
+***Background Service Worker***
+
+1. On `webNavigation.onCompleted` — and at worker startup for an already-open table, and on the
+   setting's `storage.onChanged` — bail unless `compactPlayerPanels` is on, then
+   `background.pushPlayerPanels()` awaits the stylesheet and injects the mount into all frames. The
+   sheet must land first, or the class would arrive to no rules for a frame
+
+```
+⇩   executeScript arguments (JSON-serialized, not a message):
+⇩   [ { enabled } ]
+```
+
+***Compact Player Panels***
+
+1. Remove `bgaa-compact-panels` from the root and return, when switched off — before the board check,
+   so a tab that has since navigated to another game still gets cleaned up
+2. Otherwise return silently unless the frame holds a Nucleum board (`#leftright_page_wrapper.bgagame-nucleum`), and add the class
 
 ## Data Flow: Action-Required Tint
 
@@ -758,6 +826,7 @@ Key files:
 | `"setPinMode"` | `true` | Set auto-hide mode (background keeps in-memory copy; sidepanel persists via localStorage) |
 | `"pauseLive"` | — | Stop live tracking |
 | `"resumeLive"` | — | Re-inject watcher on active tab |
+| `"resetTimeTracking"` | — | Drop the in-memory session state after the panel has cleared stored sessions |
 
 ### *Background Service Worker* &rarr; *Side Panel*
 
@@ -789,7 +858,7 @@ Not messages — the service worker injects the mount function and passes data a
 | Channel | Payload | Purpose |
 |---------|---------|---------|
 | `chrome.scripting.executeScript` | `[rows, opts]` | Render or unmount the in-page log (`opts.enabled: false` unmounts and restores BGA's log; `opts.collapsed` switches which log is shown) |
-| `chrome.scripting.insertCSS` | concatenated stylesheet | Inject styling, once per tab per service-worker lifetime |
+| `chrome.scripting.insertCSS` | the game's concatenated stylesheet | Inject styling, once per tab **and game** per service-worker lifetime |
 
 ### *Background Service Worker* &rarr; *Compact Table Header*
 
@@ -804,6 +873,20 @@ Not messages — the service worker injects the mount function and passes data a
 |---------|---------|---------|
 | `chrome.scripting.executeScript` | `[{ enabled }]` | Measure what the sticky rules stick to and publish it on the root, or (`enabled: false`) drop it and the class every rule hangs off |
 | `chrome.scripting.insertCSS` | `sticky_panels.css` | Inject the sticky rules for both modes, once per tab per service-worker lifetime |
+
+### *Background Service Worker* &rarr; *Compact Player Panels*
+
+| Channel | Payload | Purpose |
+|---------|---------|---------|
+| `chrome.scripting.executeScript` | `[{ enabled }]` | Carry the class the fold hangs off onto a Nucleum board's root, or (`enabled: false`) take it off whatever board the frame now holds |
+| `chrome.scripting.insertCSS` | `player_panels.css` | Inject the fold, once per tab per service-worker lifetime |
+
+### *Background Service Worker* &rarr; *Action-Required Tint*
+
+| Channel | Payload | Purpose |
+|---------|---------|---------|
+| `chrome.scripting.executeScript` (MAIN world) | `[{ enabled, speed }]` | Start the poll that stripes BGA's top bar while a reaction is owed, or (`enabled: false`) drop the root class and the published animation properties |
+| `chrome.scripting.insertCSS` | `action_tint.css` | Inject the stripes, once per tab per service-worker lifetime |
 
 ### *Background Service Worker* &rarr; *Simplified Cards*
 

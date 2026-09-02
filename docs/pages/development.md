@@ -32,7 +32,7 @@ Two CLI scripts run the extension's pipeline stages locally for debugging, using
 
 ### game-log
 
-Reads `raw_data.json`, auto-detects the game from the `gameName` field, runs the game-specific log processor, and writes `game_log.json` to the same directory. If the file lacks a `gameName` field (e.g. older exports), specify `--game <name>` (innovation, azul, thecrewdeepsea).
+Reads `raw_data.json`, auto-detects the game from the `gameName` field, runs the game-specific log processor, and writes `game_log.json` to the same directory. If the file lacks a `gameName` field (e.g. older exports), specify `--game <name>` (innovation, azul, thecrewdeepsea, nucleum).
 
 ```
 npm run game-log -- data/bgaa_823235522_23/raw_data.json
@@ -62,10 +62,12 @@ src/
   sidepanel/
     sidepanel.ts             Receives data, triggers render, handles downloads
     sidepanel.css            Dark theme, font declarations, card grids, tooltips
+    turn_history_settings.ts Settings shared by every game that shows a turn history
   models/
     types.ts                 Shared BGA types (GameName, RawPacket, RawExtractionData)
   engine/
     constraint.ts            Game-agnostic constraint propagation kernel (shared by Crew and Innovation)
+    turn_history.ts          Game-agnostic TurnAction shape and recent-turns grouping
   games/
     innovation/
       types.ts               Innovation types: Card, CardInfo, CardDatabase, enums, actions
@@ -73,7 +75,7 @@ src/
       game_state.ts          GameState interface (zone data), createGameState(), cardsAt()
       game_engine.ts         GameEngine class: state tracking + constraint propagation
       serialization.ts       toJSON/fromJSON serialization for side panel transport
-      turn_history.ts         Turn action types and recent-turns grouping
+      turn_history.ts        Innovation action types over the shared turn-history kernel
       render.ts              GameState + GameEngine -> HTML string via template literals
       config.ts              Section layout config, visibility/layout defaults
     azul/
@@ -88,10 +90,22 @@ src/
       serialization.ts       toJSON/fromJSON serialization for side panel transport
       render.ts              CrewGameState -> HTML card grid, suit matrix, trick history
       styles.css             Crew-specific CSS (card grid, suit colors, matrix, trick table)
+    nucleum/
+      types.ts               Nucleum city names and turn-history action detail types
+      process_log.ts         Raw BGA packets -> structured Nucleum game log
+      game_state.ts          NucleumGameState (the turn history) + toJSON/fromJSON
+      game_engine.ts         Log entries -> turn actions: grouping, undo rewinds, railway links
+      render.ts              NucleumGameState -> HTML turn history
+      display.ts             Nucleum display menu (player names, in-page log)
+      styles.css             Nucleum-specific CSS (history list, out-of-turn actor)
   render/
     help.ts                  Help page content
     icons.ts                 Shared icon utilities
     toggle.ts                Shared toggle logic (side panel + ZIP export); tooltips are CSS-only
+    turn_history_rows.ts     Turn-history rows for every game and both surfaces
+    turn_history.css         Row appearance, shared by the panel and the in-page log
+    inpage_log.ts            Mount function for the turn history in BGA's log column
+    inpage_log.css           In-page-only delta over the shared row styles
 assets/
   bga/
     innovation/

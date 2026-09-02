@@ -18,6 +18,8 @@ Turn-based games on BGA can stretch across days or weeks — by the time it's yo
 
 **[The Crew: Mission Deep Sea](pages/games/crew)** — Tracks played cards and communication signals to deduce remaining cards in players' hands for The Crew: Mission Deep Sea tables with any player count. The side panel displays three sections — a card grid, a player-suit matrix, and a trick history — all updating live as cards are played.
 
+**[Nucleum](pages/games/nucleum)** — Reads the game log from Nucleum tables with 2-4 players and rewrites it as one line per turn: who was on turn, and which actions they chose. Nucleum keeps nothing secret — tiles, contracts, technologies and the whole map are open — so there is nothing to deduce; what the side panel adds is a record you can scan, with every thaler, worker and income step BGA's own log spells out left off. The same history can replace BGA's log on the table itself.
+
 **[Play-time tracking](pages/time-tracking)** — Automatically tracks how much time you spend playing on BGA — for every game and table, not just the supported ones. The clock runs only while a game table tab is focused, pauses when you step away, and a stats page shows daily, weekly, and monthly charts per game with session and per-table summaries.
 
 ## Install
@@ -26,7 +28,7 @@ Turn-based games on BGA can stretch across days or weeks — by the time it's yo
 
 ## Next steps
 
-- **[Games](pages/games)** — per-game trackers for Innovation, Azul, and The Crew, plus how the side panel works
+- **[Games](pages/games)** — per-game trackers for Innovation, Azul, The Crew and Nucleum, plus how the side panel works
 - **[Play-time tracking](pages/time-tracking)** — automatic play-time stats for every BGA game and table
 - **[Developer guide](pages/development)** — build from source, project structure, data flow, and testing
 - **[Privacy policy](pages/privacy)** — what data the extension does and doesn't touch

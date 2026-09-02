@@ -31,6 +31,21 @@ describe("smoke tests", () => {
     expect(module).toBeDefined();
   });
 
+  it("imports from nucleum/process_log without errors", async () => {
+    const module = await import("../games/nucleum/process_log");
+    expect(module).toBeDefined();
+  });
+
+  it("imports from nucleum/game_engine without errors", async () => {
+    const module = await import("../games/nucleum/game_engine");
+    expect(module).toBeDefined();
+  });
+
+  it("imports from nucleum/render without errors", async () => {
+    const module = await import("../games/nucleum/render");
+    expect(module).toBeDefined();
+  });
+
   it("loads card_info.json asset", () => {
     const cardInfoPath = resolve(thisDir, "../../assets/bga/innovation/card_info.json");
     const data = JSON.parse(readFileSync(cardInfoPath, "utf-8"));
@@ -111,5 +126,29 @@ describe("the compact card's scope class", () => {
         expect(alternative.trim().startsWith(".bgaa-cards ")).toBe(true);
       }
     }
+  });
+});
+
+describe("Nucleum's own stylesheet", () => {
+  const root = resolve(thisDir, "../..");
+
+  it("scopes every rule, since the same sheet is injected into BGA's page", () => {
+    // The in-page turn history carries this sheet into boardgamearena.com's document, where an
+    // unscoped selector would restyle BGA's own elements.
+    const css = readFileSync(resolve(root, "src/games/nucleum/styles.css"), "utf-8");
+    const selectors = css.replace(/\/\*[\s\S]*?\*\//g, "").split("}").map(block => block.split("{")[0].trim()).filter(Boolean);
+    expect(selectors.length).toBeGreaterThan(2);
+    for (const selector of selectors) {
+      for (const alternative of selector.split(",")) {
+        expect(alternative.trim().startsWith(".nucleum-")).toBe(true);
+      }
+    }
+  });
+
+  it("references no url(), which would resolve against BGA's origin", () => {
+    // Chrome resolves relative URLs in injected CSS against the host page, so any url() here
+    // would 404 against boardgamearena.com. Comments stripped, so one saying so cannot false-hit.
+    const css = readFileSync(resolve(root, "src/games/nucleum/styles.css"), "utf-8");
+    expect(css.replace(/\/\*[\s\S]*?\*\//g, "")).not.toContain("url(");
   });
 });

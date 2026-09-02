@@ -3,7 +3,7 @@
 // game log column. Exercises the real DOM contract against a fixture of BGA's log markup.
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { inPageLogFunction } from "../games/innovation/inpage_log.js";
+import { inPageLogFunction } from "../render/inpage_log.js";
 import { readFileSync } from "fs";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
@@ -259,7 +259,7 @@ describe("inPageLogFunction collapsed view", () => {
 // ---------------------------------------------------------------------------
 
 describe("in-page log stylesheet", () => {
-  const css = readFileSync(resolve(thisDir, "../games/innovation/inpage_log.css"), "utf-8");
+  const css = readFileSync(resolve(thisDir, "../render/inpage_log.css"), "utf-8");
   /** Selectors only — comments mention the very patterns these guards forbid. */
   const rules = css.replace(/\/\*[\s\S]*?\*\//g, "");
 
@@ -379,7 +379,7 @@ describe("card tooltip listeners", () => {
 });
 
 describe("tooltip stylesheet", () => {
-  const css = readFileSync(resolve(thisDir, "../games/innovation/inpage_log.css"), "utf-8");
+  const css = readFileSync(resolve(thisDir, "../render/inpage_log.css"), "utf-8");
 
   it("does not cancel :hover, which would out-specify the open rule", () => {
     // `.th-card:hover > .card-tip { display: none }` is (0,3,0) and beat the reveal rule,

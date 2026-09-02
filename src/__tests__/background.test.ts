@@ -93,9 +93,10 @@ const copyListeners = () => {
 };
 
 import { classifyNavigation, shouldAutoClose, shouldShowLoading, watcherFunction, probeTableTypeFn, hideBgaLogEarlyFunction, isPotentialTablePage, selectGameFrame, type NavigationAction, type PinMode, type FrameProbe } from "../background";
+import { playerPanelsFunction } from "../games/nucleum/player_panels";
 import { runPipeline, isValidPlayerCount, type PipelineResults } from "../pipeline";
 import { CardDatabase } from "../models/types";
-import { inPageLogFunction } from "../games/innovation/inpage_log";
+import { inPageLogFunction } from "../render/inpage_log";
 import { compactHeaderFunction } from "../games/innovation/compact_header";
 import { opponentHandHintsFunction } from "../games/innovation/simplified_cards";
 import { INPAGE_LOG_KEY, INPAGE_DEFAULTS, INPAGE_LOG_HALF_TURNS } from "../sidepanel/inpage_settings";
@@ -573,6 +574,65 @@ describe("runPipeline (thecrewdeepsea)", () => {
   });
 });
 
+// ---------------------------------------------------------------------------
+// Nucleum pipeline
+// ---------------------------------------------------------------------------
+
+describe("runPipeline (nucleum)", () => {
+  const cardDb = loadCardDb();
+
+  /** A turn: the main-action prompt, an action, then the turn ending. */
+  function nucleumTurn(moveId: number, playerId: string, notifs: Array<{ type: string; args: Record<string, unknown> }>) {
+    return [
+      { move_id: moveId, time: moveId, data: [{ type: "gameStateChange", args: { id: 2, active_player: playerId, args: { main: true, realActive: true } } }] },
+      { move_id: moveId + 1, time: moveId + 1, data: notifs },
+      { move_id: moveId + 2, time: moveId + 2, data: [{ type: "gameStateChange", args: { id: 3, active_player: playerId, args: [] } }] },
+    ];
+  }
+
+  it("processes empty Nucleum extraction data", () => {
+    const rawData = { ...makeRawData({ "1": "Alice", "2": "Bob", "3": "Carol" }, [], undefined, "nucleum"), currentPlayerId: "1" };
+    const result = runPipeline(rawData, cardDb, "907048482", "nucleum");
+    expect(result.gameName).toBe("nucleum");
+    expect(result.tableNumber).toBe("907048482");
+    expect(result.gameLog.log).toEqual([]);
+    expect(result.gameState.actions).toEqual([]);
+    expect(result.gameLog.players["1"].name).toBe("Alice");
+  });
+
+  it("turns a Nucleum notification stream into turn history end-to-end", () => {
+    const packets = [
+      ...nucleumTurn(1, "1", [
+        { type: "playTile", args: { player_name: "Alice", tile: 50, slot: 0 } },
+        { type: "urbanize", args: { player_name: "Alice", buildingId: 51, city: 4, idx: 1 } },
+        { type: "getContract", args: { player_name: "Alice", contract: 11, slot: 2 } },
+      ]),
+      ...nucleumTurn(4, "2", [
+        { type: "getActionTiles", args: { tiles: [50, 52] } },
+      ]),
+    ];
+    const rawData = { ...makeRawData({ "1": "Alice", "2": "Bob" }, packets, undefined, "nucleum"), currentPlayerId: "1" };
+    const result = runPipeline(rawData, cardDb, "907048482", "nucleum");
+
+    expect(result.gameState.actions).toHaveLength(2);
+    expect(result.gameState.actions[0]).toMatchObject({ player: "1", actionNumber: 1 });
+    expect(result.gameState.actions[0].actions.map(d => d.actionType)).toEqual(["urbanize", "contract"]);
+    expect(result.gameState.actions[1].actions.map(d => d.actionType)).toEqual(["recharge"]);
+  });
+
+  it("rejects a 5-player Nucleum table", () => {
+    const rawData = makeRawData({ "1": "A", "2": "B", "3": "C", "4": "D", "5": "E" }, [], undefined, "nucleum");
+    expect(() => runPipeline(rawData, cardDb, "1", "nucleum")).toThrow(/does not support 5-player/);
+  });
+
+  it("Nucleum pipeline result is JSON-serializable", () => {
+    const rawData = { ...makeRawData({ "1": "Alice", "2": "Bob" }, nucleumTurn(1, "1", [{ type: "unlockTech", args: { player_name: "Alice", tech: 2 } }]), undefined, "nucleum"), currentPlayerId: "1" };
+    const result = runPipeline(rawData, cardDb, "12345", "nucleum");
+    const parsed = JSON.parse(JSON.stringify(result));
+    expect(parsed.gameState.actions[0].actions[0].actionType).toBe("tech");
+  });
+});
+
 describe("cardsAt fail-fast", () => {
   const cardDb = loadCardDb();
 
@@ -665,6 +725,11 @@ describe("classifyNavigation", () => {
   it("returns extract for an azul table URL", () => {
     const result = classifyNavigation("https://boardgamearena.com/1/azul?table=789");
     expect(result).toEqual({ action: "extract", tableNumber: "789", gameName: "azul" });
+  });
+
+  it("returns extract for a nucleum table URL", () => {
+    const result = classifyNavigation("https://boardgamearena.com/14/nucleum?table=907048482");
+    expect(result).toEqual({ action: "extract", tableNumber: "907048482", gameName: "nucleum" });
   });
 });
 
@@ -780,6 +845,7 @@ describe("shouldAutoClose", () => {
     expect(shouldAutoClose("https://en.boardgamearena.com/8/innovation?table=456", "autohide-game")).toBe(false);
     expect(shouldAutoClose("https://boardgamearena.com/1/azul?table=789", "autohide-game")).toBe(false);
     expect(shouldAutoClose("https://boardgamearena.com/1/thecrewdeepsea?table=321", "autohide-game")).toBe(false);
+    expect(shouldAutoClose("https://boardgamearena.com/14/nucleum?table=907048482", "autohide-game")).toBe(false);
   });
 });
 
@@ -799,6 +865,14 @@ describe("isValidPlayerCount", () => {
     expect(isValidPlayerCount("azul", 3)).toBe(true);
     expect(isValidPlayerCount("azul", 4)).toBe(true);
     expect(isValidPlayerCount("azul", 5)).toBe(false);
+  });
+
+  it("nucleum accepts 2-4 players", () => {
+    expect(isValidPlayerCount("nucleum", 1)).toBe(false);
+    expect(isValidPlayerCount("nucleum", 2)).toBe(true);
+    expect(isValidPlayerCount("nucleum", 3)).toBe(true);
+    expect(isValidPlayerCount("nucleum", 4)).toBe(true);
+    expect(isValidPlayerCount("nucleum", 5)).toBe(false);
   });
 
   it("thecrewdeepsea accepts 3-5 players", () => {
@@ -2225,6 +2299,28 @@ describe("in-page game log", () => {
     expect(mockInsertCSS.mock.calls.filter((c) => c[0]?.target?.tabId === 92).length).toBeGreaterThan(1);
   });
 
+  it("re-injects the stylesheet when switched back on", async () => {
+    // Injected CSS does not survive a document navigation, and the tab may well have reloaded
+    // while the feature was off. Regression guard for the cache key: it holds `<tab>:<game>`, so a
+    // drop by bare tab id type-checks and then silently matches nothing.
+    await setInPageLog({ enabled: true });
+    const conn = await clickExtractWithPort(93);
+    expect(mockInsertCSS.mock.calls.filter((c) => c[0]?.target?.tabId === 93)).toHaveLength(1);
+    conn.triggerDisconnect();
+    await setInPageLog({ enabled: false });
+    // Establish tab 93 as the active tab the re-enable will push to.
+    (chrome.tabs.get as ReturnType<typeof vi.fn>).mockResolvedValue({ id: 93, url: "https://boardgamearena.com/8/innovation?table=123", windowId: 1 });
+    listeners.onActivated({ tabId: 93 });
+    await new Promise((r) => setTimeout(r, 40));
+    vi.clearAllMocks();
+
+    await setInPageLog({ enabled: true });
+    await new Promise((r) => setTimeout(r, 40));
+
+    expect(inPageCallsFor(93).length).toBeGreaterThan(0);
+    expect(mockInsertCSS.mock.calls.filter((c) => c[0]?.target?.tabId === 93)).toHaveLength(1);
+  });
+
   it("injects the stylesheet once per tab", async () => {
     await setInPageLog({ enabled: true });
     // Two extractions on the same tab. The panel must be closed in between, or the second
@@ -2415,10 +2511,26 @@ describe("in-page log flash prevention", () => {
     expect(mockExecuteScript.mock.calls.find((c) => c[0]?.func === hideBgaLogEarlyFunction)).toBeUndefined();
   });
 
-  it("does not hide on non-Innovation tables", async () => {
+  it("hides on every game whose history can replace that log, not just Innovation", async () => {
+    await setEnabled(true);
+    vi.clearAllMocks();
+    listeners.onCommitted({ ...BOARD, url: "https://boardgamearena.com/14/nucleum?table=907048482" });
+    expect(mockExecuteScript.mock.calls.find((c) => c[0]?.func === hideBgaLogEarlyFunction)).toBeDefined();
+  });
+
+  it("does not hide on a game that has no turn history to put there", async () => {
     await setEnabled(true);
     vi.clearAllMocks();
     listeners.onCommitted({ ...BOARD, url: "https://boardgamearena.com/2/azul?table=123" });
+    expect(mockExecuteScript.mock.calls.find((c) => c[0]?.func === hideBgaLogEarlyFunction)).toBeUndefined();
+  });
+
+  it("does not hide on a game slug that only names a property of Object", async () => {
+    // The slug is whatever segment the URL carries, so the registry lookup must not reach
+    // Object.prototype — a truthy hit there hides BGA's log and then cannot render anything.
+    await setEnabled(true);
+    vi.clearAllMocks();
+    listeners.onCommitted({ ...BOARD, url: "https://boardgamearena.com/1/constructor?table=123" });
     expect(mockExecuteScript.mock.calls.find((c) => c[0]?.func === hideBgaLogEarlyFunction)).toBeUndefined();
   });
 
@@ -2427,6 +2539,105 @@ describe("in-page log flash prevention", () => {
     vi.clearAllMocks();
     listeners.onCommitted({ ...BOARD, url: "https://boardgamearena.com/tableview?table=123" });
     expect(mockExecuteScript.mock.calls.find((c) => c[0]?.func === hideBgaLogEarlyFunction)).toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Compact player panels
+// ---------------------------------------------------------------------------
+
+describe("compact player panels", () => {
+  const mockExecuteScript = chrome.scripting.executeScript as ReturnType<typeof vi.fn>;
+  const mockInsertCSS = chrome.scripting.insertCSS as ReturnType<typeof vi.fn>;
+  const BOARD = { tabId: 63, frameId: 1, url: "https://boardgamearena.com/14/nucleum?table=907048482" };
+
+  /** Flip the stored setting and drive the storage.onChanged listener the SW subscribed to. */
+  async function setPanels(compactPlayerPanels: boolean): Promise<void> {
+    const next = { ...INPAGE_DEFAULTS, compactPlayerPanels };
+    (chrome.storage.local.get as ReturnType<typeof vi.fn>).mockResolvedValue({ [INPAGE_LOG_KEY]: next });
+    listeners.onStorageChanged({ [INPAGE_LOG_KEY]: { newValue: next } }, "local");
+    await new Promise((r) => setTimeout(r, 10));
+  }
+
+  function panelCalls() {
+    return mockExecuteScript.mock.calls.filter((call) => call[0]?.func === playerPanelsFunction);
+  }
+
+  beforeEach(async () => {
+    await new Promise((r) => setTimeout(r, 20));
+    vi.clearAllMocks();
+    (chrome.runtime.sendMessage as ReturnType<typeof vi.fn>).mockImplementation(() => Promise.resolve());
+  });
+
+  afterEach(async () => { await setPanels(false); });
+
+  it("pushes into all frames when a board frame finishes loading", async () => {
+    await setPanels(true);
+    vi.clearAllMocks();
+
+    listeners.onCompleted(BOARD);
+    await new Promise((r) => setTimeout(r, 20));
+
+    const call = panelCalls().at(-1);
+    expect(call).toBeDefined();
+    expect(call![0]).toMatchObject({ target: { tabId: 63, allFrames: true }, world: "ISOLATED" });
+    expect(call![0].args[0]).toEqual({ enabled: true });
+  });
+
+  it("needs no extraction, so it does not wait on a consumer", async () => {
+    // The counters it folds are BGA's own panel content — nothing reconstructed here feeds it, and
+    // the side panel may well be closed.
+    await setPanels(true);
+    vi.clearAllMocks();
+
+    listeners.onCompleted(BOARD);
+    await new Promise((r) => setTimeout(r, 20));
+
+    expect(panelCalls().length).toBeGreaterThan(0);
+  });
+
+  it("lands the stylesheet before the class that switches it on", async () => {
+    // The class arriving first would leave the panels folded against no rules for a frame.
+    const order: string[] = [];
+    mockInsertCSS.mockImplementation(() => new Promise((r) => setTimeout(() => { order.push("css"); r(undefined); }, 20)));
+    mockExecuteScript.mockImplementation((opts: { func?: unknown }) => { if (opts?.func === playerPanelsFunction) order.push("script"); return Promise.resolve([]); });
+
+    await setPanels(true);
+    listeners.onCompleted(BOARD);
+    await new Promise((r) => setTimeout(r, 80));
+
+    expect(order.indexOf("css")).toBeGreaterThan(-1);
+    expect(order.indexOf("css")).toBeLessThan(order.lastIndexOf("script"));
+
+    // These are shared mocks and clearAllMocks does not reset implementations.
+    mockInsertCSS.mockImplementation(() => Promise.resolve());
+    mockExecuteScript.mockImplementation(() => Promise.resolve([]));
+  });
+
+  it("does nothing while switched off", async () => {
+    await setPanels(false);
+    vi.clearAllMocks();
+
+    listeners.onCompleted(BOARD);
+    await new Promise((r) => setTimeout(r, 20));
+
+    expect(panelCalls()).toHaveLength(0);
+  });
+
+  it("tears down on the way out, without needing a stylesheet", async () => {
+    await setPanels(true);
+    const tab = { id: 63, url: BOARD.url, windowId: 1 };
+    (chrome.tabs.get as ReturnType<typeof vi.fn>).mockResolvedValue(tab);
+    (chrome.tabs.query as ReturnType<typeof vi.fn>).mockResolvedValue([tab]);
+    await new Promise((r) => setTimeout(r, 20));
+    vi.clearAllMocks();
+
+    await setPanels(false);
+    await new Promise((r) => setTimeout(r, 20));
+
+    const call = panelCalls().at(-1);
+    expect(call![0].args[0]).toEqual({ enabled: false });
+    expect(mockInsertCSS).not.toHaveBeenCalled();
   });
 });
 

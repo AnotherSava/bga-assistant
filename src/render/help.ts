@@ -59,12 +59,13 @@ export function renderHelp(errorMessage?: string, gameName?: GameName): string {
   </details>
 
   <div class="help-tabs">
-    <button class="help-tab${gameName !== "azul" && gameName !== "thecrewdeepsea" ? " active" : ""}" data-help-tab="innovation">Innovation</button>
+    <button class="help-tab${gameName !== "azul" && gameName !== "thecrewdeepsea" && gameName !== "nucleum" ? " active" : ""}" data-help-tab="innovation">Innovation</button>
     <button class="help-tab${gameName === "azul" ? " active" : ""}" data-help-tab="azul">Azul</button>
     <button class="help-tab${gameName === "thecrewdeepsea" ? " active" : ""}" data-help-tab="thecrewdeepsea">The Crew</button>
+    <button class="help-tab${gameName === "nucleum" ? " active" : ""}" data-help-tab="nucleum">Nucleum</button>
   </div>
 
-  <div class="help-tab-content${gameName !== "azul" && gameName !== "thecrewdeepsea" ? " active" : ""}" data-help-panel="innovation">
+  <div class="help-tab-content${gameName !== "azul" && gameName !== "thecrewdeepsea" && gameName !== "nucleum" ? " active" : ""}" data-help-panel="innovation">
   <div class="help-section">
     <div class="help-section-title">Sections</div>
     <div class="help-sections-grid">
@@ -162,6 +163,34 @@ export function renderHelp(errorMessage?: string, gameName?: GameName): string {
     <div class="help-section-title">Trick history</div>
     <div class="help-sections-grid">
       <div class="help-grid-item"><span>Shows each trick with cards played per player. Each player’s column header renders in their BGA color, and your own column is tinted. The lead card is highlighted and the trick winner is bold. The current in-progress trick is shown at the bottom.</span></div>
+    </div>
+  </div>
+  </div>
+
+  <div class="help-tab-content${gameName === "nucleum" ? " active" : ""}" data-help-panel="nucleum">
+  <div class="help-section">
+    <div class="help-section-title">Turn history</div>
+    <div class="help-sections-grid">
+      <div class="help-grid-item"><span>Nucleum keeps nothing secret \u2014 tiles, contracts, technologies and the whole map are open \u2014 so there is no hidden state to work out. What the panel gives you instead is the game read back as one line per turn: who was on turn, and which actions they chose. Each player\u2019s row renders in their BGA-assigned colour, your own is tinted, and the first action of a turn heads the row with the rest indented under it.</span></div>
+      <div class="help-grid-item"><span>Only decisions appear. Every thaler, worker, VP, income step, achievement token and market refill that an action <i>produced</i> is left out \u2014 those are what fill BGA\u2019s own log, and they are on the board in front of you. A turn spent on a railway or a recharge says so; a turn that played a tile is named by what the tile did.</span></div>
+      <div class="help-grid-item"><span class="help-grid-label">urbanize / mine / turbine</span><span> A building, mine or turbine placed, with the city it went in</span></div>
+      <div class="help-grid-item"><span class="help-grid-label">energize</span><span> A building lit, with the power plant that fed it</span></div>
+      <div class="help-grid-item"><span class="help-grid-label">railway</span><span> A tile placed on the map. When the placement finished the link, the two cities it joined are named; an unfinished link joins nothing yet, so it is left unsaid</span></div>
+      <div class="help-grid-item"><span class="help-grid-label">develop / take contract / fulfil contract / unlock tech / recharge</span><span> The remaining choices, with \u00d7N where one was repeated within a turn</span></div>
+      <div class="help-grid-item"><span>An undone turn is rebuilt rather than shown twice: BGA replays a cancelled turn from the start, and the row follows it. Actions taken during someone else\u2019s turn \u2014 what a railway colour match can hand you \u2014 carry that player\u2019s name.</span></div>
+    </div>
+  </div>
+  <div class="help-section">
+    <div class="help-section-title">Toggles</div>
+    <div class="help-sections-grid">
+      <div class="help-grid-item"><span class="help-grid-label">Show player names</span><span> Spell names out rather than \u201Cyou\u201D/\u201Copp\u201D</span></div>
+      <div class="help-grid-item"><span class="help-grid-label">Show in BGA game log</span><span> Render the same history into BGA\u2019s own log column, where it stays visible with the side panel closed. The column shows one log or the other, never both; a lightbulb in its header switches between them, and \u201Cmore...\u201D below the history widens the window for the current table</span></div>
+    </div>
+  </div>
+  <div class="help-section">
+    <div class="help-section-title">On BGA\u2019s table</div>
+    <div class="help-sections-grid">
+      <div class="help-grid-item"><span>\u201CCompact player panels\u201D folds the five counters BGA stacks in each player panel \u2014 workers, thaler, achievements, contracts, network \u2014 onto a single line at about half the icon and text size, taking a panel from 78 pixels to 20. The workers left in a player\u2019s box, shown in brackets after the workers in play, go with it: the board already says, and no decision reads it. Two icons are redrawn, since BGA\u2019s carry detail that turns to mush this small: the achievement token as the faceted star the physical token is, without the heavy black disc it is embossed on, and the fulfilled contract with its gold ring dropped and its tick green, the ring and the tick being both gold and merging into one smudge at this size. The contract keeps its frame \u2014 an outer edge, an inner rule and a mark at each corner, BGA\u2019s own arrangement with the engraving taken out \u2014 since that is what makes it read as a contract. All five icons fill the same box, so they stand at one height, and they are set a few pixels below the score rather than butted against it. The name and score lines are drawn a little tighter as well, taking the leading out of them without cropping the text. A player on their first game loses the two-line notice BGA puts in their panel saying so \u2014 it costs 52 pixels of a 74-pixel panel, repeats all game, and explains a doubled clock the panel's own timer already shows. The first player is marked by a green wedge across the corner of their panel, which says so on hover, rather than by BGA\u2019s green \u201C1\u201D disc \u2014 in a game where that never changes hands, the disc spends a permanent 27 pixels of the score row on a fact that does not move. On a four-player table that is most of a screenful of column back, which is worth having next to the pinned panels and the turn history. Nucleum only \u2014 those counters are the game\u2019s own markup rather than anything BGA draws for every table.</span></div>
     </div>
   </div>
   </div>

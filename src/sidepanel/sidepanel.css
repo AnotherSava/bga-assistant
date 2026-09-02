@@ -398,7 +398,7 @@ details.help-section[open] > summary.help-section-title .help-section-preview { 
 }
 .pin-shortcut-link:hover { color: #aaa; }
 
-/* Turn history — row appearance lives in src/games/innovation/turn_history.css (shared with
+/* Turn history — row appearance lives in src/render/turn_history.css (shared with
  * the in-page game log, imported from sidepanel.ts). Only the panel's overlay positioning,
  * player-name toggle and tooltip reveal stay here. */
 #turn-history {

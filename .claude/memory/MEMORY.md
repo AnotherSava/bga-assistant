@@ -4,7 +4,7 @@
 Three sibling subprojects under a shared BGA workspace directory:
 - `themes/` — git repo (`bga-themes`), BGA custom CSS themes (has its own `scripts/browse.py`)
 - `tracker/` — BGA game state tracker (Innovation), uses `src/` layout with `pyproject.toml`
-- `assistant/` — BGA Assistant, TypeScript Chrome extension (Vite + vitest); multi-game (Innovation, Azul, Crew); git repo `AnotherSava/bga-assistant`
+- `assistant/` — BGA Assistant, TypeScript Chrome extension (Vite + vitest); multi-game (Innovation, Azul, Crew, Nucleum); git repo `AnotherSava/bga-assistant`
 - Shared: `venv/` (legacy — may only exist under `themes/venv/`), `.chrome_bga_profile/`
 
 ## Browser Automation Setup
@@ -147,6 +147,10 @@ Three sibling subprojects under a shared BGA workspace directory:
 - Relic cards (Timbuktu, Complex Numbers, Newton-Wickins Telescope, Ching Shih, Safety Pin) are extra cards that only exist in the with-relics variant — not part of any expansion's standard 105-card pool. Flagged `is_relic: true` in card_info.json, loaded into CardDatabase._cards for lookups, but excluded from _groups so they don't inflate deck candidate counts in non-relics games.
 - [Artifact display→board meld is a regular action](project_innovation_artifact_meld_action.md) — player choice, any action slot; classifier accepts source ∈ {hand, display}
 - [Innovation Maps keyed by player ID](project_innovation_id_keyed_maps.md) — hands/boards/scores/etc. and state.perspective use IDs; log regexes still match names, convert via _idByName
+
+## BGA Nucleum Notes
+- [BGA Nucleum protocol](project_bga_nucleum_protocol.md) — turn/undo markers (`id:2 main` / `id:3`), the two ambiguous notifications, and where the id→name tables live
+- [Nucleum history scope](project_nucleum_history_scope.md) — turn history only, no deduction; the game hides nothing (decided 2026-09-01)
 
 ## Engine architecture (multi-game)
 - [Shared constraint kernel](project_constraint_kernel.md) — src/engine/constraint.ts; per-game opt-ins for containerOf, isContainerOrdered, enableNakedTuples

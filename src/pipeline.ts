@@ -10,6 +10,9 @@ import { processLog as processAzulState, toJSON as azulToJSON, type SerializedAz
 import { processCrewLog, type CrewGameLog } from "./games/crew/process_log.js";
 import { processCrewState } from "./games/crew/game_engine.js";
 import { crewToJSON, type SerializedCrewGameState } from "./games/crew/serialization.js";
+import { processNucleumLog, type NucleumGameLog } from "./games/nucleum/process_log.js";
+import { processNucleumState } from "./games/nucleum/game_engine.js";
+import { toJSON as nucleumToJSON, type SerializedNucleumGameState } from "./games/nucleum/game_state.js";
 import { CardDatabase, CardSet, type GameName, type RawExtractionData } from "./models/types.js";
 
 /** Supplement transfer-based Echoes detection with myHand-based detection. */
@@ -34,6 +37,7 @@ export type PipelineResults =
   | { gameName: "innovation"; tableNumber: string; rawData: RawExtractionData; gameLog: GameLog; gameState: SerializedGameState }
   | { gameName: "azul"; tableNumber: string; rawData: RawExtractionData; gameLog: AzulGameLog; gameState: SerializedAzulGameState }
   | { gameName: "thecrewdeepsea"; tableNumber: string; rawData: RawExtractionData; gameLog: CrewGameLog; gameState: SerializedCrewGameState }
+  | { gameName: "nucleum"; tableNumber: string; rawData: RawExtractionData; gameLog: NucleumGameLog; gameState: SerializedNucleumGameState }
   | { gameName: string; tableNumber: string; rawData: RawExtractionData; gameLog: null; gameState: null };
 
 // ---------------------------------------------------------------------------
@@ -42,10 +46,10 @@ export type PipelineResults =
 
 /**
  * Check if a player count is valid for a given game.
- * Innovation requires exactly 2 players; Azul accepts 2-4; Crew accepts 3-5.
+ * Innovation requires exactly 2 players; Azul and Nucleum accept 2-4; Crew accepts 3-5.
  */
 export function isValidPlayerCount(gameName: GameName, playerCount: number): boolean {
-  if (gameName === "azul") return playerCount >= 2 && playerCount <= 4;
+  if (gameName === "azul" || gameName === "nucleum") return playerCount >= 2 && playerCount <= 4;
   if (gameName === "thecrewdeepsea") return playerCount >= 3 && playerCount <= 5;
   return playerCount === 2;
 }
@@ -55,7 +59,8 @@ export function isValidPlayerCount(gameName: GameName, playerCount: number): boo
 // ---------------------------------------------------------------------------
 
 /** Process raw extraction data into a structured game log. */
-export function processGameLog(rawData: RawExtractionData, gameName: GameName, cardDb?: CardDatabase): GameLog | AzulGameLog | CrewGameLog {
+export function processGameLog(rawData: RawExtractionData, gameName: GameName, cardDb?: CardDatabase): GameLog | AzulGameLog | CrewGameLog | NucleumGameLog {
+  if (gameName === "nucleum") return processNucleumLog(rawData);
   if (gameName === "thecrewdeepsea") return processCrewLog(rawData);
   if (gameName === "azul") return processAzulLog(rawData);
   if (gameName === "innovation") {
@@ -67,7 +72,9 @@ export function processGameLog(rawData: RawExtractionData, gameName: GameName, c
 }
 
 /** Process a game log into serialized game state. */
-export function processGameState(gameLog: GameLog | AzulGameLog | CrewGameLog, gameName: GameName, cardDb: CardDatabase): SerializedGameState | SerializedAzulGameState | SerializedCrewGameState {
+export function processGameState(gameLog: GameLog | AzulGameLog | CrewGameLog | NucleumGameLog, gameName: GameName, cardDb: CardDatabase): SerializedGameState | SerializedAzulGameState | SerializedCrewGameState | SerializedNucleumGameState {
+  if (gameName === "nucleum") return nucleumToJSON(processNucleumState(gameLog as NucleumGameLog));
+
   if (gameName === "thecrewdeepsea") {
     const crewState = processCrewState(gameLog as CrewGameLog);
     return crewToJSON(crewState);
@@ -104,6 +111,7 @@ export function processGameState(gameLog: GameLog | AzulGameLog | CrewGameLog, g
 export function runPipeline(rawData: RawExtractionData, database: CardDatabase, tableNumber: string, gameName: "innovation"): Extract<PipelineResults, { gameName: "innovation" }>;
 export function runPipeline(rawData: RawExtractionData, database: CardDatabase, tableNumber: string, gameName: "azul"): Extract<PipelineResults, { gameName: "azul" }>;
 export function runPipeline(rawData: RawExtractionData, database: CardDatabase, tableNumber: string, gameName: "thecrewdeepsea"): Extract<PipelineResults, { gameName: "thecrewdeepsea" }>;
+export function runPipeline(rawData: RawExtractionData, database: CardDatabase, tableNumber: string, gameName: "nucleum"): Extract<PipelineResults, { gameName: "nucleum" }>;
 export function runPipeline(rawData: RawExtractionData, database: CardDatabase, tableNumber: string, gameName: GameName): PipelineResults;
 export function runPipeline(rawData: RawExtractionData, database: CardDatabase, tableNumber: string, gameName: GameName): PipelineResults {
   const playerCount = Object.keys(rawData.players).length;

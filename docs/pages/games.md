@@ -5,7 +5,7 @@ nav_order: 2
 has_children: true
 ---
 
-BGA Assistant adds a live side panel to supported game tables, reconstructing hidden information from the public game log. Three games have dedicated trackers — pick one below for its full feature list and screenshots.
+BGA Assistant adds a live side panel to supported game tables, reconstructing hidden information from the public game log — and, where a game hides nothing, reading that log back as a turn-by-turn record. Four games have dedicated trackers — pick one below for its full feature list and screenshots.
 
 ## Using the side panel
 

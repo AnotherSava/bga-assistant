@@ -45,6 +45,8 @@ export interface InPageSettings {
   echoText: boolean;
   /** Draw the opponents' face-down hands as those cards too, with what is known about each. */
   opponentHands: boolean;
+  /** Fold Nucleum's five resource counters onto one line in BGA's own player panels. */
+  compactPlayerPanels: boolean;
   /** Tint BGA's top bar when the viewer must act during another player's turn (a reaction). */
   actionTint: boolean;
   /** Scroll of the action-tint stripes: 0 = static, sign = direction, magnitude 1–5 = speed. */
@@ -82,6 +84,7 @@ export const INPAGE_DEFAULTS: InPageSettings = {
   cardScale: CARD_SCALE_MIN,
   echoText: false,
   opponentHands: false,
+  compactPlayerPanels: false,
   actionTint: false,
   actionTintSpeed: ACTION_TINT_SPEED_DEFAULT,
 };
@@ -112,7 +115,7 @@ export function isUnpackedBuild(): boolean {
  * The defaults as they apply to this build.
  *
  * The settings that put something on BGA's own page — the in-page log, the compact header, the pinned
- * panels, the simplified cards and the opponents' hands among them — differ: a store build leaves all
+ * panels, the simplified cards, the compact player panels and the opponents' hands among them — differ: a store build leaves all
  * of them to be asked for, while a local build has them on, since that is where they are being worked
  * on and switching them back on after every reload is friction with no purpose. `echoText` rides
  * along on a local build too — it restyles the simplified cards, which are on there — so an Echo card's
@@ -122,7 +125,7 @@ export function isUnpackedBuild(): boolean {
  */
 function buildDefaults(): InPageSettings {
   const unpacked = isUnpackedBuild();
-  return { ...INPAGE_DEFAULTS, enabled: unpacked, compactHeader: unpacked, stickyPanels: unpacked, simplifiedCards: unpacked, opponentHands: unpacked, actionTint: unpacked, echoText: unpacked, cardScale: unpacked ? CARD_SCALE_LOCAL_DEFAULT : INPAGE_DEFAULTS.cardScale };
+  return { ...INPAGE_DEFAULTS, enabled: unpacked, compactHeader: unpacked, stickyPanels: unpacked, simplifiedCards: unpacked, opponentHands: unpacked, compactPlayerPanels: unpacked, actionTint: unpacked, echoText: unpacked, cardScale: unpacked ? CARD_SCALE_LOCAL_DEFAULT : INPAGE_DEFAULTS.cardScale };
 }
 
 export async function loadInPageSettings(): Promise<InPageSettings> {

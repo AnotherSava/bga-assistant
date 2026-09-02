@@ -5,7 +5,7 @@
 // ---------------------------------------------------------------------------
 
 /** Supported game names for BGA tracking. */
-export type GameName = "innovation" | "azul" | "thecrewdeepsea";
+export type GameName = "innovation" | "azul" | "thecrewdeepsea" | "nucleum";
 
 // ---------------------------------------------------------------------------
 // Card index utility

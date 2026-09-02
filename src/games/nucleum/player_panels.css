@@ -1,0 +1,185 @@
+/* Nucleum's five resource counters, folded onto one line in BGA's player panels.
+ *
+ * BGA gives each game a `.player-board-game-specific-content` block and lets it fill it; Nucleum
+ * puts five `.counterWrapper` blocks in it at 35px icons and 26px text, which at the column's width
+ * wrap onto two rows and cost 78px of a panel stack that is already the tallest thing in the column.
+ * One row at 57% costs 20px.
+ *
+ * Paired with player_panels.ts, which does nothing but carry `bgaa-compact-panels` — every rule here
+ * is scoped under it, and that class is only ever added on a Nucleum board.
+ *
+ * The one `url()` here is a `data:` URI, which resolves to itself. A relative one would not: Chrome
+ * resolves relative URLs in injected CSS against the host page, so it would 404 against
+ * boardgamearena.com. */
+
+/* `display: block` is what wraps the counters; a nowrap row is the whole fold. `wrap` is a safety
+ * valve rather than the intent — five counters come to about 145px of the 234px the column gives,
+ * so this reads as one line at any value a game reaches, and a freak one drops to two rather than
+ * spilling out of the panel. */
+html.bgaa-compact-panels .player-board-game-specific-content {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  /* BGA stacks the panel's three rows flush, with no margin anywhere — measured, not assumed. On one
+   * line the counters read as a run of small marks, and butted straight against the score they look
+   * like part of it, so they get a gap of their own. 6px because the tightened line-height below
+   * takes some of it back: it leaves 4.7px between the score's digits and the icons, against 2.4px
+   * before either change. */
+  margin-top: 6px;
+}
+
+/* The name and the score line sit flush too, and their apparent gap is the leading inside each: at
+ * the inherited `normal` the name's box is 19.1px around ~16px of text and the score's 24.1px around
+ * ~18px, leaving 4.4px between the two runs of text. 1 is the floor worth taking — the line box then
+ * equals the font size — and closes that to 3.7px.
+ *
+ * Nothing is cropped at 1, which is worth saying because it looks like it should be: the glyphs still
+ * paint their full 19.1px and simply overflow the line box, which `overflow: visible` lets them do.
+ * Neither element carries inline styles, so no `!important` is needed here, unlike the first-player
+ * disc below. */
+html.bgaa-compact-panels #player_boards .player-name,
+html.bgaa-compact-panels #player_boards .player_score {
+  line-height: 1;
+}
+
+/* One `zoom` on the whole counter rather than a size per part, which is not the obvious choice and
+ * is the only one that works.
+ *
+ * Resizing the icons directly looks equivalent and silently breaks one of them. The four `.res`
+ * tiles carry `background-position` in percentages, which re-fit a smaller box on their own; the
+ * network counter carries it in pixels (`-100px -262px`) against a percentage `background-size`, so
+ * shrinking its box rescales the sheet underneath a fixed offset and it lands on the wrong tile.
+ *
+ * `zoom` leaves every value BGA authored untouched — the 35px box, the offset, the sheet size — and
+ * scales the rendered result, so a sprite that was aligned at full size stays aligned. It also takes
+ * the 26px text down with it, and it shrinks the layout box, so the row is laid out at what is drawn.
+ * 0.57 puts the icons at 20px and the text at just under 15px. */
+html.bgaa-compact-panels .player-board-game-specific-content .counterWrapper {
+  margin: 0;
+  zoom: 0.57;
+}
+
+/* Every icon is drawn to the same height, and nothing here rescales one against another.
+ *
+ * BGA's sprite tiles fill their cell edge to edge — measured, not assumed: each one's opaque bounds
+ * run the full 178px of its cell. The two drawn below are built to fill theirs too, so all five come
+ * out at the box's 20px with no per-icon correction to keep in step. Filling the box rather than
+ * sitting inside it is also what leaves a card's frame enough pixels to survive at this size. */
+
+/* The achievement token, drawn by BGA as a star embossed on a heavy black disc. The disc is part of
+ * the sprite tile rather than anything CSS puts there — there is no bare-star tile in the sheet — so
+ * the only way to drop it is to supply the star ourselves. Inline as a `data:` URI: one glyph does
+ * not need a bundled asset, a `web_accessible_resources` entry or a packaging step, and this is the
+ * same frame-removed treatment the simplified cards give Innovation's resource icons.
+ *
+ * Faceted rather than a flat silhouette, which is what the physical token is: a ridge runs from the
+ * centre to each of the five tips, splitting every point into a lit half and a shaded one. That is
+ * what gives it depth, and a solid fill reads as a blot instead of a star. Drawn as two five-subpath
+ * shapes — the lit facets and the shaded ones — under one outline, which is shorter than ten
+ * triangles and is what holds the shape together against the panel's light background at this size.
+ *
+ * Matched by the counter it labels rather than by position, so a sixth counter could not shift it. */
+html.bgaa-compact-panels .player-board-game-specific-content .res:has(+ [id^="achievement-counter"]) {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23b9c7d8' d='M12 13.14L9.16 9.23L12 1.24ZM12 13.14L14.84 9.23L23.32 9.46ZM12 13.14L16.59 14.63L19 22.76ZM12 13.14L12 17.97L5 22.76ZM12 13.14L7.41 14.63L0.68 9.46Z'/%3E%3Cpath fill='%235b6d84' d='M12 13.14L12 1.24L14.84 9.23ZM12 13.14L23.32 9.46L16.59 14.63ZM12 13.14L19 22.76L12 17.97ZM12 13.14L5 22.76L7.41 14.63ZM12 13.14L0.68 9.46L9.16 9.23Z'/%3E%3Cpath fill='none' stroke='%2337455a' stroke-width='0.9' stroke-linejoin='round' d='M12 1.24L14.84 9.23L23.32 9.46L16.59 14.63L19 22.76L12 17.97L5 22.76L7.41 14.63L0.68 9.46L9.16 9.23Z'/%3E%3C/svg%3E");
+  background-size: contain;
+  /* `!important` for this one alone: BGA writes `background-position-x` and `-y` inline on every
+   * `.res` to place its sprite tile, and those beat any author rule. Left to them, an image that is
+   * now the size of the box gets pushed clean out of it and the icon renders blank. Nothing else
+   * here collides — `background-image`, `-size` and `-repeat` are not among BGA's inline props. */
+  background-position: center !important;
+  background-repeat: no-repeat;
+}
+
+/* The fulfilled-contract counter, drawn by BGA as a gold tick inside a gold ring on a parchment card
+ * with deckled edges, a double rule, corner filigree and a ribbon. The ring is what goes: it and the
+ * tick inside it are both gold, and at this size the two merge into one smudge. The frame stays, and
+ * is what makes the icon read as a contract at all — an outer edge, an inner rule and a mark at each
+ * of its corners, which is BGA's own arrangement with the engraving taken out of it.
+ *
+ * Those four marks are MIRRORS of one another about the inner rule's centre (12, 12), never copies
+ * translated across: translated, the right-hand pair starts at the rule and runs outward, filling the
+ * gutter and welding the two rules together, while the bottom pair's arm lands at the top of its own
+ * box and floats clear of the rule it should thicken. Each subpath starts at a corner of the inner
+ * rule and turns inward from it.
+ *
+ * Filling the box is what gives the frame the pixels to survive: the same card drawn at 78% loses the
+ * inner rule entirely. Green rather than gold for the tick, which is the point of the icon. */
+html.bgaa-compact-panels .player-board-game-specific-content .res:has(+ [id^="contracts-counter"]) {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='2.9' y='1.2' width='18.2' height='21.6' rx='1.2' fill='%23f3ead7' stroke='%238d7b57' stroke-width='1.5'/%3E%3Crect x='5.5' y='3.8' width='13' height='16.4' rx='0.5' fill='none' stroke='%23b9a582' stroke-width='0.85'/%3E%3Cpath fill='%23b9a582' d='M5.5 3.8h2.1v.9H6.4v1.4h-.9zM18.5 3.8h-2.1v.9h1.2v1.4h.9zM5.5 20.2h2.1v-.9H6.4v-1.4h-.9zM18.5 20.2h-2.1v-.9h1.2v-1.4h.9z'/%3E%3Cpath fill='none' stroke='%233f9142' stroke-width='3' stroke-linecap='round' stroke-linejoin='round' d='M8.3 12.1l2.8 3.1 4.8-6.1'/%3E%3C/svg%3E");
+  background-size: contain;
+  /* Inline `background-position-x`/`-y` again — see the note on the star above. */
+  background-position: center !important;
+  background-repeat: no-repeat;
+}
+
+/* ------------------------------------------------------------------------ */
+/* The beginner notice                                                       */
+/* ------------------------------------------------------------------------ */
+
+/* A player on their first game gets a two-line notice in their panel — "This is my first game, so my
+ * turn time is doubled / Thanks for helping me!" — which costs 52px, taking that panel from 74px to
+ * 126px. It says the same thing on every move for the whole game, and the doubled clock it explains
+ * is already in the panel's own timer.
+ *
+ * Only the notice is hidden, not the status block holding it: that block is BGA framework and carries
+ * other things at other times. Its own 5px margins would survive an empty child, so they go too —
+ * but only while the notice is all it holds. Neither element carries the margin inline, so no
+ * `!important` is needed; the block's inline `display` is BGA's own and is left alone. */
+html.bgaa-compact-panels #player_boards .doubletime_infos {
+  display: none;
+}
+
+html.bgaa-compact-panels #player_boards .player_table_status:has(> .doubletime_infos:only-child) {
+  margin: 0;
+}
+
+/* ------------------------------------------------------------------------ */
+/* Who goes first                                                            */
+/* ------------------------------------------------------------------------ */
+
+/* BGA marks the first player with a 22px green disc carrying a "1", at the head of the score row.
+ * In Nucleum that never changes hands, so it is a permanent 27px — disc plus its margin — spent on a
+ * fact that does not move, in a row that also has to hold the score, the rank and the clock. It goes,
+ * and the panel itself says it instead.
+ *
+ * That disc is also the only thing on the page that identifies the player: it carries no class and no
+ * id, and it is the only unclassed `div` in any `.player_score` at the table. So it is both what gets
+ * hidden and, through `:has()`, what picks the panel to mark — which is why it is hidden rather than
+ * removed, and why the two rules must keep the same selector. */
+html.bgaa-compact-panels #player_boards .player_score > div:not([class]):not([id]) {
+  /* `!important` because BGA builds this disc entirely from inline styles — 29 of them, `display:
+   * inline-block` among them — and an inline declaration outweighs any author rule whatever its
+   * specificity. The same reason `inpage_log.css` needs it to hide `#logs`. */
+  display: none !important;
+}
+
+/* A wedge across that panel's top-left corner, in BGA's own green, rounded by the 8px the panel is
+ * rounded by so it sits in the corner rather than on top of it. 12px is what keeps it clear of the
+ * avatar, which starts 4px in and 9px down: the wedge's hypotenuse has already passed y=8 by then.
+ * Absolutely positioned, so it costs no layout — and the panel is `position: relative` already, which
+ * is BGA's own doing rather than anything set here.
+ *
+ * A real element put there by player_panels.ts, not a `::before`, because it carries a tooltip and a
+ * pseudo-element can hold no attributes. So it takes pointer events, which is also what lets the
+ * tooltip open at all; `cursor: help` is the only thing that says there is one. */
+html.bgaa-compact-panels #player_boards .bgaa-first-player {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 12px;
+  height: 12px;
+  background: #377d22;
+  clip-path: polygon(0 0, 100% 0, 0 100%);
+  border-top-left-radius: 8px;
+  cursor: help;
+  z-index: 2;
+}
+
+/* The worker reserve, shown as `( 11 )` after the workers in play. A counter nested inside the
+ * workers' own, with the parentheses as its text nodes — so hiding it takes them with it, and there
+ * is nothing left behind to trim. It says how many are left in the box, which the board itself
+ * shows and which no decision reads. */
+html.bgaa-compact-panels .player-board-game-specific-content .counterWrapper .counterWrapper {
+  display: none;
+}

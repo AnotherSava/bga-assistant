@@ -42,16 +42,16 @@ Keep `docs/pages/data-flow.md` up to date when code changes affect data flow, me
 
 - `src/models/types.ts` — shared BGA types (GameName, RawPacket, RawExtractionData, PlayerInfo, cardIndex) + re-exports Innovation types
 - `src/engine/constraint.ts` — game-agnostic constraint propagation kernel (naked-single, hidden-single per-placeholder, opt-in hidden-single per-container and naked N-tuples); shared by Crew and Innovation
+- `src/engine/turn_history.ts` — game-agnostic `TurnAction<TDetail>` shape and `recentTurns()` half-turn windowing; shared by Innovation and Nucleum
 - `src/games/innovation/types.ts` — Innovation types (Card, CardInfo, CardDatabase, enums, actions, log entries)
 - `src/games/innovation/process_log.ts` — Innovation BGA packet processing
 - `src/games/innovation/game_state.ts` — GameState interface (zone data), createGameState(), cardsAt()
 - `src/games/innovation/game_engine.ts` — GameEngine class (state tracking + constraint propagation), extractSuspects()
 - `src/games/innovation/serialization.ts` — toJSON/fromJSON serialization, SerializedGameState type
-- `src/games/innovation/turn_history.ts` — Turn action types (TurnAction, ActionDetail, ActionType) and recent-turns grouping
+- `src/games/innovation/turn_history.ts` — Innovation action types (ActionDetail, ActionType) over the shared turn-history kernel
 - `src/games/innovation/render.ts` — Innovation HTML summary renderer
 - `src/games/innovation/config.ts` — Innovation section layout configuration
 - `src/games/innovation/display.ts` — Innovation display menu (section visibility, "Show player names" toggle, in-page log toggles, simplified-card toggle with its size slider, echo-text and opponents'-hands options, margin updates)
-- `src/games/innovation/inpage_log.ts` — in-page game log mount (ISOLATED-world, self-contained; keyed row reconcile, popover tooltips, BGA log hiding)
 - `src/games/innovation/compact_header.ts` — compact table header mount for every BGA game (ISOLATED-world, self-contained; moves BGA's status bar into the topbar, placeholders for restore, shortens known over-long prompts per game)
 - `src/games/innovation/compact_header.css` — one-row header layout (collapses BGA's status bar and hides the two redundant board buttons)
 - `src/games/innovation/sticky_panels.ts` — pinned right column for every BGA game (ISOLATED-world, self-contained; measures the frozen bar and the panel stack, publishes them as custom properties, copies the page backdrop)
@@ -60,8 +60,6 @@ Keep `docs/pages/data-flow.md` up to date when code changes affect data flow, me
 - `src/games/innovation/simplified_cards.css` — the compact card's two layouts (top card / covered card), scaled from `--bgaa-card-scale`, plus the resource-icon swap (BGA's framed sprite tiles replaced by the extension's flat frame-removed PNGs, via the `__BGAA_ICONS__` URL placeholder)
 - `src/games/innovation/mini_card.css` — the panel's compact card, shared by the side panel, the ZIP export and the opponents' hands on BGA's table (every rule scoped under `.bgaa-cards`, which must outweigh BGA's own single-class `.card` rule)
 - `src/games/innovation/card_tip.css` — card tooltip geometry shared by the side panel, the in-page log and the simplified cards' opponent hands
-- `src/games/innovation/turn_history.css` — turn-history row appearance shared by both surfaces
-- `src/games/innovation/inpage_log.css` — in-page-only delta (popover reveal, BGA log hiding, container box)
 - `src/games/azul/process_log.ts` — Azul BGA packet processing
 - `src/games/azul/game_state.ts` — Azul bag/discard/wall tracking
 - `src/games/azul/render.ts` — Azul tile count table renderer
@@ -74,6 +72,19 @@ Keep `docs/pages/data-flow.md` up to date when code changes affect data flow, me
 - `src/games/crew/serialization.ts` — toJSON/fromJSON serialization for Crew game state
 - `src/games/crew/render.ts` — Crew HTML renderer (card grid, suit matrix, trick history)
 - `src/games/crew/styles.css` — Crew-specific CSS styles
+- `src/games/nucleum/types.ts` — Nucleum city names and turn-history action detail types
+- `src/games/nucleum/process_log.ts` — Nucleum BGA packet processing (turn boundaries + chosen actions; consequences dropped)
+- `src/games/nucleum/game_state.ts` — NucleumGameState (the turn history), factory, toJSON/fromJSON
+- `src/games/nucleum/game_engine.ts` — log entries to turn actions: turn grouping, undo rewinds, railway link naming
+- `src/games/nucleum/render.ts` — Nucleum HTML renderer (turn history as the panel's whole summary)
+- `src/games/nucleum/display.ts` — Nucleum display menu (show player names, show in BGA game log)
+- `src/games/nucleum/styles.css` — Nucleum panel styles (history list, out-of-turn actor)
+- `src/games/nucleum/player_panels.ts` — compact player panels on BGA's table (ISOLATED-world, self-contained; carries the root class its stylesheet hangs off, and holds the Nucleum-board check)
+- `src/games/nucleum/player_panels.css` — the five resource counters folded onto one line via `zoom` (never per-icon sizing, which mis-crops the pixel-positioned network sprite), worker reserve dropped, every icon filling the same box so all five stand at one height, achievement star and fulfilled-contract card redrawn as inline `data:` SVGs without BGA's black disc and gold ring, first player marked by a corner wedge (a real element, inserted by `player_panels.ts` so it can carry a tooltip) instead of BGA's "1" disc, beginner notice dropped
+- `src/render/turn_history_rows.ts` — turn-history row renderer for every game and both surfaces; games supply a detail formatter
+- `src/render/turn_history.css` — turn-history row appearance shared by both surfaces
+- `src/render/inpage_log.ts` — in-page game log mount for every game with a turn history (ISOLATED-world, self-contained; keyed row reconcile, popover tooltips, BGA log hiding)
+- `src/render/inpage_log.css` — in-page-only delta (popover reveal, BGA log hiding, container box)
 - `src/render/help.ts` — help page content (shared)
 - `src/render/icons.ts` — shared icon utilities
 - `src/render/player.ts` — shared player-color rendering helper (`playerColorAttr` emits inline `--player-color` style from a PlayerInfo)
@@ -88,6 +99,7 @@ Keep `docs/pages/data-flow.md` up to date when code changes affect data flow, me
 - `sidepanel.html` — side panel HTML entry point (project root, Vite input)
 - `cws-publish.json` — tracked mirror of Chrome Web Store listing data (extension ID, single purpose, permission justifications, data usage; used by the global `/publish-chrome-extension` skill)
 - `src/sidepanel/settings.ts` — shared localStorage persistence (loadSetting/saveSetting with typed defaults)
+- `src/sidepanel/turn_history_settings.ts` — settings shared by every game that shows a turn history (show-player-names, mirrored into the in-page store)
 - `src/sidepanel/global_menu.ts` — the help page's eye menu (settings that apply to every BGA table, not one game)
 - `src/sidepanel/inpage_settings.ts` — settings for what the extension changes on BGA's own page (in-page log, compact header, pinned panels, simplified cards with their opponents'-hands sub-option) in `chrome.storage.local` (shared by the side panel and the service worker, which has no localStorage)
 - `src/sidepanel/` — side panel UI (game-type-aware rendering dispatch)

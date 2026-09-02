@@ -1,0 +1,28 @@
+/* Nucleum panel styles. The turn history is the panel's whole content here, not the floating
+ * overlay Innovation puts in the corner, so it sets its own type and lets rows wrap. */
+
+.nucleum-history {
+  font-family: monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  text-align: left;
+  padding: 4px 2px;
+}
+
+/* The shared sheet sets `white-space: nowrap`, which suits a floating overlay that can be as
+ * wide as it likes; in the panel's own column a long turn runs past the right edge instead. */
+.nucleum-history .turn-action {
+  white-space: normal;
+  overflow-wrap: break-word;
+}
+
+/* A player who acted during someone else's turn, from a railway colour match. Same lightness
+ * clamp as the row names, so a dark BGA colour stays readable on the panel's background. */
+.nucleum-actor {
+  color: oklch(from var(--player-color, #c0c0f0) clamp(0.65, l, 0.85) c h);
+}
+
+.nucleum-empty {
+  color: #888;
+  padding: 8px 4px;
+}

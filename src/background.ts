@@ -6,16 +6,21 @@ import { Card, type CardSet } from "./games/innovation/types.js";
 import { SessionTracker, parseGameTableUrl, tableIdFromUrl, IDLE_DETECTION_SECONDS, IDLE_GRACE_MS, HEARTBEAT_MS } from "./time-tracking.js";
 import cardInfoRaw from "../assets/bga/innovation/card_info.json";
 import { renderTurnHistoryRows, renderHandHintGroups, setAssetResolver, type HandHintGroup } from "./games/innovation/render.js";
-import { recentTurns } from "./games/innovation/turn_history.js";
-import { inPageLogFunction } from "./games/innovation/inpage_log.js";
+import type { TurnHistoryRow } from "./render/turn_history_rows.js";
+import { recentTurns } from "./engine/turn_history.js";
+import { renderNucleumTurnHistoryRows } from "./games/nucleum/render.js";
+import { inPageLogFunction } from "./render/inpage_log.js";
 import { compactHeaderFunction } from "./games/innovation/compact_header.js";
 import { stickyPanelsFunction } from "./games/innovation/sticky_panels.js";
 import { simplifiedCardsFunction, opponentHandHintsFunction } from "./games/innovation/simplified_cards.js";
 import { actionTintFunction } from "./games/innovation/action_tint.js";
+import { playerPanelsFunction } from "./games/nucleum/player_panels.js";
 import { loadInPageSettings, saveInPageSettings, subscribeInPageSettings, INPAGE_DEFAULTS, INPAGE_LOG_HALF_TURNS, type InPageSettings } from "./sidepanel/inpage_settings.js";
 import cardTipCss from "./games/innovation/card_tip.css?raw";
-import turnHistoryCss from "./games/innovation/turn_history.css?raw";
-import inPageLogCss from "./games/innovation/inpage_log.css?raw";
+import turnHistoryCss from "./render/turn_history.css?raw";
+import inPageLogCss from "./render/inpage_log.css?raw";
+import nucleumCss from "./games/nucleum/styles.css?raw";
+import playerPanelsCss from "./games/nucleum/player_panels.css?raw";
 import compactHeaderCss from "./games/innovation/compact_header.css?raw";
 import actionTintCss from "./games/innovation/action_tint.css?raw";
 import stickyPanelsCss from "./games/innovation/sticky_panels.css?raw";
@@ -29,7 +34,7 @@ import simplifiedCardsCss from "./games/innovation/simplified_cards.css?raw";
 const BADGE_CLEAR_DELAY_MS = 5000;
 const EXTRACTION_TIMEOUT_MS = 60000;
 const LIVE_MIN_INTERVAL_MS = 5000;
-const SUPPORTED_GAMES: GameName[] = ["innovation", "azul", "thecrewdeepsea"];
+const SUPPORTED_GAMES: GameName[] = ["innovation", "azul", "thecrewdeepsea", "nucleum"];
 const BGA_DOMAIN_PATTERN = /^https:\/\/([a-z0-9]+\.)?boardgamearena\.com\//;
 const HEARTBEAT_ALARM = "bgaTimeHeartbeat";
 const IDLE_FINALIZE_ALARM = "bgaTimeIdleFinalize";
@@ -595,13 +600,62 @@ export function watcherFunction(): void {
 // In-page game log
 // ---------------------------------------------------------------------------
 
-/** Concatenated in the order the cascade needs: shared geometry, shared rows, in-page overrides. */
-const INPAGE_LOG_CSS = `${cardTipCss}\n${turnHistoryCss}\n${inPageLogCss}`;
+/**
+ * The games whose turn history can replace BGA's own log, and what each needs to render it.
+ *
+ * A registry rather than a chain of `gameName ===` tests: the mount function, the reconcile and
+ * the per-tab overrides are all game-agnostic, and only these two pieces are not.
+ */
+interface InPageHistoryGame {
+  /** Concatenated in the order the cascade needs: shared geometry, shared rows, in-page overrides. */
+  css: string;
+  /** The window of history to show, and whether it already reaches the start of the game. */
+  rows: (results: PipelineResults, halfTurns: number) => { rows: TurnHistoryRow[]; atEnd: boolean } | null;
+}
+
+const INPAGE_HISTORY_GAMES: Partial<Record<GameName, InPageHistoryGame>> = {
+  innovation: {
+    css: `${cardTipCss}\n${turnHistoryCss}\n${inPageLogCss}`,
+    rows: (results, halfTurns) => {
+      if (results.gameName !== "innovation" || !results.gameLog) return null;
+      const gameLog = results.gameLog;
+      const windowed = recentTurns(gameLog.actions, halfTurns);
+      // recentTurns returns everything once the requested half-turns exceed what was played, so an
+      // equal length means the window already covers the whole history.
+      return { rows: renderTurnHistoryRows(windowed, cardDb, Object.values(gameLog.players), INPAGE_ROW_OPTIONS), atEnd: windowed.length === gameLog.actions.length };
+    },
+  },
+  nucleum: {
+    // No card faces in Nucleum's rows, so its sheet leaves out the tooltip geometry entirely.
+    css: `${turnHistoryCss}\n${inPageLogCss}\n${nucleumCss}`,
+    rows: (results, halfTurns) => {
+      if (results.gameName !== "nucleum" || !results.gameState) return null;
+      const state = results.gameState;
+      const windowed = recentTurns(state.actions, halfTurns);
+      return { rows: renderNucleumTurnHistoryRows(windowed, state.players, INPAGE_ROW_OPTIONS), atEnd: windowed.length === state.actions.length };
+    },
+  },
+};
+
+/** Look a game up in the registry by its BGA slug.
+ *
+ *  `Object.hasOwn` rather than `in` or a bare index: the slug is whatever segment the URL carries,
+ *  and `"constructor"` would otherwise resolve to something truthy off `Object.prototype` — enough
+ *  to hide BGA's log on that table and then fail to put anything in its place. */
+function inPageHistoryGame(gameName: string): InPageHistoryGame | undefined {
+  return Object.hasOwn(INPAGE_HISTORY_GAMES, gameName) ? INPAGE_HISTORY_GAMES[gameName as GameName] : undefined;
+}
+
+/** Row options every in-page surface uses: BGA's own newest-first order, tooltips that escape
+ *  its clipping, keys to reconcile against, and no date in a column this narrow. */
+const INPAGE_ROW_OPTIONS = { newestFirst: true, popoverTips: true, rowKeys: true, timeOnly: true } as const;
 
 /** Hydrated at startup and kept current by storage.onChanged, so gating can read it synchronously. */
 let inPageLogSettings: InPageSettings = { ...INPAGE_DEFAULTS };
-/** In-flight or completed stylesheet injection per tab, so every push can await the same one. */
-const inPageLogStyles = new Map<number, Promise<unknown>>();
+/** In-flight or completed stylesheet injection per cache key, so every push can await the same one. */
+type StyleCache = Map<string | number, Promise<unknown>>;
+/** Keyed `<tabId>:<gameName>` — see the note in `pushInPageLog`. */
+const inPageLogStyles: StyleCache = new Map();
 /**
  * Tabs currently showing BGA's log instead of the turn history.
  *
@@ -619,13 +673,15 @@ const inPageLogCollapsedTabs = new Set<number>();
  */
 const inPageLogHalfTurns = new Map<number, number>();
 /** In-flight or completed compact-header stylesheet injection per tab. Same contract as the log's. */
-const compactHeaderStyles = new Map<number, Promise<unknown>>();
+const compactHeaderStyles: StyleCache = new Map();
 /** In-flight or completed pinned-panel stylesheet injection per tab. Same contract as the log's. */
-const stickyPanelsStyles = new Map<number, Promise<unknown>>();
+const stickyPanelsStyles: StyleCache = new Map();
 /** In-flight or completed simplified-card stylesheet injection per tab. Same contract as the log's. */
-const simplifiedCardsStyles = new Map<number, Promise<unknown>>();
+const simplifiedCardsStyles: StyleCache = new Map();
 /** In-flight or completed action-tint stylesheet injection per tab. Same contract as the log's. */
-const actionTintStyles = new Map<number, Promise<unknown>>();
+const actionTintStyles: StyleCache = new Map();
+/** In-flight or completed compact-panel stylesheet injection per tab. Same contract as the log's. */
+const playerPanelsStyles: StyleCache = new Map();
 
 /**
  * Drop every per-tab in-page override.
@@ -635,13 +691,27 @@ const actionTintStyles = new Map<number, Promise<unknown>>();
  * back into a table. Anything added here must be dropped through this helper for the same reason.
  */
 function forgetInPageTab(tabId: number): void {
-  inPageLogStyles.delete(tabId);
+  forgetInPageLogStyles(tabId);
   inPageLogCollapsedTabs.delete(tabId);
   inPageLogHalfTurns.delete(tabId);
   compactHeaderStyles.delete(tabId);
   stickyPanelsStyles.delete(tabId);
   simplifiedCardsStyles.delete(tabId);
   actionTintStyles.delete(tabId);
+  playerPanelsStyles.delete(tabId);
+}
+
+/**
+ * Drop every cached log-stylesheet injection for one tab.
+ *
+ * Its own helper because the cache is keyed by tab *and* game, so no call site can drop an entry
+ * with a bare tab id — a `delete(tabId)` type-checks against the `string | number` key and then
+ * silently matches nothing, which is exactly how the re-enable path stopped re-injecting.
+ */
+function forgetInPageLogStyles(tabId: number): void {
+  for (const key of inPageLogStyles.keys()) {
+    if (typeof key === "string" && key.startsWith(`${tabId}:`)) inPageLogStyles.delete(key);
+  }
 }
 
 /**
@@ -656,16 +726,16 @@ function forgetInPageTab(tabId: number): void {
  * `css` is a callback rather than a string so a stylesheet that has to be built — the simplified
  * cards inline their fonts as `data:` URIs — is built only when a tab actually needs it.
  */
-async function ensureStyles(cache: Map<number, Promise<unknown>>, tabId: number, css: () => string | Promise<string>): Promise<void> {
-  let styles = cache.get(tabId);
+async function ensureStyles(cache: StyleCache, tabId: number, css: () => string | Promise<string>, key: string | number = tabId): Promise<void> {
+  let styles = cache.get(key);
   if (!styles) {
     styles = Promise.resolve(css()).then((text) => chrome.scripting.insertCSS({ target: { tabId, allFrames: true }, css: text }));
-    cache.set(tabId, styles);
+    cache.set(key, styles);
   }
   try {
     await styles;
   } catch {
-    cache.delete(tabId);
+    cache.delete(key);
   }
 }
 
@@ -677,7 +747,8 @@ async function ensureStyles(cache: Map<number, Promise<unknown>>, tabId: number,
  */
 async function pushInPageLog(tabId: number): Promise<void> {
   if (!inPageLogSettings.enabled) return;
-  if (!lastResults || lastResults.gameName !== "innovation" || !lastResults.gameLog) {
+  const game = lastResults ? inPageHistoryGame(lastResults.gameName) : undefined;
+  if (!lastResults || !game) {
     // Frame-commit hiding may already have run for this tab, so never just bail — that would
     // leave BGA's log hidden with nothing in its place and no control to bring it back.
     unmountInPageLog(tabId);
@@ -685,28 +756,29 @@ async function pushInPageLog(tabId: number): Promise<void> {
   }
 
   const halfTurns = inPageLogHalfTurns.get(tabId) ?? INPAGE_LOG_HALF_TURNS;
-  let rows: { key: string; html: string }[];
-  let atEnd = true;
+  let rendered: { rows: TurnHistoryRow[]; atEnd: boolean } | null;
   try {
-    const gameLog = lastResults.gameLog;
-    const players = Object.values(gameLog.players);
-    const windowed = recentTurns(gameLog.actions, halfTurns);
-    // recentTurns returns everything once the requested half-turns exceed what was played, so an
-    // equal length means the window already covers the whole history.
-    atEnd = windowed.length === gameLog.actions.length;
-    rows = renderTurnHistoryRows(windowed, cardDb, players, { newestFirst: true, popoverTips: true, rowKeys: true, timeOnly: true });
+    rendered = game.rows(lastResults, halfTurns);
   } catch (err) {
-    // renderTurnHistoryRows throws on an action referencing an unknown player id. Never let that
-    // take down the service worker.
+    // The shared row renderer throws on an action referencing an unknown player id. Never let
+    // that take down the service worker.
     console.warn("[inpage-log] render failed:", err);
     return;
   }
+  if (!rendered) {
+    unmountInPageLog(tabId);
+    return;
+  }
+  const { rows, atEnd } = rendered;
 
   const opts = { enabled: true, collapsed: inPageLogCollapsedTabs.has(tabId), showPlayerNames: inPageLogSettings.showPlayerNames, halfTurns, hasMore: !atEnd };
 
+  // Keyed by game as well as tab: one tab can navigate from one game's table to another's, and
+  // the two inject different sheets — a tab-only key would leave the second game wearing the
+  // first one's styles.
   // The stylesheet must land before the rows, or the turn history renders as unstyled text —
   // both player-name spans visible, narration unindented — until the CSS catches up.
-  await ensureStyles(inPageLogStyles, tabId, () => INPAGE_LOG_CSS);
+  await ensureStyles(inPageLogStyles, tabId, () => game.css, `${tabId}:${lastResults.gameName}`);
 
   // chrome-types declares `func` as `() => void`, so the arg-taking form needs a cast — the same
   // workaround the world/ISOLATED injections already use.
@@ -807,6 +879,25 @@ async function pushStickyPanels(tabId: number, enabled: boolean): Promise<void> 
 
   // Undoing needs no stylesheet: the injected function removes the root class every rule hangs off.
   chrome.scripting.executeScript({ target: { tabId, allFrames: true }, func: stickyPanelsFunction as unknown as () => void, args: [{ enabled }], world: "ISOLATED" as chrome.scripting.ExecutionWorld }).catch(() => {});
+}
+
+// ---------------------------------------------------------------------------
+// Compact player panels
+// ---------------------------------------------------------------------------
+
+/**
+ * Apply or undo the compact player panels on a tab.
+ *
+ * Extraction-independent, like the compact header and the pinned column: the counters it folds are
+ * BGA's own panel content, drawn from the page's state rather than from anything reconstructed here.
+ * The whole change is CSS, so the injected function only carries the class the sheet hangs off — and
+ * with nothing to measure it needs no observer, however late BGA builds those counters.
+ */
+async function pushPlayerPanels(tabId: number, enabled: boolean): Promise<void> {
+  if (enabled) await ensureStyles(playerPanelsStyles, tabId, () => playerPanelsCss);
+
+  // Undoing needs no stylesheet: the injected function removes the root class every rule hangs off.
+  chrome.scripting.executeScript({ target: { tabId, allFrames: true }, func: playerPanelsFunction as unknown as () => void, args: [{ enabled }], world: "ISOLATED" as chrome.scripting.ExecutionWorld }).catch(() => {});
 }
 
 /**
@@ -968,7 +1059,7 @@ async function inPageTargetTabs(): Promise<number[]> {
  * `freshlyEnabled` drops the cached stylesheet injection first: the tab may well have reloaded while
  * the feature was off, and injected CSS does not survive a document navigation.
  */
-function broadcastInPageSetting(cache: Map<number, Promise<unknown>>, push: (tabId: number, enabled: boolean) => Promise<void>, enabled: boolean, freshlyEnabled: boolean): void {
+function broadcastInPageSetting(cache: StyleCache, push: (tabId: number, enabled: boolean) => Promise<void>, enabled: boolean, freshlyEnabled: boolean): void {
   void inPageTargetTabs().then((tabIds) => {
     for (const tabId of tabIds) {
       if (freshlyEnabled) cache.delete(tabId);
@@ -1456,7 +1547,7 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
 chrome.webNavigation.onCommitted.addListener((details) => {
   if (!inPageLogSettings.enabled || inPageLogCollapsedTabs.has(details.tabId)) return;
   const boardInfo = parseGameTableUrl(details.url);
-  if (!boardInfo || boardInfo.gameName !== "innovation") return;
+  if (!boardInfo || !inPageHistoryGame(boardInfo.gameName)) return;
   const target = { tabId: details.tabId, frameIds: [details.frameId] };
   chrome.scripting.insertCSS({ target, css: EARLY_HIDE_CSS }).catch(() => {});
   chrome.scripting.executeScript({ target, func: hideBgaLogEarlyFunction, world: "ISOLATED" as chrome.scripting.ExecutionWorld }).catch(() => {});
@@ -1501,6 +1592,11 @@ chrome.webNavigation.onCompleted.addListener((details) => {
   if (inPageLogSettings.actionTint) {
     actionTintStyles.delete(details.tabId);
     void pushActionTint(details.tabId, true);
+  }
+  // Same story again, with Nucleum as the one board its function acts on.
+  if (inPageLogSettings.compactPlayerPanels) {
+    playerPanelsStyles.delete(details.tabId);
+    void pushPlayerPanels(details.tabId, true);
   }
   if (details.tabId !== activeTabId) return;
   chrome.tabs.get(details.tabId).then(async (tab) => {
@@ -1580,6 +1676,7 @@ void loadInPageSettings().then((settings) => {
   // Extraction-independent like the compact header: a table already open when the worker starts gets
   // the tint set up here, since no navigation event will follow to inject it.
   if (settings.actionTint) void pushActionTint(activeTabId, true);
+  if (settings.compactPlayerPanels) void pushPlayerPanels(activeTabId, true);
 });
 
 subscribeInPageSettings((settings) => {
@@ -1592,6 +1689,7 @@ subscribeInPageSettings((settings) => {
   const wasEchoText = inPageLogSettings.echoText;
   const wasOpponentHands = inPageLogSettings.opponentHands;
   const wasActionTint = inPageLogSettings.actionTint;
+  const wasCompactPlayerPanels = inPageLogSettings.compactPlayerPanels;
   const wasActionTintSpeed = inPageLogSettings.actionTintSpeed;
   inPageLogSettings = settings;
   if (settings.compactHeader !== wasCompactHeader || settings.progressionOnly !== wasProgressionOnly) {
@@ -1611,13 +1709,16 @@ subscribeInPageSettings((settings) => {
   if (settings.actionTint !== wasActionTint || (settings.actionTint && settings.actionTintSpeed !== wasActionTintSpeed)) {
     broadcastInPageSetting(actionTintStyles, pushActionTint, settings.actionTint, settings.actionTint && !wasActionTint);
   }
+  if (settings.compactPlayerPanels !== wasCompactPlayerPanels) {
+    broadcastInPageSetting(playerPanelsStyles, pushPlayerPanels, settings.compactPlayerPanels, settings.compactPlayerPanels && !wasCompactPlayerPanels);
+  }
   if (activeTabId === null) return;
   if (!settings.enabled) {
     if (wasEnabled) unmountInPageLog(activeTabId);
     return;
   }
   // Re-inject the stylesheet on re-enable: the tab may have reloaded while it was off.
-  if (!wasEnabled) inPageLogStyles.delete(activeTabId);
+  if (!wasEnabled) forgetInPageLogStyles(activeTabId);
   void pushInPageLog(activeTabId);
 });
 

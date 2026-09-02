@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "BGA Assistant",
   "version": "1.6.1",
-  "description": "A Chrome extension for Board Game Arena: tracks game state (Innovation, Azul, The Crew) and play time on every game, plus UI tweaks.",
+  "description": "A Chrome extension for Board Game Arena: tracks game state (Innovation, Azul, The Crew, Nucleum) and play time, plus UI tweaks.",
   "homepage_url": "https://anothersava.github.io/bga-assistant/",
   "permissions": ["activeTab", "alarms", "idle", "scripting", "sidePanel", "storage", "tabs", "webNavigation"],
   "host_permissions": ["https://boardgamearena.com/*", "https://*.boardgamearena.com/*"],

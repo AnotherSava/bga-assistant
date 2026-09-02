@@ -13,12 +13,16 @@ import { GameEngine } from "../games/innovation/game_engine.js";
 import { fromJSON as innovationFromJSON } from "../games/innovation/serialization.js";
 import { renderAzulSummary, renderAzulFullPage, setAssetResolver as setAzulAssetResolver } from "../games/azul/render.js";
 import { renderCrewSummary, renderCrewFullPage } from "../games/crew/render.js";
+import { renderNucleumSummary, renderNucleumFullPage } from "../games/nucleum/render.js";
+import { fromJSON as nucleumFromJSON } from "../games/nucleum/game_state.js";
+import { buildNucleumDisplayMenu, applyNucleumDisplayOptions } from "../games/nucleum/display.js";
 import { crewFromJSON } from "../games/crew/serialization.js";
 import "../games/azul/styles.css";
 import "../games/crew/styles.css";
+import "../games/nucleum/styles.css";
 import "../games/innovation/mini_card.css";
 import "../games/innovation/card_tip.css";
-import "../games/innovation/turn_history.css";
+import "../render/turn_history.css";
 import { fromJSON as azulFromJSON } from "../games/azul/game_state.js";
 import type { PipelineResults } from "../pipeline.js";
 import type { PinMode } from "../background.js";
@@ -273,6 +277,47 @@ function render(results: PipelineResults): void {
     return;
   }
 
+  if (results.gameName === "nucleum" && results.gameState !== null) {
+    const nucleumState = nucleumFromJSON(results.gameState);
+    contentEl.innerHTML = renderNucleumSummary(nucleumState);
+    applyNucleumDisplayOptions();
+
+    // The history is the panel's whole content here, so the corner overlay stays empty and the
+    // eye button opens Nucleum's own short menu.
+    const btnSections = document.getElementById("btn-sections");
+    if (btnSections) btnSections.classList.remove("disabled");
+    const turnHistoryEl = document.getElementById("turn-history");
+    if (turnHistoryEl) turnHistoryEl.innerHTML = "";
+
+    const tableEl = document.getElementById("game-info-table");
+    if (tableEl) tableEl.textContent = `# ${results.tableNumber}`;
+
+    loadCss();
+
+    const btnDownload = document.getElementById("btn-download");
+    if (btnDownload) {
+      btnDownload.classList.remove("disabled");
+      btnDownload.onclick = async () => {
+        const css = currentCss ?? "";
+        const rawHtml = renderNucleumFullPage(nucleumState, results.tableNumber, css);
+        const summaryHtmlFile = await inlineAssets(rawHtml);
+        const zip = new JSZip();
+        zip.file("raw_data.json", JSON.stringify(results.rawData, null, 2));
+        zip.file("game_log.json", JSON.stringify(results.gameLog, null, 2));
+        zip.file("game_state.json", JSON.stringify(results.gameState, null, 2));
+        zip.file("summary.html", summaryHtmlFile);
+        const blob = await zip.generateAsync({ type: "blob" });
+        downloadBlob(blob, `bgaa_${results.tableNumber}${lastMoveId(results.rawData.packets)}.zip`);
+      };
+    }
+
+    const indicator = document.getElementById("live-indicator");
+    if (indicator) indicator.style.display = "";
+
+    contentEl.scrollTop = savedScroll;
+    return;
+  }
+
   if (results.gameName !== "innovation") {
     return;
   }
@@ -464,6 +509,8 @@ document.getElementById("btn-sections")?.addEventListener("click", async (e) => 
       buildAzulDisplayMenu(panel);
     } else if (currentResults?.gameName === "innovation") {
       buildInnovationDisplayMenu(panel, { echoes: currentExpansions.echoes, relics: currentExpansions.relics ?? false, zoomLevel });
+    } else if (currentResults?.gameName === "nucleum") {
+      buildNucleumDisplayMenu(panel);
     } else {
       return;
     }
@@ -659,7 +706,7 @@ function showHelp(errorMessage?: string, forceGameTab?: GameName): void {
   // Resolve effective tab: forceGameTab > localStorage > "innovation"
   const HELP_TAB_DEFAULT: GameName = "innovation";
   let effectiveTab: GameName = forceGameTab ?? loadSetting(KEY_HELP_TAB, HELP_TAB_DEFAULT);
-  if (effectiveTab !== "azul" && effectiveTab !== "innovation" && effectiveTab !== "thecrewdeepsea") effectiveTab = HELP_TAB_DEFAULT;
+  if (effectiveTab !== "azul" && effectiveTab !== "innovation" && effectiveTab !== "thecrewdeepsea" && effectiveTab !== "nucleum") effectiveTab = HELP_TAB_DEFAULT;
   saveSetting(KEY_HELP_TAB, effectiveTab);
 
   contentEl.innerHTML = renderHelp(errorMessage, effectiveTab);

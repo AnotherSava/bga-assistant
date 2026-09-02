@@ -2,6 +2,7 @@
 
 import { SECTION_IDS, SECTION_LABELS, ECHOES_ONLY_SECTIONS, RELICS_ONLY_SECTIONS } from "./config.js";
 import { loadSetting, saveSetting } from "../../sidepanel/settings.js";
+import { loadShowPlayerNames, saveShowPlayerNames, applyShowPlayerNames } from "../../sidepanel/turn_history_settings.js";
 import { loadInPageSettings, saveInPageSettings, CARD_SCALE_MIN, CARD_SCALE_MAX, CARD_SCALE_STEP, ACTION_TINT_SPEED_MIN, ACTION_TINT_SPEED_MAX, ACTION_TINT_SPEED_STEP } from "../../sidepanel/inpage_settings.js";
 
 export interface InnovationDisplayContext {
@@ -13,25 +14,12 @@ export interface InnovationDisplayContext {
 const KEY = "bgaa_section_visibility";
 const DEFAULTS: Record<string, boolean> = {};
 
-const SHOW_NAMES_KEY = "bgaa_show_player_names";
-
 function loadSections(): Record<string, boolean> {
   return loadSetting(KEY, DEFAULTS);
 }
 
 function saveSections(state: Record<string, boolean>): void {
   saveSetting(KEY, state);
-}
-
-function loadShowPlayerNames(): boolean {
-  return loadSetting(SHOW_NAMES_KEY, false);
-}
-
-function saveShowPlayerNames(value: boolean): void {
-  saveSetting(SHOW_NAMES_KEY, value);
-  // Mirror into the in-page log's own store so one checkbox drives both surfaces — the
-  // service worker renders that log and cannot read the panel's localStorage.
-  void saveInPageSettings({ showPlayerNames: value });
 }
 
 export function buildInnovationDisplayMenu(panel: HTMLElement, context: InnovationDisplayContext): void {
@@ -296,10 +284,6 @@ export function applySectionVisibility(): void {
       sectionEl.classList.toggle("section-hidden", !visible);
     }
   }
-}
-
-export function applyShowPlayerNames(): void {
-  document.body.classList.toggle("show-player-names", loadShowPlayerNames());
 }
 
 export function applyInnovationDisplayOptions(context: InnovationDisplayContext): void {

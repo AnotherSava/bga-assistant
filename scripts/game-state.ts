@@ -9,12 +9,14 @@ import { CardDatabase, type GameName } from "../src/models/types.js";
 import type { GameLog } from "../src/games/innovation/process_log.js";
 import type { AzulGameLog } from "../src/games/azul/process_log.js";
 import type { CrewGameLog } from "../src/games/crew/process_log.js";
+import type { NucleumGameLog } from "../src/games/nucleum/process_log.js";
 import { createGameState } from "../src/games/innovation/game_state.js";
 import { GameEngine } from "../src/games/innovation/game_engine.js";
 import { toJSON as innovationToJSON } from "../src/games/innovation/serialization.js";
-import { processLog as processAzulState, toJSON as azulToJSON } from "../src/games/azul/game_state.js";
 import { processCrewState } from "../src/games/crew/game_engine.js";
 import { crewToJSON } from "../src/games/crew/serialization.js";
+import { processNucleumState } from "../src/games/nucleum/game_engine.js";
+import { toJSON as nucleumToJSON } from "../src/games/nucleum/game_state.js";
 
 const args = process.argv.slice(2);
 const debug = args.includes("--debug");
@@ -70,6 +72,8 @@ if (!debug) {
     snapshots = azulSnapshots(gameLog as AzulGameLog);
   } else if (gameName === "thecrewdeepsea") {
     snapshots = crewSnapshots(gameLog as CrewGameLog);
+  } else if (gameName === "nucleum") {
+    snapshots = nucleumSnapshots(gameLog as NucleumGameLog);
   } else {
     console.error(`Unsupported game: ${gameName}`);
     process.exit(1);
@@ -155,6 +159,17 @@ function crewSnapshots(log: CrewGameLog): Snapshot[] {
     const slicedLog = { ...log, log: log.log.slice(0, i + 1) };
     const state = processCrewState(slicedLog);
     snapshots.push({ turn, entry: i, state: crewToJSON(state) });
+  }
+  return snapshots;
+}
+
+function nucleumSnapshots(log: NucleumGameLog): Snapshot[] {
+  const snapshots: Snapshot[] = [];
+  let turn = 0;
+  for (let i = 0; i < log.log.length; i++) {
+    if (log.log[i].type === "turnStart") turn++;
+    const slicedLog = { ...log, log: log.log.slice(0, i + 1) };
+    snapshots.push({ turn, entry: i, state: nucleumToJSON(processNucleumState(slicedLog)) });
   }
   return snapshots;
 }
