@@ -90,9 +90,8 @@ export const INPAGE_DEFAULTS: InPageSettings = {
 };
 
 /**
- * The id Chrome assigns the published build. Mirrors `cws-publish.json`, which is the record of what
- * was uploaded; it is repeated here rather than imported so store-listing data stays out of the
- * shipped bundle.
+ * The id Chrome assigns the published build. Same id as the Web Store install link in `README.md`
+ * and `docs/index.md`; the store is what assigns it, so it changes only if the listing is recreated.
  */
 const PUBLISHED_EXTENSION_ID = "idjijmafngfkkbppkgopldomfhdcedig";
 

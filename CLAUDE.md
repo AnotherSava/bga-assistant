@@ -97,7 +97,6 @@ Keep `docs/pages/data-flow.md` up to date when code changes affect data flow, me
 - `scripts/game-state.ts` — CLI: game_log.json → game_state.json (+ --debug snapshots)
 - `scripts/migrate-fixture.ts` — one-shot migration for legacy `players: {id: name}` fixtures → `Record<string, PlayerInfo>`
 - `sidepanel.html` — side panel HTML entry point (project root, Vite input)
-- `cws-publish.json` — tracked mirror of Chrome Web Store listing data (extension ID, single purpose, permission justifications, data usage; used by the global `/publish-chrome-extension` skill)
 - `src/sidepanel/settings.ts` — shared localStorage persistence (loadSetting/saveSetting with typed defaults)
 - `src/sidepanel/turn_history_settings.ts` — settings shared by every game that shows a turn history (show-player-names, mirrored into the in-page store)
 - `src/sidepanel/global_menu.ts` — the help page's eye menu (settings that apply to every BGA table, not one game)

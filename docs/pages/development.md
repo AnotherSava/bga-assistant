@@ -138,6 +138,6 @@ npx vitest run --coverage       # Run with coverage report
 
 To cut a new release, run the project-local `/release` skill. It bumps `manifest.json` + `package.json`, commits and pushes, drafts release notes from commits since the last tag for review, pushes the `vX.Y.Z` tag, monitors the workflow run, and updates the release notes once the zip is published. The tag must match `manifest.json` exactly — CI fails fast otherwise.
 
-Then download `bga-assistant-X.Y.Z.zip` from the GitHub Release and upload it to the Chrome Web Store Developer Dashboard.
+Then run the `/publish-chrome-extension` skill. It downloads the release zip, compares the new package against the version the store already holds (the Web Store API reports it as `crxVersion`), uploads it, and submits it for review. Anything on the dashboard's Privacy practices or Store listing tabs — permission justifications, single purpose, store description — has to be edited there by hand: the API can neither read nor write it, so the repo deliberately keeps no copy of it.
 
 Local builds via `npm run package` still work for testing, but the CI build is the canonical artifact for Web Store uploads.
