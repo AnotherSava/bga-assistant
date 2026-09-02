@@ -41,6 +41,12 @@ html.bgaa-sticky-panels.bgaa-hide-bga-log #right-side {
    * what keeps the rest reachable, and appears only when there is more than fits. */
   max-height: calc(100vh - var(--bgaa-sticky-top, 0px));
   overflow-y: auto;
+  /* This column is now a scrollport of its own, with the panels stuck to it — so it has its own
+   * rubber-band past the top, dragging them exactly as the page's does (see the root rule at the
+   * foot of this file). `none` rather than `contain` because only `none` suppresses the bounce;
+   * `contain` stops the scroll chaining alone and leaves the effect. Losing the chain is no loss
+   * here: the column is capped to the window and pinned, so nothing behind it moves either way. */
+  overscroll-behavior-y: none;
   z-index: 3;
 }
 
@@ -87,4 +93,28 @@ html.bgaa-sticky-panels:not(.bgaa-hide-bga-log):not(.bgaa-panels-tall) #right-si
   background-color: var(--bgaa-panels-backdrop-color, transparent);
   background-image: var(--bgaa-panels-backdrop-image, none);
   background-attachment: fixed;
+}
+
+/* ------------------------------------------------------------------------ */
+/* The page bounce the pinned column must not be dragged by                  */
+/* ------------------------------------------------------------------------ */
+
+/* Chrome drags a stuck `position: sticky` element along with the page during the elastic
+ * "rubber-band" bounce a macOS trackpad produces past the top of the scroll range, then springs it
+ * back — the column visibly unsticking, drifting down and springing back. It is a compositor
+ * transform, invisible to layout (`scrollY` reads 0 throughout), and Chrome exempts `position:
+ * fixed` from the drag but not sticky (w3c/csswg-drafts#8309), so suppressing the bounce is the fix.
+ *
+ * The compact header states the same rule for its own bar, and this is not a duplicate of it: the
+ * two sheets are injected independently — either feature can be on with the other off — and their
+ * conditions genuinely differ. A prompt long enough to make the bar tall drops the bar's sticky and
+ * its suppression with it, while these panels have no such exemption and stay pinned throughout.
+ *
+ * Scoped to the two selectors that mean "something here is pinned", the same pair the backdrop
+ * above uses: losing the native bounce is only worth it while something is relying on the illusion
+ * of staying put. `-y` alone leaves the two-finger swipe-back gesture, on the horizontal axis,
+ * untouched. On the root, not `body` — the viewport takes this from `document.scrollingElement`. */
+html.bgaa-sticky-panels.bgaa-hide-bga-log,
+html.bgaa-sticky-panels:not(.bgaa-hide-bga-log):not(.bgaa-panels-tall) {
+  overscroll-behavior-y: none;
 }

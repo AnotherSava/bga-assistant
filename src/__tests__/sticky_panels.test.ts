@@ -8,7 +8,12 @@
 // getBoundingClientRect, the viewport through window.innerHeight.
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { readFileSync } from "fs";
+import { resolve, dirname } from "path";
+import { fileURLToPath } from "url";
 import { stickyPanelsFunction } from "../games/innovation/sticky_panels.js";
+
+const thisDir = dirname(fileURLToPath(import.meta.url));
 
 const ENABLED = { enabled: true };
 const DISABLED = { enabled: false };
@@ -161,5 +166,48 @@ describe("stickyPanelsFunction", () => {
 
     expect(document.documentElement.hasAttribute("data-bgaa-panels-watch")).toBe(false);
     expect(property("--bgaa-sticky-top")).toBe("");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Styling contract
+// ---------------------------------------------------------------------------
+
+describe("pinned column stylesheet", () => {
+  const css = readFileSync(resolve(thisDir, "../games/innovation/sticky_panels.css"), "utf-8");
+  /** Selectors and declarations only — the comments name the very patterns these guards forbid. */
+  const rules = css.replace(/\/\*[\s\S]*?\*\//g, "");
+
+  /** The declarations inside the first rule whose selector contains `needle`. */
+  function blockFor(needle: string): string {
+    const at = rules.indexOf(needle);
+    expect(at).toBeGreaterThan(-1);
+    const open = rules.indexOf("{", at);
+    return rules.slice(open, rules.indexOf("}", open));
+  }
+
+  it("suppresses the page's rubber-band under both pinned modes", () => {
+    // Chrome drags a stuck sticky element along with the macOS elastic bounce past the top of the
+    // page and springs it back — the pinned column visibly unsticking. It is a compositor
+    // transform, so `scrollY` stays 0 and no layout assertion can catch it; guarded structurally.
+    // Deliberately not borrowed from compact_header.css: that sheet is injected only when the
+    // compact header is on, and it drops its own rule once a long prompt makes the bar tall.
+    expect(rules).toMatch(/html\.bgaa-sticky-panels\.bgaa-hide-bga-log,\s*html\.bgaa-sticky-panels:not\(\.bgaa-hide-bga-log\):not\(\.bgaa-panels-tall\)\s*\{[^}]*overscroll-behavior-y:\s*none/);
+  });
+
+  it("suppresses it inside the pinned column too, which is its own scrollport", () => {
+    // With the turn history in it the column scrolls internally and the panels are stuck to *it*,
+    // so it has a second rubber-band of its own.
+    expect(blockFor("html.bgaa-sticky-panels.bgaa-hide-bga-log #right-side")).toContain("overscroll-behavior-y: none");
+  });
+
+  it("never uses `contain`, which stops the chaining but leaves the bounce", () => {
+    expect(rules).not.toContain("overscroll-behavior-y: contain");
+  });
+
+  it("stays on the vertical axis, so the swipe-back gesture survives", () => {
+    // The two-finger back gesture rides the horizontal axis; the unsuffixed shorthand would take it.
+    expect(rules).not.toMatch(/overscroll-behavior:/);
+    expect(rules).not.toMatch(/overscroll-behavior-x:/);
   });
 });
