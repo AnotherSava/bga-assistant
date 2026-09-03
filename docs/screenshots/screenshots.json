@@ -101,6 +101,23 @@
       }
     },
     {
+      "id": "innovation-police-line",
+      "files": [
+        "innovation-police-line.png"
+      ],
+      "shows": "The folded top bar under the amber hazard stripes, lit by an opponent's Clock demanding back the cards the viewer revealed. That is the one state which raises them: a reaction owed during another player's turn",
+      "policy": "never",
+      "verifiedAt": "83699ba",
+      "capture": {
+        "steps": [
+          "Innovation table, eye menu, \"Police-line highlight\" on",
+          "Wait for a reaction owed on an opponent's turn (a dogma demand, or a share you may take). It cannot be staged, so catch it when a real table offers one",
+          "Frame the bar alone, cropping away the page above, below and to either side of it",
+          "Stamp the hairline with `python docs/screenshots/capture/lib/border.py`, since the bar's own amber has no edge against a light page"
+        ]
+      }
+    },
+    {
       "id": "innovation-cards",
       "files": [
         "innovation-cards.png"

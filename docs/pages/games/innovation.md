@@ -230,6 +230,10 @@ whenever you must act *during another player's turn*, so the one moment that is 
 one that is impossible to. It stays dark on your own turn and on your own dogma choices — only a genuine
 cross-turn reaction lights it.
 
+An opponent's Clock demanding back the cards you revealed, with the header folded to one row:
+
+<a href="../../screenshots/innovation-police-line.png"><img src="../../screenshots/innovation-police-line.png" alt="BGA's top bar under diagonal amber hazard stripes" width="1000"></a>
+
 Whose turn it is comes from BGA's own live game state rather than the reconstructed log, so the stripes
 appear the instant the reaction does and clear the instant you act. A "Movement" slider under the toggle
 scrolls the stripes — its centre is static, its sign the direction, its magnitude the speed — for
