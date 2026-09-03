@@ -41,10 +41,14 @@ colour pile, the card's icons, its name and its age. The rules text is still a h
 own tooltip. Cards shrink to roughly a quarter of their former area, so a board that used to need
 scrolling tends to fit the window.
 
-The same board, BGA's cards above and the simplified ones below — the five colour piles take 502
-pixels of height and then 172:
+The same board either way — the five colour piles take 502 pixels of height with BGA's cards, and 172
+with these:
+
+**Before** — BGA's own cards
 
 <a href="../../screenshots/innovation-simplified-off.png"><img src="../../screenshots/innovation-simplified-off.png" alt="Innovation board with BGA's illustrated cards" width="1000"></a>
+
+**After** — simplified
 
 <a href="../../screenshots/innovation-simplified-on.png"><img src="../../screenshots/innovation-simplified-on.png" alt="The same board with simplified cards" width="1000"></a>
 
@@ -129,10 +133,13 @@ site logo and tighter leading let it shrink to the height its contents actually 
 against BGA's fixed 62 — and the whitespace below it drops from 18 pixels to 5, which also brings
 the two columns back into line with each other.
 
-BGA's header, then the same header folded — the table info, the prompt and its button on one row,
-and the "not playing" link gone:
+The same header either way — 205 pixels of it, and then 54:
+
+**Before** — BGA's own, three rows
 
 <a href="../../screenshots/compact-header-off.png"><img src="../../screenshots/compact-header-off.png" alt="BGA's own table header, three rows" width="1000"></a>
+
+**After** — folded, with the "not playing" link gone
 
 <a href="../../screenshots/compact-header-on.png"><img src="../../screenshots/compact-header-on.png" alt="The same header folded into one row" width="1000"></a>
 

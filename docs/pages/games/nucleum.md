@@ -47,10 +47,11 @@ shows. The first player is marked by a green wedge across the corner of their pa
 hover, rather than BGA's green "1" disc — in a game where that never changes hands, the disc spends a
 permanent 27 pixels of the score row on a fact that does not move.
 
-BGA's panels, then the folded ones — the same three players in 706 pixels of column and then 368:
+The same three players either way — 706 pixels of column, and then 368:
 
-<a href="../../screenshots/nucleum-panels-off.png"><img src="../../screenshots/nucleum-panels-off.png" alt="BGA's own Nucleum player panels" width="370"></a>
-<a href="../../screenshots/nucleum-panels-on.png"><img src="../../screenshots/nucleum-panels-on.png" alt="The same panels with the counters folded onto one line" width="371"></a>
+| Before — BGA's own | After — folded |
+|:---|:---|
+| <a href="../../screenshots/nucleum-panels-off.png"><img src="../../screenshots/nucleum-panels-off.png" alt="BGA's own Nucleum player panels" width="320"></a> | <a href="../../screenshots/nucleum-panels-on.png"><img src="../../screenshots/nucleum-panels-on.png" alt="The same panels with the counters folded onto one line" width="320"></a> |
 
 ## Game features
 
