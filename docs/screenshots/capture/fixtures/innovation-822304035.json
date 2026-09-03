@@ -1,0 +1,4942 @@
+{
+ "gameName": "innovation",
+ "players": {
+  "14905532": {
+   "id": "14905532",
+   "name": "cumo",
+   "colorHex": "ff0000",
+   "isCurrent": false
+  },
+  "76419314": {
+   "id": "76419314",
+   "name": "AnotherSava",
+   "colorHex": "0000ff",
+   "isCurrent": true
+  }
+ },
+ "currentPlayerId": "76419314",
+ "myHand": [
+  "Sailing",
+  "Currency",
+  "Calendar",
+  "Enterprise",
+  "Shuriken",
+  "Printing press",
+  "Machine tools",
+  "Paris",
+  "Electricity"
+ ],
+ "log": [
+  {
+   "move": "2",
+   "type": "log",
+   "msg": "cumo chooses a card."
+  },
+  {
+   "move": "3",
+   "type": "log",
+   "msg": "AnotherSava chooses a card."
+  },
+  {
+   "type": "transfer",
+   "move": "3",
+   "cardSet": "base",
+   "source": "hand",
+   "dest": "board",
+   "cardName": "Oars",
+   "cardAge": 1,
+   "sourceOwner": "76419314",
+   "destOwner": "76419314",
+   "meldKeyword": true,
+   "topOfDeck": false,
+   "sourcePosition": 0,
+   "destPosition": 0
+  },
+  {
+   "type": "transfer",
+   "move": "3",
+   "cardSet": "base",
+   "source": "hand",
+   "dest": "board",
+   "cardName": "Masonry",
+   "cardAge": 1,
+   "sourceOwner": "14905532",
+   "destOwner": "14905532",
+   "meldKeyword": true,
+   "topOfDeck": false,
+   "sourcePosition": 0,
+   "destPosition": 0
+  },
+  {
+   "move": "3",
+   "type": "log",
+   "msg": "cumo melded the first card in English alphabetical order (Masonry): he plays first."
+  },
+  {
+   "type": "transfer",
+   "move": "4",
+   "cardSet": "base",
+   "source": "deck",
+   "dest": "hand",
+   "cardName": null,
+   "cardAge": 1,
+   "sourceOwner": null,
+   "destOwner": "14905532",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 11,
+   "destPosition": 0
+  },
+  {
+   "type": "transfer",
+   "move": "5",
+   "cardSet": "echoes",
+   "source": "hand",
+   "dest": "board",
+   "cardName": "Perfume",
+   "cardAge": 1,
+   "sourceOwner": "76419314",
+   "destOwner": "76419314",
+   "meldKeyword": true,
+   "topOfDeck": false,
+   "sourcePosition": 0,
+   "destPosition": 0
+  },
+  {
+   "type": "transfer",
+   "move": "5",
+   "cardSet": "cities",
+   "source": "deck",
+   "dest": "hand",
+   "cardName": "Atlantis",
+   "cardAge": 1,
+   "sourceOwner": null,
+   "destOwner": "76419314",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 14,
+   "destPosition": 0
+  },
+  {
+   "type": "transfer",
+   "move": "6",
+   "cardSet": "cities",
+   "source": "hand",
+   "dest": "board",
+   "cardName": "Atlantis",
+   "cardAge": 1,
+   "sourceOwner": "76419314",
+   "destOwner": "76419314",
+   "meldKeyword": true,
+   "topOfDeck": false,
+   "sourcePosition": 0,
+   "destPosition": 1
+  },
+  {
+   "type": "transfer",
+   "move": "6",
+   "cardSet": "base",
+   "source": "deck",
+   "dest": "revealed",
+   "cardName": "The wheel",
+   "cardAge": 1,
+   "sourceOwner": null,
+   "destOwner": "76419314",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 10,
+   "destPosition": 0
+  },
+  {
+   "type": "transfer",
+   "move": "6",
+   "cardSet": "base",
+   "source": "revealed",
+   "dest": "hand",
+   "cardName": "The wheel",
+   "cardAge": 1,
+   "sourceOwner": "76419314",
+   "destOwner": "76419314",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 0,
+   "destPosition": 0
+  },
+  {
+   "move": "6",
+   "type": "log",
+   "msg": "The revealed cards with a [castle] will be kept and the others will be returned."
+  },
+  {
+   "type": "transfer",
+   "move": "7",
+   "cardSet": "base",
+   "source": "hand",
+   "dest": "board",
+   "cardName": "Pottery",
+   "cardAge": 1,
+   "sourceOwner": "14905532",
+   "destOwner": "14905532",
+   "meldKeyword": true,
+   "topOfDeck": false,
+   "sourcePosition": 0,
+   "destPosition": 0
+  },
+  {
+   "type": "transfer",
+   "move": "7",
+   "cardSet": "cities",
+   "source": "deck",
+   "dest": "hand",
+   "cardName": null,
+   "cardAge": 1,
+   "sourceOwner": null,
+   "destOwner": "14905532",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 13,
+   "destPosition": 0
+  },
+  {
+   "type": "transfer",
+   "move": "8",
+   "cardSet": "cities",
+   "source": "hand",
+   "dest": "board",
+   "cardName": "Jerusalem",
+   "cardAge": 1,
+   "sourceOwner": "14905532",
+   "destOwner": "14905532",
+   "meldKeyword": true,
+   "topOfDeck": false,
+   "sourcePosition": 0,
+   "destPosition": 0
+  },
+  {
+   "type": "transfer",
+   "move": "8",
+   "cardSet": "base",
+   "source": "deck",
+   "dest": "revealed",
+   "cardName": "Archery",
+   "cardAge": 1,
+   "sourceOwner": null,
+   "destOwner": "14905532",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 9,
+   "destPosition": 0
+  },
+  {
+   "type": "transfer",
+   "move": "8",
+   "cardSet": "base",
+   "source": "revealed",
+   "dest": "hand",
+   "cardName": "Archery",
+   "cardAge": 1,
+   "sourceOwner": "14905532",
+   "destOwner": "14905532",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 0,
+   "destPosition": 0
+  },
+  {
+   "move": "8",
+   "type": "log",
+   "msg": "The revealed cards with a [castle] will be kept and the others will be returned."
+  },
+  {
+   "type": "transfer",
+   "move": "8",
+   "cardSet": "cities",
+   "source": "deck",
+   "dest": "hand",
+   "cardName": null,
+   "cardAge": 1,
+   "sourceOwner": null,
+   "destOwner": "14905532",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 12,
+   "destPosition": 0
+  },
+  {
+   "type": "transfer",
+   "move": "9",
+   "cardSet": "base",
+   "source": "hand",
+   "dest": "board",
+   "cardName": "The wheel",
+   "cardAge": 1,
+   "sourceOwner": "76419314",
+   "destOwner": "76419314",
+   "meldKeyword": true,
+   "topOfDeck": false,
+   "sourcePosition": 0,
+   "destPosition": 0
+  },
+  {
+   "type": "transfer",
+   "move": "9",
+   "cardSet": "cities",
+   "source": "deck",
+   "dest": "hand",
+   "cardName": "Athens",
+   "cardAge": 1,
+   "sourceOwner": null,
+   "destOwner": "76419314",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 11,
+   "destPosition": 0
+  },
+  {
+   "type": "transfer",
+   "move": "10",
+   "cardSet": "cities",
+   "source": "hand",
+   "dest": "board",
+   "cardName": "Athens",
+   "cardAge": 1,
+   "sourceOwner": "76419314",
+   "destOwner": "76419314",
+   "meldKeyword": true,
+   "topOfDeck": false,
+   "sourcePosition": 0,
+   "destPosition": 1
+  },
+  {
+   "type": "transfer",
+   "move": "10",
+   "cardSet": "base",
+   "source": "deck",
+   "dest": "hand",
+   "cardName": "Currency",
+   "cardAge": 2,
+   "sourceOwner": null,
+   "destOwner": "76419314",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 8,
+   "destPosition": 0
+  },
+  {
+   "type": "transfer",
+   "move": "11",
+   "cardSet": "cities",
+   "source": "hand",
+   "dest": "board",
+   "cardName": "Uruk",
+   "cardAge": 1,
+   "sourceOwner": "14905532",
+   "destOwner": "14905532",
+   "meldKeyword": true,
+   "topOfDeck": false,
+   "sourcePosition": 0,
+   "destPosition": 1
+  },
+  {
+   "type": "transfer",
+   "move": "11",
+   "cardSet": "base",
+   "source": "deck",
+   "dest": "revealed",
+   "cardName": "City states",
+   "cardAge": 1,
+   "sourceOwner": null,
+   "destOwner": "14905532",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 8,
+   "destPosition": 0
+  },
+  {
+   "type": "transfer",
+   "move": "11",
+   "cardSet": "base",
+   "source": "revealed",
+   "dest": "hand",
+   "cardName": "City states",
+   "cardAge": 1,
+   "sourceOwner": "14905532",
+   "destOwner": "14905532",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 0,
+   "destPosition": 1
+  },
+  {
+   "move": "11",
+   "type": "log",
+   "msg": "The revealed cards with a [castle] will be kept and the others will be returned."
+  },
+  {
+   "type": "transfer",
+   "move": "12",
+   "cardSet": "base",
+   "source": "hand",
+   "dest": "board",
+   "cardName": "City states",
+   "cardAge": 1,
+   "sourceOwner": "14905532",
+   "destOwner": "14905532",
+   "meldKeyword": true,
+   "topOfDeck": false,
+   "sourcePosition": 1,
+   "destPosition": 0
+  },
+  {
+   "type": "transfer",
+   "move": "12",
+   "cardSet": "cities",
+   "source": "deck",
+   "dest": "hand",
+   "cardName": null,
+   "cardAge": 1,
+   "sourceOwner": null,
+   "destOwner": "14905532",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 10,
+   "destPosition": 0
+  },
+  {
+   "type": "transfer",
+   "move": "13",
+   "cardSet": "echoes",
+   "source": "deck",
+   "dest": "hand",
+   "cardName": "Umbrella",
+   "cardAge": 1,
+   "sourceOwner": null,
+   "destOwner": "76419314",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 12,
+   "destPosition": 0
+  },
+  {
+   "move": "14",
+   "type": "logWithCardTooltips",
+   "msg": "AnotherSava endorses the dogma of 1 The wheel with [castle] as the featured icon."
+  },
+  {
+   "type": "transfer",
+   "move": "14",
+   "cardSet": "echoes",
+   "source": "hand",
+   "dest": "board",
+   "cardName": "Umbrella",
+   "cardAge": 1,
+   "sourceOwner": "76419314",
+   "destOwner": "76419314",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 0
+  },
+  {
+   "move": "14",
+   "type": "log",
+   "msg": "AnotherSava has 4 [castle]."
+  },
+  {
+   "move": "14",
+   "type": "log",
+   "msg": "cumo has 8 [castle]."
+  },
+  {
+   "move": "14",
+   "type": "log",
+   "msg": "cumo has to execute the non-demand effect."
+  },
+  {
+   "type": "transfer",
+   "move": "14",
+   "cardSet": "base",
+   "source": "deck",
+   "dest": "hand",
+   "cardName": null,
+   "cardAge": 1,
+   "sourceOwner": null,
+   "destOwner": "14905532",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 7,
+   "destPosition": 1
+  },
+  {
+   "type": "transfer",
+   "move": "14",
+   "cardSet": "base",
+   "source": "deck",
+   "dest": "hand",
+   "cardName": null,
+   "cardAge": 1,
+   "sourceOwner": null,
+   "destOwner": "14905532",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 6,
+   "destPosition": 2
+  },
+  {
+   "move": "14",
+   "type": "log",
+   "msg": "AnotherSava has to execute the non-demand effect."
+  },
+  {
+   "type": "transfer",
+   "move": "14",
+   "cardSet": "echoes",
+   "source": "deck",
+   "dest": "hand",
+   "cardName": "Bangle",
+   "cardAge": 1,
+   "sourceOwner": null,
+   "destOwner": "76419314",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 11,
+   "destPosition": 0
+  },
+  {
+   "type": "transfer",
+   "move": "14",
+   "cardSet": "base",
+   "source": "deck",
+   "dest": "hand",
+   "cardName": "Writing",
+   "cardAge": 1,
+   "sourceOwner": null,
+   "destOwner": "76419314",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 5,
+   "destPosition": 0
+  },
+  {
+   "move": "14",
+   "type": "log",
+   "msg": "AnotherSava has to execute the non-demand effect again because it was endorsed."
+  },
+  {
+   "type": "transfer",
+   "move": "14",
+   "cardSet": "base",
+   "source": "deck",
+   "dest": "hand",
+   "cardName": "Domestication",
+   "cardAge": 1,
+   "sourceOwner": null,
+   "destOwner": "76419314",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 4,
+   "destPosition": 1
+  },
+  {
+   "type": "transfer",
+   "move": "14",
+   "cardSet": "base",
+   "source": "deck",
+   "dest": "hand",
+   "cardName": "Clothing",
+   "cardAge": 1,
+   "sourceOwner": null,
+   "destOwner": "76419314",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 3,
+   "destPosition": 2
+  },
+  {
+   "move": "14",
+   "type": "log",
+   "msg": "Sharing bonus."
+  },
+  {
+   "type": "transfer",
+   "move": "14",
+   "cardSet": "base",
+   "source": "deck",
+   "dest": "hand",
+   "cardName": "Sailing",
+   "cardAge": 1,
+   "sourceOwner": null,
+   "destOwner": "76419314",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 2,
+   "destPosition": 3
+  },
+  {
+   "type": "transfer",
+   "move": "15",
+   "cardSet": "cities",
+   "source": "hand",
+   "dest": "board",
+   "cardName": "Mohenjo-Daro",
+   "cardAge": 1,
+   "sourceOwner": "14905532",
+   "destOwner": "14905532",
+   "meldKeyword": true,
+   "topOfDeck": false,
+   "sourcePosition": 0,
+   "destPosition": 1
+  },
+  {
+   "type": "transfer",
+   "move": "15",
+   "cardSet": "base",
+   "source": "deck",
+   "dest": "hand",
+   "cardName": null,
+   "cardAge": 2,
+   "sourceOwner": null,
+   "destOwner": "14905532",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 7,
+   "destPosition": 0
+  },
+  {
+   "move": "16",
+   "type": "logWithCardTooltips",
+   "msg": "cumo endorses the dogma of 1 Pottery with [leaf] as the featured icon."
+  },
+  {
+   "type": "transfer",
+   "move": "16",
+   "cardSet": "base",
+   "source": "hand",
+   "dest": "board",
+   "cardName": "Agriculture",
+   "cardAge": 1,
+   "sourceOwner": "14905532",
+   "destOwner": "14905532",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 2
+  },
+  {
+   "move": "16",
+   "type": "log",
+   "msg": "AnotherSava has 5 [leaf]."
+  },
+  {
+   "move": "16",
+   "type": "log",
+   "msg": "cumo has 6 [leaf]."
+  },
+  {
+   "move": "16",
+   "type": "log",
+   "msg": "cumo has to execute the 1st non-demand effect."
+  },
+  {
+   "type": "transfer",
+   "move": "17",
+   "cardSet": "echoes",
+   "source": "hand",
+   "dest": "deck",
+   "cardName": null,
+   "cardAge": 1,
+   "sourceOwner": "14905532",
+   "destOwner": null,
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 0
+  },
+  {
+   "move": "18",
+   "type": "log",
+   "msg": "One card has been returned"
+  },
+  {
+   "type": "transfer",
+   "move": "18",
+   "cardSet": "echoes",
+   "source": "deck",
+   "dest": "score",
+   "cardName": null,
+   "cardAge": 1,
+   "sourceOwner": null,
+   "destOwner": "14905532",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 11,
+   "destPosition": 0
+  },
+  {
+   "move": "18",
+   "type": "log",
+   "msg": "cumo has to execute the 1st non-demand effect again because it was endorsed."
+  },
+  {
+   "move": "19",
+   "type": "log",
+   "msg": "cumo passes."
+  },
+  {
+   "move": "19",
+   "type": "log",
+   "msg": "cumo has to execute the 2nd non-demand effect."
+  },
+  {
+   "type": "transfer",
+   "move": "19",
+   "cardSet": "echoes",
+   "source": "deck",
+   "dest": "hand",
+   "cardName": null,
+   "cardAge": 1,
+   "sourceOwner": null,
+   "destOwner": "14905532",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 10,
+   "destPosition": 0
+  },
+  {
+   "move": "19",
+   "type": "log",
+   "msg": "cumo has to execute the 2nd non-demand effect again because it was endorsed."
+  },
+  {
+   "type": "transfer",
+   "move": "19",
+   "cardSet": "base",
+   "source": "deck",
+   "dest": "hand",
+   "cardName": null,
+   "cardAge": 1,
+   "sourceOwner": null,
+   "destOwner": "14905532",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 1,
+   "destPosition": 2
+  },
+  {
+   "type": "transfer",
+   "move": "20",
+   "cardSet": "base",
+   "source": "hand",
+   "dest": "board",
+   "cardName": "Domestication",
+   "cardAge": 1,
+   "sourceOwner": "76419314",
+   "destOwner": "76419314",
+   "meldKeyword": true,
+   "topOfDeck": false,
+   "sourcePosition": 1,
+   "destPosition": 0
+  },
+  {
+   "type": "transfer",
+   "move": "20",
+   "cardSet": "cities",
+   "source": "deck",
+   "dest": "hand",
+   "cardName": "Linzi",
+   "cardAge": 1,
+   "sourceOwner": null,
+   "destOwner": "76419314",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 9,
+   "destPosition": 0
+  },
+  {
+   "move": "21",
+   "type": "logWithCardTooltips",
+   "msg": "AnotherSava endorses the dogma of 1 The wheel with [castle] as the featured icon."
+  },
+  {
+   "type": "transfer",
+   "move": "21",
+   "cardSet": "cities",
+   "source": "hand",
+   "dest": "board",
+   "cardName": "Linzi",
+   "cardAge": 1,
+   "sourceOwner": "76419314",
+   "destOwner": "76419314",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 0
+  },
+  {
+   "move": "21",
+   "type": "log",
+   "msg": "AnotherSava has 6 [castle]."
+  },
+  {
+   "move": "21",
+   "type": "log",
+   "msg": "cumo has 8 [castle]."
+  },
+  {
+   "move": "21",
+   "type": "log",
+   "msg": "cumo has to execute the non-demand effect."
+  },
+  {
+   "type": "transfer",
+   "move": "21",
+   "cardSet": "base",
+   "source": "deck",
+   "dest": "hand",
+   "cardName": null,
+   "cardAge": 1,
+   "sourceOwner": null,
+   "destOwner": "14905532",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 0,
+   "destPosition": 3
+  },
+  {
+   "type": "transfer",
+   "move": "21",
+   "cardSet": "base",
+   "source": "deck",
+   "dest": "hand",
+   "cardName": null,
+   "cardAge": 2,
+   "sourceOwner": null,
+   "destOwner": "14905532",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 6,
+   "destPosition": 1
+  },
+  {
+   "move": "21",
+   "type": "log",
+   "msg": "AnotherSava has to execute the non-demand effect."
+  },
+  {
+   "type": "transfer",
+   "move": "21",
+   "cardSet": "base",
+   "source": "deck",
+   "dest": "hand",
+   "cardName": "Mathematics",
+   "cardAge": 2,
+   "sourceOwner": null,
+   "destOwner": "76419314",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 5,
+   "destPosition": 1
+  },
+  {
+   "type": "transfer",
+   "move": "21",
+   "cardSet": "base",
+   "source": "deck",
+   "dest": "hand",
+   "cardName": "Road building",
+   "cardAge": 2,
+   "sourceOwner": null,
+   "destOwner": "76419314",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 4,
+   "destPosition": 2
+  },
+  {
+   "move": "21",
+   "type": "log",
+   "msg": "AnotherSava has to execute the non-demand effect again because it was endorsed."
+  },
+  {
+   "type": "transfer",
+   "move": "21",
+   "cardSet": "base",
+   "source": "deck",
+   "dest": "hand",
+   "cardName": "Construction",
+   "cardAge": 2,
+   "sourceOwner": null,
+   "destOwner": "76419314",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 3,
+   "destPosition": 3
+  },
+  {
+   "type": "transfer",
+   "move": "21",
+   "cardSet": "base",
+   "source": "deck",
+   "dest": "hand",
+   "cardName": "Fermenting",
+   "cardAge": 2,
+   "sourceOwner": null,
+   "destOwner": "76419314",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 2,
+   "destPosition": 4
+  },
+  {
+   "move": "21",
+   "type": "log",
+   "msg": "Sharing bonus."
+  },
+  {
+   "type": "transfer",
+   "move": "21",
+   "cardSet": "base",
+   "source": "deck",
+   "dest": "hand",
+   "cardName": "Calendar",
+   "cardAge": 2,
+   "sourceOwner": null,
+   "destOwner": "76419314",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 1,
+   "destPosition": 5
+  },
+  {
+   "move": "22",
+   "type": "logWithCardTooltips",
+   "msg": "cumo endorses the dogma of 1 Pottery with [leaf] as the featured icon."
+  },
+  {
+   "type": "transfer",
+   "move": "22",
+   "cardSet": "base",
+   "source": "hand",
+   "dest": "board",
+   "cardName": "Mysticism",
+   "cardAge": 1,
+   "sourceOwner": "14905532",
+   "destOwner": "14905532",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 2
+  },
+  {
+   "move": "22",
+   "type": "log",
+   "msg": "AnotherSava has 5 [leaf]."
+  },
+  {
+   "move": "22",
+   "type": "log",
+   "msg": "cumo has 6 [leaf]."
+  },
+  {
+   "move": "22",
+   "type": "log",
+   "msg": "cumo has to execute the 1st non-demand effect."
+  },
+  {
+   "type": "transfer",
+   "move": "23",
+   "cardSet": "base",
+   "source": "hand",
+   "dest": "deck",
+   "cardName": null,
+   "cardAge": 2,
+   "sourceOwner": "14905532",
+   "destOwner": null,
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 0
+  },
+  {
+   "move": "24",
+   "type": "log",
+   "msg": "One card has been returned"
+  },
+  {
+   "type": "transfer",
+   "move": "24",
+   "cardSet": "base",
+   "source": "deck",
+   "dest": "score",
+   "cardName": null,
+   "cardAge": 2,
+   "sourceOwner": null,
+   "destOwner": "14905532",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 1,
+   "destPosition": 0
+  },
+  {
+   "move": "24",
+   "type": "log",
+   "msg": "cumo has to execute the 1st non-demand effect again because it was endorsed."
+  },
+  {
+   "type": "transfer",
+   "move": "25",
+   "cardSet": "echoes",
+   "source": "hand",
+   "dest": "deck",
+   "cardName": null,
+   "cardAge": 1,
+   "sourceOwner": "14905532",
+   "destOwner": null,
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 0
+  },
+  {
+   "move": "26",
+   "type": "log",
+   "msg": "One card has been returned"
+  },
+  {
+   "type": "transfer",
+   "move": "26",
+   "cardSet": "echoes",
+   "source": "deck",
+   "dest": "score",
+   "cardName": null,
+   "cardAge": 2,
+   "sourceOwner": null,
+   "destOwner": "14905532",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 9,
+   "destPosition": 0
+  },
+  {
+   "move": "26",
+   "type": "log",
+   "msg": "cumo has to execute the 2nd non-demand effect."
+  },
+  {
+   "type": "transfer",
+   "move": "26",
+   "cardSet": "echoes",
+   "source": "deck",
+   "dest": "hand",
+   "cardName": null,
+   "cardAge": 2,
+   "sourceOwner": null,
+   "destOwner": "14905532",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 8,
+   "destPosition": 0
+  },
+  {
+   "move": "26",
+   "type": "log",
+   "msg": "cumo has to execute the 2nd non-demand effect again because it was endorsed."
+  },
+  {
+   "type": "transfer",
+   "move": "26",
+   "cardSet": "base",
+   "source": "deck",
+   "dest": "hand",
+   "cardName": null,
+   "cardAge": 2,
+   "sourceOwner": null,
+   "destOwner": "14905532",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 0,
+   "destPosition": 1
+  },
+  {
+   "type": "transfer",
+   "move": "27",
+   "cardSet": "echoes",
+   "source": "hand",
+   "dest": "board",
+   "cardName": "Horseshoes",
+   "cardAge": 2,
+   "sourceOwner": "14905532",
+   "destOwner": "14905532",
+   "meldKeyword": true,
+   "topOfDeck": false,
+   "sourcePosition": 0,
+   "destPosition": 0
+  },
+  {
+   "type": "transfer",
+   "move": "27",
+   "cardSet": "cities",
+   "source": "deck",
+   "dest": "hand",
+   "cardName": null,
+   "cardAge": 3,
+   "sourceOwner": null,
+   "destOwner": "14905532",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 9,
+   "destPosition": 0
+  },
+  {
+   "type": "transfer",
+   "move": "28",
+   "cardSet": "base",
+   "source": "hand",
+   "dest": "board",
+   "cardName": "Fermenting",
+   "cardAge": 2,
+   "sourceOwner": "76419314",
+   "destOwner": "76419314",
+   "meldKeyword": true,
+   "topOfDeck": false,
+   "sourcePosition": 4,
+   "destPosition": 2
+  },
+  {
+   "move": "29",
+   "type": "logWithCardTooltips",
+   "msg": "AnotherSava endorses the dogma of 2 Fermenting with [leaf] as the featured icon."
+  },
+  {
+   "type": "transfer",
+   "move": "29",
+   "cardSet": "echoes",
+   "source": "hand",
+   "dest": "board",
+   "cardName": "Bangle",
+   "cardAge": 1,
+   "sourceOwner": "76419314",
+   "destOwner": "76419314",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 0
+  },
+  {
+   "move": "29",
+   "type": "log",
+   "msg": "AnotherSava has 7 [leaf]."
+  },
+  {
+   "move": "29",
+   "type": "log",
+   "msg": "cumo has 6 [leaf]."
+  },
+  {
+   "move": "29",
+   "type": "log",
+   "msg": "AnotherSava has to execute the non-demand effect."
+  },
+  {
+   "move": "29",
+   "type": "log",
+   "msg": "AnotherSava has three colors with one or more [leaf]."
+  },
+  {
+   "type": "transfer",
+   "move": "29",
+   "cardSet": "echoes",
+   "source": "deck",
+   "dest": "hand",
+   "cardName": "Liquid Fire",
+   "cardAge": 3,
+   "sourceOwner": null,
+   "destOwner": "76419314",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 9,
+   "destPosition": 0
+  },
+  {
+   "type": "transfer",
+   "move": "29",
+   "cardSet": "base",
+   "source": "deck",
+   "dest": "hand",
+   "cardName": "Feudalism",
+   "cardAge": 3,
+   "sourceOwner": null,
+   "destOwner": "76419314",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 8,
+   "destPosition": 0
+  },
+  {
+   "type": "transfer",
+   "move": "29",
+   "cardSet": "base",
+   "source": "deck",
+   "dest": "hand",
+   "cardName": "Engineering",
+   "cardAge": 3,
+   "sourceOwner": null,
+   "destOwner": "76419314",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 7,
+   "destPosition": 1
+  },
+  {
+   "move": "29",
+   "type": "log",
+   "msg": "AnotherSava has to execute the non-demand effect again because it was endorsed."
+  },
+  {
+   "move": "29",
+   "type": "log",
+   "msg": "AnotherSava has three colors with one or more [leaf]."
+  },
+  {
+   "type": "transfer",
+   "move": "29",
+   "cardSet": "base",
+   "source": "deck",
+   "dest": "hand",
+   "cardName": "Medicine",
+   "cardAge": 3,
+   "sourceOwner": null,
+   "destOwner": "76419314",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 6,
+   "destPosition": 2
+  },
+  {
+   "type": "transfer",
+   "move": "29",
+   "cardSet": "base",
+   "source": "deck",
+   "dest": "hand",
+   "cardName": "Translation",
+   "cardAge": 3,
+   "sourceOwner": null,
+   "destOwner": "76419314",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 5,
+   "destPosition": 3
+  },
+  {
+   "type": "transfer",
+   "move": "29",
+   "cardSet": "base",
+   "source": "deck",
+   "dest": "hand",
+   "cardName": "Education",
+   "cardAge": 3,
+   "sourceOwner": null,
+   "destOwner": "76419314",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 4,
+   "destPosition": 4
+  },
+  {
+   "move": "30",
+   "type": "logWithCardTooltips",
+   "msg": "cumo endorses the dogma of 2 Horseshoes with [castle] as the featured icon."
+  },
+  {
+   "type": "transfer",
+   "move": "30",
+   "cardSet": "base",
+   "source": "hand",
+   "dest": "board",
+   "cardName": "Metalworking",
+   "cardAge": 1,
+   "sourceOwner": "14905532",
+   "destOwner": "14905532",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 2
+  },
+  {
+   "move": "30",
+   "type": "log",
+   "msg": "AnotherSava has 5 [castle]."
+  },
+  {
+   "move": "30",
+   "type": "log",
+   "msg": "cumo has 9 [castle]."
+  },
+  {
+   "move": "30",
+   "type": "log",
+   "msg": "cumo has to execute the echo effect."
+  },
+  {
+   "type": "transfer",
+   "move": "30",
+   "cardSet": "echoes",
+   "source": "deck",
+   "dest": "forecast",
+   "cardName": null,
+   "cardAge": 3,
+   "sourceOwner": null,
+   "destOwner": "14905532",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 8,
+   "destPosition": 0
+  },
+  {
+   "move": "30",
+   "type": "log",
+   "msg": "cumo has to execute the echo effect again because it was endorsed."
+  },
+  {
+   "type": "transfer",
+   "move": "30",
+   "cardSet": "echoes",
+   "source": "deck",
+   "dest": "forecast",
+   "cardName": null,
+   "cardAge": 3,
+   "sourceOwner": null,
+   "destOwner": "14905532",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 7,
+   "destPosition": 1
+  },
+  {
+   "move": "30",
+   "type": "log",
+   "msg": "AnotherSava has to execute the I demand effect."
+  },
+  {
+   "type": "transfer",
+   "move": "30",
+   "cardSet": "cities",
+   "source": "board",
+   "dest": "board",
+   "cardName": "Athens",
+   "cardAge": 1,
+   "sourceOwner": "76419314",
+   "destOwner": "14905532",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 2,
+   "destPosition": 2
+  },
+  {
+   "type": "transfer",
+   "move": "30",
+   "cardSet": "base",
+   "source": "deck",
+   "dest": "board",
+   "cardName": "Paper",
+   "cardAge": 3,
+   "sourceOwner": null,
+   "destOwner": "76419314",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 3,
+   "destPosition": 2
+  },
+  {
+   "move": "30",
+   "type": "log",
+   "msg": "AnotherSava has to execute the I demand effect again because it was endorsed."
+  },
+  {
+   "type": "transfer",
+   "move": "30",
+   "cardSet": "base",
+   "source": "board",
+   "dest": "board",
+   "cardName": "Paper",
+   "cardAge": 3,
+   "sourceOwner": "76419314",
+   "destOwner": "14905532",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 2,
+   "destPosition": 1
+  },
+  {
+   "type": "transfer",
+   "move": "30",
+   "cardSet": "base",
+   "source": "deck",
+   "dest": "board",
+   "cardName": "Optics",
+   "cardAge": 3,
+   "sourceOwner": null,
+   "destOwner": "76419314",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 2,
+   "destPosition": 2
+  },
+  {
+   "type": "transfer",
+   "move": "31",
+   "cardSet": "base",
+   "source": "achievements",
+   "dest": "achievements",
+   "cardName": null,
+   "cardAge": 1,
+   "sourceOwner": null,
+   "destOwner": "14905532",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 0,
+   "destPosition": 0
+  },
+  {
+   "type": "transfer",
+   "move": "32",
+   "cardSet": "base",
+   "source": "hand",
+   "dest": "board",
+   "cardName": "Feudalism",
+   "cardAge": 3,
+   "sourceOwner": "76419314",
+   "destOwner": "76419314",
+   "meldKeyword": true,
+   "topOfDeck": false,
+   "sourcePosition": 0,
+   "destPosition": 0
+  },
+  {
+   "type": "transfer",
+   "move": "32",
+   "cardSet": "cities",
+   "source": "deck",
+   "dest": "hand",
+   "cardName": "Jakarta",
+   "cardAge": 3,
+   "sourceOwner": null,
+   "destOwner": "76419314",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 8,
+   "destPosition": 0
+  },
+  {
+   "move": "33",
+   "type": "logWithCardTooltips",
+   "msg": "AnotherSava endorses the dogma of 3 Feudalism with [castle] as the featured icon."
+  },
+  {
+   "type": "transfer",
+   "move": "33",
+   "cardSet": "base",
+   "source": "hand",
+   "dest": "board",
+   "cardName": "Clothing",
+   "cardAge": 1,
+   "sourceOwner": "76419314",
+   "destOwner": "76419314",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 1
+  },
+  {
+   "move": "33",
+   "type": "log",
+   "msg": "AnotherSava has 7 [castle]."
+  },
+  {
+   "move": "33",
+   "type": "log",
+   "msg": "cumo has 5 [castle]."
+  },
+  {
+   "move": "33",
+   "type": "log",
+   "msg": "cumo has to execute the I demand effect."
+  },
+  {
+   "type": "transfer",
+   "move": "34",
+   "cardSet": "base",
+   "source": "hand",
+   "dest": "hand",
+   "cardName": "Monotheism",
+   "cardAge": 2,
+   "sourceOwner": "14905532",
+   "destOwner": "76419314",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 1,
+   "destPosition": 5
+  },
+  {
+   "move": "34",
+   "type": "log",
+   "msg": "cumo has to execute the I demand effect again because it was endorsed."
+  },
+  {
+   "type": "transfer",
+   "move": "35",
+   "cardSet": "base",
+   "source": "hand",
+   "dest": "hand",
+   "cardName": "Archery",
+   "cardAge": 1,
+   "sourceOwner": "14905532",
+   "destOwner": "76419314",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 0,
+   "destPosition": 2
+  },
+  {
+   "move": "35",
+   "type": "log",
+   "msg": "AnotherSava has to execute the non-demand effect."
+  },
+  {
+   "move": "36",
+   "type": "log",
+   "msg": "AnotherSava has to execute the non-demand effect again because it was endorsed."
+  },
+  {
+   "move": "36",
+   "type": "log",
+   "msg": "No stack matches the criteria of the effect for splaying."
+  },
+  {
+   "move": "37",
+   "type": "logWithCardTooltips",
+   "msg": "cumo endorses the dogma of 3 Paper with [lightbulb] as the featured icon."
+  },
+  {
+   "type": "transfer",
+   "move": "37",
+   "cardSet": "base",
+   "source": "hand",
+   "dest": "board",
+   "cardName": "Code of laws",
+   "cardAge": 1,
+   "sourceOwner": "14905532",
+   "destOwner": "14905532",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 0
+  },
+  {
+   "move": "37",
+   "type": "log",
+   "msg": "AnotherSava has 0 [lightbulb]."
+  },
+  {
+   "move": "37",
+   "type": "log",
+   "msg": "cumo has 5 [lightbulb]."
+  },
+  {
+   "move": "37",
+   "type": "log",
+   "msg": "cumo has to execute the 1st non-demand effect."
+  },
+  {
+   "move": "38",
+   "type": "log",
+   "msg": "cumo has to execute the 1st non-demand effect again because it was endorsed."
+  },
+  {
+   "move": "38",
+   "type": "log",
+   "msg": "No stack matches the criteria of the effect for splaying."
+  },
+  {
+   "move": "38",
+   "type": "log",
+   "msg": "cumo has to execute the 2nd non-demand effect."
+  },
+  {
+   "move": "38",
+   "type": "log",
+   "msg": "cumo has 1 color splayed left."
+  },
+  {
+   "type": "transfer",
+   "move": "38",
+   "cardSet": "echoes",
+   "source": "deck",
+   "dest": "hand",
+   "cardName": null,
+   "cardAge": 4,
+   "sourceOwner": null,
+   "destOwner": "14905532",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 9,
+   "destPosition": 0
+  },
+  {
+   "move": "38",
+   "type": "log",
+   "msg": "cumo has to execute the 2nd non-demand effect again because it was endorsed."
+  },
+  {
+   "move": "38",
+   "type": "log",
+   "msg": "cumo has 1 color splayed left."
+  },
+  {
+   "type": "transfer",
+   "move": "38",
+   "cardSet": "base",
+   "source": "deck",
+   "dest": "hand",
+   "cardName": null,
+   "cardAge": 4,
+   "sourceOwner": null,
+   "destOwner": "14905532",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 8,
+   "destPosition": 0
+  },
+  {
+   "type": "transfer",
+   "move": "39",
+   "cardSet": "cities",
+   "source": "hand",
+   "dest": "board",
+   "cardName": "Baghdad",
+   "cardAge": 3,
+   "sourceOwner": "14905532",
+   "destOwner": "14905532",
+   "meldKeyword": true,
+   "topOfDeck": false,
+   "sourcePosition": 0,
+   "destPosition": 2
+  },
+  {
+   "type": "transfer",
+   "move": "39",
+   "cardSet": "cities",
+   "source": "achievements",
+   "dest": "achievements",
+   "cardName": "Legend",
+   "cardAge": null,
+   "sourceOwner": null,
+   "destOwner": "14905532",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 15,
+   "destPosition": 1
+  },
+  {
+   "type": "transfer",
+   "move": "40",
+   "cardSet": "echoes",
+   "source": "forecast",
+   "dest": "board",
+   "cardName": "Deoderant",
+   "cardAge": 3,
+   "sourceOwner": "14905532",
+   "destOwner": "14905532",
+   "meldKeyword": true,
+   "topOfDeck": false,
+   "sourcePosition": 1,
+   "destPosition": 3
+  },
+  {
+   "move": "41",
+   "type": "log",
+   "msg": "cumo chooses to dogma his promoted card."
+  },
+  {
+   "move": "41",
+   "type": "logWithCardTooltips",
+   "msg": "cumo activates the dogma of 3 Deoderant with [crown] as the featured icon."
+  },
+  {
+   "move": "41",
+   "type": "log",
+   "msg": "AnotherSava has 3 [crown]."
+  },
+  {
+   "move": "41",
+   "type": "log",
+   "msg": "cumo has 5 [crown]."
+  },
+  {
+   "move": "41",
+   "type": "log",
+   "msg": "cumo has to execute the echo effect."
+  },
+  {
+   "type": "transfer",
+   "move": "41",
+   "cardSet": "base",
+   "source": "deck",
+   "dest": "board",
+   "cardName": "Alchemy",
+   "cardAge": 3,
+   "sourceOwner": null,
+   "destOwner": "14905532",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 1,
+   "destPosition": 1
+  },
+  {
+   "move": "41",
+   "type": "log",
+   "msg": "cumo has to execute the non-demand effect."
+  },
+  {
+   "type": "transfer",
+   "move": "41",
+   "cardSet": "base",
+   "source": "deck",
+   "dest": "board",
+   "cardName": "Machinery",
+   "cardAge": 3,
+   "sourceOwner": null,
+   "destOwner": "14905532",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 0,
+   "destPosition": 4
+  },
+  {
+   "type": "transfer",
+   "move": "42",
+   "cardSet": "base",
+   "source": "hand",
+   "dest": "board",
+   "cardName": "Engineering",
+   "cardAge": 3,
+   "sourceOwner": "76419314",
+   "destOwner": "76419314",
+   "meldKeyword": true,
+   "topOfDeck": false,
+   "sourcePosition": 0,
+   "destPosition": 3
+  },
+  {
+   "move": "43",
+   "type": "logWithCardTooltips",
+   "msg": "AnotherSava endorses the dogma of 3 Engineering with [castle] as the featured icon."
+  },
+  {
+   "type": "transfer",
+   "move": "43",
+   "cardSet": "base",
+   "source": "hand",
+   "dest": "board",
+   "cardName": "Archery",
+   "cardAge": 1,
+   "sourceOwner": "76419314",
+   "destOwner": "76419314",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 2
+  },
+  {
+   "move": "43",
+   "type": "log",
+   "msg": "AnotherSava has 11 [castle]."
+  },
+  {
+   "move": "43",
+   "type": "log",
+   "msg": "cumo has 5 [castle]."
+  },
+  {
+   "move": "43",
+   "type": "log",
+   "msg": "cumo has to execute the I demand effect."
+  },
+  {
+   "type": "transfer",
+   "move": "43",
+   "cardSet": "base",
+   "source": "board",
+   "dest": "score",
+   "cardName": "Alchemy",
+   "cardAge": 3,
+   "sourceOwner": "14905532",
+   "destOwner": "76419314",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 1,
+   "destPosition": 0
+  },
+  {
+   "type": "transfer",
+   "move": "43",
+   "cardSet": "base",
+   "source": "board",
+   "dest": "score",
+   "cardName": "Machinery",
+   "cardAge": 3,
+   "sourceOwner": "14905532",
+   "destOwner": "76419314",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 4,
+   "destPosition": 1
+  },
+  {
+   "type": "transfer",
+   "move": "43",
+   "cardSet": "cities",
+   "source": "board",
+   "dest": "score",
+   "cardName": "Mohenjo-Daro",
+   "cardAge": 1,
+   "sourceOwner": "14905532",
+   "destOwner": "76419314",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 3,
+   "destPosition": 0
+  },
+  {
+   "move": "43",
+   "type": "log",
+   "msg": "cumo has to execute the I demand effect again because it was endorsed."
+  },
+  {
+   "type": "transfer",
+   "move": "43",
+   "cardSet": "base",
+   "source": "board",
+   "dest": "score",
+   "cardName": "City states",
+   "cardAge": 1,
+   "sourceOwner": "14905532",
+   "destOwner": "76419314",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 2,
+   "destPosition": 0
+  },
+  {
+   "move": "43",
+   "type": "log",
+   "msg": "AnotherSava has to execute the non-demand effect."
+  },
+  {
+   "move": "44",
+   "type": "log",
+   "msg": "AnotherSava has to execute the non-demand effect again because it was endorsed."
+  },
+  {
+   "move": "44",
+   "type": "log",
+   "msg": "No stack matches the criteria of the effect for splaying."
+  },
+  {
+   "move": "45",
+   "type": "logWithCardTooltips",
+   "msg": "cumo activates the dogma of 1 Pottery with [leaf] as the featured icon."
+  },
+  {
+   "move": "45",
+   "type": "log",
+   "msg": "AnotherSava has 7 [leaf]."
+  },
+  {
+   "move": "45",
+   "type": "log",
+   "msg": "cumo has 4 [leaf]."
+  },
+  {
+   "move": "45",
+   "type": "log",
+   "msg": "AnotherSava has to execute the 1st non-demand effect."
+  },
+  {
+   "type": "transfer",
+   "move": "46",
+   "cardSet": "cities",
+   "source": "hand",
+   "dest": "deck",
+   "cardName": "Jakarta",
+   "cardAge": 3,
+   "sourceOwner": "76419314",
+   "destOwner": null,
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 0
+  },
+  {
+   "move": "47",
+   "type": "log",
+   "msg": "One card has been returned"
+  },
+  {
+   "type": "transfer",
+   "move": "47",
+   "cardSet": "base",
+   "source": "deck",
+   "dest": "score",
+   "cardName": "Anatomy",
+   "cardAge": 4,
+   "sourceOwner": null,
+   "destOwner": "76419314",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 7,
+   "destPosition": 0
+  },
+  {
+   "move": "47",
+   "type": "log",
+   "msg": "cumo has to execute the 1st non-demand effect."
+  },
+  {
+   "type": "transfer",
+   "move": "48",
+   "cardSet": "echoes",
+   "source": "hand",
+   "dest": "deck",
+   "cardName": null,
+   "cardAge": 4,
+   "sourceOwner": "14905532",
+   "destOwner": null,
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 0
+  },
+  {
+   "move": "49",
+   "type": "log",
+   "msg": "One card has been returned"
+  },
+  {
+   "type": "transfer",
+   "move": "49",
+   "cardSet": "echoes",
+   "source": "deck",
+   "dest": "score",
+   "cardName": null,
+   "cardAge": 4,
+   "sourceOwner": null,
+   "destOwner": "14905532",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 9,
+   "destPosition": 0
+  },
+  {
+   "move": "49",
+   "type": "log",
+   "msg": "AnotherSava has to execute the 2nd non-demand effect."
+  },
+  {
+   "type": "transfer",
+   "move": "49",
+   "cardSet": "base",
+   "source": "deck",
+   "dest": "hand",
+   "cardName": "Invention",
+   "cardAge": 4,
+   "sourceOwner": null,
+   "destOwner": "76419314",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 6,
+   "destPosition": 0
+  },
+  {
+   "move": "49",
+   "type": "log",
+   "msg": "cumo has to execute the 2nd non-demand effect."
+  },
+  {
+   "type": "transfer",
+   "move": "49",
+   "cardSet": "echoes",
+   "source": "deck",
+   "dest": "hand",
+   "cardName": null,
+   "cardAge": 4,
+   "sourceOwner": null,
+   "destOwner": "14905532",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 8,
+   "destPosition": 0
+  },
+  {
+   "move": "49",
+   "type": "log",
+   "msg": "Sharing bonus."
+  },
+  {
+   "type": "transfer",
+   "move": "49",
+   "cardSet": "base",
+   "source": "deck",
+   "dest": "hand",
+   "cardName": null,
+   "cardAge": 4,
+   "sourceOwner": null,
+   "destOwner": "14905532",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 5,
+   "destPosition": 1
+  },
+  {
+   "type": "transfer",
+   "move": "50",
+   "cardSet": "base",
+   "source": "achievements",
+   "dest": "achievements",
+   "cardName": null,
+   "cardAge": 2,
+   "sourceOwner": null,
+   "destOwner": "14905532",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 0,
+   "destPosition": 2
+  },
+  {
+   "type": "transfer",
+   "move": "51",
+   "cardSet": "base",
+   "source": "hand",
+   "dest": "board",
+   "cardName": "Invention",
+   "cardAge": 4,
+   "sourceOwner": "76419314",
+   "destOwner": "76419314",
+   "meldKeyword": true,
+   "topOfDeck": false,
+   "sourcePosition": 0,
+   "destPosition": 3
+  },
+  {
+   "type": "transfer",
+   "move": "52",
+   "cardSet": "echoes",
+   "source": "hand",
+   "dest": "board",
+   "cardName": "Liquid Fire",
+   "cardAge": 3,
+   "sourceOwner": "76419314",
+   "destOwner": "76419314",
+   "meldKeyword": true,
+   "topOfDeck": false,
+   "sourcePosition": 0,
+   "destPosition": 5
+  },
+  {
+   "type": "transfer",
+   "move": "53",
+   "cardSet": "base",
+   "source": "hand",
+   "dest": "board",
+   "cardName": "Philosophy",
+   "cardAge": 2,
+   "sourceOwner": "14905532",
+   "destOwner": "14905532",
+   "meldKeyword": true,
+   "topOfDeck": false,
+   "sourcePosition": 0,
+   "destPosition": 2
+  },
+  {
+   "move": "54",
+   "type": "logWithCardTooltips",
+   "msg": "cumo activates the dogma of 2 Philosophy with [lightbulb] as the featured icon."
+  },
+  {
+   "move": "54",
+   "type": "log",
+   "msg": "AnotherSava has 5 [lightbulb]."
+  },
+  {
+   "move": "54",
+   "type": "log",
+   "msg": "cumo has 7 [lightbulb]."
+  },
+  {
+   "move": "54",
+   "type": "log",
+   "msg": "cumo has to execute the 1st non-demand effect."
+  },
+  {
+   "type": "transfer",
+   "move": "55",
+   "cardSet": "cities",
+   "source": "deck",
+   "dest": "hand",
+   "cardName": null,
+   "cardAge": 4,
+   "sourceOwner": null,
+   "destOwner": "14905532",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 9,
+   "destPosition": 0
+  },
+  {
+   "move": "55",
+   "type": "log",
+   "msg": "cumo has to execute the 2nd non-demand effect."
+  },
+  {
+   "type": "transfer",
+   "move": "56",
+   "cardSet": "echoes",
+   "source": "hand",
+   "dest": "score",
+   "cardName": null,
+   "cardAge": 4,
+   "sourceOwner": "14905532",
+   "destOwner": "14905532",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 0,
+   "destPosition": 1
+  },
+  {
+   "type": "transfer",
+   "move": "57",
+   "cardSet": "base",
+   "source": "hand",
+   "dest": "board",
+   "cardName": "Education",
+   "cardAge": 3,
+   "sourceOwner": "76419314",
+   "destOwner": "76419314",
+   "meldKeyword": true,
+   "topOfDeck": false,
+   "sourcePosition": 2,
+   "destPosition": 1
+  },
+  {
+   "move": "58",
+   "type": "logWithCardTooltips",
+   "msg": "AnotherSava activates the dogma of 4 Invention with [lightbulb] as the featured icon."
+  },
+  {
+   "move": "58",
+   "type": "log",
+   "msg": "AnotherSava has 8 [lightbulb]."
+  },
+  {
+   "move": "58",
+   "type": "log",
+   "msg": "cumo has 7 [lightbulb]."
+  },
+  {
+   "move": "58",
+   "type": "log",
+   "msg": "AnotherSava has to execute the 1st non-demand effect."
+  },
+  {
+   "type": "transfer",
+   "move": "59",
+   "cardSet": "cities",
+   "source": "deck",
+   "dest": "hand",
+   "cardName": "Frankfurt",
+   "cardAge": 4,
+   "sourceOwner": null,
+   "destOwner": "76419314",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 8,
+   "destPosition": 0
+  },
+  {
+   "type": "transfer",
+   "move": "59",
+   "cardSet": "echoes",
+   "source": "deck",
+   "dest": "score",
+   "cardName": "Pencil",
+   "cardAge": 4,
+   "sourceOwner": null,
+   "destOwner": "76419314",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 7,
+   "destPosition": 0
+  },
+  {
+   "move": "59",
+   "type": "log",
+   "msg": "AnotherSava has to execute the 2nd non-demand effect."
+  },
+  {
+   "type": "transfer",
+   "move": "60",
+   "cardSet": "base",
+   "source": "achievements",
+   "dest": "achievements",
+   "cardName": null,
+   "cardAge": 3,
+   "sourceOwner": null,
+   "destOwner": "14905532",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 0,
+   "destPosition": 3
+  },
+  {
+   "move": "61",
+   "type": "logWithCardTooltips",
+   "msg": "cumo activates the dogma of 3 Deoderant with [crown] as the featured icon."
+  },
+  {
+   "move": "61",
+   "type": "log",
+   "msg": "AnotherSava has 3 [crown]."
+  },
+  {
+   "move": "61",
+   "type": "log",
+   "msg": "cumo has 5 [crown]."
+  },
+  {
+   "move": "61",
+   "type": "log",
+   "msg": "cumo has to execute the echo effect."
+  },
+  {
+   "type": "transfer",
+   "move": "61",
+   "cardSet": "echoes",
+   "source": "deck",
+   "dest": "board",
+   "cardName": "Chintz",
+   "cardAge": 4,
+   "sourceOwner": null,
+   "destOwner": "14905532",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 6,
+   "destPosition": 3
+  },
+  {
+   "move": "61",
+   "type": "log",
+   "msg": "cumo has to execute the non-demand effect."
+  },
+  {
+   "type": "transfer",
+   "move": "61",
+   "cardSet": "echoes",
+   "source": "deck",
+   "dest": "hand",
+   "cardName": null,
+   "cardAge": 4,
+   "sourceOwner": null,
+   "destOwner": "14905532",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 5,
+   "destPosition": 0
+  },
+  {
+   "move": "62",
+   "type": "logWithCardTooltips",
+   "msg": "AnotherSava activates the dogma of 4 Invention with [lightbulb] as the featured icon."
+  },
+  {
+   "move": "62",
+   "type": "log",
+   "msg": "AnotherSava has 9 [lightbulb]."
+  },
+  {
+   "move": "62",
+   "type": "log",
+   "msg": "cumo has 6 [lightbulb]."
+  },
+  {
+   "move": "62",
+   "type": "log",
+   "msg": "AnotherSava has to execute the 1st non-demand effect."
+  },
+  {
+   "type": "transfer",
+   "move": "63",
+   "cardSet": "echoes",
+   "source": "deck",
+   "dest": "score",
+   "cardName": "Toilet",
+   "cardAge": 4,
+   "sourceOwner": null,
+   "destOwner": "76419314",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 4,
+   "destPosition": 1
+  },
+  {
+   "move": "63",
+   "type": "log",
+   "msg": "AnotherSava has to execute the 2nd non-demand effect."
+  },
+  {
+   "type": "transfer",
+   "move": "64",
+   "cardSet": "base",
+   "source": "achievements",
+   "dest": "achievements",
+   "cardName": null,
+   "cardAge": 4,
+   "sourceOwner": null,
+   "destOwner": "76419314",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 0,
+   "destPosition": 0
+  },
+  {
+   "type": "transfer",
+   "move": "65",
+   "cardSet": "cities",
+   "source": "hand",
+   "dest": "board",
+   "cardName": "Milan",
+   "cardAge": 4,
+   "sourceOwner": "14905532",
+   "destOwner": "14905532",
+   "meldKeyword": true,
+   "topOfDeck": false,
+   "sourcePosition": 0,
+   "destPosition": 3
+  },
+  {
+   "type": "transfer",
+   "move": "65",
+   "cardSet": "base",
+   "source": "deck",
+   "dest": "hand",
+   "cardName": null,
+   "cardAge": 5,
+   "sourceOwner": null,
+   "destOwner": "14905532",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 8,
+   "destPosition": 0
+  },
+  {
+   "type": "transfer",
+   "move": "65",
+   "cardSet": "base",
+   "source": "deck",
+   "dest": "hand",
+   "cardName": null,
+   "cardAge": 5,
+   "sourceOwner": null,
+   "destOwner": "14905532",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 7,
+   "destPosition": 1
+  },
+  {
+   "type": "transfer",
+   "move": "66",
+   "cardSet": "echoes",
+   "source": "forecast",
+   "dest": "board",
+   "cardName": "Charitable Trust",
+   "cardAge": 3,
+   "sourceOwner": "14905532",
+   "destOwner": "14905532",
+   "meldKeyword": true,
+   "topOfDeck": false,
+   "sourcePosition": 0,
+   "destPosition": 4
+  },
+  {
+   "move": "67",
+   "type": "log",
+   "msg": "cumo chooses to dogma his promoted card."
+  },
+  {
+   "move": "67",
+   "type": "logWithCardTooltips",
+   "msg": "cumo activates the dogma of 3 Charitable Trust with [crown] as the featured icon."
+  },
+  {
+   "move": "67",
+   "type": "log",
+   "msg": "AnotherSava has 5 [crown]."
+  },
+  {
+   "move": "67",
+   "type": "log",
+   "msg": "cumo has 4 [crown]."
+  },
+  {
+   "move": "67",
+   "type": "log",
+   "msg": "AnotherSava has to execute the echo effect."
+  },
+  {
+   "move": "68",
+   "type": "log",
+   "msg": "AnotherSava chooses to draw a [4]."
+  },
+  {
+   "type": "transfer",
+   "move": "68",
+   "cardSet": "echoes",
+   "source": "deck",
+   "dest": "hand",
+   "cardName": "Globe",
+   "cardAge": 4,
+   "sourceOwner": null,
+   "destOwner": "76419314",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 3,
+   "destPosition": 0
+  },
+  {
+   "move": "68",
+   "type": "log",
+   "msg": "cumo has to execute the echo effect."
+  },
+  {
+   "move": "69",
+   "type": "log",
+   "msg": "cumo chooses to draw a [4]."
+  },
+  {
+   "type": "transfer",
+   "move": "69",
+   "cardSet": "base",
+   "source": "deck",
+   "dest": "hand",
+   "cardName": null,
+   "cardAge": 4,
+   "sourceOwner": null,
+   "destOwner": "14905532",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 4,
+   "destPosition": 2
+  },
+  {
+   "move": "69",
+   "type": "log",
+   "msg": "AnotherSava has to execute the non-demand effect."
+  },
+  {
+   "type": "transfer",
+   "move": "70",
+   "cardSet": "echoes",
+   "source": "hand",
+   "dest": "board",
+   "cardName": "Globe",
+   "cardAge": 4,
+   "sourceOwner": "76419314",
+   "destOwner": "76419314",
+   "meldKeyword": true,
+   "topOfDeck": false,
+   "sourcePosition": 0,
+   "destPosition": 4
+  },
+  {
+   "type": "transfer",
+   "move": "70",
+   "cardSet": "echoes",
+   "source": "board",
+   "dest": "deck",
+   "cardName": "Globe",
+   "cardAge": 4,
+   "sourceOwner": "76419314",
+   "destOwner": null,
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 4
+  },
+  {
+   "move": "70",
+   "type": "log",
+   "msg": "cumo has to execute the non-demand effect."
+  },
+  {
+   "move": "71",
+   "type": "log",
+   "msg": "cumo passes."
+  },
+  {
+   "move": "71",
+   "type": "log",
+   "msg": "Sharing bonus."
+  },
+  {
+   "type": "transfer",
+   "move": "71",
+   "cardSet": "base",
+   "source": "deck",
+   "dest": "hand",
+   "cardName": null,
+   "cardAge": 4,
+   "sourceOwner": null,
+   "destOwner": "14905532",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 3,
+   "destPosition": 3
+  },
+  {
+   "type": "transfer",
+   "move": "72",
+   "cardSet": "echoes",
+   "source": "hand",
+   "dest": "board",
+   "cardName": "Slide Rule",
+   "cardAge": 4,
+   "sourceOwner": "14905532",
+   "destOwner": "14905532",
+   "meldKeyword": true,
+   "topOfDeck": false,
+   "sourcePosition": 0,
+   "destPosition": 1
+  },
+  {
+   "type": "transfer",
+   "move": "73",
+   "cardSet": "cities",
+   "source": "hand",
+   "dest": "board",
+   "cardName": "Frankfurt",
+   "cardAge": 4,
+   "sourceOwner": "76419314",
+   "destOwner": "76419314",
+   "meldKeyword": true,
+   "topOfDeck": false,
+   "sourcePosition": 0,
+   "destPosition": 2
+  },
+  {
+   "type": "transfer",
+   "move": "73",
+   "cardSet": "echoes",
+   "source": "deck",
+   "dest": "hand",
+   "cardName": "Tuning Fork",
+   "cardAge": 5,
+   "sourceOwner": null,
+   "destOwner": "76419314",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 9,
+   "destPosition": 0
+  },
+  {
+   "type": "transfer",
+   "move": "73",
+   "cardSet": "base",
+   "source": "deck",
+   "dest": "hand",
+   "cardName": "Physics",
+   "cardAge": 5,
+   "sourceOwner": null,
+   "destOwner": "76419314",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 6,
+   "destPosition": 0
+  },
+  {
+   "move": "74",
+   "type": "logWithCardTooltips",
+   "msg": "AnotherSava endorses the dogma of 3 Liquid Fire with [lightbulb] as the featured icon."
+  },
+  {
+   "type": "transfer",
+   "move": "74",
+   "cardSet": "base",
+   "source": "hand",
+   "dest": "board",
+   "cardName": "Medicine",
+   "cardAge": 3,
+   "sourceOwner": "76419314",
+   "destOwner": "76419314",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 0
+  },
+  {
+   "move": "74",
+   "type": "log",
+   "msg": "AnotherSava has 11 [lightbulb]."
+  },
+  {
+   "move": "74",
+   "type": "log",
+   "msg": "cumo has 7 [lightbulb]."
+  },
+  {
+   "move": "74",
+   "type": "log",
+   "msg": "cumo has to execute the I demand effect."
+  },
+  {
+   "type": "transfer",
+   "move": "74",
+   "cardSet": "echoes",
+   "source": "deck",
+   "dest": "revealed",
+   "cardName": "Clock",
+   "cardAge": 4,
+   "sourceOwner": null,
+   "destOwner": "14905532",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 3,
+   "destPosition": 0
+  },
+  {
+   "type": "transfer",
+   "move": "74",
+   "cardSet": "echoes",
+   "source": "revealed",
+   "dest": "forecast",
+   "cardName": "Clock",
+   "cardAge": 4,
+   "sourceOwner": "14905532",
+   "destOwner": "76419314",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 0,
+   "destPosition": 0
+  },
+  {
+   "move": "74",
+   "type": "log",
+   "msg": "cumo has to execute the I demand effect again because it was endorsed."
+  },
+  {
+   "type": "transfer",
+   "move": "74",
+   "cardSet": "echoes",
+   "source": "deck",
+   "dest": "revealed",
+   "cardName": "Telescope",
+   "cardAge": 4,
+   "sourceOwner": null,
+   "destOwner": "14905532",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 2,
+   "destPosition": 0
+  },
+  {
+   "type": "transfer",
+   "move": "74",
+   "cardSet": "echoes",
+   "source": "revealed",
+   "dest": "forecast",
+   "cardName": "Telescope",
+   "cardAge": 4,
+   "sourceOwner": "14905532",
+   "destOwner": "76419314",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 0,
+   "destPosition": 1
+  },
+  {
+   "type": "transfer",
+   "move": "75",
+   "cardSet": "base",
+   "source": "hand",
+   "dest": "board",
+   "cardName": "Measurement",
+   "cardAge": 5,
+   "sourceOwner": "14905532",
+   "destOwner": "14905532",
+   "meldKeyword": true,
+   "topOfDeck": false,
+   "sourcePosition": 1,
+   "destPosition": 5
+  },
+  {
+   "type": "transfer",
+   "move": "76",
+   "cardSet": "base",
+   "source": "hand",
+   "dest": "board",
+   "cardName": "Perspective",
+   "cardAge": 4,
+   "sourceOwner": "14905532",
+   "destOwner": "14905532",
+   "meldKeyword": true,
+   "topOfDeck": false,
+   "sourcePosition": 3,
+   "destPosition": 4
+  },
+  {
+   "type": "transfer",
+   "move": "77",
+   "cardSet": "base",
+   "source": "hand",
+   "dest": "board",
+   "cardName": "Translation",
+   "cardAge": 3,
+   "sourceOwner": "76419314",
+   "destOwner": "76419314",
+   "meldKeyword": true,
+   "topOfDeck": false,
+   "sourcePosition": 0,
+   "destPosition": 3
+  },
+  {
+   "move": "78",
+   "type": "logWithCardTooltips",
+   "msg": "AnotherSava activates the dogma of 3 Translation with [crown] as the featured icon."
+  },
+  {
+   "move": "78",
+   "type": "log",
+   "msg": "AnotherSava has 9 [crown]."
+  },
+  {
+   "move": "78",
+   "type": "log",
+   "msg": "cumo has 1 [crown]."
+  },
+  {
+   "move": "78",
+   "type": "log",
+   "msg": "AnotherSava has to execute the 1st non-demand effect."
+  },
+  {
+   "type": "transfer",
+   "move": "79",
+   "cardSet": "base",
+   "source": "score",
+   "dest": "board",
+   "cardName": "City states",
+   "cardAge": 1,
+   "sourceOwner": "76419314",
+   "destOwner": "76419314",
+   "meldKeyword": true,
+   "topOfDeck": false,
+   "sourcePosition": 0,
+   "destPosition": 2
+  },
+  {
+   "type": "transfer",
+   "move": "80",
+   "cardSet": "cities",
+   "source": "score",
+   "dest": "board",
+   "cardName": "Mohenjo-Daro",
+   "cardAge": 1,
+   "sourceOwner": "76419314",
+   "destOwner": "76419314",
+   "meldKeyword": true,
+   "topOfDeck": false,
+   "sourcePosition": 0,
+   "destPosition": 3
+  },
+  {
+   "type": "transfer",
+   "move": "81",
+   "cardSet": "echoes",
+   "source": "score",
+   "dest": "board",
+   "cardName": "Toilet",
+   "cardAge": 4,
+   "sourceOwner": "76419314",
+   "destOwner": "76419314",
+   "meldKeyword": true,
+   "topOfDeck": false,
+   "sourcePosition": 1,
+   "destPosition": 4
+  },
+  {
+   "type": "transfer",
+   "move": "82",
+   "cardSet": "base",
+   "source": "score",
+   "dest": "board",
+   "cardName": "Anatomy",
+   "cardAge": 4,
+   "sourceOwner": "76419314",
+   "destOwner": "76419314",
+   "meldKeyword": true,
+   "topOfDeck": false,
+   "sourcePosition": 0,
+   "destPosition": 4
+  },
+  {
+   "type": "transfer",
+   "move": "83",
+   "cardSet": "echoes",
+   "source": "score",
+   "dest": "board",
+   "cardName": "Pencil",
+   "cardAge": 4,
+   "sourceOwner": "76419314",
+   "destOwner": "76419314",
+   "meldKeyword": true,
+   "topOfDeck": false,
+   "sourcePosition": 0,
+   "destPosition": 5
+  },
+  {
+   "type": "transfer",
+   "move": "84",
+   "cardSet": "base",
+   "source": "score",
+   "dest": "board",
+   "cardName": "Machinery",
+   "cardAge": 3,
+   "sourceOwner": "76419314",
+   "destOwner": "76419314",
+   "meldKeyword": true,
+   "topOfDeck": false,
+   "sourcePosition": 1,
+   "destPosition": 6
+  },
+  {
+   "type": "transfer",
+   "move": "84",
+   "cardSet": "base",
+   "source": "score",
+   "dest": "board",
+   "cardName": "Alchemy",
+   "cardAge": 3,
+   "sourceOwner": "76419314",
+   "destOwner": "76419314",
+   "meldKeyword": true,
+   "topOfDeck": false,
+   "sourcePosition": 0,
+   "destPosition": 4
+  },
+  {
+   "move": "84",
+   "type": "log",
+   "msg": "No more card matches the criteria of the effect."
+  },
+  {
+   "move": "84",
+   "type": "log",
+   "msg": "AnotherSava has to execute the 2nd non-demand effect."
+  },
+  {
+   "move": "85",
+   "type": "logWithCardTooltips",
+   "msg": "cumo endorses the dogma of 4 Slide Rule with [lightbulb] as the featured icon."
+  },
+  {
+   "type": "transfer",
+   "move": "85",
+   "cardSet": "base",
+   "source": "hand",
+   "dest": "board",
+   "cardName": "Navigation",
+   "cardAge": 4,
+   "sourceOwner": "14905532",
+   "destOwner": "14905532",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 0
+  },
+  {
+   "move": "85",
+   "type": "log",
+   "msg": "AnotherSava has 6 [lightbulb]."
+  },
+  {
+   "move": "85",
+   "type": "log",
+   "msg": "cumo has 11 [lightbulb]."
+  },
+  {
+   "move": "85",
+   "type": "log",
+   "msg": "cumo has to execute the 1st non-demand effect."
+  },
+  {
+   "type": "transfer",
+   "move": "86",
+   "cardSet": "cities",
+   "source": "deck",
+   "dest": "hand",
+   "cardName": null,
+   "cardAge": 5,
+   "sourceOwner": null,
+   "destOwner": "14905532",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 9,
+   "destPosition": 0
+  },
+  {
+   "move": "86",
+   "type": "log",
+   "msg": "cumo has to execute the 1st non-demand effect again because it was endorsed."
+  },
+  {
+   "move": "86",
+   "type": "log",
+   "msg": "No stack matches the criteria of the effect for splaying."
+  },
+  {
+   "move": "86",
+   "type": "log",
+   "msg": "cumo has to execute the 2nd non-demand effect."
+  },
+  {
+   "type": "transfer",
+   "move": "86",
+   "cardSet": "echoes",
+   "source": "deck",
+   "dest": "hand",
+   "cardName": null,
+   "cardAge": 4,
+   "sourceOwner": null,
+   "destOwner": "14905532",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 1,
+   "destPosition": 0
+  },
+  {
+   "move": "86",
+   "type": "log",
+   "msg": "cumo has to execute the 2nd non-demand effect again because it was endorsed."
+  },
+  {
+   "type": "transfer",
+   "move": "86",
+   "cardSet": "base",
+   "source": "deck",
+   "dest": "hand",
+   "cardName": null,
+   "cardAge": 4,
+   "sourceOwner": null,
+   "destOwner": "14905532",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 2,
+   "destPosition": 2
+  },
+  {
+   "type": "transfer",
+   "move": "87",
+   "cardSet": "base",
+   "source": "hand",
+   "dest": "board",
+   "cardName": "Astronomy",
+   "cardAge": 5,
+   "sourceOwner": "14905532",
+   "destOwner": "14905532",
+   "meldKeyword": true,
+   "topOfDeck": false,
+   "sourcePosition": 0,
+   "destPosition": 3
+  },
+  {
+   "type": "transfer",
+   "move": "88",
+   "cardSet": "base",
+   "source": "hand",
+   "dest": "board",
+   "cardName": "Road building",
+   "cardAge": 2,
+   "sourceOwner": "76419314",
+   "destOwner": "76419314",
+   "meldKeyword": true,
+   "topOfDeck": false,
+   "sourcePosition": 2,
+   "destPosition": 6
+  },
+  {
+   "move": "89",
+   "type": "logWithCardTooltips",
+   "msg": "AnotherSava activates the dogma of 2 Road building with [castle] as the featured icon."
+  },
+  {
+   "move": "89",
+   "type": "log",
+   "msg": "AnotherSava has 12 [castle]."
+  },
+  {
+   "move": "89",
+   "type": "log",
+   "msg": "cumo has 3 [castle]."
+  },
+  {
+   "move": "89",
+   "type": "log",
+   "msg": "AnotherSava has to execute the non-demand effect."
+  },
+  {
+   "type": "transfer",
+   "move": "90",
+   "cardSet": "base",
+   "source": "hand",
+   "dest": "board",
+   "cardName": "Construction",
+   "cardAge": 2,
+   "sourceOwner": "76419314",
+   "destOwner": "76419314",
+   "meldKeyword": true,
+   "topOfDeck": false,
+   "sourcePosition": 2,
+   "destPosition": 7
+  },
+  {
+   "type": "transfer",
+   "move": "91",
+   "cardSet": "base",
+   "source": "hand",
+   "dest": "board",
+   "cardName": "Mathematics",
+   "cardAge": 2,
+   "sourceOwner": "76419314",
+   "destOwner": "76419314",
+   "meldKeyword": true,
+   "topOfDeck": false,
+   "sourcePosition": 1,
+   "destPosition": 5
+  },
+  {
+   "type": "transfer",
+   "move": "92",
+   "cardSet": "base",
+   "source": "board",
+   "dest": "board",
+   "cardName": "Construction",
+   "cardAge": 2,
+   "sourceOwner": "76419314",
+   "destOwner": "14905532",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 7,
+   "destPosition": 4
+  },
+  {
+   "type": "transfer",
+   "move": "92",
+   "cardSet": "base",
+   "source": "board",
+   "dest": "board",
+   "cardName": "Measurement",
+   "cardAge": 5,
+   "sourceOwner": "14905532",
+   "destOwner": "76419314",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 6,
+   "destPosition": 4
+  },
+  {
+   "type": "transfer",
+   "move": "93",
+   "cardSet": "cities",
+   "source": "hand",
+   "dest": "board",
+   "cardName": "Algiers",
+   "cardAge": 5,
+   "sourceOwner": "14905532",
+   "destOwner": "14905532",
+   "meldKeyword": true,
+   "topOfDeck": false,
+   "sourcePosition": 0,
+   "destPosition": 5
+  },
+  {
+   "move": "94",
+   "type": "logWithCardTooltips",
+   "msg": "cumo endorses the dogma of 5 Astronomy with [lightbulb] as the featured icon."
+  },
+  {
+   "type": "transfer",
+   "move": "94",
+   "cardSet": "base",
+   "source": "hand",
+   "dest": "board",
+   "cardName": "Experimentation",
+   "cardAge": 4,
+   "sourceOwner": "14905532",
+   "destOwner": "14905532",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 2
+  },
+  {
+   "move": "94",
+   "type": "log",
+   "msg": "AnotherSava has 6 [lightbulb]."
+  },
+  {
+   "move": "94",
+   "type": "log",
+   "msg": "cumo has 9 [lightbulb]."
+  },
+  {
+   "move": "94",
+   "type": "log",
+   "msg": "cumo has to execute the 1st non-demand effect."
+  },
+  {
+   "type": "transfer",
+   "move": "94",
+   "cardSet": "base",
+   "source": "deck",
+   "dest": "revealed",
+   "cardName": "Machine tools",
+   "cardAge": 6,
+   "sourceOwner": null,
+   "destOwner": "14905532",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 8,
+   "destPosition": 0
+  },
+  {
+   "move": "94",
+   "type": "log",
+   "msg": "This card is red."
+  },
+  {
+   "type": "transfer",
+   "move": "94",
+   "cardSet": "base",
+   "source": "revealed",
+   "dest": "hand",
+   "cardName": "Machine tools",
+   "cardAge": 6,
+   "sourceOwner": "14905532",
+   "destOwner": "14905532",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 0,
+   "destPosition": 0
+  },
+  {
+   "move": "94",
+   "type": "log",
+   "msg": "cumo has to execute the 1st non-demand effect again because it was endorsed."
+  },
+  {
+   "type": "transfer",
+   "move": "94",
+   "cardSet": "base",
+   "source": "deck",
+   "dest": "revealed",
+   "cardName": "Encyclopedia",
+   "cardAge": 6,
+   "sourceOwner": null,
+   "destOwner": "14905532",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 7,
+   "destPosition": 0
+  },
+  {
+   "move": "94",
+   "type": "log",
+   "msg": "This card is blue."
+  },
+  {
+   "type": "transfer",
+   "move": "94",
+   "cardSet": "base",
+   "source": "revealed",
+   "dest": "board",
+   "cardName": "Encyclopedia",
+   "cardAge": 6,
+   "sourceOwner": "14905532",
+   "destOwner": "14905532",
+   "meldKeyword": true,
+   "topOfDeck": false,
+   "sourcePosition": 0,
+   "destPosition": 3
+  },
+  {
+   "type": "transfer",
+   "move": "94",
+   "cardSet": "base",
+   "source": "deck",
+   "dest": "revealed",
+   "cardName": "Metric system",
+   "cardAge": 6,
+   "sourceOwner": null,
+   "destOwner": "14905532",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 6,
+   "destPosition": 0
+  },
+  {
+   "move": "94",
+   "type": "log",
+   "msg": "This card is green."
+  },
+  {
+   "type": "transfer",
+   "move": "94",
+   "cardSet": "base",
+   "source": "revealed",
+   "dest": "board",
+   "cardName": "Metric system",
+   "cardAge": 6,
+   "sourceOwner": "14905532",
+   "destOwner": "14905532",
+   "meldKeyword": true,
+   "topOfDeck": false,
+   "sourcePosition": 0,
+   "destPosition": 6
+  },
+  {
+   "type": "transfer",
+   "move": "94",
+   "cardSet": "base",
+   "source": "deck",
+   "dest": "revealed",
+   "cardName": "Industrialization",
+   "cardAge": 6,
+   "sourceOwner": null,
+   "destOwner": "14905532",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 5,
+   "destPosition": 0
+  },
+  {
+   "move": "94",
+   "type": "log",
+   "msg": "This card is red."
+  },
+  {
+   "type": "transfer",
+   "move": "94",
+   "cardSet": "base",
+   "source": "revealed",
+   "dest": "hand",
+   "cardName": "Industrialization",
+   "cardAge": 6,
+   "sourceOwner": "14905532",
+   "destOwner": "14905532",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 0,
+   "destPosition": 1
+  },
+  {
+   "move": "94",
+   "type": "log",
+   "msg": "cumo has to execute the 2nd non-demand effect."
+  },
+  {
+   "move": "94",
+   "type": "log",
+   "msg": "cumo has to execute the 2nd non-demand effect again because it was endorsed."
+  },
+  {
+   "type": "transfer",
+   "move": "95",
+   "cardSet": "echoes",
+   "source": "hand",
+   "dest": "board",
+   "cardName": "Tuning Fork",
+   "cardAge": 5,
+   "sourceOwner": "76419314",
+   "destOwner": "76419314",
+   "meldKeyword": true,
+   "topOfDeck": false,
+   "sourcePosition": 0,
+   "destPosition": 5
+  },
+  {
+   "type": "transfer",
+   "move": "96",
+   "cardSet": "echoes",
+   "source": "forecast",
+   "dest": "board",
+   "cardName": "Clock",
+   "cardAge": 4,
+   "sourceOwner": "76419314",
+   "destOwner": "76419314",
+   "meldKeyword": true,
+   "topOfDeck": false,
+   "sourcePosition": 0,
+   "destPosition": 6
+  },
+  {
+   "move": "97",
+   "type": "log",
+   "msg": "AnotherSava chooses to dogma his promoted card."
+  },
+  {
+   "move": "97",
+   "type": "logWithCardTooltips",
+   "msg": "AnotherSava activates the dogma of 4 Clock with [lightbulb] as the featured icon."
+  },
+  {
+   "move": "97",
+   "type": "log",
+   "msg": "AnotherSava has 7 [lightbulb]."
+  },
+  {
+   "move": "97",
+   "type": "log",
+   "msg": "cumo has 6 [lightbulb]."
+  },
+  {
+   "move": "97",
+   "type": "log",
+   "msg": "AnotherSava has to execute the echo effect."
+  },
+  {
+   "type": "transfer",
+   "move": "98",
+   "cardSet": "cities",
+   "source": "deck",
+   "dest": "hand",
+   "cardName": "Zurich",
+   "cardAge": 5,
+   "sourceOwner": null,
+   "destOwner": "76419314",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 8,
+   "destPosition": 0
+  },
+  {
+   "move": "98",
+   "type": "log",
+   "msg": "cumo has to execute the I demand effect."
+  },
+  {
+   "type": "transfer",
+   "move": "98",
+   "cardSet": "base",
+   "source": "deck",
+   "dest": "revealed",
+   "cardName": "A. I.",
+   "cardAge": 10,
+   "sourceOwner": null,
+   "destOwner": "14905532",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 9,
+   "destPosition": 0
+  },
+  {
+   "type": "transfer",
+   "move": "98",
+   "cardSet": "base",
+   "source": "deck",
+   "dest": "revealed",
+   "cardName": "Globalization",
+   "cardAge": 10,
+   "sourceOwner": null,
+   "destOwner": "14905532",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 8,
+   "destPosition": 1
+  },
+  {
+   "type": "transfer",
+   "move": "98",
+   "cardSet": "base",
+   "source": "deck",
+   "dest": "revealed",
+   "cardName": "Miniaturization",
+   "cardAge": 10,
+   "sourceOwner": null,
+   "destOwner": "14905532",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 7,
+   "destPosition": 2
+  },
+  {
+   "move": "98",
+   "type": "log",
+   "msg": "There were a total of 2 [clock] on the drawn cards."
+  },
+  {
+   "type": "transfer",
+   "move": "99",
+   "cardSet": "base",
+   "source": "revealed",
+   "dest": "deck",
+   "cardName": "A. I.",
+   "cardAge": 10,
+   "sourceOwner": "14905532",
+   "destOwner": null,
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 0
+  },
+  {
+   "type": "transfer",
+   "move": "100",
+   "cardSet": "base",
+   "source": "revealed",
+   "dest": "deck",
+   "cardName": "Miniaturization",
+   "cardAge": 10,
+   "sourceOwner": "14905532",
+   "destOwner": null,
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 1
+  },
+  {
+   "type": "transfer",
+   "move": "100",
+   "cardSet": "base",
+   "source": "revealed",
+   "dest": "deck",
+   "cardName": "Globalization",
+   "cardAge": 10,
+   "sourceOwner": "14905532",
+   "destOwner": null,
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 0
+  },
+  {
+   "move": "100",
+   "type": "log",
+   "msg": "No more card matches the criteria of the effect."
+  },
+  {
+   "type": "transfer",
+   "move": "100",
+   "cardSet": "base",
+   "source": "score",
+   "dest": "score",
+   "cardName": "Mapmaking",
+   "cardAge": 2,
+   "sourceOwner": "14905532",
+   "destOwner": "76419314",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 0,
+   "destPosition": 0
+  },
+  {
+   "type": "transfer",
+   "move": "100",
+   "cardSet": "echoes",
+   "source": "score",
+   "dest": "score",
+   "cardName": "Lever",
+   "cardAge": 2,
+   "sourceOwner": "14905532",
+   "destOwner": "76419314",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 0,
+   "destPosition": 0
+  },
+  {
+   "move": "101",
+   "type": "logWithCardTooltips",
+   "msg": "AnotherSava activates the dogma of 2 Mathematics with [lightbulb] as the featured icon."
+  },
+  {
+   "move": "101",
+   "type": "log",
+   "msg": "AnotherSava has 10 [lightbulb]."
+  },
+  {
+   "move": "101",
+   "type": "log",
+   "msg": "cumo has 6 [lightbulb]."
+  },
+  {
+   "move": "101",
+   "type": "log",
+   "msg": "AnotherSava has to execute the non-demand effect."
+  },
+  {
+   "type": "transfer",
+   "move": "102",
+   "cardSet": "cities",
+   "source": "hand",
+   "dest": "deck",
+   "cardName": "Zurich",
+   "cardAge": 5,
+   "sourceOwner": "76419314",
+   "destOwner": null,
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 0
+  },
+  {
+   "type": "transfer",
+   "move": "102",
+   "cardSet": "echoes",
+   "source": "deck",
+   "dest": "board",
+   "cardName": "Bifocals",
+   "cardAge": 6,
+   "sourceOwner": null,
+   "destOwner": "76419314",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 9,
+   "destPosition": 6
+  },
+  {
+   "type": "transfer",
+   "move": "103",
+   "cardSet": "base",
+   "source": "hand",
+   "dest": "board",
+   "cardName": "Industrialization",
+   "cardAge": 6,
+   "sourceOwner": "14905532",
+   "destOwner": "14905532",
+   "meldKeyword": true,
+   "topOfDeck": false,
+   "sourcePosition": 1,
+   "destPosition": 6
+  },
+  {
+   "move": "104",
+   "type": "logWithCardTooltips",
+   "msg": "cumo activates the dogma of 6 Industrialization with [factory] as the featured icon."
+  },
+  {
+   "move": "104",
+   "type": "log",
+   "msg": "AnotherSava has 0 [factory]."
+  },
+  {
+   "move": "104",
+   "type": "log",
+   "msg": "cumo has 3 [factory]."
+  },
+  {
+   "move": "104",
+   "type": "log",
+   "msg": "cumo has to execute the 1st non-demand effect."
+  },
+  {
+   "move": "104",
+   "type": "log",
+   "msg": "cumo has two colors with one or more [factory]."
+  },
+  {
+   "type": "transfer",
+   "move": "104",
+   "cardSet": "base",
+   "source": "deck",
+   "dest": "board",
+   "cardName": "Atomic theory",
+   "cardAge": 6,
+   "sourceOwner": null,
+   "destOwner": "14905532",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 4
+  },
+  {
+   "type": "transfer",
+   "move": "104",
+   "cardSet": "base",
+   "source": "deck",
+   "dest": "board",
+   "cardName": "Classification",
+   "cardAge": 6,
+   "sourceOwner": null,
+   "destOwner": "14905532",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 3
+  },
+  {
+   "move": "104",
+   "type": "log",
+   "msg": "cumo has to execute the 2nd non-demand effect."
+  },
+  {
+   "type": "transfer",
+   "move": "105",
+   "cardSet": "cities",
+   "source": "deck",
+   "dest": "hand",
+   "cardName": null,
+   "cardAge": 6,
+   "sourceOwner": null,
+   "destOwner": "14905532",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 9,
+   "destPosition": 0
+  },
+  {
+   "move": "106",
+   "type": "logWithCardTooltips",
+   "msg": "AnotherSava activates the dogma of 3 Machinery with [leaf] as the featured icon."
+  },
+  {
+   "move": "106",
+   "type": "log",
+   "msg": "AnotherSava has 11 [leaf]."
+  },
+  {
+   "move": "106",
+   "type": "log",
+   "msg": "cumo has 2 [leaf]."
+  },
+  {
+   "move": "106",
+   "type": "log",
+   "msg": "AnotherSava has to execute the echo effect."
+  },
+  {
+   "type": "transfer",
+   "move": "106",
+   "cardSet": "echoes",
+   "source": "deck",
+   "dest": "hand",
+   "cardName": "Stove",
+   "cardAge": 5,
+   "sourceOwner": null,
+   "destOwner": "76419314",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 8,
+   "destPosition": 0
+  },
+  {
+   "move": "106",
+   "type": "log",
+   "msg": "cumo has to execute the I demand effect."
+  },
+  {
+   "type": "transfer",
+   "move": "106",
+   "cardSet": "base",
+   "source": "hand",
+   "dest": "hand",
+   "cardName": "Enterprise",
+   "cardAge": 4,
+   "sourceOwner": "14905532",
+   "destOwner": "76419314",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 0,
+   "destPosition": 0
+  },
+  {
+   "type": "transfer",
+   "move": "106",
+   "cardSet": "base",
+   "source": "hand",
+   "dest": "hand",
+   "cardName": "Machine tools",
+   "cardAge": 6,
+   "sourceOwner": "14905532",
+   "destOwner": "76419314",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 0,
+   "destPosition": 0
+  },
+  {
+   "type": "transfer",
+   "move": "106",
+   "cardSet": "cities",
+   "source": "hand",
+   "dest": "hand",
+   "cardName": "Paris",
+   "cardAge": 6,
+   "sourceOwner": "14905532",
+   "destOwner": "76419314",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 0,
+   "destPosition": 0
+  },
+  {
+   "type": "transfer",
+   "move": "106",
+   "cardSet": "echoes",
+   "source": "hand",
+   "dest": "hand",
+   "cardName": "Shuriken",
+   "cardAge": 4,
+   "sourceOwner": "14905532",
+   "destOwner": "76419314",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 0,
+   "destPosition": 0
+  },
+  {
+   "type": "transfer",
+   "move": "106",
+   "cardSet": "base",
+   "source": "hand",
+   "dest": "hand",
+   "cardName": "Printing press",
+   "cardAge": 4,
+   "sourceOwner": "14905532",
+   "destOwner": "76419314",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 0,
+   "destPosition": 1
+  },
+  {
+   "type": "transfer",
+   "move": "106",
+   "cardSet": "base",
+   "source": "hand",
+   "dest": "hand",
+   "cardName": "Physics",
+   "cardAge": 5,
+   "sourceOwner": "76419314",
+   "destOwner": "14905532",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 0,
+   "destPosition": 0
+  },
+  {
+   "type": "transfer",
+   "move": "106",
+   "cardSet": "echoes",
+   "source": "hand",
+   "dest": "hand",
+   "cardName": "Stove",
+   "cardAge": 5,
+   "sourceOwner": "76419314",
+   "destOwner": "14905532",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 0,
+   "destPosition": 0
+  },
+  {
+   "move": "106",
+   "type": "log",
+   "msg": "AnotherSava has to execute the non-demand effect."
+  },
+  {
+   "type": "transfer",
+   "move": "107",
+   "cardSet": "base",
+   "source": "hand",
+   "dest": "revealed",
+   "cardName": "Monotheism",
+   "cardAge": 2,
+   "sourceOwner": "76419314",
+   "destOwner": "76419314",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 2,
+   "destPosition": 0
+  },
+  {
+   "type": "transfer",
+   "move": "107",
+   "cardSet": "base",
+   "source": "revealed",
+   "dest": "score",
+   "cardName": "Monotheism",
+   "cardAge": 2,
+   "sourceOwner": "76419314",
+   "destOwner": "76419314",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 0,
+   "destPosition": 1
+  },
+  {
+   "move": "108",
+   "type": "log",
+   "msg": "AnotherSava passes."
+  },
+  {
+   "move": "109",
+   "type": "logWithCardTooltips",
+   "msg": "AnotherSava activates the dogma of 5 Measurement with [lightbulb] as the featured icon."
+  },
+  {
+   "move": "109",
+   "type": "log",
+   "msg": "AnotherSava has 8 [lightbulb]."
+  },
+  {
+   "move": "109",
+   "type": "log",
+   "msg": "cumo has 7 [lightbulb]."
+  },
+  {
+   "move": "109",
+   "type": "log",
+   "msg": "AnotherSava has to execute the non-demand effect."
+  },
+  {
+   "type": "transfer",
+   "move": "110",
+   "cardSet": "base",
+   "source": "hand",
+   "dest": "revealed",
+   "cardName": "Writing",
+   "cardAge": 1,
+   "sourceOwner": "76419314",
+   "destOwner": "76419314",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 0,
+   "destPosition": 0
+  },
+  {
+   "type": "transfer",
+   "move": "110",
+   "cardSet": "base",
+   "source": "revealed",
+   "dest": "deck",
+   "cardName": "Writing",
+   "cardAge": 1,
+   "sourceOwner": "76419314",
+   "destOwner": null,
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 0
+  },
+  {
+   "move": "110",
+   "type": "log",
+   "msg": "AnotherSava has seven blue cards."
+  },
+  {
+   "type": "transfer",
+   "move": "110",
+   "cardSet": "base",
+   "source": "deck",
+   "dest": "hand",
+   "cardName": "Electricity",
+   "cardAge": 7,
+   "sourceOwner": null,
+   "destOwner": "76419314",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 8,
+   "destPosition": 0
+  },
+  {
+   "move": "111",
+   "type": "logWithCardTooltips",
+   "msg": "cumo activates the dogma of 6 Metric system with [crown] as the featured icon."
+  },
+  {
+   "move": "111",
+   "type": "log",
+   "msg": "AnotherSava has 10 [crown]."
+  },
+  {
+   "move": "111",
+   "type": "log",
+   "msg": "cumo has 12 [crown]."
+  },
+  {
+   "move": "111",
+   "type": "log",
+   "msg": "cumo has to execute the 1st non-demand effect."
+  },
+  {
+   "move": "111",
+   "type": "log",
+   "msg": "cumo has to execute the 2nd non-demand effect."
+  },
+  {
+   "type": "transfer",
+   "move": "112",
+   "cardSet": "cities",
+   "source": "deck",
+   "dest": "hand",
+   "cardName": null,
+   "cardAge": 6,
+   "sourceOwner": null,
+   "destOwner": "14905532",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 8,
+   "destPosition": 0
+  },
+  {
+   "type": "transfer",
+   "move": "113",
+   "cardSet": "base",
+   "source": "hand",
+   "dest": "board",
+   "cardName": "Physics",
+   "cardAge": 5,
+   "sourceOwner": "14905532",
+   "destOwner": "14905532",
+   "meldKeyword": true,
+   "topOfDeck": false,
+   "sourcePosition": 0,
+   "destPosition": 5
+  },
+  {
+   "type": "transfer",
+   "move": "114",
+   "cardSet": "base",
+   "source": "hand",
+   "dest": "board",
+   "cardName": "Enterprise",
+   "cardAge": 4,
+   "sourceOwner": "76419314",
+   "destOwner": "76419314",
+   "meldKeyword": true,
+   "topOfDeck": false,
+   "sourcePosition": 0,
+   "destPosition": 7
+  },
+  {
+   "type": "transfer",
+   "move": "114",
+   "cardSet": "echoes",
+   "source": "achievements",
+   "dest": "achievements",
+   "cardName": "Supremacy",
+   "cardAge": null,
+   "sourceOwner": null,
+   "destOwner": "76419314",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 19,
+   "destPosition": 1
+  },
+  {
+   "move": "115",
+   "type": "log",
+   "msg": "AnotherSava chooses not to promote a card from his forecast."
+  },
+  {
+   "move": "116",
+   "type": "logWithCardTooltips",
+   "msg": "AnotherSava activates the dogma of 4 Enterprise with [crown] as the featured icon."
+  },
+  {
+   "move": "116",
+   "type": "log",
+   "msg": "AnotherSava has 13 [crown]."
+  },
+  {
+   "move": "116",
+   "type": "log",
+   "msg": "cumo has 11 [crown]."
+  },
+  {
+   "move": "116",
+   "type": "log",
+   "msg": "AnotherSava has to execute the echo effect."
+  },
+  {
+   "type": "transfer",
+   "move": "116",
+   "cardSet": "base",
+   "source": "deck",
+   "dest": "board",
+   "cardName": "Gunpowder",
+   "cardAge": 4,
+   "sourceOwner": null,
+   "destOwner": "76419314",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 1
+  },
+  {
+   "move": "116",
+   "type": "log",
+   "msg": "AnotherSava has to execute the echo effect."
+  },
+  {
+   "type": "transfer",
+   "move": "117",
+   "cardSet": "base",
+   "source": "deck",
+   "dest": "hand",
+   "cardName": "Vaccination",
+   "cardAge": 6,
+   "sourceOwner": null,
+   "destOwner": "76419314",
+   "meldKeyword": false,
+   "topOfDeck": false,
+   "sourcePosition": 2,
+   "destPosition": 1
+  },
+  {
+   "type": "transfer",
+   "move": "118",
+   "cardSet": "base",
+   "source": "hand",
+   "dest": "deck",
+   "cardName": "Vaccination",
+   "cardAge": 6,
+   "sourceOwner": "76419314",
+   "destOwner": null,
+   "meldKeyword": false,
+   "topOfDeck": true,
+   "sourcePosition": 1,
+   "destPosition": 2
+  },
+  {
+   "move": "118",
+   "type": "log",
+   "msg": "AnotherSava has to execute the echo effect."
+  },
+  {
+   "move": "118",
+   "type": "log",
+   "msg": "No stack matches the criteria of the effect for splaying."
+  },
+  {
+   "move": "118",
+   "type": "log",
+   "msg": "cumo has to execute the I demand effect."
+  }
+ ],
+ "actions": [
+  {
+   "player": "14905532",
+   "actionNumber": 1,
+   "time": "1773735974",
+   "logIndex": 5,
+   "actions": [
+    {
+     "actionType": "draw",
+     "cardName": null,
+     "cardAge": 1,
+     "cardSet": "base"
+    }
+   ]
+  },
+  {
+   "player": "76419314",
+   "actionNumber": 1,
+   "time": "1773736076",
+   "logIndex": 6,
+   "actions": [
+    {
+     "actionType": "meld",
+     "cardName": "Perfume",
+     "cardAge": 1,
+     "cardSet": "echoes"
+    }
+   ]
+  },
+  {
+   "player": "76419314",
+   "actionNumber": 2,
+   "time": "1773736084",
+   "logIndex": 8,
+   "actions": [
+    {
+     "actionType": "meld",
+     "cardName": "Atlantis",
+     "cardAge": 1,
+     "cardSet": "cities"
+    }
+   ]
+  },
+  {
+   "player": "14905532",
+   "actionNumber": 1,
+   "time": "1773736096",
+   "logIndex": 12,
+   "actions": [
+    {
+     "actionType": "meld",
+     "cardName": "Pottery",
+     "cardAge": 1,
+     "cardSet": "base"
+    }
+   ]
+  },
+  {
+   "player": "14905532",
+   "actionNumber": 2,
+   "time": "1773736395",
+   "logIndex": 14,
+   "actions": [
+    {
+     "actionType": "meld",
+     "cardName": "Jerusalem",
+     "cardAge": 1,
+     "cardSet": "cities"
+    }
+   ]
+  },
+  {
+   "player": "76419314",
+   "actionNumber": 1,
+   "time": "1773736400",
+   "logIndex": 19,
+   "actions": [
+    {
+     "actionType": "meld",
+     "cardName": "The wheel",
+     "cardAge": 1,
+     "cardSet": "base"
+    }
+   ]
+  },
+  {
+   "player": "76419314",
+   "actionNumber": 2,
+   "time": "1773736437",
+   "logIndex": 21,
+   "actions": [
+    {
+     "actionType": "meld",
+     "cardName": "Athens",
+     "cardAge": 1,
+     "cardSet": "cities"
+    }
+   ]
+  },
+  {
+   "player": "14905532",
+   "actionNumber": 1,
+   "time": "1773736447",
+   "logIndex": 23,
+   "actions": [
+    {
+     "actionType": "meld",
+     "cardName": "Uruk",
+     "cardAge": 1,
+     "cardSet": "cities"
+    }
+   ]
+  },
+  {
+   "player": "14905532",
+   "actionNumber": 2,
+   "time": "1773748438",
+   "logIndex": 27,
+   "actions": [
+    {
+     "actionType": "meld",
+     "cardName": "City states",
+     "cardAge": 1,
+     "cardSet": "base"
+    }
+   ]
+  },
+  {
+   "player": "76419314",
+   "actionNumber": 1,
+   "time": "1773748450",
+   "logIndex": 29,
+   "actions": [
+    {
+     "actionType": "draw",
+     "cardName": "Umbrella",
+     "cardAge": 1,
+     "cardSet": "echoes"
+    }
+   ]
+  },
+  {
+   "player": "76419314",
+   "actionNumber": 2,
+   "time": "1773769085",
+   "logIndex": 30,
+   "actions": [
+    {
+     "actionType": "endorse",
+     "cardName": "The wheel",
+     "cardAge": null,
+     "cardSet": null
+    }
+   ]
+  },
+  {
+   "player": "14905532",
+   "actionNumber": 1,
+   "time": "1773769091",
+   "logIndex": 45,
+   "actions": [
+    {
+     "actionType": "meld",
+     "cardName": "Mohenjo-Daro",
+     "cardAge": 1,
+     "cardSet": "cities"
+    }
+   ]
+  },
+  {
+   "player": "14905532",
+   "actionNumber": 2,
+   "time": "1773794686",
+   "logIndex": 47,
+   "actions": [
+    {
+     "actionType": "endorse",
+     "cardName": "Pottery",
+     "cardAge": null,
+     "cardSet": null
+    }
+   ]
+  },
+  {
+   "player": "76419314",
+   "actionNumber": 1,
+   "time": "1773794738",
+   "logIndex": 61,
+   "actions": [
+    {
+     "actionType": "meld",
+     "cardName": "Domestication",
+     "cardAge": 1,
+     "cardSet": "base"
+    }
+   ]
+  },
+  {
+   "player": "76419314",
+   "actionNumber": 2,
+   "time": "1773799946",
+   "logIndex": 63,
+   "actions": [
+    {
+     "actionType": "endorse",
+     "cardName": "The wheel",
+     "cardAge": null,
+     "cardSet": null
+    }
+   ]
+  },
+  {
+   "player": "14905532",
+   "actionNumber": 1,
+   "time": "1773799989",
+   "logIndex": 78,
+   "actions": [
+    {
+     "actionType": "endorse",
+     "cardName": "Pottery",
+     "cardAge": null,
+     "cardSet": null
+    }
+   ]
+  },
+  {
+   "player": "14905532",
+   "actionNumber": 2,
+   "time": "1773812696",
+   "logIndex": 94,
+   "actions": [
+    {
+     "actionType": "meld",
+     "cardName": "Horseshoes",
+     "cardAge": 2,
+     "cardSet": "echoes"
+    }
+   ]
+  },
+  {
+   "player": "76419314",
+   "actionNumber": 1,
+   "time": "1773812715",
+   "logIndex": 96,
+   "actions": [
+    {
+     "actionType": "meld",
+     "cardName": "Fermenting",
+     "cardAge": 2,
+     "cardSet": "base"
+    }
+   ]
+  },
+  {
+   "player": "76419314",
+   "actionNumber": 2,
+   "time": "1773813071",
+   "logIndex": 97,
+   "actions": [
+    {
+     "actionType": "endorse",
+     "cardName": "Fermenting",
+     "cardAge": null,
+     "cardSet": null
+    }
+   ]
+  },
+  {
+   "player": "14905532",
+   "actionNumber": 1,
+   "time": "1773813079",
+   "logIndex": 111,
+   "actions": [
+    {
+     "actionType": "endorse",
+     "cardName": "Horseshoes",
+     "cardAge": null,
+     "cardSet": null
+    }
+   ]
+  },
+  {
+   "player": "14905532",
+   "actionNumber": 2,
+   "time": "1773814128",
+   "logIndex": 125,
+   "actions": [
+    {
+     "actionType": "achieve",
+     "cardName": null,
+     "cardAge": 1,
+     "cardSet": null
+    }
+   ]
+  },
+  {
+   "player": "76419314",
+   "actionNumber": 1,
+   "time": "1773814159",
+   "logIndex": 126,
+   "actions": [
+    {
+     "actionType": "meld",
+     "cardName": "Feudalism",
+     "cardAge": 3,
+     "cardSet": "base"
+    }
+   ]
+  },
+  {
+   "player": "76419314",
+   "actionNumber": 2,
+   "time": "1773814710",
+   "logIndex": 128,
+   "actions": [
+    {
+     "actionType": "endorse",
+     "cardName": "Feudalism",
+     "cardAge": null,
+     "cardSet": null
+    }
+   ]
+  },
+  {
+   "player": "14905532",
+   "actionNumber": 1,
+   "time": "1773819393",
+   "logIndex": 139,
+   "actions": [
+    {
+     "actionType": "endorse",
+     "cardName": "Paper",
+     "cardAge": null,
+     "cardSet": null
+    }
+   ]
+  },
+  {
+   "player": "14905532",
+   "actionNumber": 2,
+   "time": "1773821175",
+   "logIndex": 152,
+   "actions": [
+    {
+     "actionType": "meld",
+     "cardName": "Baghdad",
+     "cardAge": 3,
+     "cardSet": "cities"
+    },
+    {
+     "actionType": "promote",
+     "cardName": "Deoderant",
+     "cardAge": 3,
+     "cardSet": "echoes"
+    },
+    {
+     "actionType": "dogma",
+     "cardName": "Deoderant",
+     "cardAge": null,
+     "cardSet": null
+    }
+   ]
+  },
+  {
+   "player": "76419314",
+   "actionNumber": 1,
+   "time": "1773821207",
+   "logIndex": 163,
+   "actions": [
+    {
+     "actionType": "meld",
+     "cardName": "Engineering",
+     "cardAge": 3,
+     "cardSet": "base"
+    }
+   ]
+  },
+  {
+   "player": "76419314",
+   "actionNumber": 2,
+   "time": "1773821335",
+   "logIndex": 164,
+   "actions": [
+    {
+     "actionType": "endorse",
+     "cardName": "Engineering",
+     "cardAge": null,
+     "cardSet": null
+    }
+   ]
+  },
+  {
+   "player": "14905532",
+   "actionNumber": 1,
+   "time": "1773821354",
+   "logIndex": 177,
+   "actions": [
+    {
+     "actionType": "dogma",
+     "cardName": "Pottery",
+     "cardAge": null,
+     "cardSet": null
+    }
+   ]
+  },
+  {
+   "player": "14905532",
+   "actionNumber": 2,
+   "time": "1773821548",
+   "logIndex": 194,
+   "actions": [
+    {
+     "actionType": "achieve",
+     "cardName": null,
+     "cardAge": 2,
+     "cardSet": null
+    }
+   ]
+  },
+  {
+   "player": "76419314",
+   "actionNumber": 1,
+   "time": "1773821558",
+   "logIndex": 195,
+   "actions": [
+    {
+     "actionType": "meld",
+     "cardName": "Invention",
+     "cardAge": 4,
+     "cardSet": "base"
+    }
+   ]
+  },
+  {
+   "player": "76419314",
+   "actionNumber": 2,
+   "time": "1773823886",
+   "logIndex": 196,
+   "actions": [
+    {
+     "actionType": "meld",
+     "cardName": "Liquid Fire",
+     "cardAge": 3,
+     "cardSet": "echoes"
+    }
+   ]
+  },
+  {
+   "player": "14905532",
+   "actionNumber": 1,
+   "time": "1773823913",
+   "logIndex": 197,
+   "actions": [
+    {
+     "actionType": "meld",
+     "cardName": "Philosophy",
+     "cardAge": 2,
+     "cardSet": "base"
+    }
+   ]
+  },
+  {
+   "player": "14905532",
+   "actionNumber": 2,
+   "time": "1773843542",
+   "logIndex": 198,
+   "actions": [
+    {
+     "actionType": "dogma",
+     "cardName": "Philosophy",
+     "cardAge": null,
+     "cardSet": null
+    }
+   ]
+  },
+  {
+   "player": "76419314",
+   "actionNumber": 1,
+   "time": "1773843571",
+   "logIndex": 205,
+   "actions": [
+    {
+     "actionType": "meld",
+     "cardName": "Education",
+     "cardAge": 3,
+     "cardSet": "base"
+    }
+   ]
+  },
+  {
+   "player": "76419314",
+   "actionNumber": 2,
+   "time": "1773863702",
+   "logIndex": 206,
+   "actions": [
+    {
+     "actionType": "dogma",
+     "cardName": "Invention",
+     "cardAge": null,
+     "cardSet": null
+    }
+   ]
+  },
+  {
+   "player": "14905532",
+   "actionNumber": 1,
+   "time": "1773863709",
+   "logIndex": 213,
+   "actions": [
+    {
+     "actionType": "achieve",
+     "cardName": null,
+     "cardAge": 3,
+     "cardSet": null
+    }
+   ]
+  },
+  {
+   "player": "14905532",
+   "actionNumber": 2,
+   "time": "1773884103",
+   "logIndex": 214,
+   "actions": [
+    {
+     "actionType": "dogma",
+     "cardName": "Deoderant",
+     "cardAge": null,
+     "cardSet": null
+    }
+   ]
+  },
+  {
+   "player": "76419314",
+   "actionNumber": 1,
+   "time": "1773884127",
+   "logIndex": 221,
+   "actions": [
+    {
+     "actionType": "dogma",
+     "cardName": "Invention",
+     "cardAge": null,
+     "cardSet": null
+    }
+   ]
+  },
+  {
+   "player": "76419314",
+   "actionNumber": 2,
+   "time": "1773888485",
+   "logIndex": 227,
+   "actions": [
+    {
+     "actionType": "achieve",
+     "cardName": null,
+     "cardAge": 4,
+     "cardSet": null
+    }
+   ]
+  },
+  {
+   "player": "14905532",
+   "actionNumber": 1,
+   "time": "1773888489",
+   "logIndex": 228,
+   "actions": [
+    {
+     "actionType": "meld",
+     "cardName": "Milan",
+     "cardAge": 4,
+     "cardSet": "cities"
+    },
+    {
+     "actionType": "promote",
+     "cardName": "Charitable Trust",
+     "cardAge": 3,
+     "cardSet": "echoes"
+    },
+    {
+     "actionType": "dogma",
+     "cardName": "Charitable Trust",
+     "cardAge": null,
+     "cardSet": null
+    }
+   ]
+  },
+  {
+   "player": "14905532",
+   "actionNumber": 2,
+   "time": "1773902882",
+   "logIndex": 249,
+   "actions": [
+    {
+     "actionType": "meld",
+     "cardName": "Slide Rule",
+     "cardAge": 4,
+     "cardSet": "echoes"
+    }
+   ]
+  },
+  {
+   "player": "76419314",
+   "actionNumber": 1,
+   "time": "1773902924",
+   "logIndex": 250,
+   "actions": [
+    {
+     "actionType": "meld",
+     "cardName": "Frankfurt",
+     "cardAge": 4,
+     "cardSet": "cities"
+    }
+   ]
+  },
+  {
+   "player": "76419314",
+   "actionNumber": 2,
+   "time": "1773902958",
+   "logIndex": 253,
+   "actions": [
+    {
+     "actionType": "endorse",
+     "cardName": "Liquid Fire",
+     "cardAge": null,
+     "cardSet": null
+    }
+   ]
+  },
+  {
+   "player": "14905532",
+   "actionNumber": 1,
+   "time": "1773902978",
+   "logIndex": 263,
+   "actions": [
+    {
+     "actionType": "meld",
+     "cardName": "Measurement",
+     "cardAge": 5,
+     "cardSet": "base"
+    }
+   ]
+  },
+  {
+   "player": "14905532",
+   "actionNumber": 2,
+   "time": "1773903928",
+   "logIndex": 264,
+   "actions": [
+    {
+     "actionType": "meld",
+     "cardName": "Perspective",
+     "cardAge": 4,
+     "cardSet": "base"
+    }
+   ]
+  },
+  {
+   "player": "76419314",
+   "actionNumber": 1,
+   "time": "1773903933",
+   "logIndex": 265,
+   "actions": [
+    {
+     "actionType": "meld",
+     "cardName": "Translation",
+     "cardAge": 3,
+     "cardSet": "base"
+    }
+   ]
+  },
+  {
+   "player": "76419314",
+   "actionNumber": 2,
+   "time": "1773904307",
+   "logIndex": 266,
+   "actions": [
+    {
+     "actionType": "dogma",
+     "cardName": "Translation",
+     "cardAge": null,
+     "cardSet": null
+    }
+   ]
+  },
+  {
+   "player": "14905532",
+   "actionNumber": 1,
+   "time": "1773904332",
+   "logIndex": 279,
+   "actions": [
+    {
+     "actionType": "endorse",
+     "cardName": "Slide Rule",
+     "cardAge": null,
+     "cardSet": null
+    }
+   ]
+  },
+  {
+   "player": "14905532",
+   "actionNumber": 2,
+   "time": "1773966253",
+   "logIndex": 291,
+   "actions": [
+    {
+     "actionType": "meld",
+     "cardName": "Astronomy",
+     "cardAge": 5,
+     "cardSet": "base"
+    }
+   ]
+  },
+  {
+   "player": "76419314",
+   "actionNumber": 1,
+   "time": "1773966314",
+   "logIndex": 292,
+   "actions": [
+    {
+     "actionType": "meld",
+     "cardName": "Road building",
+     "cardAge": 2,
+     "cardSet": "base"
+    }
+   ]
+  },
+  {
+   "player": "76419314",
+   "actionNumber": 2,
+   "time": "1773967029",
+   "logIndex": 293,
+   "actions": [
+    {
+     "actionType": "dogma",
+     "cardName": "Road building",
+     "cardAge": null,
+     "cardSet": null
+    }
+   ]
+  },
+  {
+   "player": "14905532",
+   "actionNumber": 1,
+   "time": "1773967059",
+   "logIndex": 301,
+   "actions": [
+    {
+     "actionType": "meld",
+     "cardName": "Algiers",
+     "cardAge": 5,
+     "cardSet": "cities"
+    }
+   ]
+  },
+  {
+   "player": "14905532",
+   "actionNumber": 2,
+   "time": "1773968470",
+   "logIndex": 302,
+   "actions": [
+    {
+     "actionType": "endorse",
+     "cardName": "Astronomy",
+     "cardAge": null,
+     "cardSet": null
+    }
+   ]
+  },
+  {
+   "player": "76419314",
+   "actionNumber": 1,
+   "time": "1773968479",
+   "logIndex": 322,
+   "actions": [
+    {
+     "actionType": "meld",
+     "cardName": "Tuning Fork",
+     "cardAge": 5,
+     "cardSet": "echoes"
+    },
+    {
+     "actionType": "promote",
+     "cardName": "Clock",
+     "cardAge": 4,
+     "cardSet": "echoes"
+    },
+    {
+     "actionType": "dogma",
+     "cardName": "Clock",
+     "cardAge": null,
+     "cardSet": null
+    }
+   ]
+  },
+  {
+   "player": "76419314",
+   "actionNumber": 2,
+   "time": "1773971699",
+   "logIndex": 341,
+   "actions": [
+    {
+     "actionType": "dogma",
+     "cardName": "Mathematics",
+     "cardAge": null,
+     "cardSet": null
+    }
+   ]
+  },
+  {
+   "player": "14905532",
+   "actionNumber": 1,
+   "time": "1773972043",
+   "logIndex": 347,
+   "actions": [
+    {
+     "actionType": "meld",
+     "cardName": "Industrialization",
+     "cardAge": 6,
+     "cardSet": "base"
+    }
+   ]
+  },
+  {
+   "player": "14905532",
+   "actionNumber": 2,
+   "time": "1773973336",
+   "logIndex": 348,
+   "actions": [
+    {
+     "actionType": "dogma",
+     "cardName": "Industrialization",
+     "cardAge": null,
+     "cardSet": null
+    }
+   ]
+  },
+  {
+   "player": "76419314",
+   "actionNumber": 1,
+   "time": "1773973346",
+   "logIndex": 357,
+   "actions": [
+    {
+     "actionType": "dogma",
+     "cardName": "Machinery",
+     "cardAge": null,
+     "cardSet": null
+    }
+   ]
+  },
+  {
+   "player": "76419314",
+   "actionNumber": 2,
+   "time": "1773974208",
+   "logIndex": 374,
+   "actions": [
+    {
+     "actionType": "dogma",
+     "cardName": "Measurement",
+     "cardAge": null,
+     "cardSet": null
+    }
+   ]
+  },
+  {
+   "player": "14905532",
+   "actionNumber": 1,
+   "time": "1773974270",
+   "logIndex": 382,
+   "actions": [
+    {
+     "actionType": "dogma",
+     "cardName": "Metric system",
+     "cardAge": null,
+     "cardSet": null
+    }
+   ]
+  },
+  {
+   "player": "14905532",
+   "actionNumber": 2,
+   "time": "1773974464",
+   "logIndex": 388,
+   "actions": [
+    {
+     "actionType": "meld",
+     "cardName": "Physics",
+     "cardAge": 5,
+     "cardSet": "base"
+    }
+   ]
+  },
+  {
+   "player": "76419314",
+   "actionNumber": 1,
+   "time": "1773974519",
+   "logIndex": 389,
+   "actions": [
+    {
+     "actionType": "meld",
+     "cardName": "Enterprise",
+     "cardAge": 4,
+     "cardSet": "base"
+    }
+   ]
+  },
+  {
+   "player": "76419314",
+   "actionNumber": 2,
+   "time": "1773975019",
+   "logIndex": 392,
+   "actions": [
+    {
+     "actionType": "dogma",
+     "cardName": "Enterprise",
+     "cardAge": null,
+     "cardSet": null
+    }
+   ]
+  }
+ ],
+ "expansions": {
+  "echoes": true,
+  "artifacts": false,
+  "relics": true
+ },
+ "initialRelics": [
+  "Timbuktu",
+  "Complex Numbers",
+  "Newton-Wickins Telescope",
+  "Ching Shih",
+  "Safety Pin"
+ ]
+}

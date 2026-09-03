@@ -55,14 +55,19 @@ scripts/
   game-log.ts                CLI: raw_data.json → game_log.json
   game-state.ts              CLI: game_log.json → game_state.json (+ --debug snapshots)
   package.ts                 CLI: build + create Chrome Web Store ZIP
+  migrate-fixture.ts         One-shot migration for legacy fixture player maps
 src/
   background.ts              Service worker: orchestration, side panel management, live tracking
   pipeline.ts                Pure pipeline logic shared by background.ts and CLI scripts
   extract.ts                 Content script: BGA data extraction (MAIN world)
+  time-tracking.ts           Play-time tracker: sessions, table classification, CSV export/import
   sidepanel/
     sidepanel.ts             Receives data, triggers render, handles downloads
     sidepanel.css            Dark theme, font declarations, card grids, tooltips
+    settings.ts              localStorage persistence: loadSetting/saveSetting with typed defaults
     turn_history_settings.ts Settings shared by every game that shows a turn history
+    inpage_settings.ts       chrome.storage.local settings for what is changed on BGA's own page
+    global_menu.ts           The help page's eye menu: settings that apply to every BGA table
   models/
     types.ts                 Shared BGA types (GameName, RawPacket, RawExtractionData)
   engine/
@@ -78,10 +83,23 @@ src/
       turn_history.ts        Innovation action types over the shared turn-history kernel
       render.ts              GameState + GameEngine -> HTML string via template literals
       config.ts              Section layout config, visibility/layout defaults
+      display.ts             Innovation display menu: sections, in-page log, cards, police line
+      compact_header.ts      In-page surface: BGA's three header rows folded into one (every game)
+      compact_header.css     The one-row layout those DOM moves make possible
+      sticky_panels.ts       In-page surface: the pinned right column (every game)
+      sticky_panels.css      The sticky rules for both modes, and the panels' backdrop
+      simplified_cards.ts    In-page surface: the panel's compact card on BGA's own table
+      simplified_cards.css   That card's interior at panel scale, and the opponent-hand slot
+      action_tint.ts         In-page surface: hazard stripes while you must act out of turn
+      action_tint.css        The stripes and their animation
+      mini_card.css          The panel's compact card, shared by panel, ZIP export and table
+      card_tip.css           Card tooltip geometry, shared by panel, in-page log and table
     azul/
       process_log.ts         Raw BGA packets -> structured Azul game log
       game_state.ts          Azul bag/discard/wall tracking
       render.ts              AzulGameState -> HTML tile count table
+      display.ts             Azul display menu (shimmer toggle)
+      styles.css             Azul-specific CSS (tile table, shimmer animation)
     crew/
       types.ts               Crew types: suit constants, ALL_SUITS, CrewCard, card key helper
       process_log.ts         Raw BGA packets -> structured Crew game log
@@ -98,9 +116,12 @@ src/
       render.ts              NucleumGameState -> HTML turn history
       display.ts             Nucleum display menu (player names, in-page log)
       styles.css             Nucleum-specific CSS (history list, out-of-turn actor)
+      player_panels.ts       In-page surface: BGA's player panels folded onto one line
+      player_panels.css      The fold, every rule scoped under the mount's class
   render/
     help.ts                  Help page content
     icons.ts                 Shared icon utilities
+    player.ts                Shared player-color helper: inline --player-color from a PlayerInfo
     toggle.ts                Shared toggle logic (side panel + ZIP export); tooltips are CSS-only
     turn_history_rows.ts     Turn-history rows for every game and both surfaces
     turn_history.css         Row appearance, shared by the panel and the in-page log
@@ -117,7 +138,24 @@ assets/
       tiles/                 Tile color SVGs (5 colors)
   fonts/                     Bundled web fonts (Russo One, Barlow Condensed woff2)
   extension/                 Extension toolbar icons
+docs/
+  screenshots/
+    screenshots.json         Screenshot manifest: what each frame shows and its replacement policy
+    capture/
+      lib/render.ts          Renders a shot's subject to standalone HTML from a committed fixture
+      lib/shoot.py           Headless Chromium capture (Playwright), framed to a uniform margin
+      fixtures/              Game logs the captures render, committed so a shot is reproducible
+      <id>.sh                One script per screenshot, named for its manifest entry
 ```
+
+### Documentation screenshots
+
+The shots in `docs/pages/` that show the side panel are captured by script rather than by hand —
+`bash docs/screenshots/capture/<id>.sh` rebuilds one. Each drives the panel's own renderers against a
+committed fixture, so a capture needs no BGA session, no live table and no login, and reruns
+identically on any machine. `docs/screenshots/screenshots.json` records what every frame shows and
+whether it may be replaced automatically; the shots of BGA's own page are marked `never`, since only
+a real table can produce them.
 
 ### Data flow
 

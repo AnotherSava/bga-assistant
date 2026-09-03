@@ -17,6 +17,7 @@ The actions a row can name:
 - **energize** — a building lit, with the power plant that fed it
 - **railway** — a tile placed on the map. When the placement completed the link, the two cities it joined are named; an unfinished link joins nothing yet, so it is left unsaid
 - **take contract**, **fulfil contract**, **develop**, **unlock tech**, **recharge**, **nucleum**, **milestone**, **sell uranium** — the remaining choices, with ×N where one was repeated within the turn
+- **plays a tile** — a tile went to the player board and both of the actions it offered were skipped, so the turn has nothing else to name
 - the **experiment** each player drafted during setup, as the first rows of the game
 
 A turn still being played shows as the player's name alone, and fills in as they act.
@@ -24,6 +25,32 @@ A turn still being played shows as the player's name alone, and fills in as they
 Rendered into BGA's own log column, where it stays visible with the side panel closed. The lightbulb switches back to BGA's log, and "more..." widens the window:
 
 ![Nucleum turn history in BGA's game log column](../../screenshots/nucleum-history.png)
+
+## Compact player panels
+
+BGA stacks five resource counters in every player panel — workers, thaler, achievements, contracts,
+network — and on a four-player table that is most of a screenful of column. This folds them onto one
+line at about half the icon and text size, taking a panel from 78 pixels to 20. The workers left in
+the box, shown in brackets after the workers in play, go with them: the board already says, and no
+decision reads it. The counters sit a few pixels below the score, with the name and score lines drawn
+a little tighter.
+
+All five icons fill the same box, so they stand at one height, and two are redrawn where BGA's carry
+detail that turns to mush this small — the achievement token as the faceted star the physical token
+is, without the heavy black disc it is embossed on, and the fulfilled contract with its gold ring
+dropped and its tick green, since ring and tick are both gold and merge into one smudge at this size.
+The contract keeps its frame, which is what makes it read as a contract.
+
+A player on their first game loses the two-line "this is my first game" notice, which costs 52 pixels
+of a 74-pixel panel, repeats all game, and explains a doubled clock the panel's own timer already
+shows. The first player is marked by a green wedge across the corner of their panel, naming itself on
+hover, rather than BGA's green "1" disc — in a game where that never changes hands, the disc spends a
+permanent 27 pixels of the score row on a fact that does not move.
+
+BGA's panels, then the folded ones — the same three players in 706 pixels of column and then 368:
+
+<a href="../../screenshots/nucleum-panels-off.png"><img src="../../screenshots/nucleum-panels-off.png" alt="BGA's own Nucleum player panels" width="370"></a>
+<a href="../../screenshots/nucleum-panels-on.png"><img src="../../screenshots/nucleum-panels-on.png" alt="The same panels with the counters folded onto one line" width="371"></a>
 
 ## Game features
 
@@ -33,7 +60,7 @@ Rendered into BGA's own log column, where it stays visible with the side panel c
 - **Out-of-turn actions attributed**: an action taken during another player's turn — what a railway colour match can hand you — carries that player's name in their colour
 - **In BGA's game log**: the same history can render into BGA's own log column, where it stays visible and keeps updating with the side panel closed. The column shows one log or the other, never both; a lightbulb in its header switches between them, and "more..." below the history widens the window for the current table
 - **Show player names**: display option switching rows between "you"/"opp" and full player names (persisted across sessions)
-- **Compact player panels**: display option folding the five counters BGA stacks in each player panel — workers, thaler, achievements, contracts, network — onto one line at about half the icon and text size, taking a panel from 78 pixels to 20. The workers left in the box, shown in brackets after the workers in play, go with them, the counters sit a few pixels below the score with the name and score lines drawn a little tighter, the two-line "this is my first game" notice is dropped from a beginner's panel where it costs 52px of 74, the five icons are drawn to one height, and two are redrawn where BGA's carry detail that turns to mush this small — the achievement token as a faceted star without its heavy black disc, and the fulfilled contract with its gold ring dropped and its tick green, keeping the frame that makes it read as a contract. The first player is marked by a green wedge across the corner of their panel, naming itself on hover, instead of BGA's green "1" disc — which in a game where that never changes hands costs a permanent 27px of the score row
+- **Compact player panels**: display option folding BGA's five stacked resource counters onto one line, taking a panel from 78 pixels to 20 — see [Compact player panels](#compact-player-panels) above
 
 ## Standard features
 

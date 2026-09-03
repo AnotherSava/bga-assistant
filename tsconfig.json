@@ -17,6 +17,6 @@
     "sourceMap": true,
     "outDir": "dist"
   },
-  "include": ["src/**/*.ts"],
+  "include": ["src/**/*.ts", "docs/screenshots/capture/lib/*.ts"],
   "exclude": ["node_modules", "dist"]
 }

@@ -1,0 +1,243 @@
+{
+  "screenshots": [
+    {
+      "id": "cover",
+      "files": [
+        "cover.png"
+      ],
+      "shows": "Hero collage, angled and overlapping: panels from Innovation, Azul and Crew strewn over the help page. Its job is to show that the extension covers many surfaces across several games — breadth, not any particular control. Not read for individual elements",
+      "policy": "confirm",
+      "precision": "impressionistic",
+      "verifiedAt": "cfe4127",
+      "capture": {
+        "steps": [
+          "Build the working tree with `npm run build` and load it unpacked, so the shot matches the tree rather than the store release",
+          "Open the side panel across a live Innovation, Azul and Crew table and shoot enough panels to read as a spread",
+          "Compose them at angles over the help page, matching the existing frame's arrangement",
+          "Judge the result by whether it still reads as broad coverage, not by whether any panel in it is current"
+        ]
+      }
+    },
+    {
+      "id": "help-page",
+      "files": [
+        "help.png"
+      ],
+      "shows": "Built-in help page as it opens: hero, How to use, the collapsed Top bar / Play time / On the game table sections, and the four-game tab strip with Innovation selected",
+      "policy": "confirm",
+      "verifiedAt": "cfe4127",
+      "capture": {
+        "command": "bash docs/screenshots/capture/help-page.sh",
+        "steps": [
+          "Render the real sidepanel.html shell with renderHelp() spliced into #content",
+          "Shoot the full page at the panel's own width — no game data and no BGA session needed"
+        ]
+      }
+    },
+    {
+      "id": "innovation-hand",
+      "files": [
+        "innovation-hand.png"
+      ],
+      "shows": "Innovation side panel: Hand and Forecast sections for both players, with known cards, age placeholders and the opponent-knowledge eye icons",
+      "policy": "confirm",
+      "verifiedAt": "cfe4127",
+      "capture": {
+        "steps": [
+          "Open the side panel on a live Innovation table with Echoes enabled, so the Forecast sections render",
+          "Reach a state where each player has some identified and some unknown cards",
+          "Capture the Hand and Forecast sections only"
+        ]
+      }
+    },
+    {
+      "id": "innovation-history",
+      "files": [
+        "innovation-history.png"
+      ],
+      "shows": "Innovation turn history, newest-first: the compound meld -> promote -> dogma turn rendering as indented sub-action rows, each row in that player's BGA colour with the viewer's rows tinted",
+      "policy": "confirm",
+      "verifiedAt": "cfe4127",
+      "capture": {
+        "command": "bash docs/screenshots/capture/innovation-history.sh",
+        "steps": [
+          "Render turns up to 55 of the capture fixture, so the three-turn window ends on the compound turn",
+          "Shoot #turn-history"
+        ]
+      }
+    },
+    {
+      "id": "innovation-simplified",
+      "files": [
+        "innovation-simplified-off.png",
+        "innovation-simplified-on.png"
+      ],
+      "shows": "The same Innovation board with BGA's illustrated cards and then with the extension's simplified ones — the five colour piles take 502 pixels of height and then 172",
+      "policy": "never",
+      "verifiedAt": "cfe4127",
+      "capture": {
+        "steps": [
+          "Innovation table, eye menu, \"Simplified cards on BGA's table\" with \"Opponents' hands\" on",
+          "Frame the same board at the same scroll position with the option off, then on",
+          "Include a splayed pile so the covered-card layout is visible"
+        ]
+      }
+    },
+    {
+      "id": "compact-header",
+      "files": [
+        "compact-header-off.png",
+        "compact-header-on.png"
+      ],
+      "shows": "BGA's table header before and after the fold — table info, prompt and action button collapsed from three rows to one, 205 pixels of height and then 54",
+      "policy": "never",
+      "verifiedAt": "cfe4127",
+      "capture": {
+        "steps": [
+          "Help page eye menu, \"Compact BGA header\"",
+          "Frame the header region down to the top of the board, with the option off, then on",
+          "A table where the \"This player is not playing\" link is present shows one of the things the fold removes"
+        ]
+      }
+    },
+    {
+      "id": "innovation-cards",
+      "files": [
+        "innovation-cards.png"
+      ],
+      "shows": "Innovation card list, Base / All / Wide, ages 4-10, headed by the full Hide/Base/Echoes/Cities/Artifacts set toggle",
+      "policy": "confirm",
+      "verifiedAt": "cfe4127",
+      "capture": {
+        "command": "bash docs/screenshots/capture/innovation-cards.sh",
+        "steps": [
+          "Render the standalone summary from the capture fixture",
+          "Shoot .section[data-section=\"cards\"] at a viewport matching the original's framing width"
+        ]
+      }
+    },
+    {
+      "id": "innovation-deck",
+      "files": [
+        "innovation-deck.png"
+      ],
+      "shows": "Innovation deck section, with Writing, Vaccination, A.I., Miniaturization and Globalization known by name among the age placeholders, headed by the full set toggle",
+      "policy": "confirm",
+      "verifiedAt": "cfe4127",
+      "capture": {
+        "command": "bash docs/screenshots/capture/innovation-deck.sh",
+        "steps": [
+          "Render the standalone summary from the capture fixture",
+          "Shoot .section[data-section=\"deck\"] at a viewport matching the original's framing width"
+        ]
+      }
+    },
+    {
+      "id": "azul-counts",
+      "files": [
+        "azul.png"
+      ],
+      "shows": "Azul side panel: the Bag and Box rows with per-colour counts under the five tile icons",
+      "policy": "confirm",
+      "verifiedAt": "cfe4127",
+      "capture": {
+        "steps": [
+          "Open the side panel on a live Azul table part-way through a round",
+          "Capture the tile-count table"
+        ]
+      }
+    },
+    {
+      "id": "crew-cards",
+      "files": [
+        "crew-cards.png"
+      ],
+      "shows": "Crew side panel card grid: nine ranks across four coloured suits plus the four submarine trumps, dimmed/neutral/bright by card state",
+      "policy": "confirm",
+      "verifiedAt": "cfe4127",
+      "capture": {
+        "steps": [
+          "Open the side panel on a live Crew table mid-mission, so all three card states are present",
+          "Capture the card grid"
+        ]
+      }
+    },
+    {
+      "id": "crew-suits",
+      "files": [
+        "crew-suits.png"
+      ],
+      "shows": "Crew player-suit matrix: four players, each name in its BGA colour with the viewer's row tinted, showing all three states — X, ! and ?",
+      "policy": "confirm",
+      "verifiedAt": "cfe4127",
+      "capture": {
+        "command": "bash docs/screenshots/capture/crew-suits.sh",
+        "steps": [
+          "Render the Crew summary from the committed fixture stopped at log entry 34 — a finished mission is a wall of X with no ! or ?",
+          "Shoot the second .crew-section"
+        ]
+      }
+    },
+    {
+      "id": "crew-history",
+      "files": [
+        "crew-history.png"
+      ],
+      "shows": "Crew trick history: column headers in each player's BGA colour, the viewer's column tinted, lead highlights, and trick 5 in progress below the dashed separator",
+      "policy": "confirm",
+      "verifiedAt": "cfe4127",
+      "capture": {
+        "command": "bash docs/screenshots/capture/crew-history.sh",
+        "steps": [
+          "Render the Crew summary from the committed fixture stopped at log entry 34, which leaves a trick part-played",
+          "Shoot the third .crew-section"
+        ]
+      }
+    },
+    {
+      "id": "nucleum-history",
+      "files": [
+        "nucleum-history.png"
+      ],
+      "shows": "Nucleum turn history rendered into BGA's own log column, with the lightbulb view switch, per-player row colours, the viewer's rows tinted, and \"more...\" at the foot",
+      "policy": "confirm",
+      "verifiedAt": "cfe4127",
+      "capture": {
+        "steps": [
+          "Enable \"Show in BGA game log\" and open a live Nucleum table",
+          "Pick a window containing a railway that completed a link and a turn with a repeated action",
+          "Capture BGA's log column including the lightbulb and the \"more...\" control"
+        ]
+      }
+    },
+    {
+      "id": "nucleum-panels",
+      "files": [
+        "nucleum-panels-off.png",
+        "nucleum-panels-on.png"
+      ],
+      "shows": "Nucleum's player panels, BGA's own and then folded — three panels in 706 pixels of column and then 368, the beginner notice dropped and the first player marked by a corner wedge",
+      "policy": "never",
+      "verifiedAt": "cfe4127",
+      "capture": {
+        "steps": [
+          "Nucleum table, its display menu, \"Compact player panels\"",
+          "Frame the player panel column with the option off, then on",
+          "A table including a player on their first game shows the dropped notice"
+        ]
+      }
+    },
+    {
+      "id": "store-promo",
+      "files": [
+        "../promo/collage.png",
+        "../promo/icon-128-store.png",
+        "../promo/icon-128-store-3d.png"
+      ],
+      "shows": "Chrome Web Store listing assets: the 1280x800 marquee collage and the two 128px store icons. Uploaded to the store dashboard by hand; deliberately not referenced from the site or the README",
+      "verifiedAt": "cfe4127",
+      "policy": "confirm",
+      "precision": "impressionistic"
+    }
+  ]
+}

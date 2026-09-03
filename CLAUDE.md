@@ -51,7 +51,7 @@ Keep `docs/pages/data-flow.md` up to date when code changes affect data flow, me
 - `src/games/innovation/turn_history.ts` — Innovation action types (ActionDetail, ActionType) over the shared turn-history kernel
 - `src/games/innovation/render.ts` — Innovation HTML summary renderer
 - `src/games/innovation/config.ts` — Innovation section layout configuration
-- `src/games/innovation/display.ts` — Innovation display menu (section visibility, "Show player names" toggle, in-page log toggles, simplified-card toggle with its size slider, echo-text and opponents'-hands options, margin updates)
+- `src/games/innovation/display.ts` — Innovation display menu (section visibility, "Show player names" toggle, in-page log toggles, simplified-card toggle with its size slider, echo-text and opponents'-hands options, police-line toggle with its movement slider, margin updates)
 - `src/games/innovation/compact_header.ts` — compact table header mount for every BGA game (ISOLATED-world, self-contained; moves BGA's status bar into the topbar, placeholders for restore, shortens known over-long prompts per game)
 - `src/games/innovation/compact_header.css` — one-row header layout (collapses BGA's status bar and hides the two redundant board buttons)
 - `src/games/innovation/sticky_panels.ts` — pinned right column for every BGA game (ISOLATED-world, self-contained; measures the frozen bar and the panel stack, publishes them as custom properties, copies the page backdrop)
@@ -60,6 +60,8 @@ Keep `docs/pages/data-flow.md` up to date when code changes affect data flow, me
 - `src/games/innovation/simplified_cards.css` — the compact card's two layouts (top card / covered card), scaled from `--bgaa-card-scale`, plus the resource-icon swap (BGA's framed sprite tiles replaced by the extension's flat frame-removed PNGs, via the `__BGAA_ICONS__` URL placeholder)
 - `src/games/innovation/mini_card.css` — the panel's compact card, shared by the side panel, the ZIP export and the opponents' hands on BGA's table (every rule scoped under `.bgaa-cards`, which must outweigh BGA's own single-class `.card` rule)
 - `src/games/innovation/card_tip.css` — card tooltip geometry shared by the side panel, the in-page log and the simplified cards' opponent hands
+- `src/games/innovation/action_tint.ts` — police-line highlight (MAIN-world, self-contained; polls `gameui` for the live turn owner, marks the root while the viewer must act during another player's turn, publishes the stripe scroll as custom properties)
+- `src/games/innovation/action_tint.css` — the diagonal amber hazard stripes across BGA's top bar and their animation
 - `src/games/azul/process_log.ts` — Azul BGA packet processing
 - `src/games/azul/game_state.ts` — Azul bag/discard/wall tracking
 - `src/games/azul/render.ts` — Azul tile count table renderer
@@ -107,3 +109,5 @@ Keep `docs/pages/data-flow.md` up to date when code changes affect data flow, me
 - `assets/fonts/` — bundled Google Fonts (Russo One, Barlow Condensed)
 - `assets/extension/` — extension icons
 - `docs/pages/data-flow.md` — data flow architecture, message protocols, connection management
+- `docs/screenshots/screenshots.json` — screenshot manifest (what each frame shows, its replacement policy, how it was captured)
+- `docs/screenshots/capture/` — documentation screenshot capture: `lib/render.ts` drives the panel's own renderers against a committed fixture into standalone HTML, `lib/shoot.py` shoots it headless, one `<id>.sh` per frame; needs no BGA session

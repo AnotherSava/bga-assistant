@@ -41,6 +41,13 @@ colour pile, the card's icons, its name and its age. The rules text is still a h
 own tooltip. Cards shrink to roughly a quarter of their former area, so a board that used to need
 scrolling tends to fit the window.
 
+The same board, BGA's cards above and the simplified ones below — the five colour piles take 502
+pixels of height and then 172:
+
+<a href="../../screenshots/innovation-simplified-off.png"><img src="../../screenshots/innovation-simplified-off.png" alt="Innovation board with BGA's illustrated cards" width="1000"></a>
+
+<a href="../../screenshots/innovation-simplified-on.png"><img src="../../screenshots/innovation-simplified-on.png" alt="The same board with simplified cards" width="1000"></a>
+
 The top card of a pile — and every card in your hand, which is never stacked — uses the side panel's
 layout, spot for spot: the card's first icon top-left, the rest along the bottom, the name across the
 top, and the age in the bottom-right corner. Cities cards use all six icon spots and so show no name,
@@ -121,6 +128,13 @@ leaving that much more of the window for the board. The remaining bar is trimmed
 site logo and tighter leading let it shrink to the height its contents actually need — 36 pixels
 against BGA's fixed 62 — and the whitespace below it drops from 18 pixels to 5, which also brings
 the two columns back into line with each other.
+
+BGA's header, then the same header folded — the table info, the prompt and its button on one row,
+and the "not playing" link gone:
+
+<a href="../../screenshots/compact-header-off.png"><img src="../../screenshots/compact-header-off.png" alt="BGA's own table header, three rows" width="1000"></a>
+
+<a href="../../screenshots/compact-header-on.png"><img src="../../screenshots/compact-header-on.png" alt="The same header folded into one row" width="1000"></a>
 
 Two of Innovation's board buttons are hidden along the way: "Show compact", which only changes how
 far splayed stacks overlap, and "Browse all cards", which duplicates what the side panel's card list
@@ -239,6 +253,7 @@ The deck section shows remaining cards per age, with known cards revealed by nam
 - **In-page game log**: render the turn history in BGA's own log column instead of the side panel, newest-first; an in-page switch moves between the two logs without reopening the panel
 - **Simplified cards on the table**: draw your hand and every player's board with the panel's compact card — flat colour, icons, name and age, at about a quarter of the area; a size slider scales them 100–200%, covered cards use the real card's icon positions so splayed piles read as before, and Echo effects can be printed as text rather than marked
 - **Compact table header extras**: on top of the shared behaviour, Innovation's "Show compact" and "Browse all cards" buttons are hidden (the card list here covers the second), and "Look at all cards in piles" becomes an eye icon in the header's left corner
+- **Police-line highlight**: diagonal amber hazard stripes across BGA's top bar whenever you must act during another player's turn, so an asynchronous game cannot leave a decision waiting unnoticed; it stays dark on your own turn and on your own dogma choices, and a "Movement" slider scrolls the stripes from a still band to a fast barber pole
 - **Player labels**: "Show player names" toggle in the display menu switches turn-history labels between "you/opp" (default) and full BGA player names; coloring applies in either mode
 - **Section selector**: eye button to show/hide entire sections (including turn history visibility)
 - **Hover tooltips**: known cards show their full face image on hover; narrowed unknown cards display their candidate count and show every remaining candidate as mini card icons on hover
