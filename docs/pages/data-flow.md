@@ -12,10 +12,11 @@ gets serialized at each boundary, and the message protocols that connect them.
 
 ## Component Overview
 
-The extension has seven components, each running in a separate Chrome extension context
+The extension has nine components, each running in a separate Chrome extension context
 (isolated JS environment with its own globals and lifecycle). They communicate via
-Chrome's message passing APIs — except the four in-page surfaces, the *In-Page Game Log*, the
-*Compact Table Header*, the *Pinned Right Column* and the *Simplified Cards*, which are written to
+Chrome's message passing APIs — except the six in-page surfaces, the *In-Page Game Log*, the
+*Compact Table Header*, the *Pinned Right Column*, the *Simplified Cards*, the *Compact Player
+Panels* and the *Action-Required Tint*, which are written to
 rather than messaged (see
 [In-Page Game Log](#data-flow-in-page-game-log) and
 [Compact Table Header](#data-flow-compact-table-header)).
@@ -255,6 +256,27 @@ Key files:
 - `src/games/nucleum/player_panels.ts` — the injected mount function; self-contained, since Chrome serializes it
 - `src/games/nucleum/player_panels.css` — the fold itself, every rule scoped under the mount's class
 - `src/sidepanel/inpage_settings.ts` — the same `chrome.storage.local` object the in-page log uses
+
+### Action-Required Tint
+
+Optional, off on a store build, and Innovation only. A **MAIN world** injection into the board frame
+that stripes BGA's top bar amber while the viewer must act during *another* player's turn.
+
+The only surface that is extraction-independent: it reads whose turn it is straight from the page's
+live `gameui` rather than from the reconstructed log, which is why it needs the MAIN world at all.
+The reconstructed owner lags a turn change and would flash the stripes on your own turn at
+turn-start.
+
+Responsibilities:
+- Bail on any frame that is not an Innovation board, tearing down what a previous injection left
+- Publish the stripe scroll — duration, direction, play/pause — as root custom properties the stylesheet's animation reads, derived from the movement slider's signed magnitude
+- Poll `gameui` about twice a second, tracking the turn owner from the turn-establishing states, and toggle `bgaa-action-required` on the root for a genuine cross-turn reaction only
+
+Key files:
+- `src/games/innovation/action_tint.ts` — the injected mount function; self-contained, since Chrome serializes it
+- `src/games/innovation/action_tint.css` — the stripes and their animation
+- `src/sidepanel/inpage_settings.ts` — the same `chrome.storage.local` object the in-page log uses
+- `src/games/innovation/display.ts` — Innovation's own display menu, where the toggle and its movement slider live
 
 ## Data Flow: Full Extraction
 

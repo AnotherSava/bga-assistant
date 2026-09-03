@@ -81,7 +81,7 @@ export function renderHelp(errorMessage?: string, gameName?: GameName): string {
     <div class="help-section-title">Toggles</div>
     <div class="help-sections-grid">
       <div class="help-grid-item"><span class="help-grid-label">Hide / Show</span> Collapse or expand a section</div>
-      <div class="help-grid-item"><span class="help-grid-label">Base / Cities / Artifacts</span> Switch between Base, Echoes, Cities, and Artifacts card sets (Deck and Cards sections)</div>
+      <div class="help-grid-item"><span class="help-grid-label">Base / Echoes / Cities / Artifacts</span> Switch between Base, Echoes, Cities, and Artifacts card sets (Deck and Cards sections)</div>
       <div class="help-grid-item"><span class="help-grid-label">All / Unknown</span> Show all cards or only unaccounted ones (Cards section)</div>
       <div class="help-grid-item"><span class="help-grid-label">Wide / Tall</span> Display one row per age, or a columnar grid grouped by color</div>
     </div>
@@ -100,7 +100,7 @@ export function renderHelp(errorMessage?: string, gameName?: GameName): string {
   <details class="help-section" name="help-innov">
     <summary class="help-section-title"><span class="help-section-head">Action history <span class="chevron">›</span></span><span class="help-section-preview">Recent moves, in the panel or BGA's own log</span></summary>
     <div class="help-sections-grid">
-      <div class="help-grid-item"><span><b>In the panel.</b> Recent player actions (meld, draw, dogma, endorse, achieve) are shown in the top-right corner, newest first. Each player\u2019s row renders in their actual BGA-assigned color, and your own row is highlighted with a subtle background tint of that color so it stays distinguishable. Each action includes a timestamp. Turns that begin with an Artifact on display also show the pre-turn choice (pass, return, or dogma) as an italicized line above the regular actions. Toggle visibility via the ${ICON_EYE} menu.</span></div>
+      <div class="help-grid-item"><span><b>In the panel.</b> Recent player actions (meld, draw, dogma, endorse, achieve, promote) are shown in the top-right corner, newest first. Each player\u2019s row renders in their actual BGA-assigned color, and your own row is highlighted with a subtle background tint of that color so it stays distinguishable. Each action includes a timestamp. Turns that begin with an Artifact on display also show the pre-turn choice (pass, return, or dogma) as an italicized line above the regular actions. Toggle visibility via the ${ICON_EYE} menu.</span></div>
       <div class="help-grid-item"><span><b>In BGA's log.</b> The same history can render in BGA\u2019s own game log instead, where it stays visible and keeps updating with the side panel closed \u2014 enable \u201CShow in BGA game log\u201D in the ${ICON_EYE} menu. There it reads newest-first to match BGA\u2019s log. The column shows one log or the other, never both. A lightbulb in the header switches between them \u2014 lit while the turn history is up, dim while BGA\u2019s log is. \u201CMore...\u201D below the history widens the window, and disappears once the whole game is shown. Both that and the switch only last for the current table; opening a table starts from the ${ICON_EYE} menu setting again.</span></div>
     </div>
   </details>
@@ -138,7 +138,13 @@ export function renderHelp(errorMessage?: string, gameName?: GameName): string {
     <div class="help-sections-grid">
       <div class="help-grid-item"><span class="help-grid-label">Bag</span><span> Estimated tiles remaining in the bag by color</span></div>
       <div class="help-grid-item"><span class="help-grid-label">Box lid</span><span> Tiles discarded to the box lid (returned to bag on refill)</span></div>
-      <div class="help-grid-item"><span class="help-grid-label">Wall</span><span> Tiles placed on player walls</span></div>
+      <div class="help-grid-item"><span>A note under the table says which rounds the bag was refilled from the box before.</span></div>
+    </div>
+  </div>
+  <div class="help-section">
+    <div class="help-section-title">Toggles</div>
+    <div class="help-sections-grid">
+      <div class="help-grid-item"><span class="help-grid-label">Shimmer</span><span> Turn the tile shimmer animation on or off (persists across sessions)</span></div>
     </div>
   </div>
   </div>
@@ -176,7 +182,8 @@ export function renderHelp(errorMessage?: string, gameName?: GameName): string {
       <div class="help-grid-item"><span class="help-grid-label">urbanize / mine / turbine</span><span> A building, mine or turbine placed, with the city it went in</span></div>
       <div class="help-grid-item"><span class="help-grid-label">energize</span><span> A building lit, with the power plant that fed it</span></div>
       <div class="help-grid-item"><span class="help-grid-label">railway</span><span> A tile placed on the map. When the placement finished the link, the two cities it joined are named; an unfinished link joins nothing yet, so it is left unsaid</span></div>
-      <div class="help-grid-item"><span class="help-grid-label">develop / take contract / fulfil contract / unlock tech / recharge</span><span> The remaining choices, with \u00d7N where one was repeated within a turn</span></div>
+      <div class="help-grid-item"><span class="help-grid-label">develop / take contract / fulfil contract / unlock tech / recharge / nucleum / milestone / sell uranium</span><span> The remaining choices, with \u00d7N where one was repeated within a turn</span></div>
+      <div class="help-grid-item"><span class="help-grid-label">plays a tile</span><span> A tile went to the player board and both of the actions it offered were skipped, so the turn has nothing else to name</span></div>
       <div class="help-grid-item"><span>An undone turn is rebuilt rather than shown twice: BGA replays a cancelled turn from the start, and the row follows it. Actions taken during someone else\u2019s turn \u2014 what a railway colour match can hand you \u2014 carry that player\u2019s name.</span></div>
     </div>
   </div>
