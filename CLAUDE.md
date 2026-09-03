@@ -111,3 +111,4 @@ Keep `docs/pages/data-flow.md` up to date when code changes affect data flow, me
 - `docs/pages/data-flow.md` — data flow architecture, message protocols, connection management
 - `docs/screenshots/screenshots.json` — screenshot manifest (what each frame shows, its replacement policy, how it was captured)
 - `docs/screenshots/capture/` — documentation screenshot capture: `lib/render.ts` drives the panel's own renderers against a committed fixture into standalone HTML, `lib/shoot.py` shoots it headless, one `<id>.sh` per frame; needs no BGA session
+- `docs/screenshots/capture/lib/key.py` — lifts BGA's wood background off a hand-taken table shot: masks the panels by geometry (not colour — fill and wood are ~28 levels of blue apart), insets a pixel past the antialiased band, strokes the outline rather than the canvas. Step one; `border.py` is step two

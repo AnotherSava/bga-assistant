@@ -199,14 +199,15 @@
       "files": [
         "nucleum-history.png"
       ],
-      "shows": "Nucleum turn history rendered into BGA's own log column, with the lightbulb view switch, per-player row colours, the viewer's rows tinted, and \"more...\" at the foot",
+      "shows": "Nucleum turn history rendered into BGA's own log column, with the lightbulb view switch, per-player row colours, the viewer's rows tinted, and \"more...\" at the foot. Background keyed out to transparency, so it composites on a light or dark page",
       "policy": "confirm",
       "verifiedAt": "cfe4127",
       "capture": {
         "steps": [
           "Enable \"Show in BGA game log\" and open a live Nucleum table",
           "Pick a window containing a railway that completed a link and a turn with a repeated action",
-          "Capture BGA's log column including the lightbulb and the \"more...\" control"
+          "Capture BGA's log column including the lightbulb and the \"more...\" control",
+          "Key BGA's wood out afterwards: the panels are rounded rectangles, so mask them by geometry (not by colour — the fill and the wood differ by ~28 levels of blue alone), inset one pixel past the antialiased band, and stroke the outline rather than the canvas"
         ]
       }
     },
@@ -216,14 +217,16 @@
         "nucleum-panels-off.png",
         "nucleum-panels-on.png"
       ],
-      "shows": "Nucleum's player panels, BGA's own and then folded — three panels in 706 pixels of column and then 368, the beginner notice dropped and the first player marked by a corner wedge",
+      "shows": "Nucleum's player panels, BGA's own and then folded — three panels in 706 pixels of column and then 368, the beginner notice dropped and the first player marked by a corner wedge. Background keyed out to transparency, so the gaps between panels show the page",
       "policy": "never",
       "verifiedAt": "cfe4127",
       "capture": {
         "steps": [
           "Nucleum table, its display menu, \"Compact player panels\"",
           "Frame the player panel column with the option off, then on",
-          "A table including a player on their first game shows the dropped notice"
+          "A table including a player on their first game shows the dropped notice",
+          "Trim the near-white page margin on the right before anything else",
+          "Key BGA's wood out afterwards: the panels are rounded rectangles, so mask them by geometry (not by colour — the fill and the wood differ by ~28 levels of blue alone), inset one pixel past the antialiased band, and stroke the outline rather than the canvas"
         ]
       }
     },

@@ -14,6 +14,8 @@ from pathlib import Path
 from PIL import Image, ImageChops
 from playwright.sync_api import sync_playwright
 
+from border import stamp
+
 
 def _normalize(path: Path, pad: int) -> None:
     """Shrink the frame to what is actually drawn, then give it `pad` device pixels on every side.
@@ -88,6 +90,10 @@ def main() -> int:
         browser.close()
 
     _normalize(out_path, args.pad)
+    # The frame the reader needs to see the picture's own edge, which the page cannot supply:
+    # one CSS colour cannot suit both of the site's colour schemes, and a README never loads
+    # the site's CSS at all. Idempotent, so re-running a capture does not double the line.
+    stamp(out_path)
 
     print(f"Wrote {out_path}")
     return 0
