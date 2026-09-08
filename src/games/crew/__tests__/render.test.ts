@@ -201,3 +201,64 @@ describe("renderCrewFullPage", () => {
     expect(html).not.toContain("test<xss>");
   });
 });
+
+// ---------------------------------------------------------------------------
+// Task opinions section
+// ---------------------------------------------------------------------------
+
+describe("renderCrewSummary — task opinions", () => {
+  function withOpinions(): CrewGameState {
+    const state = makeState();
+    state.tasks = [
+      // A task written the way BGA writes one: a template whose ${cards} slot holds a card symbol.
+      { id: "56", difficulty: 3, subtext: null, text: { log: "Win at least 5x ${cards}", args: { cards: { log: "${card}", args: { card: { log: "${value_symbol} ${color_symbol}", args: { color_symbol: PINK, value_symbol: "" } } } } } } },
+      { id: "61", difficulty: 3, subtext: "Prediction will be secret", text: "Win X tricks" },
+    ];
+    state.bundles["1"] = [{ id: 0, taskIds: ["56"], opinion: 0 }];
+    state.bundles["2"] = [{ id: 0, taskIds: ["56", "61"], opinion: 4 }];
+    return state;
+  }
+
+  it("is absent on a mission whose tasks were not distributed freely", () => {
+    expect(renderCrewSummary(makeState())).not.toContain("Opinions");
+  });
+
+  it("heads the columns with the letters BGA prints on the tasks", () => {
+    const html = renderCrewSummary(withOpinions());
+    expect(html).toContain('data-section="opinions"');
+    expect(html).toContain("<th>A</th>");
+    expect(html).toContain("<th>B</th>");
+  });
+
+  it("rates every task in a bundle, and leaves an unrated task blank", () => {
+    const html = renderCrewSummary(withOpinions());
+    const opinions = html.slice(html.indexOf('data-section="opinions"'));
+    // Alice rated only the first task; Bob rated both in one bundle.
+    expect(opinions.match(/crew-opinion-0/g)).toHaveLength(1);
+    expect(opinions.match(/crew-opinion-4/g)).toHaveLength(2);
+    // Two players rated nothing, so four cells stay empty.
+    expect(opinions.match(/<td class="crew-matrix-cell"><\/td>/g)).toHaveLength(5);
+  });
+
+  it("keeps a multi-card task on one line", () => {
+    // BGA joins a list of cards with `&nbsp;<br />` so they stack on its own task card. Verified on
+    // table 757842815: task 10's text carries one such break, task 13's carries three.
+    const state = makeState();
+    const symbol = (suit: number, value: number) => ({ log: "${value_symbol} ${color_symbol}", args: { color_symbol: suit, value_symbol: value } });
+    state.tasks = [{ id: "10", difficulty: 3, subtext: null, text: { log: "Win the ${cards}", args: { cards: { log: "${color_0}&nbsp;<br />${color_1}", args: { color_0: symbol(BLUE, 7), color_1: symbol(YELLOW, 9) } } } } }];
+    state.bundles["1"] = [{ id: 0, taskIds: ["10"], opinion: 0 }];
+
+    const html = renderCrewSummary(state);
+    const legend = html.slice(html.indexOf('class="crew-task-legend"'));
+    expect(legend).not.toContain("<br");
+    expect(legend).not.toContain("&nbsp;");
+    expect(legend.match(/crew-task-card/g)).toHaveLength(2);
+  });
+
+  it("writes a task's card symbols as card chips and keeps its subtext", () => {
+    const html = renderCrewSummary(withOpinions());
+    expect(html).toContain('<span class="crew-task-card crew-pink">');
+    expect(html).toContain("Win at least 5x ");
+    expect(html).toContain('<span class="crew-task-subtext">Prediction will be secret</span>');
+  });
+});

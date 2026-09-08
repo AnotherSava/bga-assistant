@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { processCrewState, playerSuitStatus, getPlayedCards } from "../game_engine.js";
+import { processCrewState, playerSuitStatus, getPlayedCards, taskOpinions } from "../game_engine.js";
 import type { CrewGameLog, CrewLogEntry } from "../process_log.js";
 import { cardKey, PINK, BLUE, GREEN, YELLOW, SUBMARINE } from "../types.js";
 import { mkPlayers } from "../../../__tests__/helpers/players.js";
@@ -537,5 +537,75 @@ describe("processCrewState — distress signal exchange", () => {
     // Recipient has the given card resolved
     const charlieResolved = resolvedCards(state, "3");
     expect(charlieResolved.has(cardKey(PINK, 3))).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Task opinions
+// ---------------------------------------------------------------------------
+
+describe("processCrewState — task opinions", () => {
+  const tasks = [
+    { id: "56", difficulty: 3, text: "Win at least 5x pink", subtext: null },
+    { id: "61", difficulty: 3, text: "Win X tricks", subtext: "Prediction will be secret" },
+    { id: "85", difficulty: 3, text: "Win one of each color", subtext: null },
+  ];
+
+  function withPhase(extra: CrewLogEntry[]): CrewLogEntry[] {
+    return [
+      { type: "missionStart", missionId: 1, missionNumber: 1 },
+      { type: "handDealt", cards: [] },
+      { type: "freeAllocation", tasks, bundles: { "1": [], "2": [], "3": [], "4": [] } },
+      ...extra,
+    ];
+  }
+
+  it("keeps the tasks in the order that fixes their letters", () => {
+    const state = processCrewState(makeLog(withPhase([])));
+    expect(state.tasks.map(t => t.id)).toEqual(["56", "61", "85"]);
+  });
+
+  it("spreads a bundle's rating over every task in it", () => {
+    const state = processCrewState(makeLog(withPhase([
+      { type: "bundle", playerId: "2", bundle: { id: 0, taskIds: ["56", "85"], opinion: 1 } },
+      { type: "bundle", playerId: "2", bundle: { id: 1, taskIds: ["61"], opinion: 4 } },
+    ])));
+    expect(taskOpinions(state)["2"]).toEqual({ "56": 1, "85": 1, "61": 4 });
+  });
+
+  it("replaces a bundle a player rates again under the same id", () => {
+    const state = processCrewState(makeLog(withPhase([
+      { type: "bundle", playerId: "3", bundle: { id: 0, taskIds: ["56"], opinion: 0 } },
+      { type: "bundle", playerId: "3", bundle: { id: 0, taskIds: ["56"], opinion: 3 } },
+    ])));
+    expect(state.bundles["3"]).toEqual([{ id: 0, taskIds: ["56"], opinion: 3 }]);
+  });
+
+  it("drops a withdrawn bundle", () => {
+    const state = processCrewState(makeLog(withPhase([
+      { type: "bundle", playerId: "4", bundle: { id: 0, taskIds: ["56"], opinion: 0 } },
+      { type: "bundle", playerId: "4", bundle: { id: 1, taskIds: ["61"], opinion: 2 } },
+      { type: "bundleRemoved", playerId: "4", bundleId: 0 },
+    ])));
+    expect(state.bundles["4"]).toEqual([{ id: 1, taskIds: ["61"], opinion: 2 }]);
+    expect(taskOpinions(state)["4"]).toEqual({ "61": 2 });
+  });
+
+  it("takes a later snapshot as the whole truth, not an addition to it", () => {
+    const state = processCrewState(makeLog(withPhase([
+      { type: "bundle", playerId: "2", bundle: { id: 0, taskIds: ["56"], opinion: 0 } },
+      { type: "freeAllocation", tasks, bundles: { "2": [{ id: 7, taskIds: ["61"], opinion: 2 }] } },
+    ])));
+    expect(state.bundles["2"]).toEqual([{ id: 7, taskIds: ["61"], opinion: 2 }]);
+    expect(state.bundles["1"]).toEqual([]);
+  });
+
+  it("leaves a mission with no free allocation without tasks", () => {
+    const state = processCrewState(makeLog([
+      { type: "missionStart", missionId: 1, missionNumber: 1 },
+      { type: "handDealt", cards: [] },
+    ]));
+    expect(state.tasks).toEqual([]);
+    expect(taskOpinions(state)["1"]).toEqual({});
   });
 });

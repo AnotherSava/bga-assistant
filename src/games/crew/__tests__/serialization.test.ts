@@ -119,3 +119,30 @@ describe("crew serialization — empty state", () => {
     expect(restored.tricks).toHaveLength(0);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Task opinions survive the round trip
+// ---------------------------------------------------------------------------
+
+describe("crew serialization — task opinions", () => {
+  it("restores the tasks and every player's bundles", () => {
+    const log: CrewGameLog = {
+      gameName: "thecrewdeepsea",
+      players: mkPlayers({ "1": "Alice", "2": "Bob", "3": "Charlie" }, "1"),
+      playerOrder: ["1", "2", "3"],
+      playerCardCounts: {},
+      currentPlayerId: "1",
+      log: [
+        { type: "missionStart", missionId: 1, missionNumber: 1 },
+        { type: "handDealt", cards: [] },
+        { type: "freeAllocation", tasks: [{ id: "56", difficulty: 3, text: "Win at least 5x pink", subtext: null }], bundles: { "1": [], "2": [], "3": [] } },
+        { type: "bundle", playerId: "2", bundle: { id: 0, taskIds: ["56"], opinion: 2 } },
+      ],
+    };
+    const restored = crewFromJSON(crewToJSON(processCrewState(log)));
+
+    expect(restored.tasks).toEqual([{ id: "56", difficulty: 3, text: "Win at least 5x pink", subtext: null }]);
+    expect(restored.bundles["2"]).toEqual([{ id: 0, taskIds: ["56"], opinion: 2 }]);
+    expect(restored.bundles["1"]).toEqual([]);
+  });
+});

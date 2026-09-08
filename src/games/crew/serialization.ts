@@ -1,7 +1,7 @@
 // Serialization: toJSON/fromJSON for persisting and restoring CrewGameState.
 
 import type { PlayerInfo } from "../../models/types.js";
-import type { CrewCard } from "./types.js";
+import type { CrewCard, CrewTask, TaskBundle } from "./types.js";
 import { type CrewGameState, type Trick, createCrewGameState } from "./game_state.js";
 
 // ---------------------------------------------------------------------------
@@ -16,6 +16,8 @@ export interface SerializedCrewGameState {
   missionNumber: number;
   hands: Record<string, string[][]>;
   tricks: Trick[];
+  tasks: CrewTask[];
+  bundles: Record<string, TaskBundle[]>;
 }
 
 // ---------------------------------------------------------------------------
@@ -37,6 +39,8 @@ export function crewToJSON(state: CrewGameState): SerializedCrewGameState {
     missionNumber: state.missionNumber,
     hands,
     tricks: state.tricks,
+    tasks: state.tasks,
+    bundles: state.bundles,
   };
 }
 
@@ -52,6 +56,11 @@ export function crewFromJSON(data: SerializedCrewGameState): CrewGameState {
   }
 
   state.tricks = data.tricks.map(t => ({ winnerId: t.winnerId, cards: t.cards.map(c => ({ playerId: c.playerId, card: { ...c.card } })) }));
+
+  state.tasks = data.tasks.map(t => ({ ...t }));
+  for (const [pid, bundles] of Object.entries(data.bundles)) {
+    state.bundles[pid] = bundles.map(b => ({ id: b.id, taskIds: [...b.taskIds], opinion: b.opinion }));
+  }
 
   return state;
 }

@@ -1,8 +1,8 @@
-// CrewGameState -> HTML summary string (card grid, player-suit matrix, trick history).
+// CrewGameState -> HTML summary string (card grid, player-suit matrix, task opinions, trick history).
 
 import type { CrewGameState } from "./game_state.js";
-import { playerSuitStatus, getPlayedCards } from "./game_engine.js";
-import { ALL_SUITS, SUIT_VALUES, PINK, BLUE, GREEN, YELLOW, SUBMARINE, cardKey } from "./types.js";
+import { playerSuitStatus, getPlayedCards, taskOpinions } from "./game_engine.js";
+import { type BgaText, ALL_SUITS, SUIT_VALUES, PINK, BLUE, GREEN, YELLOW, SUBMARINE, cardKey, taskLetter } from "./types.js";
 import { playerColorAttr } from "../../render/player.js";
 
 // ---------------------------------------------------------------------------
@@ -47,7 +47,7 @@ function renderCardGrid(state: CrewGameState): string {
     }
   }
 
-  let html = '<div class="crew-section"><div class="crew-section-title">Cards</div>';
+  let html = '<div class="crew-section" data-section="cards"><div class="crew-section-title">Cards</div>';
   html += '<div class="crew-card-grid">';
 
   // Header row with suit icons
@@ -94,7 +94,7 @@ function effectivePlayerOrder(state: CrewGameState): string[] {
 
 function renderSuitMatrix(state: CrewGameState): string {
   const matrix = playerSuitStatus(state);
-  let html = '<div class="crew-section"><div class="crew-section-title">Player\u2013Suit</div>';
+  let html = '<div class="crew-section" data-section="suits"><div class="crew-section-title">Player\u2013Suit</div>';
   html += '<table class="crew-matrix"><thead><tr><th></th>';
   for (const suit of ALL_SUITS) {
     html += `<th class="${SUIT_CSS_CLASS[suit]}">${SUIT_ICONS[suit]}</th>`;
@@ -121,11 +121,91 @@ function renderSuitMatrix(state: CrewGameState): string {
 }
 
 // ---------------------------------------------------------------------------
+// Task opinions section
+// ---------------------------------------------------------------------------
+
+// BGA states an opinion as one of five smileys with no words on it, so the scale is redrawn here
+// as five faces of its own: 0 grins, 2 is flat, 4 frowns. The mouth carries the meaning and the
+// colour only reinforces it, the same way the suit icons stay readable without their colours.
+const OPINION_MOUTHS: string[] = [
+  'M3.2 7.7 Q6 11.4 8.8 7.7',
+  'M3.2 8.3 Q6 10.1 8.8 8.3',
+  'M3.2 8.9 L8.8 8.9',
+  'M3.2 9.5 Q6 7.7 8.8 9.5',
+  'M3.2 10.1 Q6 6.4 8.8 10.1',
+];
+
+function opinionFace(opinion: number): string {
+  return `<svg viewBox="0 0 12 12" width="15" height="15"><circle cx="6" cy="6" r="5.2" fill="none" stroke="currentColor" stroke-width="1.2"/><circle cx="4.1" cy="4.7" r="0.85" fill="currentColor"/><circle cx="7.9" cy="4.7" r="0.85" fill="currentColor"/><path d="${OPINION_MOUTHS[opinion]}" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round"/></svg>`;
+}
+
+/** One card symbol out of a task's text, drawn as the same chip the card grid uses. */
+function renderCardSymbol(args: Record<string, BgaText>): string {
+  const suit = Number(args.color_symbol);
+  const value = args.value_symbol;
+  const label = value === "" || value === undefined ? "" : escapeHtml(String(value));
+  return `<span class="crew-task-card ${SUIT_CSS_CLASS[suit]}">${label ? `<span class="crew-cell-value">${label}</span>` : ""}<span class="crew-cell-icon">${SUIT_ICONS[suit]}</span></span>`;
+}
+
+/**
+ * Fill in one of BGA's `${name}` templates. A node whose args carry a `color_symbol` names a card
+ * rather than a phrase, so it comes out as a chip; everything else recurses. The templates are
+ * BGA's own markup and pass through, while the values substituted into them are escaped.
+ */
+function renderBgaText(text: BgaText): string {
+  if (typeof text === "number") return String(text);
+  if (typeof text === "string") return escapeHtml(text);
+  const args = text.args;
+  if (!Array.isArray(args) && "color_symbol" in args) return renderCardSymbol(args);
+  // BGA breaks a list of cards onto one line each with `&nbsp;<br />`, which suits the tall task card
+  // on its own table and turns a legend entry here into four lines for four cards. The break and the
+  // padding around it collapse to a single space so the sentence stays one line.
+  const template = text.log.replace(/(?:&nbsp;|\s)*<br\s*\/?>(?:&nbsp;|\s)*/gi, " ");
+  return template.replace(/\$\{(\w+)\}/g, (_, name: string) => (Array.isArray(args) ? "" : renderBgaText(args[name] ?? "")));
+}
+
+function renderOpinions(state: CrewGameState): string {
+  if (state.tasks.length === 0) return "";
+  const opinions = taskOpinions(state);
+
+  let html = '<div class="crew-section" data-section="opinions"><div class="crew-section-title">Opinions</div>';
+  html += '<table class="crew-matrix crew-opinions"><thead><tr><th></th>';
+  for (let i = 0; i < state.tasks.length; i++) {
+    html += `<th>${taskLetter(i)}</th>`;
+  }
+  html += '</tr></thead><tbody>';
+
+  for (const pid of effectivePlayerOrder(state)) {
+    const player = state.players[pid];
+    const isMe = pid === state.currentPlayerId;
+    const rowClass = isMe ? ' class="crew-matrix-me"' : '';
+    html += `<tr ${playerColorAttr(player)}${rowClass}><td class="crew-matrix-name">${escapeHtml(player.name)}</td>`;
+    for (const task of state.tasks) {
+      const opinion = opinions[pid][task.id];
+      const cell = opinion === undefined ? "" : `<span class="crew-opinion crew-opinion-${opinion}">${opinionFace(opinion)}</span>`;
+      html += `<td class="crew-matrix-cell">${cell}</td>`;
+    }
+    html += '</tr>';
+  }
+  html += '</tbody></table>';
+
+  html += '<dl class="crew-task-legend">';
+  for (let i = 0; i < state.tasks.length; i++) {
+    const task = state.tasks[i];
+    const subtext = task.subtext ? `<span class="crew-task-subtext">${escapeHtml(task.subtext)}</span>` : "";
+    html += `<dt>${taskLetter(i)}</dt><dd>${renderBgaText(task.text)}${subtext}</dd>`;
+  }
+  html += '</dl></div>';
+
+  return html;
+}
+
+// ---------------------------------------------------------------------------
 // Trick history section
 // ---------------------------------------------------------------------------
 
 function renderTrickHistory(state: CrewGameState): string {
-  let html = '<div class="crew-section"><div class="crew-section-title">Tricks</div>';
+  let html = '<div class="crew-section" data-section="tricks"><div class="crew-section-title">Tricks</div>';
   html += '<table class="crew-tricks"><thead><tr><th></th>';
   for (const pid of effectivePlayerOrder(state)) {
     const player = state.players[pid];
@@ -176,11 +256,12 @@ function escapeHtml(text: string): string {
 // Public API
 // ---------------------------------------------------------------------------
 
-/** Render the full Crew summary as an HTML string with three sections. */
+/** Render the full Crew summary as an HTML string. The opinions section is there only on a mission whose tasks were distributed freely. */
 export function renderCrewSummary(state: CrewGameState): string {
   let html = '<div class="crew-summary">';
   html += renderCardGrid(state);
   html += renderSuitMatrix(state);
+  html += renderOpinions(state);
   html += renderTrickHistory(state);
   html += '</div>';
   return html;

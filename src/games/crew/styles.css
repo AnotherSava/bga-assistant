@@ -80,12 +80,13 @@
   line-height: 0;
 }
 
-/* Card state: suit-specific backgrounds */
-.crew-grid-cell.crew-pink  { border-color: #ff6699; background: #5c1a2a; color: #ff6699; }
-.crew-grid-cell.crew-blue  { border-color: #4488cc; background: #1a2a5c; color: #4488cc; }
-.crew-grid-cell.crew-green { border-color: #44aa44; background: #1a4c1a; color: #44aa44; }
-.crew-grid-cell.crew-yellow { border-color: #ddaa00; background: #4c4a1a; color: #ddaa00; }
-.crew-grid-cell.crew-sub   { border-color: #888888; background: #333; color: #888888; }
+/* Card state: suit-specific backgrounds. Shared with the inline chips a task's text is written
+   with, so a card reads the same whether it is in the grid or in a sentence. */
+.crew-grid-cell.crew-pink,  .crew-task-card.crew-pink  { border-color: #ff6699; background: #5c1a2a; color: #ff6699; }
+.crew-grid-cell.crew-blue,  .crew-task-card.crew-blue  { border-color: #4488cc; background: #1a2a5c; color: #4488cc; }
+.crew-grid-cell.crew-green, .crew-task-card.crew-green { border-color: #44aa44; background: #1a4c1a; color: #44aa44; }
+.crew-grid-cell.crew-yellow, .crew-task-card.crew-yellow { border-color: #ddaa00; background: #4c4a1a; color: #ddaa00; }
+.crew-grid-cell.crew-sub,   .crew-task-card.crew-sub   { border-color: #888888; background: #333; color: #888888; }
 
 /* Card state: hidden = opponents' unplayed (full brightness, no override) */
 /* Card state: myhand = dark background, dimmed text */
@@ -125,6 +126,88 @@
 .crew-matrix-void { color: #cc4444; }
 .crew-matrix-has  { color: #44cc44; }
 .crew-matrix-unknown { color: #666; }
+
+/* ---------------------------------------------------------------------------
+   Task opinions: the matrix, then the legend naming each lettered task
+   --------------------------------------------------------------------------- */
+.crew-opinions th {
+  font-size: 11px;
+  color: #999;
+  font-weight: normal;
+  padding: 2px 5px;
+}
+.crew-opinions .crew-matrix-cell {
+  padding: 1px 5px;
+}
+.crew-opinion {
+  display: inline-flex;
+  line-height: 0;
+}
+/* Green through to red, reinforcing a mouth that already says which end it is. The two willing steps
+   have to separate on hue rather than on shade: as two greens a step apart they read as one colour at
+   this size, which is the whole reason the scale is coloured. That separation goes towards cyan and
+   not towards yellow, which put step 1 next to the unwilling end it is furthest from — and stops
+   short of a true light blue, which would sit close to the blue suit's own #4488cc. */
+.crew-opinion-0 { color: #35c94a; }
+.crew-opinion-1 { color: #72d0d9; }
+.crew-opinion-2 { color: #999999; }
+.crew-opinion-3 { color: #d68a2e; }
+.crew-opinion-4 { color: #d6453f; }
+
+.crew-task-legend {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 6px;
+  margin: 10px 0 0;
+  font-size: 12px;
+}
+/* Both halves carry the same line-height so their first baselines meet: the letter is a grid item of
+   its own, and a shorter line box would sit it above the text it labels. */
+.crew-task-legend dt {
+  color: #999;
+  font-weight: bold;
+  text-align: right;
+  line-height: 20px;
+}
+/* The letter and its task read as one label, so a middle dot joins them rather than a bare gap. Same
+   separator and same grey the play-time summary uses, and unbolded so it reads as punctuation
+   between the two parts rather than as part of the letter. */
+.crew-task-legend dt::after {
+  content: "\00b7";
+  margin-left: 6px;
+  color: #666;
+  font-weight: normal;
+}
+.crew-task-legend dd {
+  margin: 0;
+  color: #ccc;
+  line-height: 20px;
+}
+.crew-task-subtext {
+  color: #777;
+  font-style: italic;
+  margin-left: 6px;
+}
+
+/* A card named inside a task's sentence: the grid cell's colours at reading size. Centred on the
+   text rather than hung off the baseline, which an inline-flex box taller than its line is not. */
+.crew-task-card {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 3px;
+  border-radius: 3px;
+  border: 1px solid;
+  vertical-align: middle;
+}
+.crew-task-card .crew-cell-value {
+  font-size: 11px;
+  line-height: 14px;
+}
+.crew-task-card .crew-cell-icon svg {
+  width: auto;
+  height: 11px;
+}
 
 /* ---------------------------------------------------------------------------
    Trick history table

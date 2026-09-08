@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { processCrewLog, type CrewGameLog, type MissionStartEntry, type HandDealtEntry, type CaptainEntry, type TrickStartEntry, type CardPlayedEntry, type TrickWonEntry, type CommunicationEntry, type CrewLogEntry } from "../process_log.js";
+import { processCrewLog, type CrewGameLog, type MissionStartEntry, type HandDealtEntry, type CaptainEntry, type TrickStartEntry, type CardPlayedEntry, type TrickWonEntry, type CommunicationEntry, type CrewLogEntry, type FreeAllocationEntry, type BundleEntry } from "../process_log.js";
 import type { PlayerInfo, RawExtractionData, RawPacket } from "../../../models/types.js";
 import { readFileSync } from "fs";
 import { resolve, dirname } from "path";
@@ -329,6 +329,60 @@ describe("processCrewLog — ignored notifications", () => {
 });
 
 // ---------------------------------------------------------------------------
+// processCrewLog — free allocation
+// ---------------------------------------------------------------------------
+
+describe("processCrewLog — free allocation", () => {
+  const tasks = [{ id: "10", difficulty: 3, text: "Win the pink 4", subtext: null }, { id: 13, difficulty: 2, text: "Do not win the blue 9", subtext: null }];
+
+  it("normalizes task ids whichever way BGA spells them", () => {
+    const raw = makeRawData([makePacket(1, [{ type: "gameStateChange", args: { args: { tasks, bundles: {} } } }])]);
+    const phase = entriesOfType<FreeAllocationEntry>(processCrewLog(raw).log, "freeAllocation")[0];
+    expect(phase.tasks.map((t) => t.id)).toEqual(["10", "13"]);
+  });
+
+  it("reads a player's bundles when a withdrawal has left them keyed by index", () => {
+    // Observed live on table 757842815: BGA writes a PHP array as a JSON array only while its keys
+    // run 0..n-1, so deleting a bundle turns the same field into an object over the survivors.
+    const raw = makeRawData([
+      makePacket(1, [{
+        type: "gameStateChange",
+        args: {
+          args: {
+            tasks,
+            bundles: {
+              "1": { "0": { id: 0, opinion: "1", tasks: ["10"] }, "3": { id: 3, opinion: "4", tasks: ["13"] } },
+              "2": [{ id: 0, opinion: "2", tasks: ["10"] }],
+              "3": [],
+            },
+          },
+        },
+      }]),
+    ]);
+    const phase = entriesOfType<FreeAllocationEntry>(processCrewLog(raw).log, "freeAllocation")[0];
+    expect(phase.bundles["1"]).toEqual([{ id: 0, taskIds: ["10"], opinion: 1 }, { id: 3, taskIds: ["13"], opinion: 4 }]);
+    expect(phase.bundles["2"]).toEqual([{ id: 0, taskIds: ["10"], opinion: 2 }]);
+    expect(phase.bundles["3"]).toEqual([]);
+  });
+
+  it("treats an edited bundle the same as a new one, and records a withdrawal", () => {
+    const raw = makeRawData([
+      makePacket(1, [
+        { type: "newBundle", args: { player_id: 2, bundle: { id: 0, opinion: "1", tasks: ["10"] } } },
+        { type: "updateBundle", args: { player_id: 2, bundle: { id: 0, opinion: "3", tasks: ["10", "13"] } } },
+        { type: "deleteBundle", args: { player_id: 2, bundle: { id: 0, opinion: "3", tasks: ["10", "13"] } } },
+      ]),
+    ]);
+    const log = processCrewLog(raw).log;
+    expect(entriesOfType<BundleEntry>(log, "bundle").map((e) => e.bundle)).toEqual([
+      { id: 0, taskIds: ["10"], opinion: 1 },
+      { id: 0, taskIds: ["10", "13"], opinion: 3 },
+    ]);
+    expect(log[2]).toEqual({ type: "bundleRemoved", playerId: "2", bundleId: 0 });
+  });
+});
+
+// ---------------------------------------------------------------------------
 // processCrewLog — full mission from fixture
 // ---------------------------------------------------------------------------
 
@@ -390,6 +444,30 @@ describe("processCrewLog — fixture: complete mission", () => {
     // Verify specific cards from the fixture
     expect(hands[0].cards).toContainEqual({ suit: 1, value: 3 });
     expect(hands[0].cards).toContainEqual({ suit: 5, value: 3 });
+  });
+
+  it("reads the free-allocation phase off the state change", () => {
+    const result = processCrewLog(fixtureData);
+    const phases = entriesOfType<FreeAllocationEntry>(result.log, "freeAllocation");
+    expect(phases.length).toBeGreaterThan(0);
+    // Three tasks on offer, in the order that fixes their letters A, B, C.
+    expect(phases[0].tasks.map((t) => t.id)).toEqual(["56", "61", "85"]);
+    expect(phases[0].tasks[2].text).toBe("Win at least one card of each color");
+    // Nobody has rated anything when the phase opens.
+    expect(Object.values(phases[0].bundles).every((b) => b.length === 0)).toBe(true);
+  });
+
+  it("finds every player's opinion bundles", () => {
+    const result = processCrewLog(fixtureData);
+    const bundles = entriesOfType<BundleEntry>(result.log, "bundle");
+    // Four players rating three tasks each, one task per bundle.
+    expect(bundles).toHaveLength(12);
+    const mine = bundles.filter((b) => b.playerId === "76419314").map((b) => b.bundle);
+    expect(mine).toEqual([
+      { id: 0, taskIds: ["56"], opinion: 3 },
+      { id: 1, taskIds: ["85"], opinion: 3 },
+      { id: 2, taskIds: ["61"], opinion: 1 },
+    ]);
   });
 
   it("log entries are in correct chronological order", () => {

@@ -81,6 +81,9 @@ Three sibling subprojects under a shared BGA workspace directory:
 - Unknown hand AND score tracked as `{"age": int, "set": int}` objects
 - All-known age rows: `all-known` CSS class hides entire age rows in unknown mode when all cards in that age are known
 
+## Documentation screenshots
+- [`--at N` is a log index](project_capture_at_is_a_log_index.md) — adding a log entry type re-frames every capture of that game; re-run and diff against git
+
 ## Side panel & settings
 - [Settings surface](project_settings_surface.md) — no options page; settings persist via settings.ts localStorage + eye-icon menu (#section-selector), dispatched by statsPageOpen() then game
 - [Turn history lists actions only](project_turn_history_scope.md) — no lines for what an action did; a Fission sweep reads as `dogma Fission` (declined 2026-08-24)
@@ -103,6 +106,7 @@ Three sibling subprojects under a shared BGA workspace directory:
 - [BGA table type detection](project_bga_table_type.md) — tournament via gameui.tournament_id; arena via tableinfos `options["201"]` (Game mode) value==="2" — NOT `table_matchmaking` (also "1" for matchmade "Play now" games); probed by a SEPARATE gameui.ajaxcall page injection (SW fetch rejected w/o session token)
 - [BGA /tableview iframe board](project_bga_tableview_iframe.md) — modern BGA serves the board in an iframe under `/tableview?table=`; gameui lives only in that child frame; detection+injection are all-frames (isPotentialTablePage / selectGameFrame / probeGameFrame)
 - [Probing BGA's framework DOM](project_bga_framework_dom_probing.md) — find who owns an element via gameui's prototype chain; reproduce transient banners by calling the method; finished tables still render at /tableview
+- [A list turns into an object once pruned](project_bga_sparse_list_shape.md) — PHP drops the array shape when keys go non-sequential; normalise at the parse boundary, and no fixture can catch it
 
 ## BGA Azul Notes
 - All information is public — no player/spectator distinction needed

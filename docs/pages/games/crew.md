@@ -5,7 +5,7 @@ parent: Games
 nav_order: 3
 ---
 
-Tracks played cards and communication signals to deduce remaining cards in players' hands for [The Crew: Mission Deep Sea](https://boardgamegeek.com/boardgame/324856/the-crew-mission-deep-sea) tables with any player count. The side panel displays three sections — a card grid, a player-suit matrix, and a trick history — all updating live as cards are played.
+Tracks played cards and communication signals to deduce remaining cards in players' hands for [The Crew: Mission Deep Sea](https://boardgamegeek.com/boardgame/324856/the-crew-mission-deep-sea) tables with any player count. The side panel displays a card grid, a player-suit matrix and a trick history, all updating live as cards are played, and on a mission whose tasks are distributed by free selection it keeps what every player said about them.
 
 ## Card grid
 
@@ -19,6 +19,16 @@ Shows what information we know about players having different suits: "X" (the pl
 
 ![Crew player-suit matrix](../../screenshots/crew-suits.png)
 
+## Task opinions
+
+Some missions distribute their tasks by free selection: before anyone takes one, every player rates the tasks on a five-step smiley scale, and only then are they handed out. Those ratings are the only thing said about anyone's hand before the first card is played, so the panel keeps them for the rest of the mission rather than only while they are being given.
+
+Each player rates in a row of their own, in their BGA colour with your row tinted, under the letters BGA prints on the task cards. The face runs from a grin at the willing end to a frown at the unwilling one, and its colour only repeats what the mouth already says. A task a player has not rated yet leaves an empty cell, so a round still in progress reads as unfinished rather than as indifference. Several tasks may be rated together as one group, and each of them then carries that group's face.
+
+Below the grid every letter is spelled out with its task, the cards named in it drawn as the same chips the card grid uses:
+
+![Crew task opinions](../../screenshots/crew-opinions.png)
+
 ## Trick history
 
 Chronological table of all tricks with lead and winner highlights. Each player's column header renders in their BGA color, and your own column is tinted to keep you distinguishable. The current in-progress trick appears below a dashed separator:
@@ -31,6 +41,7 @@ Chronological table of all tricks with lead and winner highlights. Each player's
 - **Suit absence detection**: automatically detects when a player has no cards of a suit from trick-following behavior
 - **Communication tracking**: integrates sonar communication data to narrow down card locations
 - **Player-suit matrix**: shows "X" (no cards of that suit), "!" (confirmed cards), or "?" (unknown) per player per suit
+- **Task opinions**: on a mission distributed by free selection, keeps every player's five-step rating of each task once the tasks have been handed out, with the lettered tasks spelled out below the grid
 - **Trick history**: chronological table of all tricks with lead and winner highlights
 - **Distress signal**: when a distress signal card exchange occurs, tracks the card you gave (resolving it in the recipient's hand) and the card you received
 - **Per-mission state**: automatically resets tracking on each new mission

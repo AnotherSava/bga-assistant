@@ -25,7 +25,7 @@
       ],
       "shows": "Built-in help page as it opens: hero, How to use, the collapsed Top bar / Play time / On the game table sections, and the four-game tab strip with Innovation selected",
       "policy": "confirm",
-      "verifiedAt": "cfe4127",
+      "verifiedAt": "319e8df",
       "capture": {
         "command": "bash docs/screenshots/capture/help-page.sh",
         "steps": [
@@ -171,7 +171,7 @@
       ],
       "shows": "Crew side panel card grid: nine ranks across four coloured suits plus the four submarine trumps, dimmed/neutral/bright by card state",
       "policy": "confirm",
-      "verifiedAt": "cfe4127",
+      "verifiedAt": "319e8df",
       "capture": {
         "steps": [
           "Open the side panel on a live Crew table mid-mission, so all three card states are present",
@@ -186,12 +186,29 @@
       ],
       "shows": "Crew player-suit matrix: four players, each name in its BGA colour with the viewer's row tinted, showing all three states — X, ! and ?",
       "policy": "confirm",
-      "verifiedAt": "cfe4127",
+      "verifiedAt": "319e8df",
       "capture": {
         "command": "bash docs/screenshots/capture/crew-suits.sh",
         "steps": [
-          "Render the Crew summary from the committed fixture stopped at log entry 34 — a finished mission is a wall of X with no ! or ?",
+          "Render the Crew summary from the committed fixture stopped at log entry 52 — a finished mission is a wall of X with no ! or ?",
           "Shoot the second .crew-section"
+        ]
+      }
+    },
+    {
+      "id": "crew-opinions",
+      "files": [
+        "crew-opinions.png"
+      ],
+      "shows": "Crew task opinions: four players rating three lettered tasks, with every step of the five-point scale somewhere in the grid, over the legend naming each task. The legend shows a card chip on A and a qualifier on B",
+      "policy": "auto",
+      "verifiedAt": "319e8df",
+      "capture": {
+        "command": "bash docs/screenshots/capture/crew-opinions.sh",
+        "steps": [
+          "Render the Crew summary from the committed fixture stopped at log entry 52, whose four players between them use all five opinions",
+          "Shoot [data-section=opinions]",
+          "The fixture's three tasks include no multi-card task, so the frame does not exercise the case where BGA's own template would break a card list onto several lines"
         ]
       }
     },
@@ -202,11 +219,11 @@
       ],
       "shows": "Crew trick history: column headers in each player's BGA colour, the viewer's column tinted, lead highlights, and trick 5 in progress below the dashed separator",
       "policy": "confirm",
-      "verifiedAt": "cfe4127",
+      "verifiedAt": "319e8df",
       "capture": {
         "command": "bash docs/screenshots/capture/crew-history.sh",
         "steps": [
-          "Render the Crew summary from the committed fixture stopped at log entry 34, which leaves a trick part-played",
+          "Render the Crew summary from the committed fixture stopped at log entry 52, which leaves a trick part-played",
           "Shoot the third .crew-section"
         ]
       }

@@ -166,6 +166,14 @@ export function renderHelp(errorMessage?: string, gameName?: GameName): string {
     </div>
   </div>
   <div class="help-section">
+    <div class="help-section-title">Opinions</div>
+    <div class="help-sections-grid">
+      <div class="help-grid-item"><span>On a mission whose tasks are distributed by free selection, every player rates the tasks before any are taken. The grid keeps those ratings for the rest of the mission: one row per player, in their BGA colour with your own tinted, under the letters BGA prints on the task cards.</span></div>
+      <div class="help-grid-item"><span>The face runs from a grin at the willing end to a frown at the unwilling one. A task a player has not rated yet leaves its cell empty; several tasks rated together as one group all carry that group’s face.</span></div>
+      <div class="help-grid-item"><span>Each letter is spelled out with its task below the grid, with the cards named in it drawn as the same chips the card grid uses.</span></div>
+    </div>
+  </div>
+  <div class="help-section">
     <div class="help-section-title">Trick history</div>
     <div class="help-sections-grid">
       <div class="help-grid-item"><span>Shows each trick with cards played per player. Each player’s column header renders in their BGA color, and your own column is tinted. The lead card is highlighted and the trick winner is bold. The current in-progress trick is shown at the bottom.</span></div>

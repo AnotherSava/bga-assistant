@@ -5,7 +5,7 @@
 // references, so Set<CrewCard>.has() would always miss. String keys via
 // cardKey() give value-based identity for free.
 
-import type { CrewGameLog, CrewLogEntry, CardPlayedEntry, CommunicationEntry, CardExchangeEntry } from "./process_log.js";
+import type { CrewGameLog, CrewLogEntry, CardPlayedEntry, CommunicationEntry, CardExchangeEntry, BundleEntry } from "./process_log.js";
 import { type CardGuess, type CrewGameState, createCrewGameState } from "./game_state.js";
 import { ALL_SUITS, SUIT_VALUES, SUBMARINE, cardKey } from "./types.js";
 import { propagate as kernelPropagate } from "../../engine/constraint.js";
@@ -279,7 +279,47 @@ function applyEntry(state: CrewGameState, entry: CrewLogEntry, playerCardCounts:
     case "cardExchange":
       applyCardExchange(state, entry);
       break;
+    case "freeAllocation":
+      state.tasks = entry.tasks;
+      for (const pid of Object.keys(state.players)) {
+        state.bundles[pid] = entry.bundles[pid] ?? [];
+      }
+      break;
+    case "bundle":
+      applyBundle(state, entry);
+      break;
+    case "bundleRemoved":
+      state.bundles[entry.playerId] = (state.bundles[entry.playerId] ?? []).filter(b => b.id !== entry.bundleId);
+      break;
   }
+}
+
+/** Record a bundle under its BGA id, replacing the one already there when a player re-rates a group. */
+function applyBundle(state: CrewGameState, entry: BundleEntry): void {
+  const existing = state.bundles[entry.playerId] ?? [];
+  const at = existing.findIndex(b => b.id === entry.bundle.id);
+  state.bundles[entry.playerId] = at === -1 ? [...existing, entry.bundle] : existing.map((b, i) => (i === at ? entry.bundle : b));
+}
+
+// ---------------------------------------------------------------------------
+// Task opinion derivation
+// ---------------------------------------------------------------------------
+
+/**
+ * Flatten the bundles into player ID → task ID → opinion. A bundle is a group of tasks rated
+ * together, so every task in it carries that one rating.
+ */
+export function taskOpinions(state: CrewGameState): Record<string, Record<string, number>> {
+  const result: Record<string, Record<string, number>> = {};
+  for (const pid of Object.keys(state.players)) {
+    result[pid] = {};
+    for (const bundle of state.bundles[pid] ?? []) {
+      for (const taskId of bundle.taskIds) {
+        result[pid][taskId] = bundle.opinion;
+      }
+    }
+  }
+  return result;
 }
 
 // ---------------------------------------------------------------------------

@@ -67,12 +67,12 @@ Keep `docs/pages/data-flow.md` up to date when code changes affect data flow, me
 - `src/games/azul/render.ts` — Azul tile count table renderer
 - `src/games/azul/display.ts` — Azul display menu (shimmer toggle with persistence)
 - `src/games/azul/styles.css` — Azul-specific CSS styles (tile table, shimmer animation)
-- `src/games/crew/types.ts` — Crew types (suit constants, ALL_SUITS, CrewCard, card key helper, SUIT_VALUES)
-- `src/games/crew/process_log.ts` — Crew BGA packet processing (missions, tricks, communications)
-- `src/games/crew/game_state.ts` — CardGuess candidate model, Trick interface, CrewGameState interface, createCrewGameState() factory
+- `src/games/crew/types.ts` — Crew types (suit constants, ALL_SUITS, CrewCard, card key helper, SUIT_VALUES) + free-allocation types (BgaText template shape, CrewTask, TaskBundle, taskLetter)
+- `src/games/crew/process_log.ts` — Crew BGA packet processing (missions, tricks, communications, the free-allocation phase and its opinion bundles)
+- `src/games/crew/game_state.ts` — CardGuess candidate model, Trick interface, CrewGameState interface (hands, tricks, offered tasks, per-player bundles), createCrewGameState() factory
 - `src/games/crew/game_engine.ts` — Crew game engine (candidate narrowing, suit tracking, constraint propagation)
 - `src/games/crew/serialization.ts` — toJSON/fromJSON serialization for Crew game state
-- `src/games/crew/render.ts` — Crew HTML renderer (card grid, suit matrix, trick history)
+- `src/games/crew/render.ts` — Crew HTML renderer (card grid, suit matrix, task opinions, trick history; each section carries a `data-section` hook the capture scripts select on). Task text is BGA's own `${...}` template, filled in here with the card symbols drawn as chips
 - `src/games/crew/styles.css` — Crew-specific CSS styles
 - `src/games/nucleum/types.ts` — Nucleum city names and turn-history action detail types
 - `src/games/nucleum/process_log.ts` — Nucleum BGA packet processing (turn boundaries + chosen actions; consequences dropped)

@@ -1,7 +1,7 @@
 // CrewGameState interface — plain data layer, the serialization boundary.
 
 import type { PlayerInfo } from "../../models/types.js";
-import type { CrewCard } from "./types.js";
+import type { CrewCard, CrewTask, TaskBundle } from "./types.js";
 
 // ---------------------------------------------------------------------------
 // CardGuess — candidate model for unknown card tracking
@@ -37,13 +37,19 @@ export interface CrewGameState {
   /** Player ID → array of CardGuess slots (one per card in hand). */
   hands: Record<string, CardGuess[]>;
   tricks: Trick[];
+  /** Tasks offered this mission, in BGA's own order — which is what fixes their letters. Empty on a mission with no free allocation. */
+  tasks: CrewTask[];
+  /** Player ID → the opinion bundles they submitted while the tasks were being distributed. */
+  bundles: Record<string, TaskBundle[]>;
 }
 
 /** Create a fresh CrewGameState with empty collections. */
 export function createCrewGameState(players: Record<string, PlayerInfo>, playerOrder: string[], currentPlayerId: string): CrewGameState {
   const hands: Record<string, CardGuess[]> = {};
+  const bundles: Record<string, TaskBundle[]> = {};
   for (const pid of Object.keys(players)) {
     hands[pid] = [];
+    bundles[pid] = [];
   }
 
   return {
@@ -53,5 +59,7 @@ export function createCrewGameState(players: Record<string, PlayerInfo>, playerO
     missionNumber: 0,
     hands,
     tricks: [],
+    tasks: [],
+    bundles,
   };
 }
