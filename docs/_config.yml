@@ -1,6 +1,10 @@
 title: BGA Assistant
 description: A Chrome extension for Board Game Arena that keeps track of your games so you don't have to
-remote_theme: just-the-docs/just-the-docs
+# Pinned. Without a ref, jekyll-remote-theme builds from whatever the theme's default branch happens
+# to be, and GitHub Pages caches that, so the site was being served from an untagged commit matching
+# no release. The theme's internals then are not knowable from this repo and can move without a
+# commit here.
+remote_theme: just-the-docs/just-the-docs@v0.12.0
 baseurl: /bga-assistant
 plugins:
   - jekyll-remote-theme
