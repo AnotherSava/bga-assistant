@@ -17,6 +17,9 @@ assets/bga/innovation/sprites/
 # Spare screenshots
 docs/screenshots/spare/
 
+# Scratch space for previews and other throwaway artifacts
+/tmp/
+
 # Packaging
 *.zip
 
