@@ -1,9 +1,9 @@
 title: BGA Assistant
 description: A Chrome extension for Board Game Arena that keeps track of your games so you don't have to
-# Pinned. Without a ref, jekyll-remote-theme builds from whatever the theme's default branch happens
-# to be, and GitHub Pages caches that, so the site was being served from an untagged commit matching
-# no release. The theme's internals then are not knowable from this repo and can move without a
-# commit here.
+# Pinned. Without a ref, jekyll-remote-theme rebuilds from the theme's default branch, so the version
+# serving this site is not knowable from the repo and can move under it with nothing changing here.
+# That matters because the attribution footer suppressed by _includes/nav_footer_custom.html is a
+# theme fallback: which version is serving decides whether the override still reaches it.
 remote_theme: just-the-docs/just-the-docs@v0.12.0
 baseurl: /bga-assistant
 plugins:
