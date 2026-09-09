@@ -771,7 +771,7 @@ async function pushInPageLog(tabId: number): Promise<void> {
   }
   const { rows, atEnd } = rendered;
 
-  const opts = { enabled: true, collapsed: inPageLogCollapsedTabs.has(tabId), showPlayerNames: inPageLogSettings.showPlayerNames, halfTurns, hasMore: !atEnd };
+  const opts = { enabled: true, collapsed: inPageLogCollapsedTabs.has(tabId), showPlayerNames: inPageLogSettings.showPlayerNames, showTimestamps: inPageLogSettings.showTimestamps, halfTurns, hasMore: !atEnd };
 
   // Keyed by game as well as tab: one tab can navigate from one game's table to another's, and
   // the two inject different sheets — a tab-only key would leave the second game wearing the
@@ -830,7 +830,7 @@ function unmountInPageLog(tabId: number): void {
   chrome.scripting.executeScript({
     target: { tabId, allFrames: true },
     func: inPageLogFunction as unknown as () => void,
-    args: [[], { enabled: false, collapsed: false, showPlayerNames: false, halfTurns: INPAGE_LOG_HALF_TURNS, hasMore: false }],
+    args: [[], { enabled: false, collapsed: false, showPlayerNames: false, showTimestamps: true, halfTurns: INPAGE_LOG_HALF_TURNS, hasMore: false }],
     world: "ISOLATED" as chrome.scripting.ExecutionWorld,
   }).catch(() => {});
 }

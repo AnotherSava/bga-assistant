@@ -51,7 +51,7 @@ Keep `docs/pages/data-flow.md` up to date when code changes affect data flow, me
 - `src/games/innovation/turn_history.ts` — Innovation action types (ActionDetail, ActionType) over the shared turn-history kernel
 - `src/games/innovation/render.ts` — Innovation HTML summary renderer
 - `src/games/innovation/config.ts` — Innovation section layout configuration
-- `src/games/innovation/display.ts` — Innovation display menu (section visibility, "Show player names" toggle, in-page log toggles, simplified-card toggle with its size slider, echo-text and opponents'-hands options, police-line toggle with its movement slider, margin updates)
+- `src/games/innovation/display.ts` — Innovation display menu (section visibility, the shared turn-history rows, simplified-card toggle with its size slider, echo-text and opponents'-hands options, police-line toggle with its movement slider, margin updates)
 - `src/games/innovation/compact_header.ts` — compact table header mount for every BGA game (ISOLATED-world, self-contained; moves BGA's status bar into the topbar, placeholders for restore, shortens known over-long prompts per game)
 - `src/games/innovation/compact_header.css` — one-row header layout (collapses BGA's status bar and hides the two redundant board buttons)
 - `src/games/innovation/sticky_panels.ts` — pinned right column for every BGA game (ISOLATED-world, self-contained; measures the frozen bar and the panel stack, publishes them as custom properties, copies the page backdrop)
@@ -79,7 +79,7 @@ Keep `docs/pages/data-flow.md` up to date when code changes affect data flow, me
 - `src/games/nucleum/game_state.ts` — NucleumGameState (the turn history), factory, toJSON/fromJSON
 - `src/games/nucleum/game_engine.ts` — log entries to turn actions: turn grouping, undo rewinds, railway link naming
 - `src/games/nucleum/render.ts` — Nucleum HTML renderer (turn history as the panel's whole summary)
-- `src/games/nucleum/display.ts` — Nucleum display menu (show player names, show in BGA game log)
+- `src/games/nucleum/display.ts` — Nucleum display menu (the shared turn-history rows, compact player panels)
 - `src/games/nucleum/styles.css` — Nucleum panel styles (history list, out-of-turn actor)
 - `src/games/nucleum/player_panels.ts` — compact player panels on BGA's table (ISOLATED-world, self-contained; carries the root class its stylesheet hangs off, and holds the Nucleum-board check)
 - `src/games/nucleum/player_panels.css` — the five resource counters folded onto one line via `zoom` (never per-icon sizing, which mis-crops the pixel-positioned network sprite), worker reserve dropped, every icon filling the same box so all five stand at one height, achievement star and fulfilled-contract card redrawn as inline `data:` SVGs without BGA's black disc and gold ring, first player marked by a corner wedge (a real element, inserted by `player_panels.ts` so it can carry a tooltip) instead of BGA's "1" disc, beginner notice dropped
@@ -100,9 +100,9 @@ Keep `docs/pages/data-flow.md` up to date when code changes affect data flow, me
 - `scripts/migrate-fixture.ts` — one-shot migration for legacy `players: {id: name}` fixtures → `Record<string, PlayerInfo>`
 - `sidepanel.html` — side panel HTML entry point (project root, Vite input)
 - `src/sidepanel/settings.ts` — shared localStorage persistence (loadSetting/saveSetting with typed defaults)
-- `src/sidepanel/turn_history_settings.ts` — settings shared by every game that shows a turn history (show-player-names, mirrored into the in-page store)
+- `src/sidepanel/turn_history_settings.ts` — settings shared by every game that shows a turn history (show-player-names, mirrored into the in-page store; show-timestamps, asked once per surface and not mirrored) plus `buildTurnHistoryOptions`, the menu rows every game with a history appends
 - `src/sidepanel/global_menu.ts` — the help page's eye menu (settings that apply to every BGA table, not one game)
-- `src/sidepanel/inpage_settings.ts` — settings for what the extension changes on BGA's own page (in-page log, compact header, pinned panels, simplified cards with their opponents'-hands sub-option) in `chrome.storage.local` (shared by the side panel and the service worker, which has no localStorage)
+- `src/sidepanel/inpage_settings.ts` — settings for what the extension changes on BGA's own page (in-page log with its own timestamp toggle, compact header, pinned panels, simplified cards with their opponents'-hands sub-option) in `chrome.storage.local` (shared by the side panel and the service worker, which has no localStorage)
 - `src/sidepanel/` — side panel UI (game-type-aware rendering dispatch)
 - `assets/bga/innovation/` — Innovation game data (card_info.json, cards/ (WebP), icons/, sprites/)
 - `assets/bga/azul/tiles/` — Azul tile color SVGs

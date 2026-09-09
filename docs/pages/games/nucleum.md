@@ -61,6 +61,7 @@ The same three players either way — 706 pixels of column, and then 368:
 - **Out-of-turn actions attributed**: an action taken during another player's turn — what a railway colour match can hand you — carries that player's name in their colour
 - **In BGA's game log**: the same history can render into BGA's own log column, where it stays visible and keeps updating with the side panel closed. The column shows one log or the other, never both; a lightbulb in its header switches between them, and "more..." below the history widens the window for the current table
 - **Show player names**: display option switching rows between "you"/"opp" and full player names (persisted across sessions)
+- **Show timestamps**: display option stamping each history row with the time it happened at, which can be cleared to leave the rows bare, asked separately for the panel and for BGA's log column so each surface answers for itself; both start stamped
 - **Compact player panels**: display option folding BGA's five stacked resource counters onto one line, taking a panel from 78 pixels to 20 — see [Compact player panels](#compact-player-panels) above
 
 ## Standard features

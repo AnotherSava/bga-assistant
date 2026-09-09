@@ -485,7 +485,7 @@ hidden with nothing in its place and no control to bring it back.
 
 ```
 ⇩   executeScript arguments (JSON-serialized, not a message):
-⇩   [ Array<{ key, html }>, { enabled, collapsed, showPlayerNames, halfTurns, hasMore } ]
+⇩   [ Array<{ key, html }>, { enabled, collapsed, showPlayerNames, showTimestamps, halfTurns, hasMore } ]
 ```
 
 ***In-Page Game Log***
@@ -522,22 +522,40 @@ table.
 
 ### Settings storage
 
-Every one of these ships off. The four that touch BGA's own page — the in-page log, the compact
-header, the pinned panels and the simplified cards — are the exception on an **unpacked build**, where they default on
+Every one of these ships off except `showTimestamps`: BGA's log column has always carried the time
+on each row, so that setting exists to take the stamp away rather than to add it, and defaulting it
+off would change what everyone already using the log sees. The settings that put something on BGA's
+own page — the in-page log, the compact header, the pinned panels, the simplified cards and the rest
+below them — are the other exception, on an **unpacked build** where they default on
 — `isUnpackedBuild()` compares `chrome.runtime.id` against the published id, so they are live while
 being worked on without a switch after every extension reload, and reach store users only if they
 ask for them.
 
 The in-page settings live in `chrome.storage.local` under `bgaa_inpage_log`
-(`{ enabled, showPlayerNames, compactHeader, progressionOnly, stickyPanels, simplifiedCards, cardScale, echoText, opponentHands, actionTint, actionTintSpeed }`), not in the `localStorage` used by every other
+(`{ enabled, showPlayerNames, showTimestamps, compactHeader, progressionOnly, stickyPanels, simplifiedCards, cardScale, echoText, opponentHands, compactPlayerPanels, actionTint, actionTintSpeed }`), not in the `localStorage` used by every other
 display preference. Three contexts need them and `localStorage` cannot serve all three: the service
 worker has none at all, and a content script's belongs to `boardgamearena.com` rather than the
 extension. The key is still named for the log alone, which was the first of these settings:
 renaming it would silently drop what every existing user has already chosen. The panel's
 own "Show player names" toggle mirrors its value into this object so a single checkbox drives both
 surfaces — from `src/sidepanel/turn_history_settings.ts`, shared by every game with a history rather
-than copied into each game's display menu, so the two cannot drift apart. The starting window is the `INPAGE_LOG_HALF_TURNS` constant rather than a stored field,
+than copied into each game's display menu, so the two cannot drift apart. Timestamps deliberately do
+*not* mirror: the panel keeps its answer in `localStorage` under `bgaa_show_timestamps` and the
+column reads `showTimestamps` here, so the two surfaces are stamped independently. The starting window is the `INPAGE_LOG_HALF_TURNS` constant rather than a stored field,
 so widening can never become the new starting point.
+
+Both surfaces hide a stamp with a CSS class rather than by rendering the row without one —
+`body.hide-timestamps` in the panel, `#bgaa-inpage-log.hide-timestamps` in the column. The rows
+carry the time either way, so flipping the setting never invalidates the in-page reconcile, which
+replaces any row whose HTML changed.
+
+Hiding a stamp does change how wide a row draws, and in the panel that matters: Innovation's
+`#turn-history` is a fixed overlay with no width of its own, and its hand sections reserve a right
+margin measured from it. So both panel toggles — timestamps and player names — take an
+`onLayoutChange` callback from `buildTurnHistoryOptions`, fired *after* the class is applied, which
+Innovation wires to `updateHandMargins()`. `applyInnovationDisplayOptions()` applies the classes
+before its own measuring pass for the same reason: measuring first reserves room for the layout
+being replaced.
 
 ## Data Flow: Compact Table Header
 

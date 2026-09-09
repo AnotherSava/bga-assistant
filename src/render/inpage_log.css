@@ -104,10 +104,13 @@ html.bgaa-hide-bga-log #logs { display: none !important; }
 #bgaa-inpage-log.at-end #bgaa-inpage-log-footer { display: none; }
 #bgaa-inpage-log.collapsed #bgaa-inpage-log-header { margin-bottom: 0; }
 
-/* Player names are toggled per-surface. BGA owns <body>, so this is scoped to the container
- * rather than the panel's `body.show-player-names`. */
+/* Player names and timestamps are toggled per-surface. BGA owns <body>, so these are scoped to
+ * the container rather than the panel's `body.show-player-names` / `body.hide-timestamps`. The
+ * timestamp rule is the negative of the other two because this log has always been stamped, so
+ * the class marks the exception rather than the norm. */
 #bgaa-inpage-log.show-player-names .th-name-short { display: none; }
 #bgaa-inpage-log.show-player-names .th-name-full { display: inline; }
+#bgaa-inpage-log.hide-timestamps .th-time { display: none; }
 
 /* Tooltip reveal: top layer, not :hover.
  *

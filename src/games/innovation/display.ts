@@ -1,8 +1,9 @@
-// Innovation display options: section visibility + show-player-names toggle, with localStorage persistence.
+// Innovation display options: section visibility plus the shared turn-history rows, with
+// localStorage persistence.
 
 import { SECTION_IDS, SECTION_LABELS, ECHOES_ONLY_SECTIONS, RELICS_ONLY_SECTIONS } from "./config.js";
 import { loadSetting, saveSetting } from "../../sidepanel/settings.js";
-import { loadShowPlayerNames, saveShowPlayerNames, applyShowPlayerNames } from "../../sidepanel/turn_history_settings.js";
+import { buildTurnHistoryOptions, applyTurnHistorySettings } from "../../sidepanel/turn_history_settings.js";
 import { loadInPageSettings, saveInPageSettings, CARD_SCALE_MIN, CARD_SCALE_MAX, CARD_SCALE_STEP, ACTION_TINT_SPEED_MIN, ACTION_TINT_SPEED_MAX, ACTION_TINT_SPEED_STEP } from "../../sidepanel/inpage_settings.js";
 
 export interface InnovationDisplayContext {
@@ -52,40 +53,10 @@ export function buildInnovationDisplayMenu(panel: HTMLElement, context: Innovati
     });
   }
 
-  // Show player names toggle (turn-history sub-option)
-  {
-    const label = document.createElement("label");
-    label.className = "sub-option";
-    const checkbox = document.createElement("input");
-    checkbox.type = "checkbox";
-    checkbox.checked = loadShowPlayerNames();
-    label.appendChild(checkbox);
-    label.appendChild(document.createTextNode("Show player names"));
-    panel.appendChild(label);
-
-    checkbox.addEventListener("change", () => {
-      saveShowPlayerNames(checkbox.checked);
-      applyShowPlayerNames();
-    });
-  }
-
-  // In-page game log (turn-history sub-options). Stored in chrome.storage.local rather than
-  // localStorage because the service worker renders that log and cannot read the panel's storage.
-  {
-    const logLabel = document.createElement("label");
-    logLabel.className = "sub-option";
-    const logCheckbox = document.createElement("input");
-    logCheckbox.type = "checkbox";
-    logLabel.appendChild(logCheckbox);
-    logLabel.appendChild(document.createTextNode("Show in BGA game log"));
-    panel.appendChild(logLabel);
-
-    void loadInPageSettings().then((settings) => { logCheckbox.checked = settings.enabled; });
-
-    logCheckbox.addEventListener("change", () => {
-      void saveInPageSettings({ enabled: logCheckbox.checked });
-    });
-  }
+  // Player names, both surfaces' timestamps and the in-page log — all sub-options of the turn
+  // history above, so they hang one level in. The panel toggles change how wide the history
+  // overlay draws, and the hands reserve their right margin from that, so both re-measure.
+  buildTurnHistoryOptions(panel, { nested: true, onLayoutChange: () => updateHandMargins(context) });
 
   // Simplified cards on BGA's own table. Stored alongside the other in-page settings for the same
   // reason: the service worker applies it, and it has no localStorage. Top-level rather than a
@@ -288,6 +259,9 @@ export function applySectionVisibility(): void {
 
 export function applyInnovationDisplayOptions(context: InnovationDisplayContext): void {
   applySectionVisibility();
+  // Before the visibility pass, not after: these classes decide whether a row carries a timestamp
+  // and a full name, and the pass below measures the overlay they size to reserve the hands'
+  // margin. Measuring first reserves room for the layout being replaced.
+  applyTurnHistorySettings();
   applyTurnHistoryVisibility(context);
-  applyShowPlayerNames();
 }

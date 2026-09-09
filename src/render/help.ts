@@ -102,6 +102,7 @@ export function renderHelp(errorMessage?: string, gameName?: GameName): string {
     <div class="help-sections-grid">
       <div class="help-grid-item"><span><b>In the panel.</b> Recent player actions (meld, draw, dogma, endorse, achieve, promote) are shown in the top-right corner, newest first. Each player\u2019s row renders in their actual BGA-assigned color, and your own row is highlighted with a subtle background tint of that color so it stays distinguishable. Each action includes a timestamp. Turns that begin with an Artifact on display also show the pre-turn choice (pass, return, or dogma) as an italicized line above the regular actions. Toggle visibility via the ${ICON_EYE} menu.</span></div>
       <div class="help-grid-item"><span><b>In BGA's log.</b> The same history can render in BGA\u2019s own game log instead, where it stays visible and keeps updating with the side panel closed \u2014 enable \u201CShow in BGA game log\u201D in the ${ICON_EYE} menu. There it reads newest-first to match BGA\u2019s log. The column shows one log or the other, never both. A lightbulb in the header switches between them \u2014 lit while the turn history is up, dim while BGA\u2019s log is. \u201CMore...\u201D below the history widens the window, and disappears once the whole game is shown. Both that and the switch only last for the current table; opening a table starts from the ${ICON_EYE} menu setting again.</span></div>
+      <div class="help-grid-item"><span><b>Timestamps.</b> \u201CShow timestamps\u201D stamps each row with the time it happened at; clear it to leave the action alone. It is asked twice \u2014 once for the panel, and once indented under \u201CShow in BGA game log\u201D for the column \u2014 so each surface answers for itself. Both start stamped. Clearing it changes the column more than the panel: rows wrap there, and a stamp can push the action onto a second line.</span></div>
     </div>
   </details>
 
@@ -199,6 +200,7 @@ export function renderHelp(errorMessage?: string, gameName?: GameName): string {
     <div class="help-section-title">Toggles</div>
     <div class="help-sections-grid">
       <div class="help-grid-item"><span class="help-grid-label">Show player names</span><span> Spell names out rather than \u201Cyou\u201D/\u201Copp\u201D</span></div>
+      <div class="help-grid-item"><span class="help-grid-label">Show timestamps</span><span> Stamp each row with the time it happened at; clear it to leave the action alone. Asked twice \u2014 once for the panel, and once indented under the log below for BGA\u2019s own column \u2014 so each surface answers for itself; both start stamped</span></div>
       <div class="help-grid-item"><span class="help-grid-label">Show in BGA game log</span><span> Render the same history into BGA\u2019s own log column, where it stays visible with the side panel closed. The column shows one log or the other, never both; a lightbulb in its header switches between them, and \u201Cmore...\u201D below the history widens the window for the current table</span></div>
     </div>
   </div>

@@ -12,7 +12,7 @@
  * injection. Rows arrive pre-rendered by the service worker, so the card database never
  * enters the page.
  */
-export function inPageLogFunction(rows: { key: string; html: string }[], opts: { enabled: boolean; collapsed: boolean; showPlayerNames: boolean; halfTurns: number; hasMore: boolean }): void {
+export function inPageLogFunction(rows: { key: string; html: string }[], opts: { enabled: boolean; collapsed: boolean; showPlayerNames: boolean; showTimestamps: boolean; halfTurns: number; hasMore: boolean }): void {
   const HIDE_CLASS = "bgaa-hide-bga-log";
   const logsWrap = document.querySelector("#logs_wrap");
   if (!logsWrap) return;  // Not the board frame (shell/loader frames), or BGA restructured the log area.
@@ -146,6 +146,9 @@ export function inPageLogFunction(rows: { key: string; html: string }[], opts: {
   container.classList.toggle("at-end", !opts.hasMore);
   container.dataset.collapsed = String(opts.collapsed);
   container.classList.toggle("show-player-names", opts.showPlayerNames);
+  // Hidden by a class rather than by rendering the rows without a time: the reconcile below
+  // replaces any row whose HTML changed, so a re-render would rebuild the whole list on a toggle.
+  container.classList.toggle("hide-timestamps", !opts.showTimestamps);
   container.classList.toggle("collapsed", opts.collapsed);
 
   // Exactly one log is shown at a time: ours, or BGA's.

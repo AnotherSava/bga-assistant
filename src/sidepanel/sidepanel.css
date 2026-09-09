@@ -195,6 +195,9 @@ body {
 /* Options belonging to the toggle above them. Indents build on the 22px base rather than
  * replacing it, so a sub-option never sits further left than its parent. */
 #section-selector label.sub-option { padding-left: 38px; }
+/* A second level, for an option belonging to a sub-option — the in-page log's own timestamps hang
+ * off the log, which itself hangs off the turn history. Same 16px step as the level above. */
+#section-selector label.sub-option-2 { padding-left: 54px; }
 /* A setting held on a slider rather than a checkbox. Keeps the sub-option indent so it still reads
  * as belonging to the toggle above it. The readout reserves room for the longest value any slider
  * shows — the movement slider's "static", 6 cells of the panel's monospace font — so this row (the
@@ -418,6 +421,9 @@ details.help-section[open] > summary.help-section-title .help-section-preview { 
 #turn-history:empty { display: none; }
 body.show-player-names .th-name-short { display: none; }
 body.show-player-names .th-name-full { display: inline; }
+/* The negative of the two above: the panel has always stamped its rows, so the class marks the
+ * exception. The space after the time is inside the span, so it goes with it. */
+body.hide-timestamps .th-time { display: none; }
 .th-card:hover > .card-tip,
 .th-card:hover > .card-tip-text { display: block; }
 

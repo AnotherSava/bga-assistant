@@ -65,7 +65,7 @@ src/
     sidepanel.ts             Receives data, triggers render, handles downloads
     sidepanel.css            Dark theme, font declarations, card grids, tooltips
     settings.ts              localStorage persistence: loadSetting/saveSetting with typed defaults
-    turn_history_settings.ts Settings shared by every game that shows a turn history
+    turn_history_settings.ts Settings shared by every game that shows a turn history, and their menu rows
     inpage_settings.ts       chrome.storage.local settings for what is changed on BGA's own page
     global_menu.ts           The help page's eye menu: settings that apply to every BGA table
   models/
@@ -114,7 +114,7 @@ src/
       game_state.ts          NucleumGameState (the turn history) + toJSON/fromJSON
       game_engine.ts         Log entries -> turn actions: grouping, undo rewinds, railway links
       render.ts              NucleumGameState -> HTML turn history
-      display.ts             Nucleum display menu (player names, in-page log)
+      display.ts             Nucleum display menu (shared history rows, compact player panels)
       styles.css             Nucleum-specific CSS (history list, out-of-turn actor)
       player_panels.ts       In-page surface: BGA's player panels folded onto one line
       player_panels.css      The fold, every rule scoped under the mount's class

@@ -10,7 +10,7 @@ import { fileURLToPath } from "url";
 
 const thisDir = dirname(fileURLToPath(import.meta.url));
 
-const OPTS = { enabled: true, collapsed: false, showPlayerNames: false, halfTurns: 3, hasMore: true };
+const OPTS = { enabled: true, collapsed: false, showPlayerNames: false, showTimestamps: true, halfTurns: 3, hasMore: true };
 
 function row(key: string, text: string) {
   return { key, html: `<div class="turn-action" data-row-key="${key}">${text}</div>` };
@@ -101,6 +101,27 @@ describe("inPageLogFunction mounting", () => {
     inPageLogFunction([row("a", "x")], { ...OPTS, showPlayerNames: true });
     expect(document.getElementById("bgaa-inpage-log")!.classList.contains("show-player-names")).toBe(true);
     expect(document.body.classList.contains("show-player-names")).toBe(false);
+  });
+
+  it("marks the container when timestamps are off, and leaves body alone", () => {
+    inPageLogFunction([row("a", "x")], { ...OPTS, showTimestamps: false });
+    expect(document.getElementById("bgaa-inpage-log")!.classList.contains("hide-timestamps")).toBe(true);
+    expect(document.body.classList.contains("hide-timestamps")).toBe(false);
+  });
+
+  it("carries no timestamp class while they are shown, and drops it again on a re-push", () => {
+    inPageLogFunction([row("a", "x")], OPTS);
+    expect(document.getElementById("bgaa-inpage-log")!.classList.contains("hide-timestamps")).toBe(false);
+    inPageLogFunction([row("a", "x")], { ...OPTS, showTimestamps: false });
+    inPageLogFunction([row("a", "x")], OPTS);
+    expect(document.getElementById("bgaa-inpage-log")!.classList.contains("hide-timestamps")).toBe(false);
+  });
+
+  it("keeps row nodes when only the timestamp setting flips", () => {
+    inPageLogFunction([row("a", "x")], OPTS);
+    const before = rowsContainer().children[0];
+    inPageLogFunction([row("a", "x")], { ...OPTS, showTimestamps: false });
+    expect(rowsContainer().children[0]).toBe(before);
   });
 });
 

@@ -23,9 +23,11 @@ A compact sidebar shows recent actions — meld, draw, dogma, endorse, achieve, 
 
 ![Innovation turn history](../../screenshots/innovation-history.png)
 
+"Show timestamps" in the eye menu stamps each row with the time it happened at; clear it to leave the action alone. It is on by default and belongs to the panel only — BGA's log column below has a toggle of its own, so a history you read at a glance on the table can go undated while the panel keeps its stamps, or the other way round.
+
 ### In the BGA game log
 
-The same turn history can render directly in BGA's own log column instead of the side panel, where it stays visible and keeps updating with the panel closed. Enable it from the eye menu with "Show in BGA game log". Like the panel, it reads newest-first — matching BGA's log — and shows the same action lines, but timestamps them with the time only: rows wrap in BGA's narrow column, and the date would cost a line. Card names keep their hover tooltips.
+The same turn history can render directly in BGA's own log column instead of the side panel, where it stays visible and keeps updating with the panel closed. Enable it from the eye menu with "Show in BGA game log". Like the panel, it reads newest-first — matching BGA's log — and shows the same action lines, but timestamps them with the time only: rows wrap in BGA's narrow column, and the date would cost a line. It has a "Show timestamps" of its own, indented under it; clearing that leaves the rows bare — worth more here than in the panel, since a stamp on a wrapping row can push the action onto a second line. Card names keep their hover tooltips.
 
 The column shows one log or the other, never both. A lightbulb in the header switches between them — lit while the turn history is up, dim while BGA's log is — so neither list is out of reach with the side panel closed. "More..." at the foot of the history widens the window beyond the default nine half-turns, and disappears once the whole game is shown. Both that and the switch are temporary: they last for the table you're on, and a reload or a different table starts from the eye-menu setting again.
 
@@ -266,6 +268,7 @@ The deck section shows remaining cards per age, with known cards revealed by nam
 - **Compact table header extras**: on top of the shared behaviour, Innovation's "Show compact" and "Browse all cards" buttons are hidden (the card list here covers the second), and "Look at all cards in piles" becomes an eye icon in the header's left corner
 - **Police-line highlight**: diagonal amber hazard stripes across BGA's top bar whenever you must act during another player's turn, so an asynchronous game cannot leave a decision waiting unnoticed; it stays dark on your own turn and on your own dogma choices, and a "Movement" slider scrolls the stripes from a still band to a fast barber pole
 - **Player labels**: "Show player names" toggle in the display menu switches turn-history labels between "you/opp" (default) and full BGA player names; coloring applies in either mode
+- **Timestamps**: "Show timestamps" stamps each turn-history row with the time it happened at and can be cleared to leave the rows bare, asked separately for the panel and for BGA's log column so each surface answers for itself; both start stamped
 - **Section selector**: eye button to show/hide entire sections (including turn history visibility)
 - **Hover tooltips**: known cards show their full face image on hover; narrowed unknown cards display their candidate count and show every remaining candidate as mini card icons on hover
 

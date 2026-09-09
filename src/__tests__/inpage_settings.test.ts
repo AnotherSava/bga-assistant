@@ -73,6 +73,16 @@ describe("defaults", () => {
     expect(INPAGE_DEFAULTS.compactPlayerPanels).toBe(false);
   });
 
+  it("keeps the log's timestamps on — the one flag here that is not an opt-in", async () => {
+    // The in-page log has always stamped its rows, so this is a setting to take something away
+    // rather than to add it, and it must not switch off under anyone who never asked.
+    expect(INPAGE_DEFAULTS.showTimestamps).toBe(true);
+    (globalThis as any).chrome.runtime = { id: "idjijmafngfkkbppkgopldomfhdcedig" };
+    expect((await loadInPageSettings()).showTimestamps).toBe(true);
+    (globalThis as any).chrome.runtime = { id: "unpackedbuildidfromsomelocalpath" };
+    expect((await loadInPageSettings()).showTimestamps).toBe(true);
+  });
+
   it("turns everything that touches BGA's own page on for an unpacked build", async () => {
     // Local builds have them all on: that is where they are worked on, and switching them back on
     // after every extension reload is friction with no purpose. The published id is the only one the
@@ -108,7 +118,7 @@ describe("defaults", () => {
     // Settings saved before the compact header existed must keep their own values and pick up the
     // new field's default, not be reset by it.
     storage[INPAGE_LOG_KEY] = { enabled: true, showPlayerNames: true };
-    expect(await loadInPageSettings()).toEqual({ enabled: true, showPlayerNames: true, compactHeader: false, progressionOnly: false, stickyPanels: false, simplifiedCards: false, cardScale: 100, echoText: false, opponentHands: false, compactPlayerPanels: false, actionTint: false, actionTintSpeed: 3 });
+    expect(await loadInPageSettings()).toEqual({ enabled: true, showPlayerNames: true, showTimestamps: true, compactHeader: false, progressionOnly: false, stickyPanels: false, simplifiedCards: false, cardScale: 100, echoText: false, opponentHands: false, compactPlayerPanels: false, actionTint: false, actionTintSpeed: 3 });
   });
 });
 

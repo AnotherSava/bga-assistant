@@ -10,7 +10,7 @@
 // and a content script's localStorage belongs to boardgamearena.com rather than the extension.
 // chrome.storage.local is the only store all three surfaces share.
 //
-// The existing 17 bgaa_ localStorage keys stay where they are — they are read inline from
+// The other bgaa_ localStorage keys stay where they are — they are read inline from
 // render paths, so converting them to async would be a large unrelated refactor.
 
 /** Storage key. Still named for the log alone, which was the first of these settings: renaming it
@@ -31,6 +31,10 @@ export interface InPageSettings {
   enabled: boolean;
   /** Show full player names rather than "you"/"opp". Mirrored from the panel's own toggle. */
   showPlayerNames: boolean;
+  /** Stamp each row of that log with the time it happened at. Its own setting rather than a mirror
+   *  of the panel's: BGA's column is the narrower of the two surfaces, so a reader who wants the
+   *  time in one may well not want it in the other. */
+  showTimestamps: boolean;
   /** Fold BGA's status bar and Innovation's board buttons into the topbar, as a single row. */
   compactHeader: boolean;
   /** Leave the progression figure alone in the folded header, without the table id and move number. */
@@ -77,6 +81,9 @@ export const ACTION_TINT_SPEED_DEFAULT = 3;
 export const INPAGE_DEFAULTS: InPageSettings = {
   enabled: false,
   showPlayerNames: false,
+  // On, unlike every other flag here: the log has always been stamped, and defaulting it off would
+  // take something away from everyone already using it.
+  showTimestamps: true,
   compactHeader: false,
   progressionOnly: false,
   stickyPanels: false,
@@ -119,7 +126,8 @@ export function isUnpackedBuild(): boolean {
  * on and switching them back on after every reload is friction with no purpose. `echoText` rides
  * along on a local build too — it restyles the simplified cards, which are on there — so an Echo card's
  * effect is legible while it is being worked on. `showPlayerNames` and `progressionOnly` stay off
- * either way, only restyling what the others already turned on. A local build also starts the
+ * either way, and `showTimestamps` stays on either way, all three only restyling what the others
+ * already turned on. A local build also starts the
  * simplified cards at `CARD_SCALE_LOCAL_DEFAULT` rather than the store's 100%, for the same reason.
  */
 function buildDefaults(): InPageSettings {
