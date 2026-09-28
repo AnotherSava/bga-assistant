@@ -93,8 +93,8 @@ Three sibling subprojects under a shared BGA workspace directory:
 
 ## Claude Code Settings
 - User-level `~/.claude/settings.json` has a `PreToolUse` hook blocking Bash commands starting with `cd` AND commands containing absolute paths to the project folder (Windows `D:/...` or Unix `/d/...` style)
-- Project `.claude/settings.json` is a symlink to user-level settings (gitignored)
-- `.claude/settings.local.json` has personal auto-approved permissions (gitignored)
+- No project `.claude/settings.json` — the user-level settings already apply here; a project one would be committed (conventions v2 forbids ignoring it)
+- `.claude/settings.local.json` has personal auto-approved permissions (ignored by the global excludes file)
 - On Windows, Git Bash `ln -s` silently copies — but `cmd //c mklink` is not the fix either, since MSYS mangles the switch before cmd sees it; see `~/.claude/learnings/git-bash-windows-symlinks.md` for what does work
 - `jq` is NOT available — use `python -c` for JSON parsing in hooks
 - Skill `allowed-tools` patterns: always use colon before wildcard — `Bash(git reset HEAD:*)` not `Bash(git reset HEAD*)`

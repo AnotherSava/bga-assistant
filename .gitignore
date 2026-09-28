@@ -10,10 +10,6 @@ dist/
 data/
 assets/bga/innovation/sprites/
 
-# IDE and tools
-.claude/settings.json
-.claude/settings.local.json
-
 # Spare screenshots
 docs/screenshots/spare/
 
@@ -24,7 +20,6 @@ docs/screenshots/spare/
 *.zip
 
 # Ralphex
-.ralphex/
 coverage/
 docs/plans/*
 !docs/plans/completed/
