@@ -143,7 +143,7 @@ function azulSnapshots(log: AzulGameLog): Snapshot[] {
   const snapshots: Snapshot[] = [];
   let turn = 0;
   for (let i = 0; i < log.log.length; i++) {
-    if (log.log[i].type === "factoriesFilled") turn++;
+    if (log.log[i].type === "factoryFill") turn++;
     const slicedLog = { ...log, log: log.log.slice(0, i + 1) };
     const state = processGameState(slicedLog, "azul", new CardDatabase([]));
     snapshots.push({ turn, entry: i, state });
