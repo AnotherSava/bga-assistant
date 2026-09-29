@@ -21,7 +21,7 @@ function addDir(dirPath: string, exclude?: (name: string) => boolean): void {
   const full = path.join(root, dirPath);
   for (const entry of fs.readdirSync(full, { recursive: true, withFileTypes: true })) {
     if (!entry.isFile()) continue;
-    const rel = path.join(entry.parentPath ?? entry.path, entry.name);
+    const rel = path.join(entry.parentPath, entry.name);
     const relFromRoot = path.relative(root, rel);
     if (exclude && exclude(relFromRoot)) continue;
     zip.file(relFromRoot.replace(/\\/g, "/"), fs.readFileSync(rel));

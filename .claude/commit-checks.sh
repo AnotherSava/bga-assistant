@@ -14,8 +14,8 @@
 # on a developer's machine. Nothing else invokes it. It runs first so a convention violation is
 # reported before the slower steps.
 #
-# What a pass does not cover: `scripts/*.ts` sit outside tsconfig's `include`, so the CLI scripts are
-# never type-checked, and nothing here loads the built extension into a browser.
+# What a pass does not cover: nothing here loads the built extension into a browser, and the CLI
+# scripts under `scripts/` are type-checked but never run.
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
