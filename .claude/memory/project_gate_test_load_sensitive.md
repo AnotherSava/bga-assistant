@@ -1,6 +1,6 @@
 ---
 name: project_gate_test_load_sensitive
-description: One sidepanel test has only ~2.8x headroom on its 5s timeout, so the commit gate fails it under concurrent machine load with nothing wrong in the change set
+description: The slowest sidepanel test failed the commit gate under concurrent load on vitest's 5s default, with nothing wrong in the change set; vite.config.ts now sets testTimeout to 15s suite-wide
 metadata:
   type: project
 ---
@@ -18,6 +18,8 @@ running on the same machine. The test passed alone at 1792 ms, and the full gate
 as a regression sends the next session hunting a defect that is not there — and the gate runs exactly
 when other work is most likely to be in flight.
 
-**How to apply:** on a timeout failure in this test, re-run it alone before investigating anything,
-then re-run the gate with nothing else running. Treat it as a real failure only if it still fails
-idle. Raising its timeout is the fix if it starts recurring; nothing has needed that yet.
+**How to apply:** `vite.config.ts` now sets `testTimeout: 15000`, which is the fix — it covers every
+test in the suite rather than this one, since nothing makes this case special beyond being the
+slowest. A timeout failure after that means a slowdown well past the 3x already measured, so treat
+it as real: re-run the case alone first, then the gate with nothing else running, and investigate if
+it still fails idle.

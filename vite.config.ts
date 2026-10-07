@@ -66,6 +66,10 @@ export default defineConfig({
   test: {
     globals: true,
     environment: "node",
+    // Vitest defaults to 5s, and the slowest case here runs ~1.8s alone. The commit gate is
+    // routinely run while other work loads the machine, which stretched one case to 5.6s and
+    // failed it as a timeout — a verdict that says nothing about the code under test.
+    testTimeout: 15000,
     coverage: {
       include: ["src/**/*.ts"],
       exclude: ["src/__tests__/**"],
