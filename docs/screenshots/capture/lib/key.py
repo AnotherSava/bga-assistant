@@ -31,7 +31,7 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw
 
-from border import contrast_grey
+from border import contrast_grey, keep_raw
 
 SS = 8            # mask supersampling, for a clean antialiased arc
 INSET = 1         # pixels dropped from the subject's edge; see the module docstring
@@ -127,6 +127,9 @@ def key(path: Path) -> tuple[list, int | None]:
             op[x, y] = (*px[x, y], a)
             if sp[x, y]:
                 op[x, y] = (v, v, v, 255)
+    # The stroke this writes is a frame, and the wood it drops cannot be recovered from the result,
+    # so the raw is kept here as well as at the border step. `trim_margin` has already run.
+    keep_raw(path)
     out.save(path)
     return rects, v
 

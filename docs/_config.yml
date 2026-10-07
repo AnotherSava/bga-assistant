@@ -14,3 +14,10 @@ heading_anchors: true
 
 exclude:
   - plans/
+  # Inputs to the frame step; Jekyll would otherwise publish each one beside its own frame.
+  - screenshots/raw/
+  # The capture tooling and its manifest are developer files, and Jekyll serves everything under
+  # docs/ that is not listed here. Keep the trailing slash: entries are matched by prefix, so a bare
+  # `screenshots/capture` would also drop any published frame whose name began "capture".
+  - screenshots/capture/
+  - screenshots/screenshots.json

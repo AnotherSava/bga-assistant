@@ -24,5 +24,9 @@ worked. A frame that differs by a pixel of height with a mean channel delta of a
 sub-pixel reflow caused by a section above it changing size, not a wrong index — content-identical,
 and it can come back on its own once the section above settles.
 
+A re-run also writes a second file per frame: the capture as it stood before the frame step, at
+`docs/screenshots/raw/<frame file name>`. It shows as a new file until that frame's raw is committed,
+and being the pre-frame capture it never matches the frame beside it.
+
 Also watch the selectors: sections are picked by `data-section` hooks precisely because
 `nth-of-type` broke when a new section was inserted between two existing ones.

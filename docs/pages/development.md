@@ -141,21 +141,37 @@ assets/
 docs/
   screenshots/
     screenshots.json         Screenshot manifest: what each frame shows and its replacement policy
+    raw/                     Each frame's capture as it stood before the frame step
     capture/
       lib/render.ts          Renders a shot's subject to standalone HTML from a committed fixture
       lib/shoot.py           Headless Chromium capture (Playwright), framed to a uniform margin
+      lib/key.py             Lifts BGA's page background off a hand-taken shot, then strokes its outline
+      lib/border.py          Stamps the hairline a frame needs to show its own edge on either theme
       fixtures/              Game logs the captures render, committed so a shot is reproducible
+      _common.sh             Shared setup every capture script sources: the render and shoot helpers
       <id>.sh                One script per screenshot, named for its manifest entry
 ```
 
 ### Documentation screenshots
 
-The shots in `docs/pages/` that show the side panel are captured by script rather than by hand —
-`bash docs/screenshots/capture/<id>.sh` rebuilds one. Each drives the panel's own renderers against a
-committed fixture, so a capture needs no BGA session, no live table and no login, and reruns
-identically on any machine. `docs/screenshots/screenshots.json` records what every frame shows and
-whether it may be replaced automatically; the shots of BGA's own page are marked `never`, since only
-a real table can produce them.
+Most of the shots in `docs/pages/` that show the side panel are captured by script rather than by
+hand — `bash docs/screenshots/capture/<id>.sh` rebuilds one. Each drives the panel's own renderers
+against a committed fixture, so a capture needs no BGA session, no live table and no login, and
+reruns identically on any machine. `docs/screenshots/screenshots.json` records what every frame
+shows, how it was captured, and whether it may be replaced automatically. A frame with no
+`capture.command` is one no script can produce: the shots of BGA's own page, and the panel shots
+whose state only a live table offers.
+
+Every frame step writes back to its input, so the capture is copied to `docs/screenshots/raw/` under
+the frame's own name immediately before the frame goes on — in `border.py` when it stamps the
+hairline, and in `key.py` when it keys a hand-taken shot and strokes the outline. A scripted capture
+reaches the same copy through `border.py`. Those copies are committed, which is what lets the
+framing change without taking the picture again; for a frame marked `never` that would otherwise
+mean waiting for a live table to offer the state. A shot written anywhere outside
+`docs/screenshots/` is a probe and keeps nothing, and the site config excludes the directory so that
+Jekyll does not publish each raw beside its own frame.
+
+Frames captured before this was added have no raw, and each gains one the next time it is taken.
 
 ### Data flow
 

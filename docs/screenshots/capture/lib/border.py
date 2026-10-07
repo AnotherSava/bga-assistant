@@ -17,6 +17,7 @@ a border drawn around the wrong thing.
 Usage: python border.py <file.png> [<file.png> ...] [--force]
 """
 
+import shutil
 import sys
 from pathlib import Path
 
@@ -26,6 +27,28 @@ from PIL import Image
 # at a glance on either theme, and clamped below so a mid-grey edge still gets a usable line.
 CONTRAST = 130
 DARKEST, LIGHTEST = 30, 225
+
+# This file sits at docs/screenshots/capture/lib/, so the committed frames are two levels up, and
+# each one's pre-frame capture is kept beside them under the same name.
+SCREENSHOTS_DIR = Path(__file__).resolve().parents[2]
+RAW_DIR = SCREENSHOTS_DIR / "raw"
+
+
+def keep_raw(path: Path) -> None:
+    """Copy a committed frame's capture before a frame step saves over it.
+
+    Every frame step here writes back to its input, so without this copy the only way to re-frame a
+    shot is to take the picture again — which for the shots `screenshots.json` marks `never` means
+    waiting for a live table to offer the state. Call it immediately before the save, so the copy is
+    the capture after every crop, trim and colour conversion and before the frame.
+
+    `key` in `key.py` is the other caller. A shot written anywhere but the committed screenshots
+    directory is a probe or an intermediate, and keeps nothing.
+    """
+    if path.parent != SCREENSHOTS_DIR:
+        return
+    RAW_DIR.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(path, RAW_DIR / path.name)
 
 
 def _edge_pixels(image: Image.Image) -> list[tuple[int, int, int]]:
@@ -91,6 +114,7 @@ def stamp(path: Path, force: bool = False) -> int | None:
     width, height = image.size
     framed = Image.new(image.mode, (width + 2, height + 2), colour)
     framed.paste(image, (1, 1))
+    keep_raw(path)
     framed.save(path)
     return value
 
