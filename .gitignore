@@ -16,8 +16,10 @@ docs/screenshots/spare/
 # Packaging
 *.zip
 
-# Ralphex
+# Coverage output
 coverage/
+
+# In-flight plans stay machine-local; completed and draft ones are committed
 docs/plans/*
 !docs/plans/completed/
 !docs/plans/draft/
