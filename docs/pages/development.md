@@ -173,6 +173,10 @@ Jekyll does not publish each raw beside its own frame.
 
 Frames captured before this was added have no raw, and each gains one the next time it is taken.
 
+Forcing a second border is the one exception. Stamping a frame that already carries a hairline under
+`--force` leaves the copy holding the bordered frame rather than the capture, so a later re-frame
+starts from the wrong picture; `keep_raw` in `border.py` says how to recover.
+
 ### Data flow
 
 See [Data Flow Architecture](data-flow) for the full data flow architecture, message protocols, and connection management details.

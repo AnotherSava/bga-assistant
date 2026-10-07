@@ -44,6 +44,10 @@ def keep_raw(path: Path) -> None:
 
     `key` in `key.py` is the other caller. A shot written anywhere but the committed screenshots
     directory is a probe or an intermediate, and keeps nothing.
+
+    One state it gets wrong: stamping an already-bordered frame under `--force` keeps that frame,
+    border and all, as the raw. Re-framing from such a copy doubles the line. Restore the raw from
+    git before forcing a second stamp over a committed frame.
     """
     if path.parent != SCREENSHOTS_DIR:
         return
