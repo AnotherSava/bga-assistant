@@ -88,6 +88,9 @@ Three sibling subprojects under a shared BGA workspace directory:
 - [Settings surface](project_settings_surface.md) — no options page; settings persist via settings.ts localStorage + eye-icon menu (#section-selector), dispatched by statsPageOpen() then game
 - [Turn history lists actions only](project_turn_history_scope.md) — no lines for what an action did; a Fission sweep reads as `dogma Fission` (declined 2026-08-24)
 
+## Testing
+- [One gate test is load-sensitive](project_gate_test_load_sensitive.md) — the sidepanel turn-history render case times out at 5s under concurrent load; re-run it alone before investigating
+
 ## User Preferences
 - [Tests must not read from data/](feedback_tests_no_gitignored_data.md) — data/ is gitignored; inline reproducers or copy into committed __tests__/fixtures/
 
