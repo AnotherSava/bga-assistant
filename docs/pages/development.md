@@ -194,7 +194,7 @@ npx vitest run --coverage       # Run with coverage report
 
 `.github/workflows/build.yml` runs on every push to `main` and on every PR — it lints, tests, packages, and uploads the zip as an Actions artifact (30-day retention). When a `v*` tag is pushed, it additionally creates a GitHub Release with the zip attached.
 
-To cut a new release, run the project-local `/release` skill. It bumps `manifest.json` + `package.json`, commits and pushes, drafts release notes from commits since the last tag for review, pushes the `vX.Y.Z` tag, monitors the workflow run, and updates the release notes once the zip is published. The tag must match `manifest.json` exactly — CI fails fast otherwise.
+To cut a new release, run the `/release` skill. It bumps `manifest.json` + `package.json`, commits and pushes, drafts release notes from commits since the last tag for review, pushes the `vX.Y.Z` tag, monitors the workflow run, and updates the release notes once the zip is published. The tag must match `manifest.json` exactly — CI fails fast otherwise.
 
 Then run the `/publish-chrome-extension` skill. It downloads the release zip, compares the new package against the version the store already holds (the Web Store API reports it as `crxVersion`), uploads it, and submits it for review. Anything on the dashboard's Privacy practices or Store listing tabs — permission justifications, single purpose, store description — has to be edited there by hand: the API can neither read nor write it, so the repo deliberately keeps no copy of it.
 
