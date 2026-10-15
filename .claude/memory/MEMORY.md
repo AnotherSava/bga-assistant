@@ -124,7 +124,7 @@ Three sibling subprojects under a shared BGA workspace directory:
 - BGA `args.type` IDs: `"0"`=base, `"1"`=artifacts, `"2"`=cities, `"3"`=echoes, `"4"`=figures
 - `card_info.json` set IDs differ from BGA: 0=base, 1=figures, 2=cities, 3=echoes, 4=artifacts (historical convention from Python tracker)
 - Initial deal (2 base age 1 cards per player) is NOT logged as transfer notifications
-- Icons: `1=crown, 2=leaf, 3=lightbulb, 4=castle, 5=factory, 6=clock`, cities specials `8=whiteflag, 9=blackflag, 11=left, 12=right, 13=up, 14=plus`, echoes special `7=echo, 10=hexnote`, bonus-N encoded as `10N` (102..111)
+- Icons: `1=crown, 2=leaf, 3=lightbulb, 4=castle, 5=factory, 6=clock`, cities specials `8=whiteflag, 9=blackflag, 11=left, 12=right, 13=up, 14=plus`, echoes spot `10` = echo effect (BGA has no code 7; the card DB's `hexnote` has no BGA spot code of its own), bonus-N encoded as `10N` (102..111)
 - BGA shows game content to logged-out users — must check `#connect_status` element to detect login
 - Game URLs can be `/<N>/innovation?table=ID` (2 segments) — `fetch_full_history.js` handles both formats
 - Standard color order: BRGYP (B=0, R=1, G=2, Y=3, P=4) — used in sorting, display columns, card lists

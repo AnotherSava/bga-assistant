@@ -25,8 +25,8 @@ BGA_ICON = {
     "0": "hex", "1": "crown", "2": "leaf", "3": "lightbulb", "4": "castle", "5": "factory", "6": "clock",
     # Cities specials
     "8": "whiteflag", "9": "blackflag", "11": "left", "12": "right", "13": "up", "14": "plus",
-    # Echoes special
-    "7": "echo", "10": "hexnote",
+    # Echo effect: BGA renders spot 10 as the card's echo text, never as the music-note `hexnote`.
+    "10": "echo",
 }
 
 
