@@ -29,9 +29,9 @@ export default defineConfig({
     emptyOutDir: true,
     rollupOptions: {
       input: {
-        background: resolve(__dirname, "src/background.ts"),
-        extract: resolve(__dirname, "src/extract.ts"),
-        sidepanel: resolve(__dirname, "sidepanel.html"),
+        background: resolve(import.meta.dirname, "src/background.ts"),
+        extract: resolve(import.meta.dirname, "src/extract.ts"),
+        sidepanel: resolve(import.meta.dirname, "sidepanel.html"),
       },
       output: {
         entryFileNames: "[name].js",
@@ -54,13 +54,13 @@ export default defineConfig({
     {
       name: "copy-fonts",
       writeBundle() {
-        cpSync(resolve(__dirname, "assets/fonts"), resolve(__dirname, "dist/assets/fonts"), { recursive: true });
+        cpSync(resolve(import.meta.dirname, "assets/fonts"), resolve(import.meta.dirname, "dist/assets/fonts"), { recursive: true });
       },
     },
   ],
   resolve: {
     alias: {
-      "@": resolve(__dirname, "src"),
+      "@": resolve(import.meta.dirname, "src"),
     },
   },
   test: {
